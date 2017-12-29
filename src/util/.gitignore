@@ -1,0 +1,8 @@
+.deps
+.libs
+cleanupdelta
+cleanupdelta.exe
+testpkg
+testpkg.exe
+vercmp
+vercmp.exe
