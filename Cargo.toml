@@ -5,3 +5,4 @@ authors = ["Jacob Humphrey <jacob.ryan.humphrey@gmail.com>"]
 
 [dependencies]
 getopts = "0.2"
+libc = "0.2"

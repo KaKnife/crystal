@@ -198,17 +198,17 @@
 /** PGP signature verification options */
 #[derive(Default)]
 struct siglevel {
-	ALPM_SIG_PACKAGE :bool,
-	ALPM_SIG_PACKAGE_OPTIONAL :bool,
-	ALPM_SIG_PACKAGE_MARGINAL_OK :bool,
-	ALPM_SIG_PACKAGE_UNKNOWN_OK :bool,
+    ALPM_SIG_PACKAGE: bool,
+    ALPM_SIG_PACKAGE_OPTIONAL: bool,
+    ALPM_SIG_PACKAGE_MARGINAL_OK: bool,
+    ALPM_SIG_PACKAGE_UNKNOWN_OK: bool,
 
-	ALPM_SIG_DATABASE :bool,
-	ALPM_SIG_DATABASE_OPTIONAL :bool,
-	ALPM_SIG_DATABASE_MARGINAL_OK :bool,
-	ALPM_SIG_DATABASE_UNKNOWN_OK :bool,
+    ALPM_SIG_DATABASE: bool,
+    ALPM_SIG_DATABASE_OPTIONAL: bool,
+    ALPM_SIG_DATABASE_MARGINAL_OK: bool,
+    ALPM_SIG_DATABASE_UNKNOWN_OK: bool,
 
-	ALPM_SIG_USE_DEFAULT :bool
+    ALPM_SIG_USE_DEFAULT: bool,
 }
 //
 // /** PGP signature verification status return codes */
@@ -359,10 +359,10 @@ struct siglevel {
 /** Logging Levels */
 #[derive(Debug, Default)]
 pub struct loglevel {
-	pub ALPM_LOG_ERROR:bool,//    = 1,
-	pub ALPM_LOG_WARNING:bool,//  = (1 << 1),
-	pub ALPM_LOG_DEBUG:bool,//    = (1 << 2),
-	pub ALPM_LOG_FUNCTION:bool,// = (1 << 3)
+    pub ALPM_LOG_ERROR: bool,    //    = 1,
+    pub ALPM_LOG_WARNING: bool,  //  = (1 << 1),
+    pub ALPM_LOG_DEBUG: bool,    //    = (1 << 2),
+    pub ALPM_LOG_FUNCTION: bool, // = (1 << 3)
 }
 //
 // typedef void (*alpm_cb_log)(alpm_loglevel_t, const char *, va_list);
@@ -1462,43 +1462,31 @@ pub struct loglevel {
 //  * @{
 //  */
 //
-// /** Transaction flags */
-// typedef enum _alpm_transflag_t {
-// 	/** Ignore dependency checks. */
-// 	ALPM_TRANS_FLAG_NODEPS = 1,
-// 	/** Ignore file conflicts and overwrite files. */
-// 	ALPM_TRANS_FLAG_FORCE = (1 << 1),
-// 	/** Delete files even if they are tagged as backup. */
-// 	ALPM_TRANS_FLAG_NOSAVE = (1 << 2),
-// 	/** Ignore version numbers when checking dependencies. */
-// 	ALPM_TRANS_FLAG_NODEPVERSION = (1 << 3),
-// 	/** Remove also any packages depending on a package being removed. */
-// 	ALPM_TRANS_FLAG_CASCADE = (1 << 4),
-// 	/** Remove packages and their unneeded deps (not explicitly installed). */
-// 	ALPM_TRANS_FLAG_RECURSE = (1 << 5),
-// 	/** Modify database but do not commit changes to the filesystem. */
-// 	ALPM_TRANS_FLAG_DBONLY = (1 << 6),
-// 	/* (1 << 7) flag can go here */
-// 	/** Use ALPM_PKG_REASON_DEPEND when installing packages. */
-// 	ALPM_TRANS_FLAG_ALLDEPS = (1 << 8),
-// 	/** Only download packages and do not actually install. */
-// 	ALPM_TRANS_FLAG_DOWNLOADONLY = (1 << 9),
-// 	/** Do not execute install scriptlets after installing. */
-// 	ALPM_TRANS_FLAG_NOSCRIPTLET = (1 << 10),
-// 	/** Ignore dependency conflicts. */
-// 	ALPM_TRANS_FLAG_NOCONFLICTS = (1 << 11),
-// 	/* (1 << 12) flag can go here */
-// 	/** Do not install a package if it is already installed and up to date. */
-// 	ALPM_TRANS_FLAG_NEEDED = (1 << 13),
-// 	/** Use ALPM_PKG_REASON_EXPLICIT when installing packages. */
-// 	ALPM_TRANS_FLAG_ALLEXPLICIT = (1 << 14),
-// 	/** Do not remove a package if it is needed by another one. */
-// 	ALPM_TRANS_FLAG_UNNEEDED = (1 << 15),
-// 	/** Remove also explicitly installed unneeded deps (use with ALPM_TRANS_FLAG_RECURSE). */
-// 	ALPM_TRANS_FLAG_RECURSEALL = (1 << 16),
-// 	/** Do not lock the database during the operation. */
-// 	ALPM_TRANS_FLAG_NOLOCK = (1 << 17)
-// } alpm_transflag_t;
+
+
+/** Transaction flags */
+#[derive(Default, Debug)]
+pub struct alpm_transflag_t {
+    /** Ignore dependency checks. */ pub NODEPS: bool,
+    /** Ignore file conflicts and overwrite files. */ pub FORCE: bool,
+    /** Delete files even if they are tagged as backup. */ pub NOSAVE: bool,
+    /** Ignore version numbers when checking dependencies. */ pub NODEPVERSION: bool,
+    /** Remove also any packages depending on a package being removed. */ pub CASCADE: bool,
+    /** Remove packages and their unneeded deps (not explicitly installed). */ pub RECURSE: bool,
+    /** Modify database but do not commit changes to the filesystem. */ pub DBONLY: bool,
+    /* (1 << 7) flag can go here */
+    /** Use ALPM_PKG_REASON_DEPEND when installing packages. */ pub ALLDEPS: bool,
+    /** Only download packages and do not actually install. */ pub DOWNLOADONLY: bool,
+    /** Do not execute install scriptlets after installing. */ pub NOSCRIPTLET: bool,
+    /** Ignore dependency conflicts. */ pub NOCONFLICTS: bool,
+    /* (1 << 12) flag can go here */
+    /** Do not install a package if it is already installed and up to date. */ pub NEEDED: bool,
+    /** Use ALPM_PKG_REASON_EXPLICIT when installing packages. */ pub ALLEXPLICIT: bool,
+    /** Do not remove a package if it is needed by another one. */ pub UNNEEDED: bool,
+    /** Remove also explicitly installed unneeded deps (use with pub RECURSE). */
+    pub RECURSEALL: bool,
+    /** Do not lock the database during the operation. */ pub NOLOCK: bool,
+}
 //
 // /** Returns the bitfield of flags for the current transaction.
 //  * @param handle the context handle

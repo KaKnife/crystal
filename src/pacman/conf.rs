@@ -1,3 +1,5 @@
+use pacman::cleanup;
+use getopts;
 // /*
 //  *  conf.h
 //  *
@@ -22,17 +24,17 @@
 //
 // #include <alpm.h>
 //
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct colstr_t {
-	colon: String,
-	title: String,
-	repo: String,
-	version: String,
-	groups: String,
-	meta: String,
-	warn: String,
-	err: String,
-	nocolor: String,
+    colon: String,
+    title: String,
+    repo: String,
+    version: String,
+    groups: String,
+    meta: String,
+    warn: String,
+    err: String,
+    nocolor: String,
 }
 //
 // typedef struct __config_repo_t {
@@ -44,121 +46,118 @@ struct colstr_t {
 // } config_repo_t;
 //
 use super::alpm;
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct config_t {
-	pub op: Option<operations>,
-	pub quiet: u8,
-	pub verbose: u8,
-	pub version: bool,
-	pub help: bool,
-	pub noconfirm: u8,
-	pub noprogressbar: u8,
-	pub logmask: alpm::loglevel,
-	pub print: u8,
-	pub checkspace: u8,
-	pub usesyslog: u8,
-	pub color: u8,
-	pub disable_dl_timeout: u8,
-	pub deltaratio: f64,
-	pub rch: String,
-	pub rint_format: String,
-	/* unfortunately, we have to keep track of paths both here and in the library
-	 * because they can come from both the command line or config file, and we
-	 * need to ensure we get the order of preference right. */
-	pub configfile: String,
-	pub rootdir: String,
-	pub dbpath: String,
-	pub logfile: String,
-	pub gpgdir: String,
-	pub dysroot: String,
-	pub hookdirs: alpm_list_t,
-	pub cachedirs: alpm_list_t,
+    pub op: Option<operations>,
+    pub quiet: u8,
+    pub verbose: u8,
+    pub version: bool,
+    pub help: bool,
+    pub noconfirm: u8,
+    pub noprogressbar: u8,
+    pub logmask: alpm::loglevel,
+    pub print: u8,
+    pub checkspace: u8,
+    pub usesyslog: u8,
+    pub color: u8,
+    pub disable_dl_timeout: u8,
+    pub deltaratio: f64,
+    pub arch: String,
+    pub print_format: String,
+    /* unfortunately, we have to keep track of paths both here and in the library
+     * because they can come from both the command line or config file, and we
+     * need to ensure we get the order of preference right. */
+    pub configfile: String,
+    pub rootdir: String,
+    pub dbpath: String,
+    pub logfile: String,
+    pub gpgdir: String,
+    pub sysroot: String,
+    pub hookdirs: alpm_list_t,
+    pub cachedirs: alpm_list_t,
 
-	op_q_isfile: u8,
-	pub op_q_info: u8,
-	pub op_q_list: u8,
-	pub op_q_unrequired: u8,
-	pub op_q_deps: u8,
-	pub op_q_explicit: u8,
-	pub op_q_owns: u8,
-	pub op_q_search: u8,
-	pub op_q_changelog: u8,
-	pub op_q_upgrade: u8,
-	pub op_q_check: u8,
-	pub op_q_locality: u8,
+    pub op_q_isfile: u8,
+    pub op_q_info: u8,
+    pub op_q_list: u8,
+    pub op_q_unrequired: u8,
+    pub op_q_deps: u8,
+    pub op_q_explicit: u8,
+    pub op_q_owns: u8,
+    pub op_q_search: u8,
+    pub op_q_changelog: u8,
+    pub op_q_upgrade: u8,
+    pub op_q_check: u8,
+    pub op_q_locality: u8,
 
-	op_s_clean: u8,
-	pub op_s_downloadonly: u8,
-	pub op_s_info: u8,
-	pub op_s_sync: u8,
-	pub op_s_search: u8,
-	pub op_s_upgrade: u8,
+    pub op_s_clean: u8,
+    pub op_s_downloadonly: u8,
+    pub op_s_info: u8,
+    pub op_s_sync: u8,
+    pub op_s_search: u8,
+    pub op_s_upgrade: u8,
 
-	op_f_regex: u8,
-	pub op_f_machinereadable: u8,
+    pub op_f_regex: u8,
+    pub op_f_machinereadable: u8,
 
-	group: u8,
-	pub noask: u8,
-	pub ask: u64,
-	pub /* Bitfield of alpm_transflag_t */
-	flags: i64,
-	pub /* Bitfields of alpm_siglevel_t */
-	siglevel: i64,
-	pub localfilesiglevel: i64,
-	pub remotefilesiglevel: i64,
+    pub group: u8,
+    pub noask: u8,
+    pub ask: u64,
+    pub flags: alpm::alpm_transflag_t,
+    pub siglevel: i64,
+    pub localfilesiglevel: i64,
+    pub remotefilesiglevel: i64,
 
-	siglevel_mask: i64,
-	pub localfilesiglevel_mask: i64,
-	pub remotefilesiglevel_mask: i64,
+    siglevel_mask: i64,
+    pub localfilesiglevel_mask: i64,
+    pub remotefilesiglevel_mask: i64,
 
-	/* conf file options */
-	/* I Love Candy! */
-	chomp: u8,
-	pub /* format target pkg lists as table */
-	verbosepkglists: u8,
-	/* When downloading, display the amount downloaded, rate, ETA, and percent
-	 * downloaded of the total download list */
-	totaldownload: u8,
-	pub /* select -Sc behavior */
-	cleanmethod: u8,
-	pub holdpkg: alpm_list_t,
-	pub ignorepkg: alpm_list_t,
-	pub ignoregrp: alpm_list_t,
-	pub assumeinstalled: alpm_list_t,
-	pub noupgrade: alpm_list_t,
-	pub noextract: alpm_list_t,
-	pub overwrite_files: alpm_list_t,
-	pub xfercommand: String,
+    /* conf file options */
+    /* I Love Candy! */
+    chomp: u8,
+    pub verbosepkglists: u8,
+    /* When downloading, display the amount downloaded, rate, ETA, and percent
+     * downloaded of the total download list */
+    totaldownload: u8,
+    pub cleanmethod: u8,
+    pub holdpkg: alpm_list_t,
+    pub ignorepkg: alpm_list_t,
+    pub ignoregrp: alpm_list_t,
+    pub assumeinstalled: alpm_list_t,
+    pub noupgrade: alpm_list_t,
+    pub noextract: alpm_list_t,
+    pub overwrite_files: alpm_list_t,
+    pub xfercommand: String,
 
-	/* our connection to libalpm */
-	handle: alpm_handle_t,
+    /* our connection to libalpm */
+    handle: alpm_handle_t,
 
-	explicit_adds: alpm_list_t,
-	pub explicit_removes: alpm_list_t,
+    explicit_adds: alpm_list_t,
+    pub explicit_removes: alpm_list_t,
 
-	/* Color strings for output */
-	colstr: colstr_t,
+    /* Color strings for output */
+    colstr: colstr_t,
 
-	repos: alpm_list_t,
+    repos: alpm_list_t,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 ///TODO: Implement this
-pub struct alpm_handle_t{}
-#[derive(Default)]
+pub struct alpm_handle_t {}
+#[derive(Default, Debug)]
 ///TODO: Implement this
-pub struct alpm_list_t{}
+pub struct alpm_list_t {}
 //
 // /* Operations */
+#[derive(Debug)]
 pub enum operations {
-	PM_OP_MAIN = 1,
-	PM_OP_REMOVE,
-	PM_OP_UPGRADE,
-	PM_OP_QUERY,
-	PM_OP_SYNC,
-	PM_OP_DEPTEST,
-	PM_OP_DATABASE,
-	PM_OP_FILES
+    PM_OP_MAIN = 1,
+    PM_OP_REMOVE,
+    PM_OP_UPGRADE,
+    PM_OP_QUERY,
+    PM_OP_SYNC,
+    PM_OP_DEPTEST,
+    PM_OP_DATABASE,
+    PM_OP_FILES,
 }
 //
 // /* Long Operations */
@@ -228,12 +227,12 @@ pub enum operations {
 // 	PM_CLEAN_KEEPCUR = (1 << 1)
 // };
 //
-// /** package locality */
-// enum {
-// 	PKG_LOCALITY_UNSET = 0,
-// 	PKG_LOCALITY_NATIVE = (1 << 0),
-// 	PKG_LOCALITY_FOREIGN = (1 << 1)
-// };
+/** package locality */
+
+pub static PKG_LOCALITY_UNSET: u8 = 0;
+pub static PKG_LOCALITY_NATIVE: u8 = (1 << 0);
+pub static PKG_LOCALITY_FOREIGN: u8 = (1 << 1);
+
 //
 // enum {
 // 	PM_COLOR_UNSET = 0,
@@ -275,6 +274,16 @@ pub enum operations {
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+ fn invalid_opt(used: bool, _opt1: &str, _opt2: &str) {
+     if used {
+         unimplemented!();
+         // pm_printf(ALPM_LOG_ERROR,
+         // 		_("invalid option: '%s' and '%s' may not be used together\n"),
+         // 		opt1, opt2);
+         cleanup(1);
+     }
+ }
 
 // #include <errno.h>
 // #include <limits.h>
@@ -348,40 +357,681 @@ pub enum operations {
 // 	}
 // }
 //
-impl config_t{
-pub fn new() -> config_t
-{
-	let mut newconfig = config_t::default();
+impl config_t {
+    pub fn new() -> config_t {
+        let mut newconfig = config_t::default();
 
-	/* defaults which may get overridden later */
-	newconfig.op = Some(operations::PM_OP_MAIN);
-	// newconfig.logmask = ALPM_LOG_ERROR | ALPM_LOG_WARNING;
-	newconfig.logmask.ALPM_LOG_ERROR = true;
-	newconfig.logmask.ALPM_LOG_WARNING = true;
-	// newconfig.configfile = strdup(CONFFILE);//TODO: implement this
-	newconfig.deltaratio = 0.0;
-	//TODO: implement this
-	// if(alpm_capabilities() & ALPM_CAPABILITY_SIGNATURES) {
-	// 	newconfig.siglevel = ALPM_SIG_PACKAGE | ALPM_SIG_PACKAGE_OPTIONAL |
-	// 		ALPM_SIG_DATABASE | ALPM_SIG_DATABASE_OPTIONAL;
-	// 	newconfig.localfilesiglevel = ALPM_SIG_USE_DEFAULT;
-	// 	newconfig.remotefilesiglevel = ALPM_SIG_USE_DEFAULT;
-	// }
+        /* defaults which may get overridden later */
+        newconfig.op = Some(operations::PM_OP_MAIN);
+        // newconfig.logmask = ALPM_LOG_ERROR | ALPM_LOG_WARNING;
+        newconfig.logmask.ALPM_LOG_ERROR = true;
+        newconfig.logmask.ALPM_LOG_WARNING = true;
+        // newconfig.configfile = strdup(CONFFILE);//TODO: implement this
+        newconfig.deltaratio = 0.0;
+        //TODO: implement this
+        // if(alpm_capabilities() & ALPM_CAPABILITY_SIGNATURES) {
+        // 	newconfig.siglevel = ALPM_SIG_PACKAGE | ALPM_SIG_PACKAGE_OPTIONAL |
+        // 		ALPM_SIG_DATABASE | ALPM_SIG_DATABASE_OPTIONAL;
+        // 	newconfig.localfilesiglevel = ALPM_SIG_USE_DEFAULT;
+        // 	newconfig.remotefilesiglevel = ALPM_SIG_USE_DEFAULT;
+        // }
 
-	newconfig.colstr.colon   = String::from(":: ");
-	newconfig.colstr.title   = String::new();
-	newconfig.colstr.repo    = String::new();
-	newconfig.colstr.version = String::new();
-	newconfig.colstr.groups  = String::new();
-	newconfig.colstr.meta    = String::new();
-	newconfig.colstr.warn    = String::new();
-	newconfig.colstr.err     = String::new();
-	newconfig.colstr.nocolor = String::new();
+        newconfig.colstr.colon = String::from(":: ");
+        newconfig.colstr.title = String::new();
+        newconfig.colstr.repo = String::new();
+        newconfig.colstr.version = String::new();
+        newconfig.colstr.groups = String::new();
+        newconfig.colstr.meta = String::new();
+        newconfig.colstr.warn = String::new();
+        newconfig.colstr.err = String::new();
+        newconfig.colstr.nocolor = String::new();
 
-	return newconfig;
+        return newconfig;
+    }
+
+    /** Parse command-line arguments for each operation.
+     * @param argc argc
+     * @param argv argv
+     * @return 0 on success, 1 on error
+     */
+    pub fn parseargs(&mut self, argv: Vec<String>) -> i32 {
+        let mut opts = getopts::Options::new();
+        {
+            opts.optflag("D", "--database", "");
+            opts.optflag("F", "--files", "");
+            opts.optflag("Q", "--query", "");
+            opts.optflag("R", "--remove", "");
+            opts.optflag("S", "--sync", "");
+            opts.optflag("T", "--deptest", ""); /* used by makepkg */
+            opts.optflag("U", "--upgrade", "");
+            opts.optflag("V", "--version", "");
+            opts.optflag("H", "--help", "");
+
+            opts.optopt("b", "dbpath", "", "");
+            opts.optflag("c", "cascade", "");
+            opts.optflag("c", "changelog", "");
+            opts.optflag("c", "clean", "");
+            opts.optflag("d", "nodeps", "");
+            opts.optflag("d", "deps", "");
+            opts.optflag("e", "explicit", "");
+            opts.optflag("g", "groups", "");
+            opts.optflag("i", "info", "");
+            opts.optflag("k", "check", "");
+            opts.optflag("l", "list", "");
+            opts.optflag("m", "foreign", "");
+            opts.optflag("n", "native", "");
+            opts.optflag("n", "nosave", "");
+            opts.optflag("o", "owns", "");
+            opts.optflag("p", "file", "");
+            opts.optflag("p", "print", "");
+            opts.optflag("q", "quiet", "");
+            opts.optopt("r", "root", "", "");
+            opts.optopt("", "sysroot", "", "");
+            opts.optflag("s", "recursive", "");
+            opts.optflag("s", "search", "");
+            opts.optflag("x", "regex", "");
+            opts.optflag("", "machinereadable", "");
+            opts.optflag("t", "unrequired", "");
+            opts.optflag("u", "upgrades", "");
+            opts.optflag("u", "sysupgrade", "");
+            opts.optflag("u", "unneeded", "");
+            opts.optflag("v", "verbose", "");
+            opts.optflag("w", "downloadonly", "");
+            opts.optflag("y", "refresh", "");
+            opts.optflag("", "noconfirm", "");
+            opts.optflag("", "confirm", "");
+            opts.optopt("", "config", "", "");
+            opts.optopt("", "ignore", "", "");
+            opts.optopt("", "assume-installed", "", "");
+            opts.optflagopt("", "debug", "", "");
+            opts.optflag("", "force", "");
+            opts.optopt("", "overwrite", "", "");
+            opts.optflag("", "noprogressbar", "");
+            opts.optflag("", "noscriptlet", "");
+            opts.optopt("", "ask", "", "");
+            opts.optopt("", "cachedir", "", "");
+            opts.optopt("", "hookdir", "", "");
+            opts.optflag("", "asdeps", "");
+            opts.optopt("", "logfile", "", "");
+            opts.optopt("", "ignoregroup", "", "");
+            opts.optflag("", "needed", "");
+            opts.optflag("", "asexplicit", "");
+            opts.optopt("", "arch", "", "");
+            opts.optopt("", "print-format", "", "");
+            opts.optopt("", "gpgdir", "", "");
+            opts.optopt("", "dbonly", "", "");
+            opts.optopt("", "color", "", "");
+            opts.optflag("", "disable-download-timeout", "");
+        }
+
+        /* parse operation */
+        let matches = match opts.parse(&argv[1..]) {
+            Ok(m) => m,
+            Err(f) => {
+                println!("{:?}", f);
+                return 1;
+            }
+        };
+        // println!("{:?}", matches.free);
+        let pm_targets = &matches.free;
+        self.parsearg_op(&matches);
+        self.parsearg_global(&matches);
+        // println!("{:?}", self);
+
+        if self.op.is_none() {
+            unimplemented!();
+            // pm_printf(ALPM_LOG_ERROR, _("only one operation may be used at a time\n"));
+            return 1;
+        }
+        if self.help {
+            unimplemented!();
+            // usage(self.op, mbasename(argv[0]));
+            cleanup(0);
+        }
+        if self.version {
+            unimplemented!();
+            // version();
+            cleanup(0);
+        }
+
+        use self::operations::*;
+        match &self.op {
+            &Some(PM_OP_DATABASE) => {
+                self.parsearg_database(&matches);
+                self.checkargs_database();
+            }
+            &Some(PM_OP_QUERY) => {
+                self.parsearg_query(&matches);
+                self.checkargs_query();
+            }
+            &Some(PM_OP_REMOVE) => {
+                self.parsearg_remove(&matches);
+                self.checkargs_remove();
+            }
+            &Some(PM_OP_SYNC) => {
+                self.parsearg_sync(&matches);
+                self.checkargs_sync();
+            }
+            &Some(PM_OP_UPGRADE) => {
+                self.parsearg_upgrade(&matches);
+                self.checkargs_upgrade();
+            }
+            &Some(PM_OP_FILES) => {
+                self.parsearg_files(&matches);
+                self.checkargs_files();
+            }
+            _ => {}
+        }
+
+        return 0;
+    }
+
+    // static int parsearg_util_addlist(alpm_list_t **list)
+    // {
+    // 	char *i, *save = NULL;
+    //
+    // 	for(i = strtok_r(optarg, ",", &save); i; i = strtok_r(NULL, ",", &save)) {
+    // 		*list = alpm_list_add(*list, strdup(i));
+    // 	}
+    //
+    // 	return 0;
+    // }
+
+    /** Helper function for parsing operation from command-line arguments.
+     * @param opt Keycode returned by getopt_long
+     * @param dryrun If nonzero, application state is NOT changed
+     * @return 0 if opt was handled, 1 if it was not handled
+     */
+    // fn parsearg_op(int opt, int dryrun) -> i64
+    fn parsearg_op(&mut self, opts: &getopts::Matches) -> i64 {
+        use self::operations::*;
+        /* operations */
+        if opts.opt_present("D") {
+            //if(dryrun) break;
+            self.op = match self.op {
+                Some(PM_OP_MAIN) => Some(PM_OP_DATABASE),
+                _ => None,
+            }
+        } else if opts.opt_present("F") {
+            //if(dryrun) break;
+            self.op = match self.op {
+                Some(PM_OP_MAIN) => Some(PM_OP_FILES),
+                _ => None,
+            };
+        } else if opts.opt_present("Q") {
+            //if(dryrun) break;
+            self.op = match self.op {
+                Some(PM_OP_MAIN) => Some(PM_OP_QUERY),
+                _ => None,
+            };
+        } else if opts.opt_present("R") {
+            //if(dryrun) break;
+            self.op = match self.op {
+                Some(PM_OP_MAIN) => Some(PM_OP_REMOVE),
+                _ => None,
+            };
+        } else if opts.opt_present("S") {
+            //if(dryrun) break;
+            self.op = match self.op {
+                Some(PM_OP_MAIN) => Some(PM_OP_SYNC),
+                _ => None,
+            };
+        } else if opts.opt_present("T") {
+            //if(dryrun) break;
+            self.op = match self.op {
+                Some(PM_OP_MAIN) => Some(PM_OP_DEPTEST),
+                _ => None,
+            };
+        } else if opts.opt_present("U") {
+            //if(dryrun) break;
+            self.op = match self.op {
+                Some(PM_OP_MAIN) => Some(operations::PM_OP_UPGRADE),
+                _ => None,
+            };
+        } else if opts.opt_present("V") {
+            //if(dryrun) break;
+            self.version = true;
+        } else if opts.opt_present("h") {
+            //if(dryrun) break;
+            self.help = true;
+        } else {
+            return 1;
+        }
+        return 0;
+    }
+
+    /** Helper functions for parsing command-line arguments.
+     * @param opt Keycode returned by getopt_long
+     * @return 0 on success, 1 on failure
+     */
+    fn parsearg_global(&mut self, opts: &getopts::Matches) -> i8 {
+        if opts.opt_present("arch") {
+            unimplemented!();
+            // self_set_arch(opts.opt_str("arch").unwrap());
+        }
+        if opts.opt_present("ask") {
+            self.noask = 1;
+            self.ask = opts.opt_str("ask")
+                .unwrap()
+                .parse()
+                .expect("--ask requires a number argument");
+        }
+        if opts.opt_present("cachedir") {
+            unimplemented!()
+            // self.cachedirs = alpm_list_add(self.cachedirs, strdup(opts.opt_str("cachedir")));
+        }
+        if opts.opt_present("color") {
+            unimplemented!();
+            let optarg = opts.opt_str("color").unwrap();
+            if "never" == optarg {
+                // self.color = PM_COLOR_OFF;
+            } else if "auto" == optarg {
+                // self.color = isatty(fileno(stdout)) ? PM_COLOR_ON : PM_COLOR_OFF;
+            } else if "always" == optarg {
+                // self.color = PM_COLOR_ON;
+            } else {
+                // pm_printf(ALPM_LOG_ERROR, _("invalid argument '%s' for %s\n"),
+                // 		optarg, "--color");
+                return 1;
+            }
+            // enable_colors(self.color);
+        }
+        if opts.opt_present("config") {
+            self.configfile = opts.opt_str("config").unwrap();
+        }
+        if opts.opt_present("debug") {
+            /* debug levels are made more 'human readable' than using a raw logmask
+             * here, error and warning are set in self_new, though perhaps a
+             * --quiet option will remove these later */
+            match opts.opt_str("debug") {
+                Some(d) => {
+                    let debug = d.parse().unwrap();
+                    match debug {
+                        2 => {
+                            self.logmask.ALPM_LOG_FUNCTION = true; /* fall through */
+                            self.logmask.ALPM_LOG_DEBUG = true;
+                        }
+                        1 => self.logmask.ALPM_LOG_DEBUG = true,
+                        _ => {
+                            unimplemented!();
+                            // pm_printf(ALPM_LOG_ERROR, _("'%s' is not a valid debug level\n"),
+                            // optarg);
+                            return 1;
+                        }
+                    }
+                }
+                None => {
+                    self.logmask.ALPM_LOG_DEBUG = true;
+                }
+            }
+            /* progress bars get wonky with debug on, shut them off */
+            self.noprogressbar = 1;
+        }
+        if opts.opt_present("gpgdir") {
+            self.gpgdir = opts.opt_str("gpgdir").unwrap();
+        }
+        if opts.opt_present("hookdir") {
+            unimplemented!();
+            // 		self.hookdirs = alpm_list_add(self.hookdirs, strdup(optarg));
+        }
+        if opts.opt_present("logfile") {
+            self.logfile = opts.opt_str("logfile").unwrap();
+        }
+        if opts.opt_present("noconfirm") {
+            self.noconfirm = 1;
+        }
+        if opts.opt_present("confirm") {
+            self.noconfirm = 0;
+        }
+        if opts.opt_present("dbpath") {
+            self.dbpath = opts.opt_str("dbpath").unwrap();
+        }
+        if opts.opt_present("root") {
+            self.rootdir = opts.opt_str("rootdir").unwrap();
+        }
+        if opts.opt_present("sysroot") {
+            self.sysroot = opts.opt_str("sysroot").unwrap();
+        }
+        if opts.opt_present("disable-download-timeout") {
+            self.disable_dl_timeout = 1;
+        }
+        if opts.opt_present("verbose") {
+            self.verbose = opts.opt_count("verbose") as u8;
+        }
+        return 0;
+    }
+
+    fn parsearg_database(&mut self, opts: &getopts::Matches) {
+        if opts.opt_present("asdeps") {
+            self.flags.ALLDEPS = true;
+        }
+        if opts.opt_present("asexplicit") {
+            self.flags.ALLEXPLICIT = true;
+        }
+        if opts.opt_present("check") {
+            self.op_q_check = opts.opt_count("check") as u8;
+        }
+        if opts.opt_present("check") {
+            self.quiet = 1;
+        }
+    }
+
+    fn checkargs_database(&mut self) {
+        invalid_opt(
+            self.flags.ALLDEPS && self.flags.ALLEXPLICIT,
+            "--asdeps",
+            "--asexplicit",
+        );
+
+        if self.op_q_check != 0 {
+            invalid_opt(self.flags.ALLDEPS, "--asdeps", "--check");
+            invalid_opt(self.flags.ALLEXPLICIT, "--asexplicit", "--check");
+        }
+    }
+
+    fn parsearg_query(&mut self, opts: &getopts::Matches) {
+        if opts.opt_present("changelog") {
+            self.op_q_changelog = 1;
+        }
+        if opts.opt_present("deps") {
+            self.op_q_deps = 1;
+        }
+        if opts.opt_present("explicit") {
+            self.op_q_explicit = 1;
+        }
+        if opts.opt_present("groups") {
+            self.group = opts.opt_count("groups") as u8;
+        }
+        if opts.opt_present("info") {
+            self.op_q_info = opts.opt_count("info") as u8;
+        }
+        if opts.opt_present("check") {
+            self.op_q_check = opts.opt_count("check") as u8;
+        }
+        if opts.opt_present("list") {
+            self.op_q_list = 1;
+        }
+        if opts.opt_present("foreign") {
+            self.op_q_locality |= PKG_LOCALITY_FOREIGN;
+        }
+        if opts.opt_present("native") {
+            self.op_q_locality |= PKG_LOCALITY_NATIVE;
+        }
+        if opts.opt_present("owns") {
+            self.op_q_owns = 1;
+        }
+        if opts.opt_present("file") {
+            self.op_q_isfile = 1;
+        }
+        if opts.opt_present("quiet") {
+            self.quiet = 1;
+        }
+        if opts.opt_present("search") {
+            self.op_q_search = 1;
+        }
+        if opts.opt_present("unrequired") {
+            self.op_q_unrequired = opts.opt_count("unrequired") as u8;
+        }
+        if opts.opt_present("upgrades") {
+            self.op_q_upgrade = 1;
+        }
+    }
+
+    fn checkargs_query_display_opts(&mut self, opname: &str) {
+        invalid_opt(self.op_q_changelog != 0, opname, "--changelog");
+        invalid_opt(self.op_q_check != 0, opname, "--check");
+        invalid_opt(self.op_q_info != 0, opname, "--info");
+        invalid_opt(self.op_q_list != 0, opname, "--list");
+    }
+
+    fn checkargs_query_filter_opts(&mut self, opname: &str, ) {
+        invalid_opt(self.op_q_deps != 0, opname, "--deps");
+        invalid_opt(self.op_q_explicit != 0, opname, "--explicit");
+        invalid_opt(self.op_q_upgrade != 0, opname, "--upgrade");
+        invalid_opt(self.op_q_unrequired != 0, opname, "--unrequired");
+        invalid_opt(
+            self.op_q_locality & PKG_LOCALITY_NATIVE != 0,
+            opname,
+            "--native",
+        );
+        invalid_opt(
+            self.op_q_locality & PKG_LOCALITY_FOREIGN != 0,
+            opname,
+            "--foreign",
+        );
+    }
+
+    fn checkargs_query(&mut self) {
+        if self.op_q_isfile != 0 {
+            invalid_opt(self.group != 0, "--file", "--groups");
+            invalid_opt(self.op_q_search != 0, "--file", "--search");
+            invalid_opt(self.op_q_owns != 0, "--file", "--owns");
+        } else if self.op_q_search != 0 {
+            invalid_opt(self.group != 0, "--search", "--groups");
+            invalid_opt(self.op_q_owns != 0, "--search", "--owns");
+            self.checkargs_query_display_opts("--search");
+            self.checkargs_query_filter_opts("--search");
+        } else if self.op_q_owns != 0 {
+            invalid_opt(self.group != 0, "--owns", "--groups");
+            self.checkargs_query_display_opts("--owns");
+            self.checkargs_query_filter_opts("--owns");
+        } else if self.group != 0 {
+            self.checkargs_query_display_opts("--groups");
+        }
+
+        invalid_opt(
+            self.op_q_deps != 0 && self.op_q_explicit != 0,
+            "--deps",
+            "--explicit",
+        );
+        invalid_opt(
+            (self.op_q_locality & PKG_LOCALITY_NATIVE != 0)
+                && (self.op_q_locality & PKG_LOCALITY_FOREIGN != 0),
+            "--native",
+            "--foreign",
+        );
+    }
+
+    /* options common to -S -R -U */
+    fn parsearg_trans(&mut self, opts: &getopts::Matches) {
+        if opts.opt_present("nodeps") {
+            if self.flags.NODEPVERSION {
+                self.flags.NODEPS = true;
+            } else {
+                self.flags.NODEPVERSION = true;
+            }
+        }
+        if opts.opt_present("dbonly") {
+            self.flags.DBONLY = true;
+            self.flags.NOSCRIPTLET = true;
+        }
+        if opts.opt_present("noprogressbar") {
+            self.noprogressbar = 1;
+        }
+        if opts.opt_present("noscriptlet") {
+            self.flags.NOSCRIPTLET = true;
+        }
+        if opts.opt_present("print") {
+            self.print = 1;
+        }
+        if opts.opt_present("print-format") {
+            self.print = 1;
+            self.print_format = opts.opt_str("print-format").unwrap();
+        }
+        if opts.opt_present("assume-installed") {
+            unimplemented!();
+            // parsearg_util_addlist(&(self.assumeinstalled));
+        }
+    }
+
+    fn checkargs_trans(&mut self) {
+        if self.print != 0 {
+            invalid_opt(self.flags.DBONLY, "--print", "--dbonly");
+            invalid_opt(self.flags.NOSCRIPTLET, "--print", "--noscriptlet");
+        }
+    }
+
+    fn parsearg_remove(&mut self, opts: &getopts::Matches) {
+        self.parsearg_trans(opts);
+
+        if opts.opt_present("cascade") {
+            self.flags.CASCADE = true;
+        }
+        if opts.opt_present("nosave") {
+            self.flags.NOSAVE = true;
+        }
+        if opts.opt_present("recursive") {
+            if self.flags.RECURSE {
+                self.flags.RECURSEALL = true;
+            } else {
+                self.flags.RECURSE = true;
+            }
+        }
+        if opts.opt_present("unneeded") {
+            self.flags.UNNEEDED = true;
+        }
+    }
+
+    fn checkargs_remove(&mut self) {
+        self.checkargs_trans();
+        if self.flags.NOSAVE {
+            invalid_opt(self.print != 0, "--nosave", "--print");
+            invalid_opt(self.flags.DBONLY, "--nosave", "--dbonly");
+        }
+    }
+
+    /* options common to -S -U */
+    fn parsearg_upgrade(&mut self, opts: &getopts::Matches) {
+        self.parsearg_trans(opts);
+
+
+        if opts.opt_present("force") {
+            self.flags.FORCE = true;
+        }
+        if opts.opt_present("overwrite") {
+            unimplemented!();
+            // parsearg_util_addlist(&(self.overwrite_files));
+        }
+        if opts.opt_present("asdeps") {
+            self.flags.ALLDEPS = true;
+        }
+        if opts.opt_present("asexplicit") {
+            self.flags.ALLEXPLICIT = true;
+        }
+        if opts.opt_present("needed") {
+            self.flags.NEEDED = true;
+        }
+    }
+
+    fn checkargs_upgrade(&mut self) {
+        self.checkargs_trans();
+        invalid_opt(
+            self.flags.ALLDEPS && self.flags.ALLEXPLICIT,
+            "--asdeps",
+            "--asexplicit",
+        );
+    }
+
+    fn parsearg_files(&mut self, opts: &getopts::Matches) {
+        self.parsearg_trans(opts);
+
+        if opts.opt_present("owns") {
+            self.op_q_owns = 1;
+        }
+        if opts.opt_present("list") {
+            self.op_q_list = 1;
+        }
+        if opts.opt_present("search") {
+            self.op_s_search = 1;
+        }
+        if opts.opt_present("refresh") {
+            self.op_s_sync = opts.opt_count("refresh") as u8;
+        }
+        if opts.opt_present("machinereadable") {
+            self.op_f_machinereadable = 1;
+        }
+        if opts.opt_present("quiet") {
+            self.quiet = 1;
+        }
+    }
+
+    fn checkargs_files(&mut self) {
+        if self.op_q_owns != 0 {
+            invalid_opt(self.op_q_list != 0, "--owns", "--list");
+            invalid_opt(self.op_q_search != 0, "--owns", "--search");
+            invalid_opt(self.op_f_regex != 0, "--owns", "--regex");
+        } else if self.op_q_list != 0 {
+            invalid_opt(self.op_q_search != 0, "--list", "--search");
+            invalid_opt(self.op_f_regex != 0, "--list", "--regex");
+        }
+    }
+
+    fn parsearg_sync(&mut self, opts: &getopts::Matches) {
+        self.parsearg_upgrade(opts);
+
+        if opts.opt_present("clean") {
+            self.op_s_clean = opts.opt_count("clean") as u8;
+        }
+        if opts.opt_present("groups") {
+            self.group = opts.opt_count("groups") as u8;
+        }
+        if opts.opt_present("info") {
+            self.op_s_info = opts.opt_count("info") as u8;
+        }
+        if opts.opt_present("list") {
+            self.op_q_list = 1;
+        }
+        if opts.opt_present("quiet") {
+            self.quiet = 1;
+        }
+        if opts.opt_present("search") {
+            self.op_s_search = 1;
+        }
+        if opts.opt_present("sysupgrade") {
+            self.op_s_upgrade = opts.opt_count("sysupgrade") as u8;
+        }
+        if opts.opt_present("downloadonly") {
+            self.op_s_downloadonly = 1;
+            self.flags.DOWNLOADONLY = true;
+            self.flags.NOCONFLICTS = true;
+        }
+        if opts.opt_present("refresh") {
+            self.op_s_sync = opts.opt_count("refresh") as u8;
+        }
+    }
+
+    fn checkargs_sync(&mut self) {
+        self.checkargs_upgrade();
+        if self.op_s_clean != 0 {
+            invalid_opt(self.group != 0, "--clean", "--groups");
+            invalid_opt(self.op_s_info != 0, "--clean", "--info");
+            invalid_opt(self.op_q_list != 0, "--clean", "--list");
+            invalid_opt(self.op_s_sync != 0, "--clean", "--refresh");
+            invalid_opt(self.op_s_search != 0, "--clean", "--search");
+            invalid_opt(self.op_s_upgrade != 0, "--clean", "--sysupgrade");
+            invalid_opt(self.op_s_downloadonly != 0, "--clean", "--downloadonly");
+        } else if self.op_s_info != 0 {
+            invalid_opt(self.group != 0, "--info", "--groups");
+            invalid_opt(self.op_q_list != 0, "--info", "--list");
+            invalid_opt(self.op_s_search != 0, "--info", "--search");
+            invalid_opt(self.op_s_upgrade != 0, "--info", "--sysupgrade");
+            invalid_opt(self.op_s_downloadonly != 0, "--info", "--downloadonly");
+        } else if self.op_s_search != 0 {
+            invalid_opt(self.group != 0, "--search", "--groups");
+            invalid_opt(self.op_q_list != 0, "--search", "--list");
+            invalid_opt(self.op_s_upgrade != 0, "--search", "--sysupgrade");
+            invalid_opt(self.op_s_downloadonly != 0, "--search", "--downloadonly");
+        } else if self.op_q_list != 0 {
+            invalid_opt(self.group != 0, "--list", "--groups");
+            invalid_opt(self.op_s_upgrade != 0, "--list", "--sysupgrade");
+            invalid_opt(self.op_s_downloadonly != 0, "--list", "--downloadonly");
+        } else if self.group != 0 {
+            invalid_opt(self.op_s_upgrade != 0, "--groups", "--sysupgrade");
+            invalid_opt(self.op_s_downloadonly != 0, "--groups", "--downloadonly");
+        }
+    }
 }
-}
-//
+
 // int config_free(config_t *oldconfig)
 // {
 // 	if(oldconfig == NULL) {
@@ -1279,7 +1929,8 @@ pub fn new() -> config_t
 // 	}
 //
 // 	if(section->name == NULL) {
-// 		pm_printf(ALPM_LOG_ERROR, _("config file %s, line %d: All directives must belong to a section.\n"),
+// 		pm_printf(ALPM_LOG_ERROR,
+//              _("config file %s, line %d: All directives must belong to a section.\n"),
 // 				file, linenum);
 // 		return 1;
 // 	}
