@@ -1,3 +1,4 @@
+use pacman::alpm::*;
 use pacman::cleanup;
 use getopts;
 // /*
@@ -25,7 +26,7 @@ use getopts;
 // #include <alpm.h>
 //
 #[derive(Default, Debug)]
-struct colstr_t {
+pub struct colstr_t {
     colon: String,
     title: String,
     repo: String,
@@ -49,14 +50,14 @@ use super::alpm;
 #[derive(Default, Debug)]
 pub struct config_t {
     pub op: Option<operations>,
-    pub quiet: u8,
+    pub quiet: bool,
     pub verbose: u8,
     pub version: bool,
     pub help: bool,
-    pub noconfirm: u8,
+    pub noconfirm: bool,
     pub noprogressbar: u8,
     pub logmask: alpm::loglevel,
-    pub print: u8,
+    pub print: bool,
     pub checkspace: u8,
     pub usesyslog: u8,
     pub color: u8,
@@ -100,24 +101,24 @@ pub struct config_t {
     pub op_f_machinereadable: u8,
 
     pub group: u8,
-    pub noask: u8,
+    pub noask: bool,
     pub ask: u64,
     pub flags: alpm::alpm_transflag_t,
     pub siglevel: i64,
     pub localfilesiglevel: i64,
     pub remotefilesiglevel: i64,
 
-    siglevel_mask: i64,
+    pub siglevel_mask: i64,
     pub localfilesiglevel_mask: i64,
     pub remotefilesiglevel_mask: i64,
 
     /* conf file options */
     /* I Love Candy! */
-    chomp: u8,
+    pub chomp: u8,
     pub verbosepkglists: u8,
     /* When downloading, display the amount downloaded, rate, ETA, and percent
      * downloaded of the total download list */
-    totaldownload: u8,
+    pub totaldownload: u8,
     pub cleanmethod: u8,
     pub holdpkg: alpm_list_t,
     pub ignorepkg: alpm_list_t,
@@ -129,23 +130,18 @@ pub struct config_t {
     pub xfercommand: String,
 
     /* our connection to libalpm */
-    handle: alpm_handle_t,
+    pub handle: alpm_handle_t,
 
-    explicit_adds: alpm_list_t,
+    pub explicit_adds: alpm_list_t,
     pub explicit_removes: alpm_list_t,
 
     /* Color strings for output */
-    colstr: colstr_t,
+    pub colstr: colstr_t,
 
-    repos: alpm_list_t,
+    pub repos: alpm_list_t,
 }
 
-#[derive(Default, Debug)]
-///TODO: Implement this
-pub struct alpm_handle_t {}
-#[derive(Default, Debug)]
-///TODO: Implement this
-pub struct alpm_list_t {}
+
 //
 // /* Operations */
 #[derive(Debug)]
@@ -159,68 +155,6 @@ pub enum operations {
     PM_OP_DATABASE,
     PM_OP_FILES,
 }
-//
-// /* Long Operations */
-// enum {
-// 	OP_LONG_FLAG_MIN = 1000,
-// 	OP_NOCONFIRM,
-// 	OP_CONFIRM,
-// 	OP_CONFIG,
-// 	OP_IGNORE,
-// 	OP_DEBUG,
-// 	OP_NOPROGRESSBAR,
-// 	OP_NOSCRIPTLET,
-// 	OP_ASK,
-// 	OP_CACHEDIR,
-// 	OP_HOOKDIR,
-// 	OP_ASDEPS,
-// 	OP_LOGFILE,
-// 	OP_IGNOREGROUP,
-// 	OP_NEEDED,
-// 	OP_ASEXPLICIT,
-// 	OP_ARCH,
-// 	OP_PRINTFORMAT,
-// 	OP_GPGDIR,
-// 	OP_DBONLY,
-// 	OP_FORCE,
-// 	OP_OVERWRITE_FILES,
-// 	OP_COLOR,
-// 	OP_DBPATH,
-// 	OP_CASCADE,
-// 	OP_CHANGELOG,
-// 	OP_CLEAN,
-// 	OP_NODEPS,
-// 	OP_DEPS,
-// 	OP_EXPLICIT,
-// 	OP_GROUPS,
-// 	OP_HELP,
-// 	OP_INFO,
-// 	OP_CHECK,
-// 	OP_LIST,
-// 	OP_FOREIGN,
-// 	OP_NATIVE,
-// 	OP_NOSAVE,
-// 	OP_OWNS,
-// 	OP_FILE,
-// 	OP_PRINT,
-// 	OP_QUIET,
-// 	OP_ROOT,
-// 	OP_SYSROOT,
-// 	OP_RECURSIVE,
-// 	OP_SEARCH,
-// 	OP_REGEX,
-// 	OP_MACHINEREADABLE,
-// 	OP_UNREQUIRED,
-// 	OP_UPGRADES,
-// 	OP_SYSUPGRADE,
-// 	OP_UNNEEDED,
-// 	OP_VERBOSE,
-// 	OP_DOWNLOADONLY,
-// 	OP_REFRESH,
-// 	OP_ASSUMEINSTALLED,
-// 	OP_DISABLEDLTIMEOUT
-// };
-//
 // /* clean method */
 // enum {
 // 	PM_CLEAN_KEEPINST = 1,
@@ -275,15 +209,15 @@ pub static PKG_LOCALITY_FOREIGN: u8 = (1 << 1);
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- fn invalid_opt(used: bool, _opt1: &str, _opt2: &str) {
-     if used {
-         unimplemented!();
-         // pm_printf(ALPM_LOG_ERROR,
-         // 		_("invalid option: '%s' and '%s' may not be used together\n"),
-         // 		opt1, opt2);
-         cleanup(1);
-     }
- }
+fn invalid_opt(used: bool, _opt1: &str, _opt2: &str) {
+    if used {
+        unimplemented!();
+        // pm_printf(ALPM_LOG_ERROR,
+        // 		_("invalid option: '%s' and '%s' may not be used together\n"),
+        // 		opt1, opt2);
+        cleanup(1);
+    }
+}
 
 // #include <errno.h>
 // #include <limits.h>
@@ -363,7 +297,6 @@ impl config_t {
 
         /* defaults which may get overridden later */
         newconfig.op = Some(operations::PM_OP_MAIN);
-        // newconfig.logmask = ALPM_LOG_ERROR | ALPM_LOG_WARNING;
         newconfig.logmask.ALPM_LOG_ERROR = true;
         newconfig.logmask.ALPM_LOG_WARNING = true;
         // newconfig.configfile = strdup(CONFFILE);//TODO: implement this
@@ -389,12 +322,32 @@ impl config_t {
         return newconfig;
     }
 
+    pub fn needs_root(&self) -> bool {
+        if self.sysroot != "" {
+            return true;
+        }
+        use pacman::conf::operations::*;
+        match self.op {
+            Some(PM_OP_DATABASE) => return self.op_q_check == 0,
+            Some(PM_OP_UPGRADE) | Some(PM_OP_REMOVE) => return self.print,
+            Some(PM_OP_SYNC) => {
+                return self.op_s_clean != 0 || self.op_s_sync != 0
+                    || (self.group == 0 && self.op_s_info == 0 && self.op_q_list == 0
+                        && self.op_s_search == 0 && self.print)
+            }
+
+            Some(PM_OP_FILES) => return self.op_s_sync != 0,
+            _ => return false,
+        }
+    }
+
+
     /** Parse command-line arguments for each operation.
      * @param argc argc
      * @param argv argv
      * @return 0 on success, 1 on error
      */
-    pub fn parseargs(&mut self, argv: Vec<String>) -> i32 {
+    pub fn parseargs(&mut self, argv: Vec<String>) -> Result<Vec<String>, ()> {
         let mut opts = getopts::Options::new();
         {
             opts.optflag("D", "--database", "");
@@ -469,11 +422,11 @@ impl config_t {
             Ok(m) => m,
             Err(f) => {
                 println!("{:?}", f);
-                return 1;
+                return Err(());
             }
         };
         // println!("{:?}", matches.free);
-        let pm_targets = &matches.free;
+        // let pm_targets = &matches.free;
         self.parsearg_op(&matches);
         self.parsearg_global(&matches);
         // println!("{:?}", self);
@@ -481,7 +434,7 @@ impl config_t {
         if self.op.is_none() {
             unimplemented!();
             // pm_printf(ALPM_LOG_ERROR, _("only one operation may be used at a time\n"));
-            return 1;
+            return Err(());
         }
         if self.help {
             unimplemented!();
@@ -523,7 +476,7 @@ impl config_t {
             _ => {}
         }
 
-        return 0;
+        return Ok(matches.free);
     }
 
     // static int parsearg_util_addlist(alpm_list_t **list)
@@ -610,7 +563,7 @@ impl config_t {
             // self_set_arch(opts.opt_str("arch").unwrap());
         }
         if opts.opt_present("ask") {
-            self.noask = 1;
+            self.noask = true;
             self.ask = opts.opt_str("ask")
                 .unwrap()
                 .parse()
@@ -678,10 +631,10 @@ impl config_t {
             self.logfile = opts.opt_str("logfile").unwrap();
         }
         if opts.opt_present("noconfirm") {
-            self.noconfirm = 1;
+            self.noconfirm = true;
         }
         if opts.opt_present("confirm") {
-            self.noconfirm = 0;
+            self.noconfirm = false;
         }
         if opts.opt_present("dbpath") {
             self.dbpath = opts.opt_str("dbpath").unwrap();
@@ -712,7 +665,7 @@ impl config_t {
             self.op_q_check = opts.opt_count("check") as u8;
         }
         if opts.opt_present("check") {
-            self.quiet = 1;
+            self.quiet = true;
         }
     }
 
@@ -764,7 +717,7 @@ impl config_t {
             self.op_q_isfile = 1;
         }
         if opts.opt_present("quiet") {
-            self.quiet = 1;
+            self.quiet = true;
         }
         if opts.opt_present("search") {
             self.op_q_search = 1;
@@ -784,7 +737,7 @@ impl config_t {
         invalid_opt(self.op_q_list != 0, opname, "--list");
     }
 
-    fn checkargs_query_filter_opts(&mut self, opname: &str, ) {
+    fn checkargs_query_filter_opts(&mut self, opname: &str) {
         invalid_opt(self.op_q_deps != 0, opname, "--deps");
         invalid_opt(self.op_q_explicit != 0, opname, "--explicit");
         invalid_opt(self.op_q_upgrade != 0, opname, "--upgrade");
@@ -852,10 +805,10 @@ impl config_t {
             self.flags.NOSCRIPTLET = true;
         }
         if opts.opt_present("print") {
-            self.print = 1;
+            self.print = true;
         }
         if opts.opt_present("print-format") {
-            self.print = 1;
+            self.print = true;
             self.print_format = opts.opt_str("print-format").unwrap();
         }
         if opts.opt_present("assume-installed") {
@@ -865,7 +818,7 @@ impl config_t {
     }
 
     fn checkargs_trans(&mut self) {
-        if self.print != 0 {
+        if self.print {
             invalid_opt(self.flags.DBONLY, "--print", "--dbonly");
             invalid_opt(self.flags.NOSCRIPTLET, "--print", "--noscriptlet");
         }
@@ -895,7 +848,7 @@ impl config_t {
     fn checkargs_remove(&mut self) {
         self.checkargs_trans();
         if self.flags.NOSAVE {
-            invalid_opt(self.print != 0, "--nosave", "--print");
+            invalid_opt(self.print, "--nosave", "--print");
             invalid_opt(self.flags.DBONLY, "--nosave", "--dbonly");
         }
     }
@@ -951,7 +904,7 @@ impl config_t {
             self.op_f_machinereadable = 1;
         }
         if opts.opt_present("quiet") {
-            self.quiet = 1;
+            self.quiet = true;
         }
     }
 
@@ -982,7 +935,7 @@ impl config_t {
             self.op_q_list = 1;
         }
         if opts.opt_present("quiet") {
-            self.quiet = 1;
+            self.quiet = true;
         }
         if opts.opt_present("search") {
             self.op_s_search = 1;
@@ -1900,7 +1853,7 @@ impl config_t {
 // 	globfree(&globbuf);
 // 	return ret;
 // }
-//
+
 // static int _parse_directive(const char *file, int linenum, const char *name,
 // 		char *key, char *value, void *data)
 // {
@@ -1942,7 +1895,7 @@ impl config_t {
 // 		return _parse_repo(key, value, file, linenum, section);
 // 	}
 // }
-//
+
 // /** Parse a configuration file.
 //  * @param file path to the config file
 //  * @return 0 on success, non-zero on error
@@ -1969,7 +1922,7 @@ impl config_t {
 // 		return _parse_repo(key, value, file, linenum, section);
 // 	}
 // }
-//
+
 // /** Parse a configuration file.
 //  * @param file path to the config file
 //  * @return 0 on success, non-zero on error

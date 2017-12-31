@@ -3,6 +3,7 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 #![allow(unused_mut)]
+#![allow(unused_imports)]
 mod pacman;
 extern crate libc;
 extern crate getopts;

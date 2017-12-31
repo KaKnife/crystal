@@ -2,7 +2,12 @@ use libc;
 use std::env;
 mod conf;
 mod alpm;
+mod database;
+mod util;
+use self::util::*;
+use self::database::*;
 use self::conf::*;
+use self::operations::*;
 // use pacman::conf::PKG_LOCALITY_FOREIGN;
 // use pacman::conf::PKG_LOCALITY_NATIVE;
 
@@ -94,7 +99,7 @@ use std;
 //
 // 	return strcmp(s1, s2);
 // }
-//
+
 // /** Display usage/syntax for the specified operation.
 //  * @param op     the operation code requested
 //  * @param myname basename(argv[0])
@@ -255,6 +260,7 @@ use std;
 // 	         "                       the terms of the GNU General Public License.\n"));
 // 	printf("\n");
 // }
+
 /** Sets up gettext localization. Safe to call multiple times.
  */
 /* Inspired by the monotone function localize_monotone. */
@@ -270,9 +276,9 @@ use std;
 // 	}
 // }
 // #endif
-//
-// /** Set user agent environment variable.
-//  */
+
+/** Set user agent environment variable.
+ */
 // static void setuseragent(void)
 // {
 // 	char agent[100];
@@ -288,7 +294,7 @@ use std;
 //
 // 	setenv("HTTP_USER_AGENT", agent, 0);
 // }
-//
+
 // /** Free the resources.
 //  *
 //  * @param ret the return value
@@ -310,9 +316,6 @@ fn cleanup(ret: i32) {
     // FREELIST(pm_targets);
     std::process::exit(ret);
 }
-
-
-
 
 // /** Print command line to logfile.
 //  * @param argc
@@ -352,11 +355,9 @@ fn cleanup(ret: i32) {
 pub fn main() {
     let argv: Vec<String> = env::args().collect();
     // let argc = argv.len();
-    let mut ret;
+    let mut ret = 0;
     let mut config;
-    let myuid = unsafe{libc::getuid()}; //uid_t myuid = getuid();
-
-    // install_segv_handler();
+    let myuid = unsafe { libc::getuid() }; //uid_t myuid = getuid();
 
     /* i18n init */
     // #if defined(ENABLE_NLS)
@@ -371,13 +372,14 @@ pub fn main() {
 
     // install_soft_interrupt_handler();
 
-    // if(!isatty(fileno(stdout))) {
-    // 	/* disable progressbar if the output is redirected */
-    // 	config.noprogressbar = 1;
-    // } else {
-    /* install signal handler to update output width */
-    // install_winch_handler();
-    // }
+    if unsafe { libc::isatty(libc::STDOUT_FILENO as i32) } == 0 {
+        /* disable progressbar if the output is redirected */
+        config.noprogressbar = 1;
+    } else {
+        /* install signal handler to update output width */
+        unimplemented!();
+        // install_winch_handler();
+    }
 
     /* Priority of options:
      * 1. command line
@@ -389,23 +391,33 @@ pub fn main() {
      */
 
     /* parse the command line */
-    ret = config.parseargs(argv);
-    // if(ret != 0) {
-    // 	cleanup(ret);
-    // }
-    //
-    // /* check if we have sufficient permission for the requested operation */
-    // if(myuid > 0 && needs_root()) {
-    // 	pm_printf(ALPM_LOG_ERROR, _("you cannot perform this operation unless you are root.\n"));
-    // 	cleanup(EXIT_FAILURE);
-    // }
-    //
-    // if(config.sysroot && (chroot(config.sysroot) != 0 || chdir("/") != 0)) {
-    // 	pm_printf(ALPM_LOG_ERROR,
-    // 			_("chroot to '%s' failed: (%s)\n"), config.sysroot, strerror(errno));
-    // 	cleanup(EXIT_FAILURE);
-    // }
-    //
+    let pm_targets;
+    match config.parseargs(argv) {
+        Ok(targets) => pm_targets = targets,
+        Err(()) => {
+            cleanup(1);
+            return;
+        }
+    }
+
+
+    /* check if we have sufficient permission for the requested operation */
+    if myuid > 0 && config.needs_root() {
+        eprintln!("you cannot perform this operation unless you are root.");
+        cleanup(1);
+    }
+
+
+
+
+    if config.sysroot != "" && (unsafe {
+        libc::chroot(&config.sysroot.as_bytes()[0] as *const u8 as *const i8) != 0
+    } || !env::set_current_dir(&std::path::Path::new("/")).is_ok())
+    {
+        eprintln!("chroot to {} failed: ()\n", config.sysroot); //, libc::strerror(errno));
+        cleanup(1);
+    }
+
     // /* we support reading targets from stdin if a cmdline parameter is '-' */
     // if(alpm_list_find_str(pm_targets, "-")) {
     // 	if(!isatty(fileno(stdin))) {
@@ -455,35 +467,33 @@ pub fn main() {
     // 		cleanup(1);
     // 	}
     // }
-    //
-    // pm_printf(ALPM_LOG_DEBUG, "pacman v%s - libalpm v%s\n", PACKAGE_VERSION, alpm_version());
-    //
+
     // /* parse the config file */
     // ret = parseconfig(config.configfile);
     // if(ret != 0) {
     // 	cleanup(ret);
     // }
-    //
-    // /* noask is meant to be non-interactive */
-    // if(config.noask) {
-    // 	config.noconfirm = 1;
-    // }
-    //
-    // /* set up the print operations */
-    // if(config.print && !config.op_s_clean) {
-    // 	config.noconfirm = 1;
-    // 	config.flags |= ALPM_TRANS_FLAG_NOCONFLICTS;
-    // 	config.flags |= ALPM_TRANS_FLAG_NOLOCK;
-    // 	/* Display only errors */
-    // 	config.logmask &= ~ALPM_LOG_WARNING;
-    // }
-    //
+
+    /* noask is meant to be non-interactive */
+    if config.noask {
+        config.noconfirm = true;
+    }
+
+    /* set up the print operations */
+    if config.print && config.op_s_clean == 0 {
+        config.noconfirm = true;
+        config.flags.NOCONFLICTS = true;
+        config.flags.NOLOCK = true;
+        /* Display only errors */
+        config.logmask.ALPM_LOG_WARNING = false;
+    }
+
     // if(config.verbose > 0) {
     // 	alpm_list_t *j;
-    // 	printf("Root      : %s\n", alpm_option_get_root(config.handle));
-    // 	printf("Conf File : %s\n", config.configfile);
-    // 	printf("DB Path   : %s\n", alpm_option_get_dbpath(config.handle));
-    // 	printf("Cache Dirs: ");
+    // 	println!("Root      : {}", alpm_option_get_root(config.handle));
+    // 	println!("Conf File : {}", config.configfile);
+    // 	println!("DB Path   : {}", alpm_option_get_dbpath(config.handle));
+    // 	print!("Cache Dirs: ");
     // 	for(j = alpm_option_get_cachedirs(config.handle); j; j = alpm_list_next(j)) {
     // 		printf("%s  ", (const char *)j->data);
     // 	}
@@ -498,39 +508,30 @@ pub fn main() {
     // 	printf("GPG Dir   : %s\n", alpm_option_get_gpgdir(config.handle));
     // 	list_display("Targets   :", pm_targets, 0);
     // }
-    //
+
     // /* Log command line */
     // if(needs_root()) {
     // 	cl_to_log(argc, argv);
     // }
-    //
-    // /* start the requested operation */
-    // switch(config.op) {
-    // 	case PM_OP_DATABASE:
-    // 		ret = pacman_database(pm_targets);
-    // 		break;
-    // 	case PM_OP_REMOVE:
-    // 		ret = pacman_remove(pm_targets);
-    // 		break;
-    // 	case PM_OP_UPGRADE:
-    // 		ret = pacman_upgrade(pm_targets);
-    // 		break;
-    // 	case PM_OP_QUERY:
-    // 		ret = pacman_query(pm_targets);
-    // 		break;
-    // 	case PM_OP_SYNC:
-    // 		ret = pacman_sync(pm_targets);
-    // 		break;
-    // 	case PM_OP_DEPTEST:
-    // 		ret = pacman_deptest(pm_targets);
-    // 		break;
-    // 	case PM_OP_FILES:
-    // 		ret = pacman_files(pm_targets);
-    // 		break;
-    // 	default:
-    // 		pm_printf(ALPM_LOG_ERROR, _("no operation specified (use -h for help)\n"));
-    // 		ret = EXIT_FAILURE;
-    // }
+
+    /* start the requested operation */
+
+    match &config.op {
+        &Some(PM_OP_DATABASE) => match pacman_database(pm_targets, &mut config) {
+            Err(e) => (ret = e),
+            _ => {}
+        },
+        // Some(PM_OP_REMOVE) => ret = pacman_remove(pm_targets),
+        // Some(PM_OP_UPGRADE) => ret = pacman_upgrade(pm_targets),
+        // Some(PM_OP_QUERY) => ret = pacman_query(pm_targets),
+        // Some(PM_OP_SYNC) => ret = pacman_sync(pm_targets),
+        // Some(PM_OP_DEPTEST) => ret = pacman_deptest(pm_targets),
+        // Some(PM_OP_FILES) => ret = pacman_files(pm_targets),
+        _ => {
+            eprintln!("no operation specified (use -h for help)");
+            ret = 1;
+        }
+    }
     //
     cleanup(ret);
     // /* not reached */
