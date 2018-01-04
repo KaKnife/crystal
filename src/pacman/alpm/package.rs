@@ -118,8 +118,8 @@ pub struct alpm_pkg_t {
                                      // /* origin == PKG_FROM_FILE, use pkg->origin_data.file
                                      //  * origin == PKG_FROM_*DB, use pkg->origin_data.db */
                                      // union {
-                                     // 	alpm_db_t *db;
-                                     // 	char *file;
+                                     	pub db: alpm_db_t,
+                                     	pub file: String,
                                      // } origin_data;
                                      //
                                      // 	alpm_pkgfrom_t origin;
@@ -713,14 +713,15 @@ pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
 // 	return new;
 // }
 //
-// /**
-//  * Duplicate a package data struct.
-//  * @param pkg the package to duplicate
-//  * @param new_ptr location to store duplicated package pointer
-//  * @return 0 on success, -1 on fatal error, 1 on non-fatal error
-//  */
-// int _alpm_pkg_dup(alpm_pkg_t *pkg, alpm_pkg_t **new_ptr)
-// {
+/**
+ * Duplicate a package data struct.
+ * @param pkg the package to duplicate
+ * @param new_ptr location to store duplicated package pointer
+ * @return 0 on success, -1 on fatal error, 1 on non-fatal error
+ */
+pub fn _alpm_pkg_dup(pkg: &alpm_pkg_t) -> Result<alpm_pkg_t, i32>
+{
+    unimplemented!();
 // 	alpm_pkg_t *newpkg;
 // 	alpm_list_t *i;
 // 	int ret = 0;
@@ -806,7 +807,7 @@ pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
 // cleanup:
 // 	_alpm_pkg_free(newpkg);
 // 	RET_ERR(pkg->handle, ALPM_ERR_MEMORY, -1);
-// }
+}
 //
 // static void free_deplist(alpm_list_t *deps)
 // {

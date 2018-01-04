@@ -1,4 +1,5 @@
 use super::*;
+use super::alpm::*;
 // /*
 //  *  util.c
 //  *
@@ -62,7 +63,7 @@ use super::*;
 // 	CELL_FREE = (1 << 3)
 // };
 
-pub fn trans_init(flags: i32, check_valid: i32, config: &config_t) -> i32 {
+pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: i32, config: &config_t) -> i32 {
     let ret;
 
     check_syncdbs(0, check_valid, config);
@@ -1005,48 +1006,49 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
 // 			return alpm_pkg_get_isize(pkg);
 // 	}
 // }
-//
-// static char *pkg_get_location(alpm_pkg_t *pkg)
-// {
-// 	alpm_list_t *servers;
-// 	char *string = NULL;
-// 	switch(alpm_pkg_get_origin(pkg)) {
-// 		case ALPM_PKG_FROM_SYNCDB:
-// 			if(alpm_pkg_download_size(pkg) == 0) {
-// 				/* file is already in the package cache */
-// 				alpm_list_t *i;
-// 				const char *pkgfile = alpm_pkg_get_filename(pkg);
-// 				char path[PATH_MAX];
-// 				struct stat buf;
-//
-// 				for(i = alpm_option_get_cachedirs(config->handle); i; i = i->next) {
-// 					snprintf(path, PATH_MAX, "%s%s", (char *)i->data, pkgfile);
-// 					if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
-// 						pm_asprintf(&string, "file://%s", path);
-// 						return string;
-// 					}
-// 				}
-// 			}
-//
-// 			servers = alpm_db_get_servers(alpm_pkg_get_db(pkg));
-// 			if(servers) {
-// 				pm_asprintf(&string, "%s/%s", (char *)(servers->data),
-// 						alpm_pkg_get_filename(pkg));
-// 				return string;
-// 			}
-//
-// 			/* fallthrough - for theoretical serverless repos */
-//
-// 		case ALPM_PKG_FROM_FILE:
-// 			return strdup(alpm_pkg_get_filename(pkg));
-//
-// 		case ALPM_PKG_FROM_LOCALDB:
-// 		default:
-// 			pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));
-// 			return string;
-// 	}
-// }
-//
+
+fn pkg_get_location(pkg: &alpm_pkg_t) -> String
+{
+    unimplemented!();
+	// alpm_list_t *servers;
+	// char *string = NULL;
+	// switch(alpm_pkg_get_origin(pkg)) {
+	// 	case ALPM_PKG_FROM_SYNCDB:
+	// 		if(alpm_pkg_download_size(pkg) == 0) {
+	// 			/* file is already in the package cache */
+	// 			alpm_list_t *i;
+	// 			const char *pkgfile = alpm_pkg_get_filename(pkg);
+	// 			char path[PATH_MAX];
+	// 			struct stat buf;
+    //
+	// 			for(i = alpm_option_get_cachedirs(config->handle); i; i = i->next) {
+	// 				snprintf(path, PATH_MAX, "%s%s", (char *)i->data, pkgfile);
+	// 				if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
+	// 					pm_asprintf(&string, "file://%s", path);
+	// 					return string;
+	// 				}
+	// 			}
+	// 		}
+    //
+	// 		servers = alpm_db_get_servers(alpm_pkg_get_db(pkg));
+	// 		if(servers) {
+	// 			pm_asprintf(&string, "%s/%s", (char *)(servers->data),
+	// 					alpm_pkg_get_filename(pkg));
+	// 			return string;
+	// 		}
+    //
+	// 		/* fallthrough - for theoretical serverless repos */
+    //
+	// 	case ALPM_PKG_FROM_FILE:
+	// 		return strdup(alpm_pkg_get_filename(pkg));
+    //
+	// 	case ALPM_PKG_FROM_LOCALDB:
+	// 	default:
+	// 		pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));
+	// 		return string;
+	// }
+}
+
 // /* a pow() implementation that is specialized for an integer base and small,
 //  * positive-only integer exponents. */
 // static double simple_pow(int base, int exp)
@@ -1101,61 +1103,41 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
 //
 // 	return val;
 // }
-//
-// void print_packages(const alpm_list_t *packages)
-// {
-// 	const alpm_list_t *i;
-// 	if(!config->print_format) {
-// 		config->print_format = strdup("%l");
-// 	}
-// 	for(i = packages; i; i = alpm_list_next(i)) {
-// 		alpm_pkg_t *pkg = i->data;
-// 		char *string = strdup(config->print_format);
-// 		char *temp = string;
-// 		/* %n : pkgname */
-// 		if(strstr(temp, "%n")) {
-// 			string = strreplace(temp, "%n", alpm_pkg_get_name(pkg));
-// 			free(temp);
-// 			temp = string;
-// 		}
-// 		/* %v : pkgver */
-// 		if(strstr(temp, "%v")) {
-// 			string = strreplace(temp, "%v", alpm_pkg_get_version(pkg));
-// 			free(temp);
-// 			temp = string;
-// 		}
-// 		/* %l : location */
-// 		if(strstr(temp, "%l")) {
-// 			char *pkgloc = pkg_get_location(pkg);
-// 			string = strreplace(temp, "%l", pkgloc);
-// 			free(pkgloc);
-// 			free(temp);
-// 			temp = string;
-// 		}
-// 		/* %r : repo */
-// 		if(strstr(temp, "%r")) {
-// 			const char *repo = "local";
-// 			alpm_db_t *db = alpm_pkg_get_db(pkg);
-// 			if(db) {
-// 				repo = alpm_db_get_name(db);
-// 			}
-// 			string = strreplace(temp, "%r", repo);
-// 			free(temp);
-// 			temp = string;
-// 		}
-// 		/* %s : size */
-// 		if(strstr(temp, "%s")) {
-// 			char *size;
-// 			pm_asprintf(&size, "%jd", (intmax_t)pkg_get_size(pkg));
-// 			string = strreplace(temp, "%s", size);
-// 			free(size);
-// 			free(temp);
-// 		}
-// 		printf("%s\n", string);
-// 		free(string);
-// 	}
-// }
-//
+
+// pub fn print_packages(packages: &Vec<alpm_pkg_t>, config: &config_t)
+pub fn print_packages(packages: &Vec<alpm_pkg_t>, print_format: &mut String)
+{
+	// const alpm_list_t *i;
+
+	for pkg in packages {
+        if print_format=="" {
+    		println!("{}", pkg_get_location(&pkg));
+            continue;
+    	}
+		// alpm_pkg_t *pkg = i->data;
+        // char *string = strdup(config->print_format);
+		let string = &print_format;
+		// let temp = string;
+		/* %n : pkgname */
+		string.replace("%n", &pkg.name);
+		/* %v : pkgver */
+        string.replace("%v", &pkg.version);
+		/* %l : location */
+        string.replace("%l", &pkg_get_location(&pkg));
+		/* %r : repo */
+        string.replace("%r", &pkg.db.treename);
+		/* %s : size */
+		// if(strstr(temp, "%s")) {
+		// 	char *size;
+		// 	pm_asprintf(&size, "%jd", (intmax_t)pkg_get_size(pkg));
+		// 	string = strreplace(temp, "%s", size);
+		// 	free(size);
+		// 	free(temp);
+		// }
+		println!("{}", string);
+	}
+}
+
 // /**
 //  * Helper function for comparing depends using the alpm "compare func"
 //  * signature. The function descends through the structure in the following
@@ -1596,8 +1578,8 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
 //
 // 	return ret;
 // }
-//
-// int noyes(const char *format, ...)
+
+// int noyes(const char *format, ...) -> i32
 // {
 // 	int ret;
 // 	va_list args;
@@ -1608,7 +1590,7 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
 //
 // 	return ret;
 // }
-//
+
 // int colon_printf(const char *fmt, ...)
 // {
 // 	int ret;

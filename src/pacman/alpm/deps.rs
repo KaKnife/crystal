@@ -282,10 +282,7 @@ fn find_dep_satisfier<'a>(
 // }
 
 fn no_dep_version(handle: &alpm_handle_t) -> bool {
-    match &handle.trans {
-        &None => return false,
-        &Some(ref t) => return t.flags.NODEPVERSION,
-    }
+    handle.trans.flags.NODEPVERSION
     // if(handle.trans.is_none()) {
     // 	return false;
     // }

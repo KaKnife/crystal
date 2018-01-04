@@ -57,6 +57,12 @@ enum alpm_dbstatus_t {
     DB_STATUS_GRPCACHE = (1 << 12),
 }
 
+impl Default for alpm_dbstatus_t {
+    fn default() -> Self{
+        alpm_dbstatus_t::DB_STATUS_VALID
+    }
+}
+
 // struct db_operations {
 // 	int (*validate) (alpm_db_t *);
 // 	int (*populate) (alpm_db_t *);
@@ -64,16 +70,16 @@ enum alpm_dbstatus_t {
 // };
 
 /* Database */
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct alpm_db_t {
     handle: alpm_handle_t,
     pub treename: String,
     /* do not access directly, use _alpm_db_path(db) for lazy access */
     path: String,
     // pkgcache:alpm_pkghash_t,
-	// grpcache:alpm_list_t,
-	// servers:alpm_list_t,
-	// ops:db_operations,
+    grpcache: Vec<alpm_group_t>,
+    servers: Vec<String>,
+    // ops:db_operations,
 
 	/* bitfields for validity, local, loaded caches, etc. */
 	/* From _alpm_dbstatus_t */
@@ -115,32 +121,31 @@ pub struct alpm_db_t {
 // alpm_group_t *_alpm_db_get_groupfromcache(alpm_db_t *db, const char *target);
 //
 // #endif /* ALPM_DB_H */
-//
-// /* vim: set noet: */
-// /*
-//  *  db.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
-//  *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
-//  *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
-//  *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
+
+/*
+ *  db.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
+ *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
+ *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
+ *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // #include <stdio.h>
 // #include <stdlib.h>
 // #include <string.h>
@@ -155,7 +160,7 @@ pub struct alpm_db_t {
 // #include "alpm.h"
 // #include "package.h"
 // #include "group.h"
-//
+
 // /** \addtogroup alpm_databases Database Functions
 //  * @brief Functions to query and manipulate the database of libalpm
 //  * @{
@@ -188,18 +193,196 @@ pub struct alpm_db_t {
 //
 // 	return _alpm_db_register_sync(handle, treename, siglevel);
 // }
-//
-// /* Helper function for alpm_db_unregister{_all} */
-// void _alpm_db_unregister(alpm_db_t *db)
-// {
-// 	if(db == NULL) {
-// 		return;
-// 	}
-//
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "unregistering database '%s'\n", db->treename);
-// 	_alpm_db_free(db);
-// }
-//
+
+impl alpm_db_t {
+    /* Helper function for alpm_db_unregister{_all} */
+    // fn _alpm_db_unregister(&self)
+    // {
+    // 	if(db == NULL) {
+    // 		return;
+    // 	}
+    //
+    // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "unregistering database '%s'\n", db->treename);
+    // 	_alpm_db_free(db);
+    // }
+
+    /** Get the serverlist of a database. */
+    fn alpm_db_get_servers(&self) -> &Vec<String> {
+        &self.servers
+    }
+
+    /** Set the serverlist of a database. */
+    fn alpm_db_set_servers(&mut self, servers: Vec<String>) {
+        // ASSERT(db != NULL, return -1);
+        // FREELIST(db->servers);
+        self.servers = servers;
+    }
+
+    /** Add a download server to a database.
+     * @param db database pointer
+     * @param url url of the server
+     * @return 0 on success, -1 on error (pm_errno is set accordingly)
+     */
+    fn alpm_db_add_server(&mut self, url: String) {
+        let newurl;
+
+        /* Sanity checks */
+        // ASSERT(db != NULL, return -1);
+        self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+        // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
+
+        newurl = sanitize_url(&url);
+        // if(!newurl) {
+        // 	return -1;
+        // }
+        self.servers.push(newurl);
+        // _alpm_log(db->handle, ALPM_LOG_DEBUG, "adding new server URL to database '%s': %s\n",
+        // 		db->treename, newurl);
+    }
+
+    /** Remove a download server from a database.
+     * @param db database pointer
+     * @param url url of the server
+     * @return 0 on success, 1 on server not present,
+     * -1 on error (pm_errno is set accordingly)
+     */
+    fn alpm_db_remove_server(&mut self, url: &String) -> i32 {
+        let newurl;
+        // let vdata;
+        // let ret = 1;
+
+        /* Sanity checks */
+        // ASSERT(db != NULL, return -1);
+        self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+        // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
+
+        newurl = sanitize_url(url);
+        // if(!newurl) {
+        // 	return -1;
+        // }
+
+        let index = match self.servers.binary_search(&newurl) {
+            Ok(s) => s,
+            Err(_) => return 1,
+        };
+
+        self.servers.remove(index);
+        return 0;
+        //
+        // if(vdata) {
+        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "removed server URL from database '%s': %s\n",
+        // 			db->treename, newurl);
+        // 	free(vdata);
+        // 	ret = 0;
+        // }
+        //
+        // free(newurl);
+        // return ret;
+    }
+
+    /** Get a group entry from a package database. */
+    pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&alpm_group_t> {
+        // ASSERT(db != NULL, return NULL);
+        self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+        // ASSERT(name != NULL && strlen(name) != 0,
+        // RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, NULL));
+
+        return self._alpm_db_get_groupfromcache(name);
+    }
+
+    fn _alpm_db_get_groupfromcache(&self, target: &String) -> Option<&alpm_group_t> {
+        // alpm_list_t *i;
+
+        if target.len() == 0 {
+            return None;
+        }
+
+        for info in self._alpm_db_get_groupcache() {
+            // alpm_group_t *info = i->data;
+
+            if info.name == *target {
+                return Some(info);
+            }
+        }
+
+        return None;
+    }
+
+    fn _alpm_db_get_groupcache(&self) -> &Vec<alpm_group_t> {
+        match &self.status {
+            &alpm_dbstatus_t::DB_STATUS_VALID => {
+                unimplemented!();
+                // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
+            }
+
+            &alpm_dbstatus_t::DB_STATUS_GRPCACHE => {
+                self.load_grpcache();
+            }
+            _=>{}
+        }
+
+        return &self.grpcache;
+    }
+
+    /* Returns a new group cache from db.
+     */
+    fn load_grpcache(&self) -> i32 {
+        unimplemented!();
+        // alpm_list_t *lp;
+        // if(db == NULL) {
+        // 	return -1;
+        // }
+        // _alpm_log(db->handle, ALPM_LOG_DEBUG, "loading group cache for repository '%s'\n",
+        // 		db->treename);
+        //
+        // for pkg in _alpm_db_get_pkgcache(&self) {
+        //     // const alpm_list_t *i;
+        //     // alpm_pkg_t *pkg = lp->data;
+        //
+        //     for grpname in alpm_pkg_get_groups(pkg) {
+        //         // const char *grpname = i->data;
+        //         // alpm_list_t *j;
+        //         let grp;
+        //         let found = 0;
+        //
+        //         /* first look through the group cache for a group with this name */
+        //         for grp in self.grpcache {
+        //             // grp = j->data;
+        //
+        //             if grp.name == grpname && grp.packages.binary_search_by(|p| pkg == p).is_err() {
+        //                 grp.packages.push(pkg);
+        //                 found = 1;
+        //                 break;
+        //             }
+        //         }
+        //         if found != 0 {
+        //             continue;
+        //         }
+        //         /* we didn't find the group, so create a new one with this name */
+        //         let grp = _alpm_group_new(grpname);
+        //         // if(!grp) {
+        //         // 	free_groupcache(db);
+        //         // 	return -1;
+        //         // }
+        //         grp.packages.push(pkg);
+        //         self.grpcache.push(grp);
+        //     }
+        // }
+        //
+        // self.status = alpm_dbstatus_t::DB_STATUS_GRPCACHE;
+        // return 0;
+    }
+
+    /** Get the group cache of a package database. */
+    fn alpm_db_get_groupcache(&mut self) -> &Vec<alpm_group_t>
+    {
+    	// ASSERT(db != NULL, return NULL);
+    	self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+
+    	return self._alpm_db_get_groupcache();
+    }
+}
+
 // /** Unregister all package databases. */
 // int SYMEXPORT alpm_unregister_all_syncdbs(alpm_handle_t *handle)
 // {
@@ -220,7 +403,7 @@ pub struct alpm_db_t {
 // 	FREELIST(handle->dbs_sync);
 // 	return 0;
 // }
-//
+
 // /** Unregister a package database. */
 // int SYMEXPORT alpm_db_unregister(alpm_db_t *db)
 // {
@@ -257,102 +440,22 @@ pub struct alpm_db_t {
 // 	db->ops->unregister(db);
 // 	return 0;
 // }
-//
-// /** Get the serverlist of a database. */
-// alpm_list_t SYMEXPORT *alpm_db_get_servers(const alpm_db_t *db)
-// {
-// 	ASSERT(db != NULL, return NULL);
-// 	return db->servers;
-// }
-//
-// /** Set the serverlist of a database. */
-// int SYMEXPORT alpm_db_set_servers(alpm_db_t *db, alpm_list_t *servers)
-// {
-// 	ASSERT(db != NULL, return -1);
-// 	FREELIST(db->servers);
-// 	db->servers = servers;
-// 	return 0;
-// }
-//
-// static char *sanitize_url(const char *url)
-// {
-// 	char *newurl;
-// 	size_t len = strlen(url);
-//
-// 	STRDUP(newurl, url, return NULL);
-// 	/* strip the trailing slash if one exists */
-// 	if(newurl[len - 1] == '/') {
-// 		newurl[len - 1] = '\0';
-// 	}
-// 	return newurl;
-// }
-//
-// /** Add a download server to a database.
-//  * @param db database pointer
-//  * @param url url of the server
-//  * @return 0 on success, -1 on error (pm_errno is set accordingly)
-//  */
-// int SYMEXPORT alpm_db_add_server(alpm_db_t *db, const char *url)
-// {
-// 	char *newurl;
-//
-// 	/* Sanity checks */
-// 	ASSERT(db != NULL, return -1);
-// 	db->handle->pm_errno = ALPM_ERR_OK;
-// 	ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
-//
-// 	newurl = sanitize_url(url);
-// 	if(!newurl) {
-// 		return -1;
-// 	}
-// 	db->servers = alpm_list_add(db->servers, newurl);
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "adding new server URL to database '%s': %s\n",
-// 			db->treename, newurl);
-//
-// 	return 0;
-// }
-//
-// /** Remove a download server from a database.
-//  * @param db database pointer
-//  * @param url url of the server
-//  * @return 0 on success, 1 on server not present,
-//  * -1 on error (pm_errno is set accordingly)
-//  */
-// int SYMEXPORT alpm_db_remove_server(alpm_db_t *db, const char *url)
-// {
-// 	char *newurl, *vdata = NULL;
-// 	int ret = 1;
-//
-// 	/* Sanity checks */
-// 	ASSERT(db != NULL, return -1);
-// 	db->handle->pm_errno = ALPM_ERR_OK;
-// 	ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
-//
-// 	newurl = sanitize_url(url);
-// 	if(!newurl) {
-// 		return -1;
-// 	}
-//
-// 	db->servers = alpm_list_remove_str(db->servers, newurl, &vdata);
-//
-// 	if(vdata) {
-// 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "removed server URL from database '%s': %s\n",
-// 				db->treename, newurl);
-// 		free(vdata);
-// 		ret = 0;
-// 	}
-//
-// 	free(newurl);
-// 	return ret;
-// }
-//
+
+fn sanitize_url(url: &String) -> String {
+    let newurl: String;
+    newurl = url.clone();
+    /* strip the trailing slash if one exists */
+    newurl.trim_right_matches('/');
+    return newurl;
+}
+
 // /** Get the name of a package database. */
 // const char SYMEXPORT *alpm_db_get_name(const alpm_db_t *db)
 // {
 // 	ASSERT(db != NULL, return NULL);
 // 	return db->treename;
 // }
-//
+
 // /** Get the signature verification level for a database. */
 // int SYMEXPORT alpm_db_get_siglevel(alpm_db_t *db)
 // {
@@ -373,20 +476,19 @@ pub fn alpm_db_get_valid(db: &alpm_db_t) -> bool {
 }
 
 /** Get a package entry from a package database. */
-pub fn alpm_db_get_pkg(db: &alpm_db_t, name: &String) -> Option<alpm_pkg_t>
-{
+pub fn alpm_db_get_pkg(db: &alpm_db_t, name: &String) -> Option<alpm_pkg_t> {
     unimplemented!()
-	// alpm_pkg_t *pkg;
-	// ASSERT(db != NULL, return NULL);
-	// db->handle->pm_errno = ALPM_ERR_OK;
-	// ASSERT(name != NULL && strlen(name) != 0,
-	// 		RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, NULL));
+    // alpm_pkg_t *pkg;
+    // ASSERT(db != NULL, return NULL);
+    // db->handle->pm_errno = ALPM_ERR_OK;
+    // ASSERT(name != NULL && strlen(name) != 0,
+    // 		RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, NULL));
     //
-	// pkg = _alpm_db_get_pkgfromcache(db, name);
-	// if(!pkg) {
-	// 	RET_ERR(db->handle, ALPM_ERR_PKG_NOT_FOUND, NULL);
-	// }
-	// return pkg;
+    // pkg = _alpm_db_get_pkgfromcache(db, name);
+    // if(!pkg) {
+    // 	RET_ERR(db->handle, ALPM_ERR_PKG_NOT_FOUND, NULL);
+    // }
+    // return pkg;
 }
 
 /** Get the package cache of a package database. */
@@ -395,26 +497,10 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
     return _alpm_db_get_pkgcache(db);
 }
 
-// /** Get a group entry from a package database. */
-// alpm_group_t SYMEXPORT *alpm_db_get_group(alpm_db_t *db, const char *name)
-// {
-// 	ASSERT(db != NULL, return NULL);
-// 	db->handle->pm_errno = 0;
-// 	ASSERT(name != NULL && strlen(name) != 0,
-// 			RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, NULL));
-//
-// 	return _alpm_db_get_groupfromcache(db, name);
-// }
-//
-// /** Get the group cache of a package database. */
-// alpm_list_t SYMEXPORT *alpm_db_get_groupcache(alpm_db_t *db)
-// {
-// 	ASSERT(db != NULL, return NULL);
-// 	db->handle->pm_errno = ALPM_ERR_OK;
-//
-// 	return _alpm_db_get_groupcache(db);
-// }
-//
+
+
+
+
 // /** Searches a database. */
 // alpm_list_t SYMEXPORT *alpm_db_search(alpm_db_t *db, const alpm_list_t *needles)
 // {
@@ -423,7 +509,7 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
 //
 // 	return _alpm_db_search(db, needles);
 // }
-//
+
 // /** Sets the usage bitmask for a repo */
 // int SYMEXPORT alpm_db_set_usage(alpm_db_t *db, int usage)
 // {
@@ -431,7 +517,7 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	db->usage = usage;
 // 	return 0;
 // }
-//
+
 // /** Gets the usage bitmask for a repo */
 // int SYMEXPORT alpm_db_get_usage(alpm_db_t *db, int *usage)
 // {
@@ -440,10 +526,9 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	*usage = db->usage;
 // 	return 0;
 // }
-//
-//
+
 // /** @} */
-//
+
 // alpm_db_t *_alpm_db_new(const char *treename, int is_local)
 // {
 // 	alpm_db_t *db;
@@ -459,7 +544,7 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
 //
 // 	return db;
 // }
-//
+
 // void _alpm_db_free(alpm_db_t *db)
 // {
 // 	ASSERT(db != NULL, return);
@@ -473,7 +558,7 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
 //
 // 	return;
 // }
-//
+
 // const char *_alpm_db_path(alpm_db_t *db)
 // {
 // 	if(!db) {
@@ -506,14 +591,14 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	}
 // 	return db->_path;
 // }
-//
+
 // int _alpm_db_cmp(const void *d1, const void *d2)
 // {
 // 	const alpm_db_t *db1 = d1;
 // 	const alpm_db_t *db2 = d2;
 // 	return strcmp(db1->treename, db2->treename);
 // }
-//
+
 // alpm_list_t *_alpm_db_search(alpm_db_t *db, const alpm_list_t *needles)
 // {
 // 	const alpm_list_t *i, *j, *k;
@@ -594,7 +679,7 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
 //
 // 	return ret;
 // }
-//
+
 // /* Returns a new package cache from db.
 //  * It frees the cache if it already exists.
 //  */
@@ -613,7 +698,7 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	db->status |= DB_STATUS_PKGCACHE;
 // 	return 0;
 // }
-//
+
 // static void free_groupcache(alpm_db_t *db)
 // {
 // 	alpm_list_t *lg;
@@ -632,7 +717,7 @@ pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	FREELIST(db->grpcache);
 // 	db->status &= ~DB_STATUS_GRPCACHE;
 // }
-//
+
 // void _alpm_db_free_pkgcache(alpm_db_t *db)
 // {
 // 	if(db == NULL || !(db->status & DB_STATUS_PKGCACHE)) {
@@ -713,7 +798,7 @@ fn _alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
 //
 // 	return 0;
 // }
-//
+
 // int _alpm_db_remove_pkgfromcache(alpm_db_t *db, alpm_pkg_t *pkg)
 // {
 // 	alpm_pkg_t *data = NULL;
@@ -739,7 +824,7 @@ fn _alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
 //
 // 	return 0;
 // }
-//
+
 // alpm_pkg_t *_alpm_db_get_pkgfromcache(alpm_db_t *db, const char *target)
 // {
 // 	if(db == NULL) {
@@ -753,93 +838,3 @@ fn _alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
 //
 // 	return _alpm_pkghash_find(pkgcache, target);
 // }
-//
-// /* Returns a new group cache from db.
-//  */
-// static int load_grpcache(alpm_db_t *db)
-// {
-// 	alpm_list_t *lp;
-//
-// 	if(db == NULL) {
-// 		return -1;
-// 	}
-//
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "loading group cache for repository '%s'\n",
-// 			db->treename);
-//
-// 	for(lp = _alpm_db_get_pkgcache(db); lp; lp = lp->next) {
-// 		const alpm_list_t *i;
-// 		alpm_pkg_t *pkg = lp->data;
-//
-// 		for(i = alpm_pkg_get_groups(pkg); i; i = i->next) {
-// 			const char *grpname = i->data;
-// 			alpm_list_t *j;
-// 			alpm_group_t *grp = NULL;
-// 			int found = 0;
-//
-// 			/* first look through the group cache for a group with this name */
-// 			for(j = db->grpcache; j; j = j->next) {
-// 				grp = j->data;
-//
-// 				if(strcmp(grp->name, grpname) == 0
-// 						&& !alpm_list_find_ptr(grp->packages, pkg)) {
-// 					grp->packages = alpm_list_add(grp->packages, pkg);
-// 					found = 1;
-// 					break;
-// 				}
-// 			}
-// 			if(found) {
-// 				continue;
-// 			}
-// 			/* we didn't find the group, so create a new one with this name */
-// 			grp = _alpm_group_new(grpname);
-// 			if(!grp) {
-// 				free_groupcache(db);
-// 				return -1;
-// 			}
-// 			grp->packages = alpm_list_add(grp->packages, pkg);
-// 			db->grpcache = alpm_list_add(db->grpcache, grp);
-// 		}
-// 	}
-//
-// 	db->status |= DB_STATUS_GRPCACHE;
-// 	return 0;
-// }
-//
-// alpm_list_t *_alpm_db_get_groupcache(alpm_db_t *db)
-// {
-// 	if(db == NULL) {
-// 		return NULL;
-// 	}
-//
-// 	if(!(db->status & DB_STATUS_VALID)) {
-// 		RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
-// 	}
-//
-// 	if(!(db->status & DB_STATUS_GRPCACHE)) {
-// 		load_grpcache(db);
-// 	}
-//
-// 	return db->grpcache;
-// }
-//
-// alpm_group_t *_alpm_db_get_groupfromcache(alpm_db_t *db, const char *target)
-// {
-// 	alpm_list_t *i;
-//
-// 	if(db == NULL || target == NULL || strlen(target) == 0) {
-// 		return NULL;
-// 	}
-//
-// 	for(i = _alpm_db_get_groupcache(db); i; i = i->next) {
-// 		alpm_group_t *info = i->data;
-//
-// 		if(strcmp(info->name, target) == 0) {
-// 			return info;
-// 		}
-// 	}
-//
-// 	return NULL;
-// }
-//
-// /* vim: set noet: */

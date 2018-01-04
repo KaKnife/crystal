@@ -4,9 +4,13 @@ mod conf;
 mod alpm;
 mod database;
 mod util;
+mod remove;
+use super::*;
+use super::common::*;
+use self::remove::*;
 use self::util::*;
 use self::database::*;
-use self::conf::*;
+pub use self::conf::*;
 use self::operations::*;
 // use pacman::conf::PKG_LOCALITY_FOREIGN;
 // use pacman::conf::PKG_LOCALITY_NATIVE;
@@ -377,7 +381,7 @@ pub fn main() {
         config.noprogressbar = 1;
     } else {
         /* install signal handler to update output width */
-        unimplemented!();
+        // unimplemented!();
         // install_winch_handler();
     }
 
@@ -468,11 +472,11 @@ pub fn main() {
     // 	}
     // }
 
-    // /* parse the config file */
-    // ret = parseconfig(config.configfile);
-    // if(ret != 0) {
-    // 	cleanup(ret);
-    // }
+    /* parse the config file */
+    ret = parseconfig(&config.configfile.clone(), &mut config);
+    if ret != 0 {
+        cleanup(ret);
+    }
 
     /* noask is meant to be non-interactive */
     if config.noask {
@@ -521,10 +525,13 @@ pub fn main() {
             Err(e) => (ret = e),
             _ => {}
         },
-        // Some(PM_OP_REMOVE) => ret = pacman_remove(pm_targets),
+        &Some(PM_OP_REMOVE) => match pacman_remove(pm_targets, &mut config){
+            Err(e) => (ret = e),
+            _ => {}
+        },
         // Some(PM_OP_UPGRADE) => ret = pacman_upgrade(pm_targets),
         // Some(PM_OP_QUERY) => ret = pacman_query(pm_targets),
-        // Some(PM_OP_SYNC) => ret = pacman_sync(pm_targets),
+        &Some(PM_OP_SYNC) => /*ret = pacman_sync(pm_targets)*/println!("Hi"),
         // Some(PM_OP_DEPTEST) => ret = pacman_deptest(pm_targets),
         // Some(PM_OP_FILES) => ret = pacman_files(pm_targets),
         _ => {

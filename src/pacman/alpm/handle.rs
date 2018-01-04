@@ -930,7 +930,7 @@ pub struct alpm_handle_t {
     // 	alpm_db_t *db_local;    /* local db pointer */
     pub dbs_sync: Option<Vec<alpm_db_t>>, /* List of (alpm_db_t *) */
     // 	FILE *logstream;        /* log file stream pointer */
-    pub trans: Option<alpm_trans_t>,
+    pub trans: alpm_trans_t,
     //
     // #ifdef HAVE_LIBCURL
     // 	/* libcurl handle */

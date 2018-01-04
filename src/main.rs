@@ -5,8 +5,11 @@
 #![allow(unused_mut)]
 #![allow(unused_imports)]
 mod pacman;
+mod common;
+pub use self::common::*;
 extern crate libc;
 extern crate getopts;
+extern crate glob;
 fn main() {
     pacman::main();
 }

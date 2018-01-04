@@ -50,7 +50,7 @@ fn change_install_reason(targets: Vec<String>, config: &super::conf::config_t) -
     }
 
     /* Lock database */
-    if trans_init(0, 0, config) == -1 {
+    if trans_init(&alpm_transflag_t::default(), 0, config) == -1 {
         return 1;
     }
 

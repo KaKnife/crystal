@@ -43,10 +43,10 @@ pub struct alpm_trans_t {
     /* bitfield of alpm_transflag_t flags */
     pub flags: alpm_transflag_t,
     pub state: alpm_transstate_t,
-    unresolvable: Vec<alpm_pkg_t>, /* list of (alpm_pkg_t *) */
-    add: Vec<alpm_pkg_t>,          /* list of (alpm_pkg_t *) */
-    remove: Vec<alpm_pkg_t>,       /* list of (alpm_pkg_t *) */
-    skip_remove: Vec<String>,      /* list of (char *) */
+    pub unresolvable: Vec<alpm_pkg_t>, /* list of (alpm_pkg_t *) */
+    pub add: Vec<alpm_pkg_t>,          /* list of (alpm_pkg_t *) */
+    pub remove: Vec<alpm_pkg_t>,       /* list of (alpm_pkg_t *) */
+    pub skip_remove: Vec<String>,      /* list of (char *) */
 }
 
 // void _alpm_trans_free(alpm_trans_t *trans);
@@ -104,7 +104,7 @@ pub struct alpm_trans_t {
  */
 
 /** Initialize the transaction. */
-pub fn alpm_trans_init(handle: &alpm_handle_t, flags: i32) -> i32 {
+pub fn alpm_trans_init(handle: &alpm_handle_t, flags: &alpm_transflag_t) -> i32 {
     unimplemented!();
     // 	alpm_trans_t *trans;
     //
@@ -152,10 +152,11 @@ pub fn alpm_trans_init(handle: &alpm_handle_t, flags: i32) -> i32 {
 // 	}
 // 	return invalid;
 // }
-//
-// /** Prepare a transaction. */
-// int SYMEXPORT alpm_trans_prepare(alpm_handle_t *handle, alpm_list_t **data)
-// {
+
+/** Prepare a transaction. */
+pub fn alpm_trans_prepare(handle: &alpm_handle_t, data: &&alpm_list_t) -> i32
+{
+    unimplemented!();
 // 	alpm_trans_t *trans;
 //
 // 	/* Sanity checks */
@@ -210,8 +211,8 @@ pub fn alpm_trans_init(handle: &alpm_handle_t, flags: i32) -> i32 {
 // 	trans->state = STATE_PREPARED;
 //
 // 	return 0;
-// }
-//
+}
+
 // /** Commit a transaction. */
 // int SYMEXPORT alpm_trans_commit(alpm_handle_t *handle, alpm_list_t **data)
 // {
@@ -494,12 +495,3 @@ pub fn alpm_trans_release(handle: &alpm_handle_t) -> i32 {
 // 	return handle->trans->add;
 // }
 //
-// alpm_list_t SYMEXPORT *alpm_trans_get_remove(alpm_handle_t *handle)
-// {
-// 	/* Sanity checks */
-// 	CHECK_HANDLE(handle, return NULL);
-// 	ASSERT(handle->trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, NULL));
-//
-// 	return handle->trans->remove;
-// }
-// /* vim: set noet: */
