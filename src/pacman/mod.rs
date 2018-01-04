@@ -5,13 +5,18 @@ mod alpm;
 mod database;
 mod util;
 mod remove;
+mod upgrade;
+mod sync;
+pub use self::sync::*;
+pub use self::upgrade::*;
+pub use self::alpm::*;
+pub use self::remove::*;
+pub use self::util::*;
+pub use self::database::*;
+pub use self::conf::*;
+pub use self::operations::*;
 use super::*;
 use super::common::*;
-use self::remove::*;
-use self::util::*;
-use self::database::*;
-pub use self::conf::*;
-use self::operations::*;
 // use pacman::conf::PKG_LOCALITY_FOREIGN;
 // use pacman::conf::PKG_LOCALITY_NATIVE;
 
@@ -381,7 +386,7 @@ pub fn main() {
         config.noprogressbar = 1;
     } else {
         /* install signal handler to update output width */
-        // unimplemented!();
+        unimplemented!();
         // install_winch_handler();
     }
 
@@ -395,7 +400,7 @@ pub fn main() {
      */
 
     /* parse the command line */
-    let pm_targets;
+    let mut pm_targets;
     match config.parseargs(argv) {
         Ok(targets) => pm_targets = targets,
         Err(()) => {
@@ -529,7 +534,10 @@ pub fn main() {
             Err(e) => (ret = e),
             _ => {}
         },
-        // Some(PM_OP_UPGRADE) => ret = pacman_upgrade(pm_targets),
+        &Some(PM_OP_UPGRADE) => match pacman_upgrade(pm_targets, &mut config){
+            Err(e) => (ret = e),
+            _ => {}
+        },
         // Some(PM_OP_QUERY) => ret = pacman_query(pm_targets),
         &Some(PM_OP_SYNC) => /*ret = pacman_sync(pm_targets)*/println!("Hi"),
         // Some(PM_OP_DEPTEST) => ret = pacman_deptest(pm_targets),

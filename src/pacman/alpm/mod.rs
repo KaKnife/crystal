@@ -8,6 +8,12 @@ mod be_local;
 mod conflict;
 mod error;
 mod remove;
+mod be_package;
+mod add;
+mod dload;
+pub use self::dload::*;
+pub use self::add::*;
+pub use self::be_package::*;
 pub use self::remove::*;
 pub use self::error::*;
 pub use self::conflict::*;
@@ -214,7 +220,7 @@ pub enum alpm_fileconflicttype_t {
 }
 
 /** PGP signature verification options */
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug, Copy)]
 pub struct siglevel {
     pub ALPM_SIG_PACKAGE: bool,
     pub ALPM_SIG_PACKAGE_OPTIONAL: bool,
@@ -920,45 +926,7 @@ pub struct loglevel {
 // int alpm_option_set_ignoregroups(alpm_handle_t *handle, alpm_list_t *ignoregrps);
 // int alpm_option_remove_ignoregroup(alpm_handle_t *handle, const char *grp);
 // /** @} */
-//
-// /** @name Accessors to the list of ignored dependencies.
-//  * These functions modify the list of dependencies that
-//  * should be ignored by a sysupgrade.
-//  * @{
-//  */
-// alpm_list_t *alpm_option_get_assumeinstalled(alpm_handle_t *handle);
-// int alpm_option_add_assumeinstalled(alpm_handle_t *handle, const alpm_depend_t *dep);
-// int alpm_option_set_assumeinstalled(alpm_handle_t *handle, alpm_list_t *deps);
-// int alpm_option_remove_assumeinstalled(alpm_handle_t *handle, const alpm_depend_t *dep);
-// /** @} */
-//
-// /** Returns the targeted architecture. */
-// const char *alpm_option_get_arch(alpm_handle_t *handle);
-// /** Sets the targeted architecture. */
-// int alpm_option_set_arch(alpm_handle_t *handle, const char *arch);
-//
-// double alpm_option_get_deltaratio(alpm_handle_t *handle);
-// int alpm_option_set_deltaratio(alpm_handle_t *handle, double ratio);
-//
-// int alpm_option_get_checkspace(alpm_handle_t *handle);
-// int alpm_option_set_checkspace(alpm_handle_t *handle, int checkspace);
-//
-// const char *alpm_option_get_dbext(alpm_handle_t *handle);
-// int alpm_option_set_dbext(alpm_handle_t *handle, const char *dbext);
-//
-// int alpm_option_get_default_siglevel(alpm_handle_t *handle);
-// int alpm_option_set_default_siglevel(alpm_handle_t *handle, int level);
-//
-// int alpm_option_get_local_file_siglevel(alpm_handle_t *handle);
-// int alpm_option_set_local_file_siglevel(alpm_handle_t *handle, int level);
-//
-// int alpm_option_get_remote_file_siglevel(alpm_handle_t *handle);
-// int alpm_option_set_remote_file_siglevel(alpm_handle_t *handle, int level);
-//
-// int alpm_option_set_disable_dl_timeout(alpm_handle_t *handle, unsigned short disable_dl_timeout);
-//
-// /** @} */
-//
+
 // /** @addtogroup alpm_api_databases Database Functions
 //  * Functions to query and manipulate the database of libalpm.
 //  * @{

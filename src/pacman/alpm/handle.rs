@@ -826,41 +826,39 @@ pub fn alpm_get_localdb(handle: &alpm_handle_t) -> alpm_db_t {
 // #endif
 // 	return 0;
 // }
-//
-// int SYMEXPORT alpm_option_get_local_file_siglevel(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// 	if(handle->localfilesiglevel & ALPM_SIG_USE_DEFAULT) {
-// 		return handle->siglevel;
-// 	} else {
-// 		return handle->localfilesiglevel;
-// 	}
-// }
-//
-// int SYMEXPORT alpm_option_set_remote_file_siglevel(alpm_handle_t *handle,
-// 		int level)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// #ifdef HAVE_LIBGPGME
-// 	handle->remotefilesiglevel = level;
-// #else
-// 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
-// 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
-// 	}
-// #endif
-// 	return 0;
-// }
-//
-// int SYMEXPORT alpm_option_get_remote_file_siglevel(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// 	if(handle->remotefilesiglevel & ALPM_SIG_USE_DEFAULT) {
-// 		return handle->siglevel;
-// 	} else {
-// 		return handle->remotefilesiglevel;
-// 	}
-// }
-//
+
+impl alpm_handle_t {
+    pub fn alpm_option_get_local_file_siglevel(&self) -> siglevel {
+        // CHECK_HANDLE(handle, return -1);
+        if self.localfilesiglevel.ALPM_SIG_USE_DEFAULT {
+            return self.siglevel;
+        } else {
+            return self.localfilesiglevel;
+        }
+    }
+
+    pub fn alpm_option_set_remote_file_siglevel(&self, level: i32) -> i32 {
+        unimplemented!();
+        // 	CHECK_HANDLE(handle, return -1);
+        // #ifdef HAVE_LIBGPGME
+        // 	handle->remotefilesiglevel = level;
+        // #else
+        // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
+        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
+        // 	}
+        // #endif
+        // 	return 0;
+    }
+
+    pub fn alpm_option_get_remote_file_siglevel(&self) -> siglevel {
+        // CHECK_HANDLE(handle, return -1);
+        if self.remotefilesiglevel.ALPM_SIG_USE_DEFAULT {
+            return self.siglevel;
+        } else {
+            return self.remotefilesiglevel;
+        }
+    }
+}
 // int SYMEXPORT alpm_option_set_disable_dl_timeout(alpm_handle_t *handle,
 // 		unsigned short disable_dl_timeout)
 // {
@@ -976,21 +974,21 @@ pub struct alpm_handle_t {
     // 	int usesyslog;           /* Use syslog instead of logfile? */ /* TODO move to frontend */
     // 	int checkspace;          /* Check disk space before installing */
     // 	char *dbext;             /* Sync DB extension */
-    // 	int siglevel;            /* Default signature verification level */
-    // 	int localfilesiglevel;   /* Signature verification level for local file
-    // 	                                       upgrade operations */
-    // 	int remotefilesiglevel;  /* Signature verification level for remote file
-    // 	                                       upgrade operations */
+    siglevel: siglevel, /* Default signature verification level */
+    localfilesiglevel: siglevel, /* Signature verification level for local file
+                                 // 	                                       upgrade operations */
+    remotefilesiglevel: siglevel, /* Signature verification level for remote file
+                                  // 	                                       upgrade operations */
     //
     // 	/* error code */
     pub pm_errno: alpm_errno_t,
 
     /* lock file descriptor */
     lockfd: Option<File>,
-//
-// 	/* for delta parsing efficiency */
-// 	int delta_regex_compiled;
-// 	regex_t delta_regex;
+    //
+    // 	/* for delta parsing efficiency */
+    // 	int delta_regex_compiled;
+    // 	regex_t delta_regex;
 }
 
 // alpm_handle_t *_alpm_handle_new(void);

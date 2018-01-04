@@ -48,7 +48,7 @@ pub struct config_repo_t {
     siglevel_mask: siglevel,
 }
 
-use super::alpm;
+// use super::alpm;
 #[derive(Default, Debug)]
 pub struct config_t {
     pub op: Option<operations>,
@@ -134,7 +134,7 @@ pub struct config_t {
     /* our connection to libalpm */
     pub handle: alpm_handle_t,
 
-    pub explicit_adds: alpm_list_t,
+    pub explicit_adds: Vec<alpm_pkg_t>,
     pub explicit_removes: Vec<alpm_pkg_t>,
 
     /* Color strings for output */
@@ -143,8 +143,7 @@ pub struct config_t {
     pub repos: alpm_list_t,
 }
 
-//
-// /* Operations */
+/* Operations */
 #[derive(Debug)]
 pub enum operations {
     PM_OP_MAIN = 1,
