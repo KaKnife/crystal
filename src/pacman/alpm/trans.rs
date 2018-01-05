@@ -154,63 +154,62 @@ pub fn alpm_trans_init(handle: &alpm_handle_t, flags: &alpm_transflag_t) -> i32 
 // }
 
 /** Prepare a transaction. */
-pub fn alpm_trans_prepare(handle: &alpm_handle_t, data: &&alpm_list_t) -> i32
-{
+pub fn alpm_trans_prepare(handle: &alpm_handle_t, data: &Vec<alpm_depmissing_t>) -> i32 {
     unimplemented!();
-// 	alpm_trans_t *trans;
-//
-// 	/* Sanity checks */
-// 	CHECK_HANDLE(handle, return -1);
-// 	ASSERT(data != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-//
-// 	trans = handle->trans;
-//
-// 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-// 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
-//
-// 	/* If there's nothing to do, return without complaining */
-// 	if(trans->add == NULL && trans->remove == NULL) {
-// 		return 0;
-// 	}
-//
-// 	alpm_list_t *invalid = check_arch(handle, trans->add);
-// 	if(invalid) {
-// 		if(data) {
-// 			*data = invalid;
-// 		}
-// 		RET_ERR(handle, ALPM_ERR_PKG_INVALID_ARCH, -1);
-// 	}
-//
-// 	if(trans->add == NULL) {
-// 		if(_alpm_remove_prepare(handle, data) == -1) {
-// 			/* pm_errno is set by _alpm_remove_prepare() */
-// 			return -1;
-// 		}
-// 	}	else {
-// 		if(_alpm_sync_prepare(handle, data) == -1) {
-// 			/* pm_errno is set by _alpm_sync_prepare() */
-// 			return -1;
-// 		}
-// 	}
-//
-//
-// 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "sorting by dependencies\n");
-// 		if(trans->add) {
-// 			alpm_list_t *add_orig = trans->add;
-// 			trans->add = _alpm_sortbydeps(handle, add_orig, trans->remove, 0);
-// 			alpm_list_free(add_orig);
-// 		}
-// 		if(trans->remove) {
-// 			alpm_list_t *rem_orig = trans->remove;
-// 			trans->remove = _alpm_sortbydeps(handle, rem_orig, NULL, 1);
-// 			alpm_list_free(rem_orig);
-// 		}
-// 	}
-//
-// 	trans->state = STATE_PREPARED;
-//
-// 	return 0;
+    // 	alpm_trans_t *trans;
+    //
+    // 	/* Sanity checks */
+    // 	CHECK_HANDLE(handle, return -1);
+    // 	ASSERT(data != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+    //
+    // 	trans = handle->trans;
+    //
+    // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+    // 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
+    //
+    // 	/* If there's nothing to do, return without complaining */
+    // 	if(trans->add == NULL && trans->remove == NULL) {
+    // 		return 0;
+    // 	}
+    //
+    // 	alpm_list_t *invalid = check_arch(handle, trans->add);
+    // 	if(invalid) {
+    // 		if(data) {
+    // 			*data = invalid;
+    // 		}
+    // 		RET_ERR(handle, ALPM_ERR_PKG_INVALID_ARCH, -1);
+    // 	}
+    //
+    // 	if(trans->add == NULL) {
+    // 		if(_alpm_remove_prepare(handle, data) == -1) {
+    // 			/* pm_errno is set by _alpm_remove_prepare() */
+    // 			return -1;
+    // 		}
+    // 	}	else {
+    // 		if(_alpm_sync_prepare(handle, data) == -1) {
+    // 			/* pm_errno is set by _alpm_sync_prepare() */
+    // 			return -1;
+    // 		}
+    // 	}
+    //
+    //
+    // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
+    // 		_alpm_log(handle, ALPM_LOG_DEBUG, "sorting by dependencies\n");
+    // 		if(trans->add) {
+    // 			alpm_list_t *add_orig = trans->add;
+    // 			trans->add = _alpm_sortbydeps(handle, add_orig, trans->remove, 0);
+    // 			alpm_list_free(add_orig);
+    // 		}
+    // 		if(trans->remove) {
+    // 			alpm_list_t *rem_orig = trans->remove;
+    // 			trans->remove = _alpm_sortbydeps(handle, rem_orig, NULL, 1);
+    // 			alpm_list_free(rem_orig);
+    // 		}
+    // 	}
+    //
+    // 	trans->state = STATE_PREPARED;
+    //
+    // 	return 0;
 }
 
 // /** Commit a transaction. */

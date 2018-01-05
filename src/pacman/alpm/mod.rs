@@ -1,3 +1,5 @@
+#[macro_use]
+mod util;
 mod handle;
 mod deps;
 mod db;
@@ -11,6 +13,9 @@ mod remove;
 mod be_package;
 mod add;
 mod dload;
+mod sync;
+pub use self::sync::*;
+pub use self::util::*;
 pub use self::dload::*;
 pub use self::add::*;
 pub use self::be_package::*;
@@ -293,7 +298,7 @@ pub struct alpm_conflict_t {
 // } alpm_fileconflict_t;
 //
 /** Package group */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct alpm_group_t {
     /** group name */ pub name: String,
     /** list of alpm_pkg_t packages */ pub packages: Vec<alpm_pkg_t>,
@@ -1605,9 +1610,9 @@ pub struct alpm_transflag_t {
 // int alpm_unlock(alpm_handle_t *handle);
 #[derive(Default)]
 pub struct alpm_caps {
-	pub ALPM_CAPABILITY_NLS:bool,
-	pub ALPM_CAPABILITY_DOWNLOADER:bool,
-	pub ALPM_CAPABILITY_SIGNATURES:bool
+    pub ALPM_CAPABILITY_NLS: bool,
+    pub ALPM_CAPABILITY_DOWNLOADER: bool,
+    pub ALPM_CAPABILITY_SIGNATURES: bool,
 }
 
 // const char *alpm_version(void);
@@ -1781,20 +1786,19 @@ pub struct alpm_caps {
 /** Get the capabilities of the library.
  * @return a bitmask of the capabilities
  * */
-pub fn alpm_capabilities() -> alpm_caps
-{
+pub fn alpm_capabilities() -> alpm_caps {
     return alpm_caps::default();
-// 	return 0
-// #ifdef ENABLE_NLS
-// 		| ALPM_CAPABILITY_NLS
-// #endif
-// #ifdef HAVE_LIBCURL
-// 		| ALPM_CAPABILITY_DOWNLOADER
-// #endif
-// #ifdef HAVE_LIBGPGME
-// 		| ALPM_CAPABILITY_SIGNATURES
-// #endif
-// 		| 0;
+    // 	return 0
+    // #ifdef ENABLE_NLS
+    // 		| ALPM_CAPABILITY_NLS
+    // #endif
+    // #ifdef HAVE_LIBCURL
+    // 		| ALPM_CAPABILITY_DOWNLOADER
+    // #endif
+    // #ifdef HAVE_LIBGPGME
+    // 		| ALPM_CAPABILITY_SIGNATURES
+    // #endif
+    // 		| 0;
 }
 
 // /* vim: set noet: */

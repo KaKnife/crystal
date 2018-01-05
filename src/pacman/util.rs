@@ -77,35 +77,37 @@ pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: i32, config: &con
 }
 
 fn trans_init_error(config: &config_t) {
-    unimplemented!();
-    // alpm_errno_t err = alpm_errno(config->handle);
-    // pm_printf(ALPM_LOG_ERROR, _("failed to init transaction (%s)\n"),
-    // 		alpm_strerror(err));
-    // if(err == ALPM_ERR_HANDLE_LOCK) {
-    // 	const char *lockfile = alpm_option_get_lockfile(config->handle);
-    // 	pm_printf(ALPM_LOG_ERROR, _("could not lock database: %s\n"),
-    // 				strerror(errno));
-    // 	if(access(lockfile, F_OK) == 0) {
-    // 		fprintf(stderr, _("  if you're sure a package manager is not already\n"
-    // 					"  running, you can remove %s\n"), lockfile);
-    // 	}
-    // }
+    let err = config.handle.alpm_errno();
+    eprintln!("failed to init transaction ({})", err.alpm_strerror());
+    match err {
+        alpm_errno_t::ALPM_ERR_HANDLE_LOCK => {
+            unimplemented!();
+            // const char *lockfile = alpm_option_get_lockfile(config.handle);
+            // let lockfile = alpm_option_get_lockfile(config.handle);
+            // eprintln!("could not lock database: {}", strerror(errno));
+            // if(access(lockfile, F_OK) == 0) {
+            // 	fprintf(stderr, _("  if you're sure a package manager is not already\n"
+            // 				"  running, you can remove %s\n"), lockfile);
+            // }
+        }
+        _ => {}
+    }
 }
 
 pub fn trans_release(config: &config_t) -> bool {
-    if alpm::alpm_trans_release(&config.handle) == -1 {
-        eprintln!("failed to release transaction " /*,alpm_strerror(alpm_errno(config->handle))*/);
+    if alpm_trans_release(&config.handle) == -1 {
+        eprintln!(
+            "failed to release transaction: {}",
+            config.handle.alpm_errno().alpm_strerror()
+        );
         return false;
     }
 
     return true;
 }
 
-
 fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 {
     let mut ret = 0;
-    // alpm_list_t *i;
-    // alpm_list_t *sync_dbs = alpm_get_syncdbs(config->handle);
 
     match (need_repos, &config.handle.dbs_sync, check_valid) {
         (0, _, _) | (_, &None, _) => {
@@ -116,11 +118,11 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
         (_, &Some(ref sync_dbs), _) => {
             /* ensure all known dbs are valid */
             for db in sync_dbs {
-                // alpm_db_t *db = i->data;
                 if !alpm::alpm_db_get_valid(&db) {
                     eprintln!(
-                        "database '{}' is not valid ()",
-                        db.treename /*alpm_strerror(alpm_errno(config.handle))*/
+                        "database '{}' is not valid ({})",
+                        db.treename,
+                        config.handle.alpm_errno().alpm_strerror()
                     );
                     ret = 1;
                 }
@@ -131,385 +133,388 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
     return ret;
 }
 
-// int sync_syncdbs(int level, alpm_list_t *syncs)
-// {
-// 	alpm_list_t *i;
-// 	unsigned int success = 1;
-//
-// 	for(i = syncs; i; i = alpm_list_next(i)) {
-// 		alpm_db_t *db = i->data;
-//
-// 		int ret = alpm_db_update((level < 2 ? 0 : 1), db);
-// 		if(ret < 0) {
-// 			pm_printf(ALPM_LOG_ERROR, _("failed to update %s (%s)\n"),
-// 					alpm_db_get_name(db), alpm_strerror(alpm_errno(config->handle)));
-// 			success = 0;
-// 		} else if(ret == 1) {
-// 			printf(_(" %s is up to date\n"), alpm_db_get_name(db));
-// 		}
-// 	}
-//
-// 	if(!success) {
-// 		pm_printf(ALPM_LOG_ERROR, _("failed to synchronize all databases\n"));
-// 	}
-// 	return (success > 0);
-// }
-//
-// /* discard unhandled input on the terminal's input buffer */
-// static int flush_term_input(int fd)
-// {
-// #ifdef HAVE_TCFLUSH
-// 	if(isatty(fd)) {
-// 		return tcflush(fd, TCIFLUSH);
-// 	}
-// #endif
-//
-// 	/* fail silently */
-// 	return 0;
-// }
-//
-// void columns_cache_reset(void)
-// {
-// 	cached_columns = -1;
-// }
-//
-// static int getcols_fd(int fd)
-// {
-// 	int width = -1;
-//
-// 	if(!isatty(fd)) {
-// 		return 0;
-// 	}
-//
-// #if defined(TIOCGSIZE)
-// 	struct ttysize win;
-// 	if(ioctl(fd, TIOCGSIZE, &win) == 0) {
-// 		width = win.ts_cols;
-// 	}
-// #elif defined(TIOCGWINSZ)
-// 	struct winsize win;
-// 	if(ioctl(fd, TIOCGWINSZ, &win) == 0) {
-// 		width = win.ws_col;
-// 	}
-// #endif
-//
-// 	if(width <= 0) {
-// 		return -EIO;
-// 	}
-//
-// 	return width;
-// }
-//
-// unsigned short getcols(void)
-// {
-// 	const char *e;
-// 	int c = -1;
-//
-// 	if(cached_columns >= 0) {
-// 		return cached_columns;
-// 	}
-//
-// 	e = getenv("COLUMNS");
-// 	if(e && *e) {
-// 		char *p = NULL;
-// 		c = strtol(e, &p, 10);
-// 		if(*p != '\0') {
-// 			c= -1;
-// 		}
-// 	}
-//
-// 	if(c < 0) {
-// 		c = getcols_fd(STDOUT_FILENO);
-// 	}
-//
-// 	if(c < 0) {
-// 		c = 80;
-// 	}
-//
-// 	cached_columns = c;
-// 	return c;
-// }
-//
-// /* does the same thing as 'rm -rf' */
-// int rmrf(const char *path)
-// {
-// 	int errflag = 0;
-// 	struct dirent *dp;
-// 	DIR *dirp;
-//
-// 	if(!unlink(path)) {
-// 		return 0;
-// 	} else {
-// 		switch(errno) {
-// 		case ENOENT:
-// 			return 0;
-// 		case EPERM:
-// 		case EISDIR:
-// 			break;
-// 		default:
-// 			/* not a directory */
-// 			return 1;
-// 		}
-//
-// 		dirp = opendir(path);
-// 		if(!dirp) {
-// 			return 1;
-// 		}
-// 		for(dp = readdir(dirp); dp != NULL; dp = readdir(dirp)) {
-// 			if(strcmp(dp->d_name, "..") != 0 && strcmp(dp->d_name, ".") != 0) {
-// 				char name[PATH_MAX];
-// 				snprintf(name, PATH_MAX, "%s/%s", path, dp->d_name);
-// 				errflag += rmrf(name);
-// 			}
-// 		}
-// 		closedir(dirp);
-// 		if(rmdir(path)) {
-// 			errflag++;
-// 		}
-// 		return errflag;
-// 	}
-// }
-//
-// /* output a string, but wrap words properly with a specified indentation
-//  */
-// void indentprint(const char *str, unsigned short indent, unsigned short cols)
-// {
-// 	wchar_t *wcstr;
-// 	const wchar_t *p;
-// 	size_t len, cidx;
-//
-// 	if(!str) {
-// 		return;
-// 	}
-//
-// 	/* if we're not a tty, or our tty is not wide enough that wrapping even makes
-// 	 * sense, print without indenting */
-// 	if(cols == 0 || indent > cols) {
-// 		fputs(str, stdout);
-// 		return;
-// 	}
-//
-// 	len = strlen(str) + 1;
-// 	wcstr = calloc(len, sizeof(wchar_t));
-// 	len = mbstowcs(wcstr, str, len);
-// 	p = wcstr;
-// 	cidx = indent;
-//
-// 	if(!p || !len) {
-// 		free(wcstr);
-// 		return;
-// 	}
-//
-// 	while(*p) {
-// 		if(*p == L' ') {
-// 			const wchar_t *q, *next;
-// 			p++;
-// 			if(p == NULL || *p == L' ') continue;
-// 			next = wcschr(p, L' ');
-// 			if(next == NULL) {
-// 				next = p + wcslen(p);
-// 			}
-// 			/* len captures # cols */
-// 			len = 0;
-// 			q = p;
-// 			while(q < next) {
-// 				len += wcwidth(*q++);
-// 			}
-// 			if((len + 1) > (cols - cidx)) {
-// 				/* wrap to a newline and reindent */
-// 				printf("\n%-*s", (int)indent, "");
-// 				cidx = indent;
-// 			} else {
-// 				printf(" ");
-// 				cidx++;
-// 			}
-// 			continue;
-// 		}
-// 		printf("%lc", (wint_t)*p);
-// 		cidx += wcwidth(*p);
-// 		p++;
-// 	}
-// 	free(wcstr);
-// }
-//
-// /* Replace all occurrences of 'needle' with 'replace' in 'str', returning
-//  * a new string (must be free'd) */
-// char *strreplace(const char *str, const char *needle, const char *replace)
-// {
-// 	const char *p = NULL, *q = NULL;
-// 	char *newstr = NULL, *newp = NULL;
-// 	alpm_list_t *i = NULL, *list = NULL;
-// 	size_t needlesz = strlen(needle), replacesz = strlen(replace);
-// 	size_t newsz;
-//
-// 	if(!str) {
-// 		return NULL;
-// 	}
-//
-// 	p = str;
-// 	q = strstr(p, needle);
-// 	while(q) {
-// 		list = alpm_list_add(list, (char *)q);
-// 		p = q + needlesz;
-// 		q = strstr(p, needle);
-// 	}
-//
-// 	/* no occurrences of needle found */
-// 	if(!list) {
-// 		return strdup(str);
-// 	}
-// 	/* size of new string = size of old string + "number of occurrences of needle"
-// 	 * x "size difference between replace and needle" */
-// 	newsz = strlen(str) + 1 +
-// 		alpm_list_count(list) * (replacesz - needlesz);
-// 	newstr = calloc(newsz, sizeof(char));
-// 	if(!newstr) {
-// 		return NULL;
-// 	}
-//
-// 	p = str;
-// 	newp = newstr;
-// 	for(i = list; i; i = alpm_list_next(i)) {
-// 		q = i->data;
-// 		if(q > p) {
-// 			/* add chars between this occurrence and last occurrence, if any */
-// 			memcpy(newp, p, (size_t)(q - p));
-// 			newp += q - p;
-// 		}
-// 		memcpy(newp, replace, replacesz);
-// 		newp += replacesz;
-// 		p = q + needlesz;
-// 	}
-// 	alpm_list_free(list);
-//
-// 	if(*p) {
-// 		/* add the rest of 'p' */
-// 		strcpy(newp, p);
-// 	}
-//
-// 	return newstr;
-// }
-//
-// static size_t string_length(const char *s)
-// {
-// 	int len;
-// 	wchar_t *wcstr;
-//
-// 	if(!s || s[0] == '\0') {
-// 		return 0;
-// 	}
-// 	/* len goes from # bytes -> # chars -> # cols */
-// 	len = strlen(s) + 1;
-// 	wcstr = calloc(len, sizeof(wchar_t));
-// 	len = mbstowcs(wcstr, s, len);
-// 	len = wcswidth(wcstr, len);
-// 	free(wcstr);
-//
-// 	return len;
-// }
-//
-// static void add_table_cell(alpm_list_t **row, char *label, int mode)
-// {
-// 	struct table_cell_t *cell = malloc(sizeof(struct table_cell_t));
-//
-// 	cell->label = label;
-// 	cell->mode = mode;
-// 	cell->len = string_length(label);
-//
-// 	*row = alpm_list_add(*row, cell);
-// }
-//
-// static void table_free_cell(void *ptr)
-// {
-// 	struct table_cell_t *cell = ptr;
-//
-// 	if(cell) {
-// 		if(cell->mode & CELL_FREE) {
-// 			free(cell->label);
-// 		}
-// 		free(cell);
-// 	}
-// }
-//
-// static void table_free(alpm_list_t *headers, alpm_list_t *rows)
-// {
-// 	alpm_list_t *i;
-//
-// 	alpm_list_free_inner(headers, table_free_cell);
-//
-// 	for(i = rows; i; i = alpm_list_next(i)) {
-// 		alpm_list_free_inner(i->data, table_free_cell);
-// 		alpm_list_free(i->data);
-// 	}
-//
-// 	alpm_list_free(headers);
-// 	alpm_list_free(rows);
-// }
-//
-// static void add_transaction_sizes_row(alpm_list_t **rows, char *label, off_t size)
-// {
-// 	alpm_list_t *row = NULL;
-// 	char *str;
-// 	const char *units;
-// 	double s = humanize_size(size, 'M', 2, &units);
-// 	pm_asprintf(&str, "%.2f %s", s, units);
-//
-// 	add_table_cell(&row, label, CELL_TITLE);
-// 	add_table_cell(&row, str, CELL_RIGHT_ALIGN | CELL_FREE);
-//
-// 	*rows = alpm_list_add(*rows, row);
-// }
-//
-// void string_display(const char *title, const char *string, unsigned short cols)
-// {
-// 	if(title) {
-// 		printf("%s%s%s ", config->colstr.title, title, config->colstr.nocolor);
-// 	}
-// 	if(string == NULL || string[0] == '\0') {
-// 		printf(_("None"));
-// 	} else {
-// 		/* compute the length of title + a space */
-// 		size_t len = string_length(title) + 1;
-// 		indentprint(string, (unsigned short)len, cols);
-// 	}
-// 	printf("\n");
-// }
-//
-// static void table_print_line(const alpm_list_t *line, short col_padding,
-// 		size_t colcount, size_t *widths, int *has_data)
-// {
-// 	size_t i;
-// 	int need_padding = 0;
-// 	const alpm_list_t *curcell;
-//
-// 	for(i = 0, curcell = line; curcell && i < colcount;
-// 			i++, curcell = alpm_list_next(curcell)) {
-// 		const struct table_cell_t *cell = curcell->data;
-// 		const char *str = (cell->label ? cell->label : "");
-// 		int cell_width;
-//
-// 		if(!has_data[i]) {
-// 			continue;
-// 		}
-//
-// 		cell_width = (cell->mode & CELL_RIGHT_ALIGN ? (int)widths[i] : -(int)widths[i]);
-//
-// 		if(need_padding) {
-// 			printf("%*s", col_padding, "");
-// 		}
-//
-// 		if(cell->mode & CELL_TITLE) {
-// 			printf("%s%*s%s", config->colstr.title, cell_width, str, config->colstr.nocolor);
-// 		} else {
-// 			printf("%*s", cell_width, str);
-// 		}
-// 		need_padding = 1;
-// 	}
-//
-// 	printf("\n");
-// }
-//
-//
+fn sync_syncdbs(level: i32, syncs: Vec<alpm_db_t>) -> i32 {
+    unimplemented!();
+    // 	alpm_list_t *i;
+    // 	unsigned int success = 1;
+    //
+    // 	for(i = syncs; i; i = alpm_list_next(i)) {
+    // 		alpm_db_t *db = i->data;
+    //
+    // 		int ret = alpm_db_update((level < 2 ? 0 : 1), db);
+    // 		if(ret < 0) {
+    // 			pm_printf(ALPM_LOG_ERROR, _("failed to update %s (%s)\n"),
+    // 					alpm_db_get_name(db), alpm_strerror(alpm_errno(config->handle)));
+    // 			success = 0;
+    // 		} else if(ret == 1) {
+    // 			printf(_(" %s is up to date\n"), alpm_db_get_name(db));
+    // 		}
+    // 	}
+    //
+    // 	if(!success) {
+    // 		pm_printf(ALPM_LOG_ERROR, _("failed to synchronize all databases\n"));
+    // 	}
+    // 	return (success > 0);
+    // }
+    //
+    // /* discard unhandled input on the terminal's input buffer */
+    // static int flush_term_input(int fd)
+    // {
+    // #ifdef HAVE_TCFLUSH
+    // 	if(isatty(fd)) {
+    // 		return tcflush(fd, TCIFLUSH);
+    // 	}
+    // #endif
+    //
+    // 	/* fail silently */
+    // 	return 0;
+    // }
+    //
+    // void columns_cache_reset(void)
+    // {
+    // 	cached_columns = -1;
+    // }
+    //
+    // static int getcols_fd(int fd)
+    // {
+    // 	int width = -1;
+    //
+    // 	if(!isatty(fd)) {
+    // 		return 0;
+    // 	}
+    //
+    // #if defined(TIOCGSIZE)
+    // 	struct ttysize win;
+    // 	if(ioctl(fd, TIOCGSIZE, &win) == 0) {
+    // 		width = win.ts_cols;
+    // 	}
+    // #elif defined(TIOCGWINSZ)
+    // 	struct winsize win;
+    // 	if(ioctl(fd, TIOCGWINSZ, &win) == 0) {
+    // 		width = win.ws_col;
+    // 	}
+    // #endif
+    //
+    // 	if(width <= 0) {
+    // 		return -EIO;
+    // 	}
+    //
+    // 	return width;
+}
+
+fn getcols() -> u16 {
+    unimplemented!();
+    // 	const char *e;
+    // 	int c = -1;
+    //
+    // 	if(cached_columns >= 0) {
+    // 		return cached_columns;
+    // 	}
+    //
+    // 	e = getenv("COLUMNS");
+    // 	if(e && *e) {
+    // 		char *p = NULL;
+    // 		c = strtol(e, &p, 10);
+    // 		if(*p != '\0') {
+    // 			c= -1;
+    // 		}
+    // 	}
+    //
+    // 	if(c < 0) {
+    // 		c = getcols_fd(STDOUT_FILENO);
+    // 	}
+    //
+    // 	if(c < 0) {
+    // 		c = 80;
+    // 	}
+    //
+    // 	cached_columns = c;
+    // 	return c;
+}
+
+/* does the same thing as 'rm -rf' */
+fn rmrf(path: String) -> i32 {
+    unimplemented!();
+    // 	int errflag = 0;
+    // 	struct dirent *dp;
+    // 	DIR *dirp;
+    //
+    // 	if(!unlink(path)) {
+    // 		return 0;
+    // 	} else {
+    // 		switch(errno) {
+    // 		case ENOENT:
+    // 			return 0;
+    // 		case EPERM:
+    // 		case EISDIR:
+    // 			break;
+    // 		default:
+    // 			/* not a directory */
+    // 			return 1;
+    // 		}
+    //
+    // 		dirp = opendir(path);
+    // 		if(!dirp) {
+    // 			return 1;
+    // 		}
+    // 		for(dp = readdir(dirp); dp != NULL; dp = readdir(dirp)) {
+    // 			if(strcmp(dp->d_name, "..") != 0 && strcmp(dp->d_name, ".") != 0) {
+    // 				char name[PATH_MAX];
+    // 				snprintf(name, PATH_MAX, "%s/%s", path, dp->d_name);
+    // 				errflag += rmrf(name);
+    // 			}
+    // 		}
+    // 		closedir(dirp);
+    // 		if(rmdir(path)) {
+    // 			errflag++;
+    // 		}
+    // 		return errflag;
+    // 	}
+}
+
+/* output a string, but wrap words properly with a specified indentation
+ */
+fn indentprint(sstr: String, indent: usize, cols: usize) {
+    unimplemented!();
+    // // 	wchar_t *wcstr;
+    // // 	const wchar_t *p;
+    // // 	size_t len, cidx;
+    // let len;
+    // let cidx;
+    //
+    // /* if we're not a tty, or our tty is not wide enough that wrapping even makes
+    //  * sense, print without indenting */
+    // if cols == 0 || indent > cols {
+    //     print!("{}", sstr);
+    //     return;
+    // }
+    //
+    // len = sstr.len() + 1;
+    // // 	wcstr = calloc(len, sizeof(wchar_t));
+    // // len = mbstowcs(wcstr, sstr, len);
+    // // 	p = wcstr;
+    // cidx = indent;
+    // //
+    // // 	if(!p || !len) {
+    // // 		free(wcstr);
+    // // 		return;
+    // // 	}
+    // //
+    // for p in sstr.chars() {
+    //     if p == ' ' {
+    //         			// const wchar_t *q, *next;
+    //         			p++;
+    //         			if(p == NULL || *p == L' ') continue;
+    //         			next = wcschr(p, L' ');
+    //         			if(next == NULL) {
+    //         				next = p + wcslen(p);
+    //         			}
+    //         			/* len captures # cols */
+    //         			len = 0;
+    //         			q = p;
+    //         			while(q < next) {
+    //         				len += wcwidth(*q++);
+    //         			}
+    //         			if((len + 1) > (cols - cidx)) {
+    //         				/* wrap to a newline and reindent */
+    //         				printf("\n%-*s", (int)indent, "");
+    //         				cidx = indent;
+    //         			} else {
+    //         				printf(" ");
+    //         				cidx++;
+    //         			}
+    //         			continue;
+    //     }
+    //     		printf("{}", (p);
+    //     // 		cidx += wcwidth(*p);
+    //     // 		p++;
+    // }
+    // // 	free(wcstr);
+}
+
+/* Replace all occurrences of 'needle' with 'replace' in 'str', returning
+ * a new string (must be free'd) */
+fn strreplace(sstr: String, needle: String, replace: String) -> String {
+    unimplemented!();
+    // 	const char *p = NULL, *q = NULL;
+    // 	char *newstr = NULL, *newp = NULL;
+    // 	alpm_list_t *i = NULL, *list = NULL;
+    // 	size_t needlesz = strlen(needle), replacesz = strlen(replace);
+    // 	size_t newsz;
+    //
+    // 	if(!str) {
+    // 		return NULL;
+    // 	}
+    //
+    // 	p = str;
+    // 	q = strstr(p, needle);
+    // 	while(q) {
+    // 		list = alpm_list_add(list, (char *)q);
+    // 		p = q + needlesz;
+    // 		q = strstr(p, needle);
+    // 	}
+    //
+    // 	/* no occurrences of needle found */
+    // 	if(!list) {
+    // 		return strdup(str);
+    // 	}
+    // 	/* size of new string = size of old string + "number of occurrences of needle"
+    // 	 * x "size difference between replace and needle" */
+    // 	newsz = strlen(str) + 1 +
+    // 		alpm_list_count(list) * (replacesz - needlesz);
+    // 	newstr = calloc(newsz, sizeof(char));
+    // 	if(!newstr) {
+    // 		return NULL;
+    // 	}
+    //
+    // 	p = str;
+    // 	newp = newstr;
+    // 	for(i = list; i; i = alpm_list_next(i)) {
+    // 		q = i->data;
+    // 		if(q > p) {
+    // 			/* add chars between this occurrence and last occurrence, if any */
+    // 			memcpy(newp, p, (size_t)(q - p));
+    // 			newp += q - p;
+    // 		}
+    // 		memcpy(newp, replace, replacesz);
+    // 		newp += replacesz;
+    // 		p = q + needlesz;
+    // 	}
+    // 	alpm_list_free(list);
+    //
+    // 	if(*p) {
+    // 		/* add the rest of 'p' */
+    // 		strcpy(newp, p);
+    // 	}
+    //
+    // 	return newstr;
+}
+
+fn string_length(s: String) -> usize {
+    unimplemented!();
+    // 	int len;
+    // 	wchar_t *wcstr;
+    //
+    // 	if(!s || s[0] == '\0') {
+    // 		return 0;
+    // 	}
+    // 	/* len goes from # bytes -> # chars -> # cols */
+    // 	len = strlen(s) + 1;
+    // 	wcstr = calloc(len, sizeof(wchar_t));
+    // 	len = mbstowcs(wcstr, s, len);
+    // 	len = wcswidth(wcstr, len);
+    // 	free(wcstr);
+    //
+    // 	return len;
+}
+
+fn add_table_cell(row: &alpm_list_t, label: String, mode: i32) {
+    unimplemented!();
+    // 	struct table_cell_t *cell = malloc(sizeof(struct table_cell_t));
+    //
+    // 	cell->label = label;
+    // 	cell->mode = mode;
+    // 	cell->len = string_length(label);
+    //
+    // 	*row = alpm_list_add(*row, cell);
+    // }
+    //
+    // static void table_free_cell(void *ptr)
+    // {
+    // 	struct table_cell_t *cell = ptr;
+    //
+    // 	if(cell) {
+    // 		if(cell->mode & CELL_FREE) {
+    // 			free(cell->label);
+    // 		}
+    // 		free(cell);
+    // 	}
+}
+
+fn table_free(headers: alpm_list_t, rows: alpm_list_t) {
+    unimplemented!();
+    // 	alpm_list_t *i;
+    //
+    // 	alpm_list_free_inner(headers, table_free_cell);
+    //
+    // 	for(i = rows; i; i = alpm_list_next(i)) {
+    // 		alpm_list_free_inner(i->data, table_free_cell);
+    // 		alpm_list_free(i->data);
+    // 	}
+    //
+    // 	alpm_list_free(headers);
+    // 	alpm_list_free(rows);
+}
+
+type off_t = i64;
+
+fn add_transaction_sizes_row(rows: alpm_list_t, label: String, size: off_t) {
+    unimplemented!()
+    // 	alpm_list_t *row = NULL;
+    // 	char *str;
+    // 	const char *units;
+    // 	double s = humanize_size(size, 'M', 2, &units);
+    // 	pm_asprintf(&str, "%.2f %s", s, units);
+    //
+    // 	add_table_cell(&row, label, CELL_TITLE);
+    // 	add_table_cell(&row, str, CELL_RIGHT_ALIGN | CELL_FREE);
+    //
+    // 	*rows = alpm_list_add(*rows, row);
+}
+
+fn string_display(title: String, string: String, cols: usize, config: &config_t) {
+    unimplemented!();
+    // if(title) {
+    print!("{}{}{} ", config.colstr.title, title, config.colstr.nocolor);
+    // }
+    if string == "" {
+        print!("None");
+    } else {
+        /* compute the length of title + a space */
+        indentprint(string, title.len() + 1, cols);
+    }
+    print!("\n");
+}
+
+fn table_print_line(
+    line: alpm_list_t,
+    col_padding: i32,
+    colcount: usize,
+    widths: &usize,
+    has_data: &i32,
+) {
+    unimplemented!();
+    // 	size_t i;
+    // 	int need_padding = 0;
+    // 	const alpm_list_t *curcell;
+    //
+    // 	for(i = 0, curcell = line; curcell && i < colcount;
+    // 			i++, curcell = alpm_list_next(curcell)) {
+    // 		const struct table_cell_t *cell = curcell->data;
+    // 		const char *str = (cell->label ? cell->label : "");
+    // 		int cell_width;
+    //
+    // 		if(!has_data[i]) {
+    // 			continue;
+    // 		}
+    //
+    // 		cell_width = (cell->mode & CELL_RIGHT_ALIGN ? (int)widths[i] : -(int)widths[i]);
+    //
+    // 		if(need_padding) {
+    // 			printf("%*s", col_padding, "");
+    // 		}
+    //
+    // 		if(cell->mode & CELL_TITLE) {
+    // 			printf("%s%*s%s", config->colstr.title, cell_width, str, config->colstr.nocolor);
+    // 		} else {
+    // 			printf("%*s", cell_width, str);
+    // 		}
+    // 		need_padding = 1;
+    // 	}
+    //
+    // 	printf("\n");
+}
+
 // /**
 //  * Find the max string width of each column. Also determines whether values
 //  * exist in the column and sets the value in has_data accordingly.
@@ -994,59 +999,54 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
 // 	_display_targets(targets, config->verbosepkglists);
 // 	FREELIST(targets);
 // }
-//
-// static off_t pkg_get_size(alpm_pkg_t *pkg)
-// {
-// 	switch(config->op) {
-// 		case PM_OP_SYNC:
-// 			return alpm_pkg_download_size(pkg);
-// 		case PM_OP_UPGRADE:
-// 			return alpm_pkg_get_size(pkg);
-// 		default:
-// 			return alpm_pkg_get_isize(pkg);
-// 	}
-// }
 
-fn pkg_get_location(pkg: &alpm_pkg_t) -> String
-{
+fn pkg_get_size(pkg: &alpm_pkg_t, config: &config_t) -> off_t {
+    match config.op {
+        Some(PM_OP_SYNC) => pkg.alpm_pkg_download_size(),
+        Some(PM_OP_UPGRADE) => pkg.alpm_pkg_get_size(),
+        _ => pkg.alpm_pkg_get_isize(),
+    }
+}
+
+fn pkg_get_location(pkg: &alpm_pkg_t) -> String {
     unimplemented!();
-	// alpm_list_t *servers;
-	// char *string = NULL;
-	// switch(alpm_pkg_get_origin(pkg)) {
-	// 	case ALPM_PKG_FROM_SYNCDB:
-	// 		if(alpm_pkg_download_size(pkg) == 0) {
-	// 			/* file is already in the package cache */
-	// 			alpm_list_t *i;
-	// 			const char *pkgfile = alpm_pkg_get_filename(pkg);
-	// 			char path[PATH_MAX];
-	// 			struct stat buf;
+    // alpm_list_t *servers;
+    // char *string = NULL;
+    // switch(alpm_pkg_get_origin(pkg)) {
+    // 	case ALPM_PKG_FROM_SYNCDB:
+    // 		if(alpm_pkg_download_size(pkg) == 0) {
+    // 			/* file is already in the package cache */
+    // 			alpm_list_t *i;
+    // 			const char *pkgfile = alpm_pkg_get_filename(pkg);
+    // 			char path[PATH_MAX];
+    // 			struct stat buf;
     //
-	// 			for(i = alpm_option_get_cachedirs(config->handle); i; i = i->next) {
-	// 				snprintf(path, PATH_MAX, "%s%s", (char *)i->data, pkgfile);
-	// 				if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
-	// 					pm_asprintf(&string, "file://%s", path);
-	// 					return string;
-	// 				}
-	// 			}
-	// 		}
+    // 			for(i = alpm_option_get_cachedirs(config->handle); i; i = i->next) {
+    // 				snprintf(path, PATH_MAX, "%s%s", (char *)i->data, pkgfile);
+    // 				if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
+    // 					pm_asprintf(&string, "file://%s", path);
+    // 					return string;
+    // 				}
+    // 			}
+    // 		}
     //
-	// 		servers = alpm_db_get_servers(alpm_pkg_get_db(pkg));
-	// 		if(servers) {
-	// 			pm_asprintf(&string, "%s/%s", (char *)(servers->data),
-	// 					alpm_pkg_get_filename(pkg));
-	// 			return string;
-	// 		}
+    // 		servers = alpm_db_get_servers(alpm_pkg_get_db(pkg));
+    // 		if(servers) {
+    // 			pm_asprintf(&string, "%s/%s", (char *)(servers->data),
+    // 					alpm_pkg_get_filename(pkg));
+    // 			return string;
+    // 		}
     //
-	// 		/* fallthrough - for theoretical serverless repos */
+    // 		/* fallthrough - for theoretical serverless repos */
     //
-	// 	case ALPM_PKG_FROM_FILE:
-	// 		return strdup(alpm_pkg_get_filename(pkg));
+    // 	case ALPM_PKG_FROM_FILE:
+    // 		return strdup(alpm_pkg_get_filename(pkg));
     //
-	// 	case ALPM_PKG_FROM_LOCALDB:
-	// 	default:
-	// 		pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));
-	// 		return string;
-	// }
+    // 	case ALPM_PKG_FROM_LOCALDB:
+    // 	default:
+    // 		pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));
+    // 		return string;
+    // }
 }
 
 // /* a pow() implementation that is specialized for an integer base and small,
@@ -1105,37 +1105,31 @@ fn pkg_get_location(pkg: &alpm_pkg_t) -> String
 // }
 
 // pub fn print_packages(packages: &Vec<alpm_pkg_t>, config: &config_t)
-pub fn print_packages(packages: &Vec<alpm_pkg_t>, print_format: &mut String)
-{
-	// const alpm_list_t *i;
-
-	for pkg in packages {
-        if print_format=="" {
-    		println!("{}", pkg_get_location(&pkg));
+pub fn print_packages(packages: &Vec<alpm_pkg_t>, print_format: &String, config: &config_t) {
+    for pkg in packages {
+        if print_format == "" {
+            println!("{}", pkg_get_location(&pkg));
             continue;
-    	}
-		// alpm_pkg_t *pkg = i->data;
-        // char *string = strdup(config->print_format);
-		let string = &print_format;
-		// let temp = string;
-		/* %n : pkgname */
-		string.replace("%n", &pkg.name);
-		/* %v : pkgver */
+        }
+        let string = &print_format;
+        /* %n : pkgname */
+        string.replace("%n", &pkg.name);
+        /* %v : pkgver */
         string.replace("%v", &pkg.version);
-		/* %l : location */
+        /* %l : location */
         string.replace("%l", &pkg_get_location(&pkg));
-		/* %r : repo */
+        /* %r : repo */
         string.replace("%r", &pkg.db.treename);
-		/* %s : size */
-		// if(strstr(temp, "%s")) {
-		// 	char *size;
-		// 	pm_asprintf(&size, "%jd", (intmax_t)pkg_get_size(pkg));
-		// 	string = strreplace(temp, "%s", size);
-		// 	free(size);
-		// 	free(temp);
-		// }
-		println!("{}", string);
-	}
+        /* %s : size */
+        if string.contains("%s") {
+            // 	char *size;
+            let size = format!("{}", pkg_get_size(pkg, config));
+            string.replace("%s", &size);
+            // 	free(size);
+            // 	free(temp);
+        }
+        println!("{}", string);
+    }
 }
 
 // /**

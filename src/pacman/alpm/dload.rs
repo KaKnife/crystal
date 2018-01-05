@@ -634,84 +634,83 @@ use super::*;
 // }
 
 /** Fetch a remote pkg. */
-pub fn alpm_fetch_pkgurl(handle: &alpm_handle_t, url: &String) -> String
-{
-	unimplemented!();
-// 	char *filepath;
-// 	const char *cachedir, *final_pkg_url = NULL;
-// 	char *final_file = NULL;
-// 	struct dload_payload payload;
-// 	int ret = 0;
-//
-// 	CHECK_HANDLE(handle, return NULL);
-// 	ASSERT(url, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
-//
-// 	/* find a valid cache dir to download to */
-// 	cachedir = _alpm_filecache_setup(handle);
-//
-// 	memset(&payload, 0, sizeof(struct dload_payload));
-//
-// 	/* attempt to find the file in our pkgcache */
-// 	filepath = filecache_find_url(handle, url);
-// 	if(filepath == NULL) {
-// 		STRDUP(payload.fileurl, url, RET_ERR(handle, ALPM_ERR_MEMORY, NULL));
-// 		payload.allow_resume = 1;
-// 		payload.handle = handle;
-// 		payload.trust_remote_name = 1;
-//
-// 		/* download the file */
-// 		ret = _alpm_download(&payload, cachedir, &final_file, &final_pkg_url);
-// 		_alpm_dload_payload_reset(&payload);
-// 		if(ret == -1) {
-// 			_alpm_log(handle, ALPM_LOG_WARNING, _("failed to download %s\n"), url);
-// 			free(final_file);
-// 			return NULL;
-// 		}
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "successfully downloaded %s\n", url);
-// 	}
-//
-// 	/* attempt to download the signature */
-// 	if(ret == 0 && final_pkg_url && (handle->siglevel & ALPM_SIG_PACKAGE)) {
-// 		char *sig_filepath, *sig_final_file = NULL;
-// 		size_t len;
-//
-// 		len = strlen(final_pkg_url) + 5;
-// 		MALLOC(payload.fileurl, len, free(final_file); RET_ERR(handle, ALPM_ERR_MEMORY, NULL));
-// 		snprintf(payload.fileurl, len, "%s.sig", final_pkg_url);
-//
-// 		sig_filepath = filecache_find_url(handle, payload.fileurl);
-// 		if(sig_filepath == NULL) {
-// 			payload.handle = handle;
-// 			payload.trust_remote_name = 1;
-// 			payload.force = 1;
-// 			payload.errors_ok = (handle->siglevel & ALPM_SIG_PACKAGE_OPTIONAL);
-//
-// 			/* set hard upper limit of 16KiB */
-// 			payload.max_size = 16 * 1024;
-//
-// 			ret = _alpm_download(&payload, cachedir, &sig_final_file, NULL);
-// 			if(ret == -1 && !payload.errors_ok) {
-// 				_alpm_log(handle, ALPM_LOG_WARNING,
-// 						_("failed to download %s\n"), payload.fileurl);
-// 				/* Warn now, but don't return NULL. We will fail later during package
-// 				 * load time. */
-// 			} else if(ret == 0) {
-// 				_alpm_log(handle, ALPM_LOG_DEBUG,
-// 						"successfully downloaded %s\n", payload.fileurl);
-// 			}
-// 			FREE(sig_final_file);
-// 		}
-// 		free(sig_filepath);
-// 		_alpm_dload_payload_reset(&payload);
-// 	}
-//
-// 	/* we should be able to find the file the second time around */
-// 	if(filepath == NULL) {
-// 		filepath = _alpm_filecache_find(handle, final_file);
-// 	}
-// 	free(final_file);
-//
-// 	return filepath;
+pub fn alpm_fetch_pkgurl(handle: &alpm_handle_t, url: &String) -> String {
+    unimplemented!();
+    // 	char *filepath;
+    // 	const char *cachedir, *final_pkg_url = NULL;
+    // 	char *final_file = NULL;
+    // 	struct dload_payload payload;
+    // 	int ret = 0;
+    //
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	ASSERT(url, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
+    //
+    // 	/* find a valid cache dir to download to */
+    // 	cachedir = _alpm_filecache_setup(handle);
+    //
+    // 	memset(&payload, 0, sizeof(struct dload_payload));
+    //
+    // 	/* attempt to find the file in our pkgcache */
+    // 	filepath = filecache_find_url(handle, url);
+    // 	if(filepath == NULL) {
+    // 		STRDUP(payload.fileurl, url, RET_ERR(handle, ALPM_ERR_MEMORY, NULL));
+    // 		payload.allow_resume = 1;
+    // 		payload.handle = handle;
+    // 		payload.trust_remote_name = 1;
+    //
+    // 		/* download the file */
+    // 		ret = _alpm_download(&payload, cachedir, &final_file, &final_pkg_url);
+    // 		_alpm_dload_payload_reset(&payload);
+    // 		if(ret == -1) {
+    // 			_alpm_log(handle, ALPM_LOG_WARNING, _("failed to download %s\n"), url);
+    // 			free(final_file);
+    // 			return NULL;
+    // 		}
+    // 		_alpm_log(handle, ALPM_LOG_DEBUG, "successfully downloaded %s\n", url);
+    // 	}
+    //
+    // 	/* attempt to download the signature */
+    // 	if(ret == 0 && final_pkg_url && (handle->siglevel & ALPM_SIG_PACKAGE)) {
+    // 		char *sig_filepath, *sig_final_file = NULL;
+    // 		size_t len;
+    //
+    // 		len = strlen(final_pkg_url) + 5;
+    // 		MALLOC(payload.fileurl, len, free(final_file); RET_ERR(handle, ALPM_ERR_MEMORY, NULL));
+    // 		snprintf(payload.fileurl, len, "%s.sig", final_pkg_url);
+    //
+    // 		sig_filepath = filecache_find_url(handle, payload.fileurl);
+    // 		if(sig_filepath == NULL) {
+    // 			payload.handle = handle;
+    // 			payload.trust_remote_name = 1;
+    // 			payload.force = 1;
+    // 			payload.errors_ok = (handle->siglevel & ALPM_SIG_PACKAGE_OPTIONAL);
+    //
+    // 			/* set hard upper limit of 16KiB */
+    // 			payload.max_size = 16 * 1024;
+    //
+    // 			ret = _alpm_download(&payload, cachedir, &sig_final_file, NULL);
+    // 			if(ret == -1 && !payload.errors_ok) {
+    // 				_alpm_log(handle, ALPM_LOG_WARNING,
+    // 						_("failed to download %s\n"), payload.fileurl);
+    // 				/* Warn now, but don't return NULL. We will fail later during package
+    // 				 * load time. */
+    // 			} else if(ret == 0) {
+    // 				_alpm_log(handle, ALPM_LOG_DEBUG,
+    // 						"successfully downloaded %s\n", payload.fileurl);
+    // 			}
+    // 			FREE(sig_final_file);
+    // 		}
+    // 		free(sig_filepath);
+    // 		_alpm_dload_payload_reset(&payload);
+    // 	}
+    //
+    // 	/* we should be able to find the file the second time around */
+    // 	if(filepath == NULL) {
+    // 		filepath = _alpm_filecache_find(handle, final_file);
+    // 	}
+    // 	free(final_file);
+    //
+    // 	return filepath;
 }
 //
 // void _alpm_dload_payload_reset(struct dload_payload *payload)

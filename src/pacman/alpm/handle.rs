@@ -1,8 +1,11 @@
+// #[macro_use]
+// mod util;
 use super::*;
 use std;
 // use std::error::Error;
 use std::fs::File;
 use std::io::Result;
+use self::alpm_errno_t::*;
 /*
  *  handle.c
  *
@@ -726,108 +729,96 @@ pub fn alpm_option_get_dbpath(handle: &alpm_handle_t) -> &String {
 //
 // 	return -1;
 // }
-//
-// int SYMEXPORT alpm_option_remove_assumeinstalled(alpm_handle_t *handle, const alpm_depend_t *dep)
-// {
-// 	alpm_depend_t *vdata = NULL;
-// 	CHECK_HANDLE(handle, return -1);
-//
-// 	handle->assumeinstalled = alpm_list_remove(handle->assumeinstalled, dep,
-//&assumeinstalled_cmp, (void **)&vdata);
-// 	if(vdata != NULL) {
-// 		alpm_dep_free(vdata);
-// 		return 1;
-// 	}
-//
-// 	return 0;
-// }
-//
-// int SYMEXPORT alpm_option_set_arch(alpm_handle_t *handle, const char *arch)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// 	if(handle->arch) FREE(handle->arch);
-// 	STRDUP(handle->arch, arch, RET_ERR(handle, ALPM_ERR_MEMORY, -1));
-// 	return 0;
-// }
-//
-// int SYMEXPORT alpm_option_set_deltaratio(alpm_handle_t *handle, double ratio)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// 	if(ratio < 0.0 || ratio > 2.0) {
-// 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
-// 	}
-// 	handle->deltaratio = ratio;
-// 	return 0;
-// }
-
-pub fn alpm_get_localdb(handle: &alpm_handle_t) -> alpm_db_t {
-    unimplemented!();
-    // CHECK_HANDLE(handle, return NULL);
-    // return handle->db_local;
-}
-
-// pub fn alpm_get_syncdbs(handle: &alpm_handle_t) -> &Vec<alpm_db_t> {
-//     // CHECK_HANDLE(handle, return NULL);
-//     return &handle.dbs_sync;
-// }
-
-// int SYMEXPORT alpm_option_set_checkspace(alpm_handle_t *handle, int checkspace)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// 	handle->checkspace = checkspace;
-// 	return 0;
-// }
-//
-// int SYMEXPORT alpm_option_set_dbext(alpm_handle_t *handle, const char *dbext)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// 	ASSERT(dbext, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-//
-// 	if(handle->dbext) {
-// 		FREE(handle->dbext);
-// 	}
-//
-// 	STRDUP(handle->dbext, dbext, RET_ERR(handle, ALPM_ERR_MEMORY, -1));
-//
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "option 'dbext' = %s\n", handle->dbext);
-// 	return 0;
-// }
-//
-// int SYMEXPORT alpm_option_set_default_siglevel(alpm_handle_t *handle,
-// 		int level)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// #ifdef HAVE_LIBGPGME
-// 	handle->siglevel = level;
-// #else
-// 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
-// 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
-// 	}
-// #endif
-// 	return 0;
-// }
-//
-// int SYMEXPORT alpm_option_get_default_siglevel(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// 	return handle->siglevel;
-// }
-//
-// int SYMEXPORT alpm_option_set_local_file_siglevel(alpm_handle_t *handle,
-// 		int level)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// #ifdef HAVE_LIBGPGME
-// 	handle->localfilesiglevel = level;
-// #else
-// 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
-// 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
-// 	}
-// #endif
-// 	return 0;
-// }
-
 impl alpm_handle_t {
+    pub fn alpm_option_remove_assumeinstalled(&self, dep: &alpm_depend_t) {
+        // alpm_depend_t *vdata = NULL;
+        // CHECK_HANDLE(handle, return -1);
+
+        // 	self.assumeinstalled = alpm_list_remove(handle->assumeinstalled, dep,
+        // &assumeinstalled_cmp, (void **)&vdata);
+        // 	if(vdata != NULL) {
+        // 		alpm_dep_free(vdata);
+        // 		return 1;
+        // 	}
+        //
+        // 	return 0;
+    }
+
+    pub fn alpm_option_set_arch(&mut self, arch: &String) -> i32 {
+        self.arch = arch.clone();
+        return 0;
+    }
+
+    pub fn alpm_option_set_deltaratio(&mut self, ratio: f64) -> i32 {
+        if ratio < 0.0 || ratio > 2.0 {
+            RET_ERR!(self, ALPM_ERR_WRONG_ARGS, -1);
+        }
+        self.deltaratio = ratio;
+        return 0;
+    }
+
+    pub fn alpm_get_localdb(&self) -> &alpm_db_t {
+        return &self.db_local;
+    }
+
+    // pub fn alpm_get_syncdbs(handle: &alpm_handle_t) -> &Vec<alpm_db_t> {
+    //     // CHECK_HANDLE(handle, return NULL);
+    //     return &handle.dbs_sync;
+    // }
+
+    // int SYMEXPORT alpm_option_set_checkspace(alpm_handle_t *handle, int checkspace)
+    // {
+    // 	CHECK_HANDLE(handle, return -1);
+    // 	handle->checkspace = checkspace;
+    // 	return 0;
+    // }
+    //
+    // int SYMEXPORT alpm_option_set_dbext(alpm_handle_t *handle, const char *dbext)
+    // {
+    // 	CHECK_HANDLE(handle, return -1);
+    // 	ASSERT(dbext, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+    //
+    // 	if(handle->dbext) {
+    // 		FREE(handle->dbext);
+    // 	}
+    //
+    // 	STRDUP(handle->dbext, dbext, RET_ERR(handle, ALPM_ERR_MEMORY, -1));
+    //
+    // 	_alpm_log(handle, ALPM_LOG_DEBUG, "option 'dbext' = %s\n", handle->dbext);
+    // 	return 0;
+    // }
+
+    // int SYMEXPORT alpm_option_set_default_siglevel(alpm_handle_t *handle,
+    // 		int level)
+    // {
+    // 	CHECK_HANDLE(handle, return -1);
+    // #ifdef HAVE_LIBGPGME
+    // 	handle->siglevel = level;
+    // #else
+    // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
+    // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
+    // 	}
+    // #endif
+    // 	return 0;
+    // }
+    fn alpm_option_get_default_siglevel(&self) -> siglevel {
+        // CHECK_HANDLE(handle, return -1);
+        return self.siglevel;
+    }
+
+    pub fn alpm_option_set_local_file_siglevel(&mut self, level: siglevel) -> i32 {
+        // CHECK_HANDLE(handle, return -1);
+        if cfg!(HAVE_LIBGPGME) {
+            self.localfilesiglevel = level;
+        } else if
+        /*level != 0 &&*/
+        level.ALPM_SIG_USE_DEFAULT {
+            RET_ERR!(self, ALPM_ERR_WRONG_ARGS, -1);
+        }
+
+        return 0;
+    }
+
     pub fn alpm_option_get_local_file_siglevel(&self) -> siglevel {
         // CHECK_HANDLE(handle, return -1);
         if self.localfilesiglevel.ALPM_SIG_USE_DEFAULT {
@@ -858,74 +849,45 @@ impl alpm_handle_t {
             return self.remotefilesiglevel;
         }
     }
-}
-// int SYMEXPORT alpm_option_set_disable_dl_timeout(alpm_handle_t *handle,
-// 		unsigned short disable_dl_timeout)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// #ifdef HAVE_LIBCURL
-// 	handle->disable_dl_timeout = disable_dl_timeout;
-// #endif
-// 	return 0;
-// }
-//
-// /* vim: set noet: */
 
-// /*
-//  *  handle.h
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-// #ifndef ALPM_HANDLE_H
-// #define ALPM_HANDLE_H
-//
-// #include <stdio.h>
-// #include <sys/types.h>
-// #include <regex.h>
-//
-// #include "alpm_list.h"
-// #include "alpm.h"
-//
+    pub fn alpm_option_set_disable_dl_timeout(&mut self, disable_dl_timeout: u16) -> i32 {
+        // 	CHECK_HANDLE(handle, return -1);
+        if cfg!(HAVE_LIBCURL) {
+            self.disable_dl_timeout = disable_dl_timeout;
+        }
+        return 0;
+    }
+}
+
 // #ifdef HAVE_LIBCURL
 // #include <curl/curl.h>
 // #endif
-//
+
 // #define EVENT(h, e) \
 // do { \
 // 	if((h)->eventcb) { \
 // 		(h)->eventcb((alpm_event_t *) (e)); \
 // 	} \
 // } while(0)
+
 // #define QUESTION(h, q) \
 // do { \
 // 	if((h)->questioncb) { \
 // 		(h)->questioncb((alpm_question_t *) (q)); \
 // 	} \
 // } while(0)
+
 // #define PROGRESS(h, e, p, per, n, r) \
 // do { \
 // 	if((h)->progresscb) { \
 // 		(h)->progresscb(e, p, per, n, r); \
 // 	} \
 // } while(0)
+
 #[derive(Default, Debug)]
 pub struct alpm_handle_t {
     // 	/* internal usage */
-    // 	alpm_db_t *db_local;    /* local db pointer */
+    pub db_local: alpm_db_t,              //// local db pointer */
     pub dbs_sync: Option<Vec<alpm_db_t>>, /* List of (alpm_db_t *) */
     // 	FILE *logstream;        /* log file stream pointer */
     pub trans: alpm_trans_t,
@@ -933,7 +895,7 @@ pub struct alpm_handle_t {
     // #ifdef HAVE_LIBCURL
     // 	/* libcurl handle */
     // 	CURL *curl;             /* reusable curl_easy handle */
-    // 	unsigned short disable_dl_timeout;
+    disable_dl_timeout: u16,
     // #endif
     //
     // #ifdef HAVE_LIBGPGME
@@ -968,7 +930,7 @@ pub struct alpm_handle_t {
     pub assumeinstalled: Vec<alpm_depend_t>,
     //
     // 	/* options */
-    // 	char *arch;              /* Architecture of packages we should allow */
+    arch: String, /* Architecture of packages we should allow */
     deltaratio: f64,
     /// Download deltas if possible; a ratio value */
     // 	int usesyslog;           /* Use syslog instead of logfile? */ /* TODO move to frontend */
@@ -990,16 +952,3 @@ pub struct alpm_handle_t {
     // 	int delta_regex_compiled;
     // 	regex_t delta_regex;
 }
-
-// alpm_handle_t *_alpm_handle_new(void);
-// void _alpm_handle_free(alpm_handle_t *handle);
-//
-// int _alpm_handle_lock(alpm_handle_t *handle);
-// int _alpm_handle_unlock(alpm_handle_t *handle);
-//
-// alpm_errno_t _alpm_set_directory_option(const char *value,
-// 		char **storage, int must_exist);
-//
-// #endif /* ALPM_HANDLE_H */
-//
-// /* vim: set noet: */

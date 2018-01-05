@@ -28,15 +28,15 @@ use super::*;
 //
 #[derive(Default, Debug)]
 pub struct colstr_t {
-    colon: String,
-    title: String,
-    repo: String,
-    version: String,
-    groups: String,
-    meta: String,
-    warn: String,
-    err: String,
-    nocolor: String,
+    pub colon: String,
+    pub title: String,
+    pub repo: String,
+    pub version: String,
+    pub groups: String,
+    pub meta: String,
+    pub warn: String,
+    pub err: String,
+    pub nocolor: String,
 }
 
 #[derive(Default)]
@@ -173,21 +173,6 @@ pub static PKG_LOCALITY_FOREIGN: u8 = (1 << 1);
 // 	PM_COLOR_OFF,
 // 	PM_COLOR_ON
 // };
-//
-// /* global config variable */
-// extern config_t *config;
-//
-// void enable_colors(int colors);
-// config_t *config_new(void);
-// int config_free(config_t *oldconfig);
-//
-// void config_repo_free(config_repo_t *repo);
-//
-// int config_set_arch(const char *arch);
-// int parseconfig(const char *file);
-// #endif /* PM_CONF_H */
-//
-// /* vim: set noet: */
 
 /*
  *  conf.c
@@ -209,12 +194,12 @@ pub static PKG_LOCALITY_FOREIGN: u8 = (1 << 1);
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-fn invalid_opt(used: bool, _opt1: &str, _opt2: &str) {
+fn invalid_opt(used: bool, opt1: &str, opt2: &str) {
     if used {
-        unimplemented!();
-        // pm_printf(ALPM_LOG_ERROR,
-        // 		_("invalid option: '%s' and '%s' may not be used together\n"),
-        // 		opt1, opt2);
+        eprintln!(
+            "invalid option: '{}' and '{}' may not be used together",
+            opt1, opt2
+        );
         cleanup(1);
     }
 }
@@ -1269,14 +1254,15 @@ fn process_siglevel(
     // #undef SLSET
     // #undef SLUNSET
 
-    	/* ensure we have sig checking ability and are actually turning it on */
-    	if !(alpm_capabilities().ALPM_CAPABILITY_SIGNATURES &&
-    			level.ALPM_SIG_PACKAGE || level.ALPM_SIG_DATABASE) {
-    		// pm_printf(ALPM_LOG_ERROR,
-    		// 		_("config file %s, line %d: '%s' option invalid, no signature support\n"),
-    		// 		file, linenum, "SigLevel");
-    		ret = 1;
-    	}
+    /* ensure we have sig checking ability and are actually turning it on */
+    if !(alpm_capabilities().ALPM_CAPABILITY_SIGNATURES && level.ALPM_SIG_PACKAGE
+        || level.ALPM_SIG_DATABASE)
+    {
+        // pm_printf(ALPM_LOG_ERROR,
+        // 		_("config file %s, line %d: '%s' option invalid, no signature support\n"),
+        // 		file, linenum, "SigLevel");
+        ret = 1;
+    }
 
     if ret == 0 {
         *storage = level;
@@ -1788,7 +1774,7 @@ fn _parse_repo(
                     }
                     &Some(ref value) => {
                         // alpm_list_t *values = NULL;
-                        let mut values=Vec::new();
+                        let mut values = Vec::new();
                         setrepeatingoption(value, "SigLevel", &mut values);
                         if !values.is_empty() {
                             ret = process_siglevel(
@@ -1806,7 +1792,7 @@ fn _parse_repo(
                 // alpm_list_t *values = NULL;
                 match value {
                     &Some(ref value) => {
-                        let mut values=Vec::new();
+                        let mut values = Vec::new();
                         setrepeatingoption(&value, "Usage", &mut values);
                         if !values.is_empty() {
                             if process_usage(&values, &mut repo.usage, file, line).is_ok() {

@@ -49,63 +49,62 @@ use super::*;
 // #include "handle.h"
 
 /** Add a package to the transaction. */
-pub fn alpm_add_pkg(handle: &alpm_handle_t, pkg: &alpm_pkg_t)->i32
-{
-	unimplemented!();
-// 	const char *pkgname, *pkgver;
-// 	alpm_trans_t *trans;
-// 	alpm_pkg_t *local;
-//
-// 	/* Sanity checks */
-// 	CHECK_HANDLE(handle, return -1);
-// 	ASSERT(pkg != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-// 	ASSERT(pkg->origin != ALPM_PKG_FROM_LOCALDB,
-// 			RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-// 	ASSERT(handle == pkg->handle, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-// 	trans = handle->trans;
-// 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-// 	ASSERT(trans->state == STATE_INITIALIZED,
-// 			RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
-//
-// 	pkgname = pkg->name;
-// 	pkgver = pkg->version;
-//
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "adding package '%s'\n", pkgname);
-//
-// 	if(alpm_pkg_find(trans->add, pkgname)) {
-// 		RET_ERR(handle, ALPM_ERR_TRANS_DUP_TARGET, -1);
-// 	}
-//
-// 	local = _alpm_db_get_pkgfromcache(handle->db_local, pkgname);
-// 	if(local) {
-// 		const char *localpkgname = local->name;
-// 		const char *localpkgver = local->version;
-// 		int cmp = _alpm_pkg_compare_versions(pkg, local);
-//
-// 		if(cmp == 0) {
-// 			if(trans->flags & ALPM_TRANS_FLAG_NEEDED) {
-// 				/* with the NEEDED flag, packages up to date are not reinstalled */
-// 				_alpm_log(handle, ALPM_LOG_WARNING, _("%s-%s is up to date -- skipping\n"),
-// 						localpkgname, localpkgver);
-// 				return 0;
-// 			} else if(!(trans->flags & ALPM_TRANS_FLAG_DOWNLOADONLY)) {
-// 				_alpm_log(handle, ALPM_LOG_WARNING, _("%s-%s is up to date -- reinstalling\n"),
-// 						localpkgname, localpkgver);
-// 			}
-// 		} else if(cmp < 0 && !(trans->flags & ALPM_TRANS_FLAG_DOWNLOADONLY)) {
-// 			/* local version is newer */
-// 			_alpm_log(handle, ALPM_LOG_WARNING, _("downgrading package %s (%s => %s)\n"),
-// 					localpkgname, localpkgver, pkgver);
-// 		}
-// 	}
-//
-// 	/* add the package to the transaction */
-// 	pkg->reason = ALPM_PKG_REASON_EXPLICIT;
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "adding package %s-%s to the transaction add list\n",
-// 						pkgname, pkgver);
-// 	trans->add = alpm_list_add(trans->add, pkg);
-//
-// 	return 0;
+pub fn alpm_add_pkg(handle: &alpm_handle_t, pkg: &alpm_pkg_t) -> i32 {
+    unimplemented!();
+    // 	const char *pkgname, *pkgver;
+    // 	alpm_trans_t *trans;
+    // 	alpm_pkg_t *local;
+    //
+    // 	/* Sanity checks */
+    // 	CHECK_HANDLE(handle, return -1);
+    // 	ASSERT(pkg != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+    // 	ASSERT(pkg->origin != ALPM_PKG_FROM_LOCALDB,
+    // 			RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+    // 	ASSERT(handle == pkg->handle, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+    // 	trans = handle->trans;
+    // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+    // 	ASSERT(trans->state == STATE_INITIALIZED,
+    // 			RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
+    //
+    // 	pkgname = pkg->name;
+    // 	pkgver = pkg->version;
+    //
+    // 	_alpm_log(handle, ALPM_LOG_DEBUG, "adding package '%s'\n", pkgname);
+    //
+    // 	if(alpm_pkg_find(trans->add, pkgname)) {
+    // 		RET_ERR(handle, ALPM_ERR_TRANS_DUP_TARGET, -1);
+    // 	}
+    //
+    // 	local = _alpm_db_get_pkgfromcache(handle->db_local, pkgname);
+    // 	if(local) {
+    // 		const char *localpkgname = local->name;
+    // 		const char *localpkgver = local->version;
+    // 		int cmp = _alpm_pkg_compare_versions(pkg, local);
+    //
+    // 		if(cmp == 0) {
+    // 			if(trans->flags & ALPM_TRANS_FLAG_NEEDED) {
+    // 				/* with the NEEDED flag, packages up to date are not reinstalled */
+    // 				_alpm_log(handle, ALPM_LOG_WARNING, _("%s-%s is up to date -- skipping\n"),
+    // 						localpkgname, localpkgver);
+    // 				return 0;
+    // 			} else if(!(trans->flags & ALPM_TRANS_FLAG_DOWNLOADONLY)) {
+    // 				_alpm_log(handle, ALPM_LOG_WARNING, _("%s-%s is up to date -- reinstalling\n"),
+    // 						localpkgname, localpkgver);
+    // 			}
+    // 		} else if(cmp < 0 && !(trans->flags & ALPM_TRANS_FLAG_DOWNLOADONLY)) {
+    // 			/* local version is newer */
+    // 			_alpm_log(handle, ALPM_LOG_WARNING, _("downgrading package %s (%s => %s)\n"),
+    // 					localpkgname, localpkgver, pkgver);
+    // 		}
+    // 	}
+    //
+    // 	/* add the package to the transaction */
+    // 	pkg->reason = ALPM_PKG_REASON_EXPLICIT;
+    // 	_alpm_log(handle, ALPM_LOG_DEBUG, "adding package %s-%s to the transaction add list\n",
+    // 						pkgname, pkgver);
+    // 	trans->add = alpm_list_add(trans->add, pkg);
+    //
+    // 	return 0;
 }
 //
 // static int perform_extraction(alpm_handle_t *handle, struct archive *archive,

@@ -554,147 +554,147 @@ use super::*;
  * through the full archive
  */
 fn _alpm_pkg_load_internal(handle: &alpm_handle_t, pkgfile: &String, full: i32) -> alpm_pkg_t {
-	unimplemented!();
-	// 	int ret, fd;
-	// 	int config = 0;
-	// 	int hit_mtree = 0;
-	// 	struct archive *archive;
-	// 	struct archive_entry *entry;
-	// 	alpm_pkg_t *newpkg;
-	// 	struct stat st;
-	// 	size_t files_size = 0;
-	//
-	// 	if(pkgfile == NULL || strlen(pkgfile) == 0) {
-	// 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
-	// 	}
-	//
-	// 	fd = _alpm_open_archive(handle, pkgfile, &st, &archive, ALPM_ERR_PKG_OPEN);
-	// 	if(fd < 0) {
-	// 		if(errno == ENOENT) {
-	// 			handle->pm_errno = ALPM_ERR_PKG_NOT_FOUND;
-	// 		} else if(errno == EACCES) {
-	// 			handle->pm_errno = ALPM_ERR_BADPERMS;
-	// 		} else {
-	// 			handle->pm_errno = ALPM_ERR_PKG_OPEN;
-	// 		}
-	// 		return NULL;
-	// 	}
-	//
-	// 	newpkg = _alpm_pkg_new();
-	// 	if(newpkg == NULL) {
-	// 		handle->pm_errno = ALPM_ERR_MEMORY;
-	// 		goto error;
-	// 	}
-	// 	STRDUP(newpkg->filename, pkgfile,
-	// 			handle->pm_errno = ALPM_ERR_MEMORY; goto error);
-	// 	newpkg->size = st.st_size;
-	//
-	// 	_alpm_log(handle, ALPM_LOG_DEBUG, "starting package load for %s\n", pkgfile);
-	//
-	// 	/* If full is false, only read through the archive until we find our needed
-	// 	 * metadata. If it is true, read through the entire archive, which serves
-	// 	 * as a verification of integrity and allows us to create the filelist. */
-	// 	while((ret = archive_read_next_header(archive, &entry)) == ARCHIVE_OK) {
-	// 		const char *entry_name = archive_entry_pathname(entry);
-	//
-	// 		if(strcmp(entry_name, ".PKGINFO") == 0) {
-	// 			/* parse the info file */
-	// 			if(parse_descfile(handle, archive, newpkg) != 0) {
-	// 				_alpm_log(handle, ALPM_LOG_ERROR, _("could not parse package description file in %s\n"),
-	// 						pkgfile);
-	// 				goto pkg_invalid;
-	// 			}
-	// 			if(newpkg->name == NULL || strlen(newpkg->name) == 0) {
-	// 				_alpm_log(handle, ALPM_LOG_ERROR, _("missing package name in %s\n"), pkgfile);
-	// 				goto pkg_invalid;
-	// 			}
-	// 			if(newpkg->version == NULL || strlen(newpkg->version) == 0) {
-	// 				_alpm_log(handle, ALPM_LOG_ERROR, _("missing package version in %s\n"), pkgfile);
-	// 				goto pkg_invalid;
-	// 			}
-	// 			if(strchr(newpkg->version, '-') == NULL) {
-	// 				_alpm_log(handle, ALPM_LOG_ERROR, _("invalid package version in %s\n"), pkgfile);
-	// 				goto pkg_invalid;
-	// 			}
-	// 			config = 1;
-	// 			continue;
-	// 		} else if(full && strcmp(entry_name, ".MTREE") == 0) {
-	// 			/* building the file list: cheap way
-	// 			 * get the filelist from the mtree file rather than scanning
-	// 			 * the whole archive  */
-	// 			hit_mtree = build_filelist_from_mtree(handle, newpkg, archive) == 0;
-	// 			continue;
-	// 		} else if(handle_simple_path(newpkg, entry_name)) {
-	// 			continue;
-	// 		} else if(full && !hit_mtree) {
-	// 			/* building the file list: expensive way */
-	// 			if(add_entry_to_files_list(&newpkg->files, &files_size, entry, entry_name) < 0) {
-	// 				goto error;
-	// 			}
-	// 		}
-	//
-	// 		if(archive_read_data_skip(archive)) {
-	// 			_alpm_log(handle, ALPM_LOG_ERROR, _("error while reading package %s: %s\n"),
-	// 					pkgfile, archive_error_string(archive));
-	// 			handle->pm_errno = ALPM_ERR_LIBARCHIVE;
-	// 			goto error;
-	// 		}
-	//
-	// 		/* if we are not doing a full read, see if we have all we need */
-	// 		if((!full || hit_mtree) && config) {
-	// 			break;
-	// 		}
-	// 	}
-	//
-	// 	if(ret != ARCHIVE_EOF && ret != ARCHIVE_OK) { /* An error occurred */
-	// 		_alpm_log(handle, ALPM_LOG_ERROR, _("error while reading package %s: %s\n"),
-	// 				pkgfile, archive_error_string(archive));
-	// 		handle->pm_errno = ALPM_ERR_LIBARCHIVE;
-	// 		goto error;
-	// 	}
-	//
-	// 	if(!config) {
-	// 		_alpm_log(handle, ALPM_LOG_ERROR, _("missing package metadata in %s\n"), pkgfile);
-	// 		goto pkg_invalid;
-	// 	}
-	//
-	// 	_alpm_archive_read_free(archive);
-	// 	close(fd);
-	//
-	// 	/* internal fields for package struct */
-	// 	newpkg->origin = ALPM_PKG_FROM_FILE;
-	// 	newpkg->origin_data.file = strdup(pkgfile);
-	// 	newpkg->ops = get_file_pkg_ops();
-	// 	newpkg->handle = handle;
-	// 	newpkg->infolevel = INFRQ_BASE | INFRQ_DESC | INFRQ_SCRIPTLET;
-	// 	newpkg->validation = ALPM_PKG_VALIDATION_NONE;
-	//
-	// 	if(full) {
-	// 		if(newpkg->files.files) {
-	// 			/* attempt to hand back any memory we don't need */
-	// 			newpkg->files.files = realloc(newpkg->files.files,
-	// 					sizeof(alpm_file_t) * newpkg->files.count);
-	// 			/* "checking for conflicts" requires a sorted list, ensure that here */
-	// 			_alpm_log(handle, ALPM_LOG_DEBUG,
-	// 					"sorting package filelist for %s\n", pkgfile);
-	//
-	// 			_alpm_filelist_sort(&newpkg->files);
-	// 		}
-	// 		newpkg->infolevel |= INFRQ_FILES;
-	// 	}
-	//
-	// 	return newpkg;
-	//
-	// pkg_invalid:
-	// 	handle->pm_errno = ALPM_ERR_PKG_INVALID;
-	// error:
-	// 	_alpm_pkg_free(newpkg);
-	// 	_alpm_archive_read_free(archive);
-	// 	if(fd >= 0) {
-	// 		close(fd);
-	// 	}
-	//
-	// 	return NULL;
+    unimplemented!();
+    // 	int ret, fd;
+    // 	int config = 0;
+    // 	int hit_mtree = 0;
+    // 	struct archive *archive;
+    // 	struct archive_entry *entry;
+    // 	alpm_pkg_t *newpkg;
+    // 	struct stat st;
+    // 	size_t files_size = 0;
+    //
+    // 	if(pkgfile == NULL || strlen(pkgfile) == 0) {
+    // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
+    // 	}
+    //
+    // 	fd = _alpm_open_archive(handle, pkgfile, &st, &archive, ALPM_ERR_PKG_OPEN);
+    // 	if(fd < 0) {
+    // 		if(errno == ENOENT) {
+    // 			handle->pm_errno = ALPM_ERR_PKG_NOT_FOUND;
+    // 		} else if(errno == EACCES) {
+    // 			handle->pm_errno = ALPM_ERR_BADPERMS;
+    // 		} else {
+    // 			handle->pm_errno = ALPM_ERR_PKG_OPEN;
+    // 		}
+    // 		return NULL;
+    // 	}
+    //
+    // 	newpkg = _alpm_pkg_new();
+    // 	if(newpkg == NULL) {
+    // 		handle->pm_errno = ALPM_ERR_MEMORY;
+    // 		goto error;
+    // 	}
+    // 	STRDUP(newpkg->filename, pkgfile,
+    // 			handle->pm_errno = ALPM_ERR_MEMORY; goto error);
+    // 	newpkg->size = st.st_size;
+    //
+    // 	_alpm_log(handle, ALPM_LOG_DEBUG, "starting package load for %s\n", pkgfile);
+    //
+    // 	/* If full is false, only read through the archive until we find our needed
+    // 	 * metadata. If it is true, read through the entire archive, which serves
+    // 	 * as a verification of integrity and allows us to create the filelist. */
+    // 	while((ret = archive_read_next_header(archive, &entry)) == ARCHIVE_OK) {
+    // 		const char *entry_name = archive_entry_pathname(entry);
+    //
+    // 		if(strcmp(entry_name, ".PKGINFO") == 0) {
+    // 			/* parse the info file */
+    // 			if(parse_descfile(handle, archive, newpkg) != 0) {
+    // 				_alpm_log(handle, ALPM_LOG_ERROR, _("could not parse package description file in %s\n"),
+    // 						pkgfile);
+    // 				goto pkg_invalid;
+    // 			}
+    // 			if(newpkg->name == NULL || strlen(newpkg->name) == 0) {
+    // 				_alpm_log(handle, ALPM_LOG_ERROR, _("missing package name in %s\n"), pkgfile);
+    // 				goto pkg_invalid;
+    // 			}
+    // 			if(newpkg->version == NULL || strlen(newpkg->version) == 0) {
+    // 				_alpm_log(handle, ALPM_LOG_ERROR, _("missing package version in %s\n"), pkgfile);
+    // 				goto pkg_invalid;
+    // 			}
+    // 			if(strchr(newpkg->version, '-') == NULL) {
+    // 				_alpm_log(handle, ALPM_LOG_ERROR, _("invalid package version in %s\n"), pkgfile);
+    // 				goto pkg_invalid;
+    // 			}
+    // 			config = 1;
+    // 			continue;
+    // 		} else if(full && strcmp(entry_name, ".MTREE") == 0) {
+    // 			/* building the file list: cheap way
+    // 			 * get the filelist from the mtree file rather than scanning
+    // 			 * the whole archive  */
+    // 			hit_mtree = build_filelist_from_mtree(handle, newpkg, archive) == 0;
+    // 			continue;
+    // 		} else if(handle_simple_path(newpkg, entry_name)) {
+    // 			continue;
+    // 		} else if(full && !hit_mtree) {
+    // 			/* building the file list: expensive way */
+    // 			if(add_entry_to_files_list(&newpkg->files, &files_size, entry, entry_name) < 0) {
+    // 				goto error;
+    // 			}
+    // 		}
+    //
+    // 		if(archive_read_data_skip(archive)) {
+    // 			_alpm_log(handle, ALPM_LOG_ERROR, _("error while reading package %s: %s\n"),
+    // 					pkgfile, archive_error_string(archive));
+    // 			handle->pm_errno = ALPM_ERR_LIBARCHIVE;
+    // 			goto error;
+    // 		}
+    //
+    // 		/* if we are not doing a full read, see if we have all we need */
+    // 		if((!full || hit_mtree) && config) {
+    // 			break;
+    // 		}
+    // 	}
+    //
+    // 	if(ret != ARCHIVE_EOF && ret != ARCHIVE_OK) { /* An error occurred */
+    // 		_alpm_log(handle, ALPM_LOG_ERROR, _("error while reading package %s: %s\n"),
+    // 				pkgfile, archive_error_string(archive));
+    // 		handle->pm_errno = ALPM_ERR_LIBARCHIVE;
+    // 		goto error;
+    // 	}
+    //
+    // 	if(!config) {
+    // 		_alpm_log(handle, ALPM_LOG_ERROR, _("missing package metadata in %s\n"), pkgfile);
+    // 		goto pkg_invalid;
+    // 	}
+    //
+    // 	_alpm_archive_read_free(archive);
+    // 	close(fd);
+    //
+    // 	/* internal fields for package struct */
+    // 	newpkg->origin = ALPM_PKG_FROM_FILE;
+    // 	newpkg->origin_data.file = strdup(pkgfile);
+    // 	newpkg->ops = get_file_pkg_ops();
+    // 	newpkg->handle = handle;
+    // 	newpkg->infolevel = INFRQ_BASE | INFRQ_DESC | INFRQ_SCRIPTLET;
+    // 	newpkg->validation = ALPM_PKG_VALIDATION_NONE;
+    //
+    // 	if(full) {
+    // 		if(newpkg->files.files) {
+    // 			/* attempt to hand back any memory we don't need */
+    // 			newpkg->files.files = realloc(newpkg->files.files,
+    // 					sizeof(alpm_file_t) * newpkg->files.count);
+    // 			/* "checking for conflicts" requires a sorted list, ensure that here */
+    // 			_alpm_log(handle, ALPM_LOG_DEBUG,
+    // 					"sorting package filelist for %s\n", pkgfile);
+    //
+    // 			_alpm_filelist_sort(&newpkg->files);
+    // 		}
+    // 		newpkg->infolevel |= INFRQ_FILES;
+    // 	}
+    //
+    // 	return newpkg;
+    //
+    // pkg_invalid:
+    // 	handle->pm_errno = ALPM_ERR_PKG_INVALID;
+    // error:
+    // 	_alpm_pkg_free(newpkg);
+    // 	_alpm_archive_read_free(archive);
+    // 	if(fd >= 0) {
+    // 		close(fd);
+    // 	}
+    //
+    // 	return NULL;
 }
 
 // /* adopted limit from repo-add */
@@ -727,71 +727,71 @@ fn _alpm_pkg_load_internal(handle: &alpm_handle_t, pkgfile: &String, full: i32) 
 // }
 
 pub fn alpm_pkg_load(
-	handle: &alpm_handle_t,
-	filename: &String,
-	full: i32,
-	level: &siglevel,
-	pkg: &alpm_pkg_t,
+    handle: &alpm_handle_t,
+    filename: &String,
+    full: i32,
+    level: &siglevel,
+    pkg: &alpm_pkg_t,
 ) -> i32 {
-	unimplemented!();
-	// 	int validation = 0;
-	// 	char *sigpath;
-	//
-	// 	CHECK_HANDLE(handle, return -1);
-	// 	ASSERT(pkg != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-	//
-	// 	sigpath = _alpm_sigpath(handle, filename);
-	// 	if(sigpath && !_alpm_access(handle, NULL, sigpath, R_OK)) {
-	// 		if(level & ALPM_SIG_PACKAGE) {
-	// 			alpm_list_t *keys = NULL;
-	// 			int fail = 0;
-	// 			unsigned char *sig = NULL;
-	// 			int len = read_sigfile(sigpath, &sig);
-	//
-	// 			if(len == -1) {
-	// 				_alpm_log(handle, ALPM_LOG_ERROR,
-	// 					_("failed to read signature file: %s\n"), sigpath);
-	// 				free(sigpath);
-	// 				return -1;
-	// 			}
-	//
-	// 			if(alpm_extract_keyid(handle, filename, sig, len, &keys) == 0) {
-	// 				alpm_list_t *k;
-	// 				for(k = keys; k; k = k->next) {
-	// 					char *key = k->data;
-	// 					if(_alpm_key_in_keychain(handle, key) == 0) {
-	// 						if(_alpm_key_import(handle, key) == -1) {
-	// 							fail = 1;
-	// 						}
-	// 					}
-	// 				}
-	// 				FREELIST(keys);
-	// 			}
-	//
-	// 			free(sig);
-	//
-	// 			if(fail) {
-	// 				_alpm_log(handle, ALPM_LOG_ERROR, _("required key missing from keyring\n"));
-	// 				free(sigpath);
-	// 				return -1;
-	// 			}
-	// 		}
-	// 	}
-	// 	free(sigpath);
-	//
-	// 	if(_alpm_pkg_validate_internal(handle, filename, NULL, level, NULL,
-	// 				&validation) == -1) {
-	// 		/* pm_errno is set by pkg_validate */
-	// 		return -1;
-	// 	}
-	// 	*pkg = _alpm_pkg_load_internal(handle, filename, full);
-	// 	if(*pkg == NULL) {
-	// 		/* pm_errno is set by pkg_load */
-	// 		return -1;
-	// 	}
-	// 	(*pkg)->validation = validation;
-	//
-	// 	return 0;
+    unimplemented!();
+    // 	int validation = 0;
+    // 	char *sigpath;
+    //
+    // 	CHECK_HANDLE(handle, return -1);
+    // 	ASSERT(pkg != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+    //
+    // 	sigpath = _alpm_sigpath(handle, filename);
+    // 	if(sigpath && !_alpm_access(handle, NULL, sigpath, R_OK)) {
+    // 		if(level & ALPM_SIG_PACKAGE) {
+    // 			alpm_list_t *keys = NULL;
+    // 			int fail = 0;
+    // 			unsigned char *sig = NULL;
+    // 			int len = read_sigfile(sigpath, &sig);
+    //
+    // 			if(len == -1) {
+    // 				_alpm_log(handle, ALPM_LOG_ERROR,
+    // 					_("failed to read signature file: %s\n"), sigpath);
+    // 				free(sigpath);
+    // 				return -1;
+    // 			}
+    //
+    // 			if(alpm_extract_keyid(handle, filename, sig, len, &keys) == 0) {
+    // 				alpm_list_t *k;
+    // 				for(k = keys; k; k = k->next) {
+    // 					char *key = k->data;
+    // 					if(_alpm_key_in_keychain(handle, key) == 0) {
+    // 						if(_alpm_key_import(handle, key) == -1) {
+    // 							fail = 1;
+    // 						}
+    // 					}
+    // 				}
+    // 				FREELIST(keys);
+    // 			}
+    //
+    // 			free(sig);
+    //
+    // 			if(fail) {
+    // 				_alpm_log(handle, ALPM_LOG_ERROR, _("required key missing from keyring\n"));
+    // 				free(sigpath);
+    // 				return -1;
+    // 			}
+    // 		}
+    // 	}
+    // 	free(sigpath);
+    //
+    // 	if(_alpm_pkg_validate_internal(handle, filename, NULL, level, NULL,
+    // 				&validation) == -1) {
+    // 		/* pm_errno is set by pkg_validate */
+    // 		return -1;
+    // 	}
+    // 	*pkg = _alpm_pkg_load_internal(handle, filename, full);
+    // 	if(*pkg == NULL) {
+    // 		/* pm_errno is set by pkg_load */
+    // 		return -1;
+    // 	}
+    // 	(*pkg)->validation = validation;
+    //
+    // 	return 0;
 }
 
 /* vim: set noet: */

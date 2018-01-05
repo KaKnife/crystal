@@ -252,12 +252,13 @@ use super::*;
  *
  * @return an alpm_list_t of alpm_conflict_t
  */
-pub fn alpm_checkconflicts(handle: &alpm_handle_t,
-		pkglist: &Vec<alpm_pkg_t>) -> Vec<alpm_conflict_t>
-{
-	unimplemented!();
-	// CHECK_HANDLE(handle, return NULL);
-	// return _alpm_innerconflicts(handle, pkglist);
+pub fn alpm_checkconflicts(
+    handle: &alpm_handle_t,
+    pkglist: &Vec<alpm_pkg_t>,
+) -> Vec<alpm_conflict_t> {
+    unimplemented!();
+    // CHECK_HANDLE(handle, return NULL);
+    // return _alpm_innerconflicts(handle, pkglist);
 }
 
 // /**

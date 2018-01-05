@@ -1110,29 +1110,28 @@ use super::*;
 // 	return ret;
 // }
 //
-pub fn alpm_pkg_set_reason(pkg: &alpm_pkg_t,  reason: &alpm_pkgreason_t) -> i32
-{
-	unimplemented!();
-// 	ASSERT(pkg != NULL, return -1);
-// 	ASSERT(pkg->origin == ALPM_PKG_FROM_LOCALDB,
-// 			RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1));
-// 	ASSERT(pkg->origin_data.db == pkg->handle->db_local,
-// 			RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1));
-//
-// 	_alpm_log(pkg->handle, ALPM_LOG_DEBUG,
-// 			"setting install reason %u for %s\n", reason, pkg->name);
-// 	if(alpm_pkg_get_reason(pkg) == reason) {
-// 		/* we are done */
-// 		return 0;
-// 	}
-// 	/* set reason (in pkgcache) */
-// 	pkg->reason = reason;
-// 	/* write DESC */
-// 	if(_alpm_local_db_write(pkg->handle->db_local, pkg, INFRQ_DESC)) {
-// 		RET_ERR(pkg->handle, ALPM_ERR_DB_WRITE, -1);
-// 	}
-//
-// 	return 0;
+pub fn alpm_pkg_set_reason(pkg: &alpm_pkg_t, reason: &alpm_pkgreason_t) -> i32 {
+    unimplemented!();
+    // 	ASSERT(pkg != NULL, return -1);
+    // 	ASSERT(pkg->origin == ALPM_PKG_FROM_LOCALDB,
+    // 			RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1));
+    // 	ASSERT(pkg->origin_data.db == pkg->handle->db_local,
+    // 			RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1));
+    //
+    // 	_alpm_log(pkg->handle, ALPM_LOG_DEBUG,
+    // 			"setting install reason %u for %s\n", reason, pkg->name);
+    // 	if(alpm_pkg_get_reason(pkg) == reason) {
+    // 		/* we are done */
+    // 		return 0;
+    // 	}
+    // 	/* set reason (in pkgcache) */
+    // 	pkg->reason = reason;
+    // 	/* write DESC */
+    // 	if(_alpm_local_db_write(pkg->handle->db_local, pkg, INFRQ_DESC)) {
+    // 		RET_ERR(pkg->handle, ALPM_ERR_DB_WRITE, -1);
+    // 	}
+    //
+    // 	return 0;
 }
 
 //

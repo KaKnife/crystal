@@ -351,8 +351,6 @@ pub fn alpm_checkdeps(
 
     nodepversion = no_dep_version(handle);
 
-
-
     /* look for unsatisfied dependencies of the upgrade list */
     for ref mut tp in &*upgrade {
         // alpm_pkg_t *tp = i->data;

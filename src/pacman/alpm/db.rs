@@ -58,7 +58,7 @@ enum alpm_dbstatus_t {
 }
 
 impl Default for alpm_dbstatus_t {
-    fn default() -> Self{
+    fn default() -> Self {
         alpm_dbstatus_t::DB_STATUS_VALID
     }
 }
@@ -70,9 +70,9 @@ impl Default for alpm_dbstatus_t {
 // };
 
 /* Database */
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct alpm_db_t {
-    handle: alpm_handle_t,
+    // handle: alpm_handle_t,
     pub treename: String,
     /* do not access directly, use _alpm_db_path(db) for lazy access */
     path: String,
@@ -89,7 +89,6 @@ pub struct alpm_db_t {
     /* alpm_db_usage_t */
     usage: i32,
 }
-
 
 // /* db.c, database general calls */
 // alpm_db_t *_alpm_db_new(const char *treename, int is_local);
@@ -228,7 +227,7 @@ impl alpm_db_t {
 
         /* Sanity checks */
         // ASSERT(db != NULL, return -1);
-        self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+        // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
         // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
 
         newurl = sanitize_url(&url);
@@ -253,7 +252,7 @@ impl alpm_db_t {
 
         /* Sanity checks */
         // ASSERT(db != NULL, return -1);
-        self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+        // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
         // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
 
         newurl = sanitize_url(url);
@@ -281,16 +280,16 @@ impl alpm_db_t {
     }
 
     /** Get a group entry from a package database. */
-    pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&alpm_group_t> {
+    pub fn alpm_db_get_group(&self, name: &String) -> Option<alpm_group_t> {
         // ASSERT(db != NULL, return NULL);
-        self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+        // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
         // ASSERT(name != NULL && strlen(name) != 0,
         // RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, NULL));
 
         return self._alpm_db_get_groupfromcache(name);
     }
 
-    fn _alpm_db_get_groupfromcache(&self, target: &String) -> Option<&alpm_group_t> {
+    fn _alpm_db_get_groupfromcache(&self, target: &String) -> Option<alpm_group_t> {
         // alpm_list_t *i;
 
         if target.len() == 0 {
@@ -301,7 +300,7 @@ impl alpm_db_t {
             // alpm_group_t *info = i->data;
 
             if info.name == *target {
-                return Some(info);
+                return Some(info.clone());
             }
         }
 
@@ -318,7 +317,7 @@ impl alpm_db_t {
             &alpm_dbstatus_t::DB_STATUS_GRPCACHE => {
                 self.load_grpcache();
             }
-            _=>{}
+            _ => {}
         }
 
         return &self.grpcache;
@@ -374,12 +373,11 @@ impl alpm_db_t {
     }
 
     /** Get the group cache of a package database. */
-    fn alpm_db_get_groupcache(&mut self) -> &Vec<alpm_group_t>
-    {
-    	// ASSERT(db != NULL, return NULL);
-    	self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+    fn alpm_db_get_groupcache(&mut self) -> &Vec<alpm_group_t> {
+        // ASSERT(db != NULL, return NULL);
+        // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
 
-    	return self._alpm_db_get_groupcache();
+        return self._alpm_db_get_groupcache();
     }
 }
 
@@ -492,14 +490,10 @@ pub fn alpm_db_get_pkg(db: &alpm_db_t, name: &String) -> Option<alpm_pkg_t> {
 }
 
 /** Get the package cache of a package database. */
-pub fn alpm_db_get_pkgcache(db: &mut alpm_db_t) -> Vec<alpm_pkg_t> {
-    db.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+pub fn alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
+    // db.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
     return _alpm_db_get_pkgcache(db);
 }
-
-
-
-
 
 // /** Searches a database. */
 // alpm_list_t SYMEXPORT *alpm_db_search(alpm_db_t *db, const alpm_list_t *needles)

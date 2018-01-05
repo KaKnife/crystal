@@ -732,139 +732,138 @@ use super::*;
 // 	free(depstring);
 // }
 
-pub fn sync_prepare_execute() ->i32
-{
-	unimplemented!();
-// 	alpm_list_t *i, *packages, *data = NULL;
-// 	int retval = 0;
-//
-// 	/* Step 2: "compute" the transaction based on targets and flags */
-// 	if(alpm_trans_prepare(config->handle, &data) == -1) {
-// 		alpm_errno_t err = alpm_errno(config->handle);
-// 		pm_printf(ALPM_LOG_ERROR, _("failed to prepare transaction (%s)\n"),
-// 		        alpm_strerror(err));
-// 		switch(err) {
-// 			case ALPM_ERR_PKG_INVALID_ARCH:
-// 				for(i = data; i; i = alpm_list_next(i)) {
-// 					char *pkg = i->data;
-// 					colon_printf(_("package %s does not have a valid architecture\n"), pkg);
-// 					free(pkg);
-// 				}
-// 				break;
-// 			case ALPM_ERR_UNSATISFIED_DEPS:
-// 				for(i = data; i; i = alpm_list_next(i)) {
-// 					print_broken_dep(i->data);
-// 					alpm_depmissing_free(i->data);
-// 				}
-// 				break;
-// 			case ALPM_ERR_CONFLICTING_DEPS:
-// 				for(i = data; i; i = alpm_list_next(i)) {
-// 					alpm_conflict_t *conflict = i->data;
-// 					/* only print reason if it contains new information */
-// 					if(conflict->reason->mod == ALPM_DEP_MOD_ANY) {
-// 						colon_printf(_("%s and %s are in conflict\n"),
-// 								conflict->package1, conflict->package2);
-// 					} else {
-// 						char *reason = alpm_dep_compute_string(conflict->reason);
-// 						colon_printf(_("%s and %s are in conflict (%s)\n"),
-// 								conflict->package1, conflict->package2, reason);
-// 						free(reason);
-// 					}
-// 					alpm_conflict_free(conflict);
-// 				}
-// 				break;
-// 			default:
-// 				break;
-// 		}
-// 		retval = 1;
-// 		goto cleanup;
-// 	}
-//
-// 	packages = alpm_trans_get_add(config->handle);
-// 	if(packages == NULL) {
-// 		/* nothing to do: just exit without complaining */
-// 		if(!config->print) {
-// 			printf(_(" there is nothing to do\n"));
-// 		}
-// 		goto cleanup;
-// 	}
-//
-// 	/* Step 3: actually perform the operation */
-// 	if(config->print) {
-// 		print_packages(packages);
-// 		goto cleanup;
-// 	}
-//
-// 	display_targets();
-// 	printf("\n");
-//
-// 	int confirm;
-// 	if(config->op_s_downloadonly) {
-// 		confirm = yesno(_("Proceed with download?"));
-// 	} else {
-// 		confirm = yesno(_("Proceed with installation?"));
-// 	}
-// 	if(!confirm) {
-// 		retval = 1;
-// 		goto cleanup;
-// 	}
-//
-// 	if(alpm_trans_commit(config->handle, &data) == -1) {
-// 		alpm_errno_t err = alpm_errno(config->handle);
-// 		pm_printf(ALPM_LOG_ERROR, _("failed to commit transaction (%s)\n"),
-// 		        alpm_strerror(err));
-// 		switch(err) {
-// 			case ALPM_ERR_FILE_CONFLICTS:
-// 				if(config->flags & ALPM_TRANS_FLAG_FORCE) {
-// 					printf(_("unable to %s directory-file conflicts\n"), "--force");
-// 				}
-// 				for(i = data; i; i = alpm_list_next(i)) {
-// 					alpm_fileconflict_t *conflict = i->data;
-// 					switch(conflict->type) {
-// 						case ALPM_FILECONFLICT_TARGET:
-// 							printf(_("%s exists in both '%s' and '%s'\n"),
-// 									conflict->file, conflict->target, conflict->ctarget);
-// 							break;
-// 						case ALPM_FILECONFLICT_FILESYSTEM:
-// 							if(conflict->ctarget[0]) {
-// 								printf(_("%s: %s exists in filesystem (owned by %s)\n"),
-// 										conflict->target, conflict->file, conflict->ctarget);
-// 							} else {
-// 								printf(_("%s: %s exists in filesystem\n"),
-// 										conflict->target, conflict->file);
-// 							}
-// 							break;
-// 					}
-// 					alpm_fileconflict_free(conflict);
-// 				}
-// 				break;
-// 			case ALPM_ERR_PKG_INVALID:
-// 			case ALPM_ERR_PKG_INVALID_CHECKSUM:
-// 			case ALPM_ERR_PKG_INVALID_SIG:
-// 			case ALPM_ERR_DLT_INVALID:
-// 				for(i = data; i; i = alpm_list_next(i)) {
-// 					char *filename = i->data;
-// 					printf(_("%s is invalid or corrupted\n"), filename);
-// 					free(filename);
-// 				}
-// 				break;
-// 			default:
-// 				break;
-// 		}
-// 		/* TODO: stderr? */
-// 		printf(_("Errors occurred, no packages were upgraded.\n"));
-// 		retval = 1;
-// 		goto cleanup;
-// 	}
-//
-// 	/* Step 4: release transaction resources */
-// cleanup:
-// 	alpm_list_free(data);
-// 	if(trans_release() == -1) {
-// 		retval = 1;
-// 	}
-//
-// 	return retval;
+pub fn sync_prepare_execute() -> i32 {
+    unimplemented!();
+    // 	alpm_list_t *i, *packages, *data = NULL;
+    // 	int retval = 0;
+    //
+    // 	/* Step 2: "compute" the transaction based on targets and flags */
+    // 	if(alpm_trans_prepare(config->handle, &data) == -1) {
+    // 		alpm_errno_t err = alpm_errno(config->handle);
+    // 		pm_printf(ALPM_LOG_ERROR, _("failed to prepare transaction (%s)\n"),
+    // 		        alpm_strerror(err));
+    // 		switch(err) {
+    // 			case ALPM_ERR_PKG_INVALID_ARCH:
+    // 				for(i = data; i; i = alpm_list_next(i)) {
+    // 					char *pkg = i->data;
+    // 					colon_printf(_("package %s does not have a valid architecture\n"), pkg);
+    // 					free(pkg);
+    // 				}
+    // 				break;
+    // 			case ALPM_ERR_UNSATISFIED_DEPS:
+    // 				for(i = data; i; i = alpm_list_next(i)) {
+    // 					print_broken_dep(i->data);
+    // 					alpm_depmissing_free(i->data);
+    // 				}
+    // 				break;
+    // 			case ALPM_ERR_CONFLICTING_DEPS:
+    // 				for(i = data; i; i = alpm_list_next(i)) {
+    // 					alpm_conflict_t *conflict = i->data;
+    // 					/* only print reason if it contains new information */
+    // 					if(conflict->reason->mod == ALPM_DEP_MOD_ANY) {
+    // 						colon_printf(_("%s and %s are in conflict\n"),
+    // 								conflict->package1, conflict->package2);
+    // 					} else {
+    // 						char *reason = alpm_dep_compute_string(conflict->reason);
+    // 						colon_printf(_("%s and %s are in conflict (%s)\n"),
+    // 								conflict->package1, conflict->package2, reason);
+    // 						free(reason);
+    // 					}
+    // 					alpm_conflict_free(conflict);
+    // 				}
+    // 				break;
+    // 			default:
+    // 				break;
+    // 		}
+    // 		retval = 1;
+    // 		goto cleanup;
+    // 	}
+    //
+    // 	packages = alpm_trans_get_add(config->handle);
+    // 	if(packages == NULL) {
+    // 		/* nothing to do: just exit without complaining */
+    // 		if(!config->print) {
+    // 			printf(_(" there is nothing to do\n"));
+    // 		}
+    // 		goto cleanup;
+    // 	}
+    //
+    // 	/* Step 3: actually perform the operation */
+    // 	if(config->print) {
+    // 		print_packages(packages);
+    // 		goto cleanup;
+    // 	}
+    //
+    // 	display_targets();
+    // 	printf("\n");
+    //
+    // 	int confirm;
+    // 	if(config->op_s_downloadonly) {
+    // 		confirm = yesno(_("Proceed with download?"));
+    // 	} else {
+    // 		confirm = yesno(_("Proceed with installation?"));
+    // 	}
+    // 	if(!confirm) {
+    // 		retval = 1;
+    // 		goto cleanup;
+    // 	}
+    //
+    // 	if(alpm_trans_commit(config->handle, &data) == -1) {
+    // 		alpm_errno_t err = alpm_errno(config->handle);
+    // 		pm_printf(ALPM_LOG_ERROR, _("failed to commit transaction (%s)\n"),
+    // 		        alpm_strerror(err));
+    // 		switch(err) {
+    // 			case ALPM_ERR_FILE_CONFLICTS:
+    // 				if(config->flags & ALPM_TRANS_FLAG_FORCE) {
+    // 					printf(_("unable to %s directory-file conflicts\n"), "--force");
+    // 				}
+    // 				for(i = data; i; i = alpm_list_next(i)) {
+    // 					alpm_fileconflict_t *conflict = i->data;
+    // 					switch(conflict->type) {
+    // 						case ALPM_FILECONFLICT_TARGET:
+    // 							printf(_("%s exists in both '%s' and '%s'\n"),
+    // 									conflict->file, conflict->target, conflict->ctarget);
+    // 							break;
+    // 						case ALPM_FILECONFLICT_FILESYSTEM:
+    // 							if(conflict->ctarget[0]) {
+    // 								printf(_("%s: %s exists in filesystem (owned by %s)\n"),
+    // 										conflict->target, conflict->file, conflict->ctarget);
+    // 							} else {
+    // 								printf(_("%s: %s exists in filesystem\n"),
+    // 										conflict->target, conflict->file);
+    // 							}
+    // 							break;
+    // 					}
+    // 					alpm_fileconflict_free(conflict);
+    // 				}
+    // 				break;
+    // 			case ALPM_ERR_PKG_INVALID:
+    // 			case ALPM_ERR_PKG_INVALID_CHECKSUM:
+    // 			case ALPM_ERR_PKG_INVALID_SIG:
+    // 			case ALPM_ERR_DLT_INVALID:
+    // 				for(i = data; i; i = alpm_list_next(i)) {
+    // 					char *filename = i->data;
+    // 					printf(_("%s is invalid or corrupted\n"), filename);
+    // 					free(filename);
+    // 				}
+    // 				break;
+    // 			default:
+    // 				break;
+    // 		}
+    // 		/* TODO: stderr? */
+    // 		printf(_("Errors occurred, no packages were upgraded.\n"));
+    // 		retval = 1;
+    // 		goto cleanup;
+    // 	}
+    //
+    // 	/* Step 4: release transaction resources */
+    // cleanup:
+    // 	alpm_list_free(data);
+    // 	if(trans_release() == -1) {
+    // 		retval = 1;
+    // 	}
+    //
+    // 	return retval;
 }
 
 // int pacman_sync(alpm_list_t *targets)

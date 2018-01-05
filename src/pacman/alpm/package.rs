@@ -30,49 +30,50 @@ use super::*;
 //  * implementation of these methods. Some backends may find using the
 //  * defined default_pkg_ops struct to work just fine for their needs.
 //  */
-// struct pkg_operations {
-// 	const char *(*get_base) (alpm_pkg_t *);
-// 	const char *(*get_desc) (alpm_pkg_t *);
-// 	const char *(*get_url) (alpm_pkg_t *);
-// 	alpm_time_t (*get_builddate) (alpm_pkg_t *);
-// 	alpm_time_t (*get_installdate) (alpm_pkg_t *);
-// 	const char *(*get_packager) (alpm_pkg_t *);
-// 	const char *(*get_arch) (alpm_pkg_t *);
-// 	off_t (*get_isize) (alpm_pkg_t *);
-// 	alpm_pkgreason_t (*get_reason) (alpm_pkg_t *);
-// 	int (*get_validation) (alpm_pkg_t *);
-// 	int (*has_scriptlet) (alpm_pkg_t *);
-//
-// 	alpm_list_t *(*get_licenses) (alpm_pkg_t *);
-// 	alpm_list_t *(*get_groups) (alpm_pkg_t *);
-// 	alpm_list_t *(*get_depends) (alpm_pkg_t *);
-// 	alpm_list_t *(*get_optdepends) (alpm_pkg_t *);
-// 	alpm_list_t *(*get_checkdepends) (alpm_pkg_t *);
-// 	alpm_list_t *(*get_makedepends) (alpm_pkg_t *);
-// 	alpm_list_t *(*get_conflicts) (alpm_pkg_t *);
-// 	alpm_list_t *(*get_provides) (alpm_pkg_t *);
-// 	alpm_list_t *(*get_replaces) (alpm_pkg_t *);
-// 	alpm_filelist_t *(*get_files) (alpm_pkg_t *);
-// 	alpm_list_t *(*get_backup) (alpm_pkg_t *);
-//
-// 	void *(*changelog_open) (alpm_pkg_t *);
-// 	size_t (*changelog_read) (void *, size_t, const alpm_pkg_t *, void *);
-// 	int (*changelog_close) (const alpm_pkg_t *, void *);
-//
-// 	struct archive *(*mtree_open) (alpm_pkg_t *);
-// 	int (*mtree_next) (const alpm_pkg_t *, struct archive *, struct archive_entry **);
-// 	int (*mtree_close) (const alpm_pkg_t *, struct archive *);
-//
-// 	int (*force_load) (alpm_pkg_t *);
-// };
-//
+struct pkg_operations {
+    get_base: fn(&alpm_pkg_t)-> String,
+	// const char *(*get_desc) (alpm_pkg_t *);
+	// const char *(*get_url) (alpm_pkg_t *);
+	// alpm_time_t (*get_builddate) (alpm_pkg_t *);
+	// alpm_time_t (*get_installdate) (alpm_pkg_t *);
+	// const char *(*get_packager) (alpm_pkg_t *);
+	// const char *(*get_arch) (alpm_pkg_t *);
+	// off_t (*get_isize) (alpm_pkg_t *);
+	// alpm_pkgreason_t (*get_reason) (alpm_pkg_t *);
+	// int (*get_validation) (alpm_pkg_t *);
+	// int (*has_scriptlet) (alpm_pkg_t *);
+    //
+	// alpm_list_t *(*get_licenses) (alpm_pkg_t *);
+	// alpm_list_t *(*get_groups) (alpm_pkg_t *);
+	// alpm_list_t *(*get_depends) (alpm_pkg_t *);
+	// alpm_list_t *(*get_optdepends) (alpm_pkg_t *);
+	// alpm_list_t *(*get_checkdepends) (alpm_pkg_t *);
+	// alpm_list_t *(*get_makedepends) (alpm_pkg_t *);
+	// alpm_list_t *(*get_conflicts) (alpm_pkg_t *);
+	// alpm_list_t *(*get_provides) (alpm_pkg_t *);
+	// alpm_list_t *(*get_replaces) (alpm_pkg_t *);
+	// alpm_filelist_t *(*get_files) (alpm_pkg_t *);
+	// alpm_list_t *(*get_backup) (alpm_pkg_t *);
+    //
+	// void *(*changelog_open) (alpm_pkg_t *);
+	// size_t (*changelog_read) (void *, size_t, const alpm_pkg_t *, void *);
+	// int (*changelog_close) (const alpm_pkg_t *, void *);
+    //
+	// struct archive *(*mtree_open) (alpm_pkg_t *);
+	// int (*mtree_next) (const alpm_pkg_t *, struct archive *, struct archive_entry **);
+	// int (*mtree_close) (const alpm_pkg_t *, struct archive *);
+    //
+	// int (*force_load) (alpm_pkg_t *);
+}
+
 // /** The standard package operations struct. get fields directly from the
 //  * struct itself with no abstraction layer or any type of lazy loading.
 //  * The actual definition is in package.c so it can have access to the
 //  * default accessor functions which are defined there.
 //  */
 // extern struct pkg_operations default_pkg_ops;
-#[derive(Default, Debug)]
+type off_t = i64;
+#[derive(Default, Debug, Clone)]
 pub struct alpm_pkg_t {
     pub name_hash: u64,
     pub filename: String,
@@ -90,11 +91,11 @@ pub struct alpm_pkg_t {
     // alpm_time_t builddate;
     // alpm_time_t installdate;
     //
-    // off_t size;
-    // off_t isize;
-    // off_t download_size;
+    size: off_t,
+    isize: off_t,
+    download_size: off_t,
     //
-    pub handle: alpm_handle_t,
+    // pub handle: alpm_handle_t,
     //
     // alpm_list_t *licenses;
     // alpm_list_t *replaces;
@@ -106,50 +107,31 @@ pub struct alpm_pkg_t {
     // alpm_list_t *makedepends;
     // alpm_list_t *conflicts;
     pub provides: Vec<alpm_depend_t>,
-                                     // alpm_list_t *deltas;
-                                     // alpm_list_t *delta_path;
-                                     // alpm_list_t *removes; /* in transaction targets only */
-                                     // alpm_pkg_t *oldpkg; /* in transaction targets only */
-                                     //
-                                     // pub ops: pkg_operations
-                                     //
-                                     // alpm_filelist_t files;
-                                     //
-                                     // /* origin == PKG_FROM_FILE, use pkg->origin_data.file
-                                     //  * origin == PKG_FROM_*DB, use pkg->origin_data.db */
-                                     // union {
-                                     	pub db: alpm_db_t,
-                                     	pub file: String,
-                                     // } origin_data;
-                                     //
-                                     // 	alpm_pkgfrom_t origin;
-                                     // 	alpm_pkgreason_t reason;
-                                     // 	int scriptlet;
-                                     //
-                                     // 	/* Bitfield from alpm_dbinfrq_t */
-                                     // 	int infolevel;
-                                     // 	/* Bitfield from alpm_pkgvalidation_t */
-                                     // 	int validation;
+    // alpm_list_t *deltas;
+    // alpm_list_t *delta_path;
+    // alpm_list_t *removes; /* in transaction targets only */
+    // alpm_pkg_t *oldpkg; /* in transaction targets only */
+    //
+    // pub ops: pkg_operations
+    //
+    // alpm_filelist_t files;
+    //
+    // /* origin == PKG_FROM_FILE, use pkg->origin_data.file
+    //  * origin == PKG_FROM_*DB, use pkg->origin_data.db */
+    // union {
+    pub db: alpm_db_t,
+    pub file: String,
+    // } origin_data;
+    //
+    // 	alpm_pkgfrom_t origin;
+    // 	alpm_pkgreason_t reason;
+    // 	int scriptlet;
+    //
+    // 	/* Bitfield from alpm_dbinfrq_t */
+    // 	int infolevel;
+    // 	/* Bitfield from alpm_pkgvalidation_t */
+    // 	int validation;
 }
-//
-// alpm_file_t *_alpm_file_copy(alpm_file_t *dest, const alpm_file_t *src);
-//
-// alpm_pkg_t *_alpm_pkg_new(void);
-// int _alpm_pkg_dup(alpm_pkg_t *pkg, alpm_pkg_t **new_ptr);
-// void _alpm_pkg_free(alpm_pkg_t *pkg);
-// void _alpm_pkg_free_trans(alpm_pkg_t *pkg);
-//
-// int _alpm_pkg_validate_internal(alpm_handle_t *handle,
-// 		const char *pkgfile, alpm_pkg_t *syncpkg, int level,
-// 		alpm_siglist_t **sigdata, int *validation);
-// alpm_pkg_t *_alpm_pkg_load_internal(alpm_handle_t *handle,
-// 		const char *pkgfile, int full);
-//
-// int _alpm_pkg_cmp(const void *p1, const void *p2);
-// int _alpm_pkg_compare_versions(alpm_pkg_t *local_pkg, alpm_pkg_t *pkg);
-//
-// #endif /* ALPM_PACKAGE_H */
-//
 
 /*
  *  package.c
@@ -333,154 +315,140 @@ impl alpm_pkg_t {
     // 	.mtree_close     = _pkg_mtree_close,
     //
     // 	.force_load      = _pkg_force_load,
+
+    /* Public functions for getting package information. These functions
+     * delegate the hard work to the function callbacks attached to each
+     * package, which depend on where the package was loaded from. */
+    pub fn alpm_pkg_get_filename(&self) -> String {
+        return self.filename.clone();
+    }
+
+    // pub fn alpm_pkg_get_base(&self) -> String
+    // {
+    // 	// ASSERT(pkg != NULL, return NULL);
+    // 	// pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return self.ops.get_base(self);
+    // }
+
+    pub fn alpm_pkg_get_name(&self) -> String {
+        return self.name.clone();
+    }
+
+    pub fn alpm_pkg_get_version(&self) -> String {
+        return self.version.clone();
+    }
+
+    // pub fn alpm_pkg_get_origin(&self) -> alpm_pkgfrom_t {
+    //     // ASSERT(pkg != NULL, return -1);
+    //     // pkg->handle->pm_errno = ALPM_ERR_OK;
+    //     return self.origin;
+    // }
+    //
+    // pub fn alpm_pkg_get_desc(&self) -> String {
+    //     // ASSERT(pkg != NULL, return NULL);
+    //     // pkg->handle->pm_errno = ALPM_ERR_OK;
+    //     return self.ops.get_desc(self);
+    // }
+
+    // const char SYMEXPORT *alpm_pkg_get_url(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return NULL);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->ops->get_url(pkg);
+    // }
+    //
+    // alpm_time_t SYMEXPORT alpm_pkg_get_builddate(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return -1);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->ops->get_builddate(pkg);
+    // }
+    //
+    // alpm_time_t SYMEXPORT alpm_pkg_get_installdate(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return -1);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->ops->get_installdate(pkg);
+    // }
+    //
+    // const char SYMEXPORT *alpm_pkg_get_packager(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return NULL);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->ops->get_packager(pkg);
+    // }
+    //
+    // const char SYMEXPORT *alpm_pkg_get_md5sum(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return NULL);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->md5sum;
+    // }
+    //
+    // const char SYMEXPORT *alpm_pkg_get_sha256sum(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return NULL);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->sha256sum;
+    // }
+    //
+    // const char SYMEXPORT *alpm_pkg_get_base64_sig(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return NULL);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->base64_sig;
+    // }
+    //
+    // const char SYMEXPORT *alpm_pkg_get_arch(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return NULL);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->ops->get_arch(pkg);
+    // }
+    //
+    pub fn alpm_pkg_get_size(&self) -> i64
+    {
+    	return self.size;
+    }
+
+    pub fn alpm_pkg_get_isize(&self) -> off_t
+    {
+        unimplemented!();
+    	// return self.ops.get_isize(pkg);
+    }
+
+    // alpm_pkgreason_t SYMEXPORT alpm_pkg_get_reason(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return -1);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->ops->get_reason(pkg);
+    // }
+    //
+    // int SYMEXPORT alpm_pkg_get_validation(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return -1);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->ops->get_validation(pkg);
+    // }
+    //
+    // alpm_list_t SYMEXPORT *alpm_pkg_get_licenses(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return NULL);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->ops->get_licenses(pkg);
+    // }
+    //
+    // alpm_list_t SYMEXPORT *alpm_pkg_get_groups(alpm_pkg_t *pkg)
+    // {
+    // 	ASSERT(pkg != NULL, return NULL);
+    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+    // 	return pkg->ops->get_groups(pkg);
+    // }
+    //
 }
-//
-// /* Public functions for getting package information. These functions
-//  * delegate the hard work to the function callbacks attached to each
-//  * package, which depend on where the package was loaded from. */
-// const char SYMEXPORT *alpm_pkg_get_filename(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->filename;
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_base(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_base(pkg);
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_name(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->name;
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_version(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->version;
-// }
-//
-// alpm_pkgfrom_t SYMEXPORT alpm_pkg_get_origin(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return -1);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->origin;
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_desc(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_desc(pkg);
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_url(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_url(pkg);
-// }
-//
-// alpm_time_t SYMEXPORT alpm_pkg_get_builddate(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return -1);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_builddate(pkg);
-// }
-//
-// alpm_time_t SYMEXPORT alpm_pkg_get_installdate(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return -1);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_installdate(pkg);
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_packager(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_packager(pkg);
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_md5sum(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->md5sum;
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_sha256sum(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->sha256sum;
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_base64_sig(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->base64_sig;
-// }
-//
-// const char SYMEXPORT *alpm_pkg_get_arch(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_arch(pkg);
-// }
-//
-// off_t SYMEXPORT alpm_pkg_get_size(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return -1);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->size;
-// }
-//
-// off_t SYMEXPORT alpm_pkg_get_isize(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return -1);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_isize(pkg);
-// }
-//
-// alpm_pkgreason_t SYMEXPORT alpm_pkg_get_reason(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return -1);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_reason(pkg);
-// }
-//
-// int SYMEXPORT alpm_pkg_get_validation(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return -1);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_validation(pkg);
-// }
-//
-// alpm_list_t SYMEXPORT *alpm_pkg_get_licenses(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_licenses(pkg);
-// }
-//
-// alpm_list_t SYMEXPORT *alpm_pkg_get_groups(alpm_pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-// 	return pkg->ops->get_groups(pkg);
-// }
-//
 pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
     // ASSERT(pkg != NULL, return NULL);
-    pkg.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+    // pkg.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
     return &mut pkg.depends;
 }
 //
@@ -713,100 +681,98 @@ pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
 // 	return new;
 // }
 //
-/**
- * Duplicate a package data struct.
- * @param pkg the package to duplicate
- * @param new_ptr location to store duplicated package pointer
- * @return 0 on success, -1 on fatal error, 1 on non-fatal error
- */
-pub fn _alpm_pkg_dup(pkg: &alpm_pkg_t) -> Result<alpm_pkg_t, i32>
-{
+
+/// * Duplicate a package data struct.
+/// * `pkg` - the package to duplicate
+/// * `new_ptr` - location to store duplicated package pointer
+/// * returns 0 on success, -1 on fatal error, 1 on non-fatal error
+pub fn _alpm_pkg_dup(pkg: &alpm_pkg_t) -> Result<alpm_pkg_t, i32> {
     unimplemented!();
-// 	alpm_pkg_t *newpkg;
-// 	alpm_list_t *i;
-// 	int ret = 0;
-//
-// 	if(!pkg || !pkg->handle) {
-// 		return -1;
-// 	}
-//
-// 	if(!new_ptr) {
-// 		RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1);
-// 	}
-//
-// 	if(pkg->ops->force_load(pkg)) {
-// 		_alpm_log(pkg->handle, ALPM_LOG_WARNING,
-// 				_("could not fully load metadata for package %s-%s\n"),
-// 				pkg->name, pkg->version);
-// 		ret = 1;
-// 		pkg->handle->pm_errno = ALPM_ERR_PKG_INVALID;
-// 	}
-//
-// 	CALLOC(newpkg, 1, sizeof(alpm_pkg_t), goto cleanup);
-//
-// 	newpkg->name_hash = pkg->name_hash;
-// 	STRDUP(newpkg->filename, pkg->filename, goto cleanup);
-// 	STRDUP(newpkg->base, pkg->base, goto cleanup);
-// 	STRDUP(newpkg->name, pkg->name, goto cleanup);
-// 	STRDUP(newpkg->version, pkg->version, goto cleanup);
-// 	STRDUP(newpkg->desc, pkg->desc, goto cleanup);
-// 	STRDUP(newpkg->url, pkg->url, goto cleanup);
-// 	newpkg->builddate = pkg->builddate;
-// 	newpkg->installdate = pkg->installdate;
-// 	STRDUP(newpkg->packager, pkg->packager, goto cleanup);
-// 	STRDUP(newpkg->md5sum, pkg->md5sum, goto cleanup);
-// 	STRDUP(newpkg->sha256sum, pkg->sha256sum, goto cleanup);
-// 	STRDUP(newpkg->arch, pkg->arch, goto cleanup);
-// 	newpkg->size = pkg->size;
-// 	newpkg->isize = pkg->isize;
-// 	newpkg->scriptlet = pkg->scriptlet;
-// 	newpkg->reason = pkg->reason;
-// 	newpkg->validation = pkg->validation;
-//
-// 	newpkg->licenses   = alpm_list_strdup(pkg->licenses);
-// 	newpkg->replaces   = list_depdup(pkg->replaces);
-// 	newpkg->groups     = alpm_list_strdup(pkg->groups);
-// 	for(i = pkg->backup; i; i = i->next) {
-// 		newpkg->backup = alpm_list_add(newpkg->backup, _alpm_backup_dup(i->data));
-// 	}
-// 	newpkg->depends    = list_depdup(pkg->depends);
-// 	newpkg->optdepends = list_depdup(pkg->optdepends);
-// 	newpkg->conflicts  = list_depdup(pkg->conflicts);
-// 	newpkg->provides   = list_depdup(pkg->provides);
-// 	for(i = pkg->deltas; i; i = i->next) {
-// 		newpkg->deltas = alpm_list_add(newpkg->deltas, _alpm_delta_dup(i->data));
-// 	}
-//
-// 	if(pkg->files.count) {
-// 		size_t filenum;
-// 		size_t len = sizeof(alpm_file_t) * pkg->files.count;
-// 		MALLOC(newpkg->files.files, len, goto cleanup);
-// 		for(filenum = 0; filenum < pkg->files.count; filenum++) {
-// 			if(!_alpm_file_copy(newpkg->files.files + filenum,
-// 						pkg->files.files + filenum)) {
-// 				goto cleanup;
-// 			}
-// 		}
-// 		newpkg->files.count = pkg->files.count;
-// 	}
-//
-// 	/* internal */
-// 	newpkg->infolevel = pkg->infolevel;
-// 	newpkg->origin = pkg->origin;
-// 	if(newpkg->origin == ALPM_PKG_FROM_FILE) {
-// 		STRDUP(newpkg->origin_data.file, pkg->origin_data.file, goto cleanup);
-// 	} else {
-// 		newpkg->origin_data.db = pkg->origin_data.db;
-// 	}
-// 	newpkg->ops = pkg->ops;
-// 	newpkg->handle = pkg->handle;
-//
-// 	*new_ptr = newpkg;
-// 	return ret;
-//
-// cleanup:
-// 	_alpm_pkg_free(newpkg);
-// 	RET_ERR(pkg->handle, ALPM_ERR_MEMORY, -1);
+    // 	alpm_pkg_t *newpkg;
+    // 	alpm_list_t *i;
+    // 	int ret = 0;
+    //
+    // 	if(!pkg || !pkg->handle) {
+    // 		return -1;
+    // 	}
+    //
+    // 	if(!new_ptr) {
+    // 		RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1);
+    // 	}
+    //
+    // 	if(pkg->ops->force_load(pkg)) {
+    // 		_alpm_log(pkg->handle, ALPM_LOG_WARNING,
+    // 				_("could not fully load metadata for package %s-%s\n"),
+    // 				pkg->name, pkg->version);
+    // 		ret = 1;
+    // 		pkg->handle->pm_errno = ALPM_ERR_PKG_INVALID;
+    // 	}
+    //
+    // 	CALLOC(newpkg, 1, sizeof(alpm_pkg_t), goto cleanup);
+    //
+    // 	newpkg->name_hash = pkg->name_hash;
+    // 	STRDUP(newpkg->filename, pkg->filename, goto cleanup);
+    // 	STRDUP(newpkg->base, pkg->base, goto cleanup);
+    // 	STRDUP(newpkg->name, pkg->name, goto cleanup);
+    // 	STRDUP(newpkg->version, pkg->version, goto cleanup);
+    // 	STRDUP(newpkg->desc, pkg->desc, goto cleanup);
+    // 	STRDUP(newpkg->url, pkg->url, goto cleanup);
+    // 	newpkg->builddate = pkg->builddate;
+    // 	newpkg->installdate = pkg->installdate;
+    // 	STRDUP(newpkg->packager, pkg->packager, goto cleanup);
+    // 	STRDUP(newpkg->md5sum, pkg->md5sum, goto cleanup);
+    // 	STRDUP(newpkg->sha256sum, pkg->sha256sum, goto cleanup);
+    // 	STRDUP(newpkg->arch, pkg->arch, goto cleanup);
+    // 	newpkg->size = pkg->size;
+    // 	newpkg->isize = pkg->isize;
+    // 	newpkg->scriptlet = pkg->scriptlet;
+    // 	newpkg->reason = pkg->reason;
+    // 	newpkg->validation = pkg->validation;
+    //
+    // 	newpkg->licenses   = alpm_list_strdup(pkg->licenses);
+    // 	newpkg->replaces   = list_depdup(pkg->replaces);
+    // 	newpkg->groups     = alpm_list_strdup(pkg->groups);
+    // 	for(i = pkg->backup; i; i = i->next) {
+    // 		newpkg->backup = alpm_list_add(newpkg->backup, _alpm_backup_dup(i->data));
+    // 	}
+    // 	newpkg->depends    = list_depdup(pkg->depends);
+    // 	newpkg->optdepends = list_depdup(pkg->optdepends);
+    // 	newpkg->conflicts  = list_depdup(pkg->conflicts);
+    // 	newpkg->provides   = list_depdup(pkg->provides);
+    // 	for(i = pkg->deltas; i; i = i->next) {
+    // 		newpkg->deltas = alpm_list_add(newpkg->deltas, _alpm_delta_dup(i->data));
+    // 	}
+    //
+    // 	if(pkg->files.count) {
+    // 		size_t filenum;
+    // 		size_t len = sizeof(alpm_file_t) * pkg->files.count;
+    // 		MALLOC(newpkg->files.files, len, goto cleanup);
+    // 		for(filenum = 0; filenum < pkg->files.count; filenum++) {
+    // 			if(!_alpm_file_copy(newpkg->files.files + filenum,
+    // 						pkg->files.files + filenum)) {
+    // 				goto cleanup;
+    // 			}
+    // 		}
+    // 		newpkg->files.count = pkg->files.count;
+    // 	}
+    //
+    // 	/* internal */
+    // 	newpkg->infolevel = pkg->infolevel;
+    // 	newpkg->origin = pkg->origin;
+    // 	if(newpkg->origin == ALPM_PKG_FROM_FILE) {
+    // 		STRDUP(newpkg->origin_data.file, pkg->origin_data.file, goto cleanup);
+    // 	} else {
+    // 		newpkg->origin_data.db = pkg->origin_data.db;
+    // 	}
+    // 	newpkg->ops = pkg->ops;
+    // 	newpkg->handle = pkg->handle;
+    //
+    // 	*new_ptr = newpkg;
+    // 	return ret;
+    //
+    // cleanup:
+    // 	_alpm_pkg_free(newpkg);
+    // 	RET_ERR(pkg->handle, ALPM_ERR_MEMORY, -1);
 }
 //
 // static void free_deplist(alpm_list_t *deps)
@@ -897,9 +863,12 @@ fn _alpm_pkg_compare_versions(spkg: &alpm_pkg_t, localpkg: &alpm_pkg_t) -> i8 {
 // 	return strcmp(pkg1->name, pkg2->name);
 // }
 
-/* Test for existence of a package in a alpm_list_t*
- * of alpm_pkg_t*
- */
+/// Find a package in a list by name.
+/// # Arguments
+/// * `haystack` - a Vec of alpm_pkg_t
+/// * `needle` - the package name
+/// # Returns
+/// a pointer to the package if found or NULL
 pub fn alpm_pkg_find<'a>(haystack: &'a Vec<alpm_pkg_t>, needle: &String) -> Option<&'a alpm_pkg_t> {
     match haystack.binary_search_by_key(needle, |ref a| a.name.clone()) {
         Ok(i) => {

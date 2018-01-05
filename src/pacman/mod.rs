@@ -409,15 +409,11 @@ pub fn main() {
         }
     }
 
-
     /* check if we have sufficient permission for the requested operation */
     if myuid > 0 && config.needs_root() {
         eprintln!("you cannot perform this operation unless you are root.");
         cleanup(1);
     }
-
-
-
 
     if config.sysroot != "" && (unsafe {
         libc::chroot(&config.sysroot.as_bytes()[0] as *const u8 as *const i8) != 0

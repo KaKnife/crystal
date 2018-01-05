@@ -54,7 +54,7 @@ fn change_install_reason(targets: Vec<String>, config: &super::conf::config_t) -
         return 1;
     }
 
-    db_local = alpm_get_localdb(&config.handle);
+    db_local = config.handle.alpm_get_localdb();
     for pkgname in targets {
         // 		char *pkgname = i->data;
         // alpm_pkg_t *pkg = alpm_db_get_pkg(db_local, pkgname);
@@ -62,7 +62,7 @@ fn change_install_reason(targets: Vec<String>, config: &super::conf::config_t) -
         if pkg.is_none() || alpm_pkg_set_reason(&pkg.unwrap(), &reason) != 0 {
             eprintln!(
                 "could not set install reason for package {} ()",
-                pkgname, /*alpm_strerror(alpm_errno(config->handle))*/
+                pkgname /*alpm_strerror(alpm_errno(config->handle))*/,
             );
             ret = 1;
         } else {
@@ -164,8 +164,7 @@ fn check_db_local_package_conflicts(pkglist: &Vec<alpm_pkg_t>, config: &conf::co
         // alpm_conflict_t *conflict = i->data;
         eprintln!(
             "'{}' conflicts with '{}'",
-            conflict.package1,
-            conflict.package2
+            conflict.package1, conflict.package2
         );
         ret += 1;
     }
@@ -174,8 +173,8 @@ fn check_db_local_package_conflicts(pkglist: &Vec<alpm_pkg_t>, config: &conf::co
 }
 
 struct fileitem {
-	file: alpm_file_t,
-	pkg: alpm_pkg_t,
+    file: alpm_file_t,
+    pkg: alpm_pkg_t,
 }
 
 // static int fileitem_cmp(const void *p1, const void *p2)
@@ -250,8 +249,8 @@ fn check_db_local(config: &conf::config_t) -> i32 {
         return ret;
     }
 
-    db = alpm_get_localdb(&config.handle);
-    pkglist = alpm_db_get_pkgcache(&mut db);
+    db = config.handle.alpm_get_localdb();
+    pkglist = alpm_db_get_pkgcache(&db);
     ret += check_db_missing_deps(config, &mut pkglist);
     ret += check_db_local_package_conflicts(&pkglist, config);
     ret += check_db_local_filelist_conflicts(&pkglist);
