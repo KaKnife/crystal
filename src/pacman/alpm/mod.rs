@@ -173,7 +173,7 @@ pub enum alpm_errno_t {
 //  * @{
 //  */
 //
-// typedef int64_t alpm_time_t;
+type alpm_time_t = i64;
 //
 // /*
 //  * Enumerations

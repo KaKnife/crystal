@@ -86,7 +86,7 @@ pub fn alpm_remove_pkg(
 
     // _alpm_log(handle, ALPM_LOG_DEBUG, "adding package %s to the transaction remove list\n",
     // 		pkgname);
-    let copy = match _alpm_pkg_dup(pkg) {
+    let copy = match pkg._alpm_pkg_dup() {
         Ok(c) => c,
         _ => return -1,
     };

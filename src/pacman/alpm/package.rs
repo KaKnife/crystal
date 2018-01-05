@@ -31,39 +31,39 @@ use super::*;
 //  * defined default_pkg_ops struct to work just fine for their needs.
 //  */
 struct pkg_operations {
-    get_base: fn(&alpm_pkg_t)-> String,
-	// const char *(*get_desc) (alpm_pkg_t *);
-	// const char *(*get_url) (alpm_pkg_t *);
-	// alpm_time_t (*get_builddate) (alpm_pkg_t *);
-	// alpm_time_t (*get_installdate) (alpm_pkg_t *);
-	// const char *(*get_packager) (alpm_pkg_t *);
-	// const char *(*get_arch) (alpm_pkg_t *);
-	// off_t (*get_isize) (alpm_pkg_t *);
-	// alpm_pkgreason_t (*get_reason) (alpm_pkg_t *);
-	// int (*get_validation) (alpm_pkg_t *);
-	// int (*has_scriptlet) (alpm_pkg_t *);
-    //
-	// alpm_list_t *(*get_licenses) (alpm_pkg_t *);
-	// alpm_list_t *(*get_groups) (alpm_pkg_t *);
-	// alpm_list_t *(*get_depends) (alpm_pkg_t *);
-	// alpm_list_t *(*get_optdepends) (alpm_pkg_t *);
-	// alpm_list_t *(*get_checkdepends) (alpm_pkg_t *);
-	// alpm_list_t *(*get_makedepends) (alpm_pkg_t *);
-	// alpm_list_t *(*get_conflicts) (alpm_pkg_t *);
-	// alpm_list_t *(*get_provides) (alpm_pkg_t *);
-	// alpm_list_t *(*get_replaces) (alpm_pkg_t *);
-	// alpm_filelist_t *(*get_files) (alpm_pkg_t *);
-	// alpm_list_t *(*get_backup) (alpm_pkg_t *);
-    //
-	// void *(*changelog_open) (alpm_pkg_t *);
-	// size_t (*changelog_read) (void *, size_t, const alpm_pkg_t *, void *);
-	// int (*changelog_close) (const alpm_pkg_t *, void *);
-    //
-	// struct archive *(*mtree_open) (alpm_pkg_t *);
-	// int (*mtree_next) (const alpm_pkg_t *, struct archive *, struct archive_entry **);
-	// int (*mtree_close) (const alpm_pkg_t *, struct archive *);
-    //
-	// int (*force_load) (alpm_pkg_t *);
+    get_base: fn(&alpm_pkg_t) -> String,
+    get_desc: fn(&alpm_pkg_t) -> String,
+    get_url: fn(&alpm_pkg_t) -> String,
+    get_builddate: fn(&alpm_pkg_t) -> alpm_time_t,
+    get_installdate: fn(&alpm_pkg_t) -> alpm_time_t,
+    // const char *(*get_packager) (alpm_pkg_t *);
+    // const char *(*get_arch) (alpm_pkg_t *);
+    // off_t (*get_isize) (alpm_pkg_t *);
+    // alpm_pkgreason_t (*get_reason) (alpm_pkg_t *);
+    // int (*get_validation) (alpm_pkg_t *);
+    // int (*has_scriptlet) (alpm_pkg_t *);
+
+    // alpm_list_t *(*get_licenses) (alpm_pkg_t *);
+    // alpm_list_t *(*get_groups) (alpm_pkg_t *);
+    // alpm_list_t *(*get_depends) (alpm_pkg_t *);
+    // alpm_list_t *(*get_optdepends) (alpm_pkg_t *);
+    // alpm_list_t *(*get_checkdepends) (alpm_pkg_t *);
+    // alpm_list_t *(*get_makedepends) (alpm_pkg_t *);
+    // alpm_list_t *(*get_conflicts) (alpm_pkg_t *);
+    // alpm_list_t *(*get_provides) (alpm_pkg_t *);
+    // alpm_list_t *(*get_replaces) (alpm_pkg_t *);
+    // alpm_filelist_t *(*get_files) (alpm_pkg_t *);
+    // alpm_list_t *(*get_backup) (alpm_pkg_t *);
+
+    // void *(*changelog_open) (alpm_pkg_t *);
+    // size_t (*changelog_read) (void *, size_t, const alpm_pkg_t *, void *);
+    // int (*changelog_close) (const alpm_pkg_t *, void *);
+
+    // struct archive *(*mtree_open) (alpm_pkg_t *);
+    // int (*mtree_next) (const alpm_pkg_t *, struct archive *, struct archive_entry **);
+    // int (*mtree_close) (const alpm_pkg_t *, struct archive *);
+
+    // int (*force_load) (alpm_pkg_t *);
 }
 
 // /** The standard package operations struct. get fields directly from the
@@ -174,7 +174,7 @@ pub struct alpm_pkg_t {
 //  * @brief Functions to manipulate libalpm packages
 //  * @{
 //  */
-//
+
 // /** Free a package. */
 // int SYMEXPORT alpm_pkg_free(alpm_pkg_t *pkg)
 // {
@@ -187,7 +187,7 @@ pub struct alpm_pkg_t {
 //
 // 	return 0;
 // }
-//
+
 // /** Check the integrity (with md5) of a package from the sync cache. */
 // int SYMEXPORT alpm_pkg_checkmd5sum(alpm_pkg_t *pkg)
 // {
@@ -213,7 +213,7 @@ pub struct alpm_pkg_t {
 //
 // 	return retval;
 // }
-//
+
 // /* Default package accessor functions. These will get overridden by any
 //  * backend logic that needs lazy access, such as the local database through
 //  * a lazy-load cache. However, the defaults will work just fine for fully-
@@ -241,43 +241,43 @@ pub struct alpm_pkg_t {
 // static alpm_list_t *_pkg_get_replaces(alpm_pkg_t *pkg)   { return pkg->replaces; }
 // static alpm_filelist_t *_pkg_get_files(alpm_pkg_t *pkg)  { return &(pkg->files); }
 // static alpm_list_t *_pkg_get_backup(alpm_pkg_t *pkg)     { return pkg->backup; }
-//
+
 // static void *_pkg_changelog_open(alpm_pkg_t UNUSED *pkg)
 // {
 // 	return NULL;
 // }
-//
+
 // static size_t _pkg_changelog_read(void UNUSED *ptr, size_t UNUSED size,
 // 		const alpm_pkg_t UNUSED *pkg, UNUSED void *fp)
 // {
 // 	return 0;
 // }
-//
+
 // static int _pkg_changelog_close(const alpm_pkg_t UNUSED *pkg,
 // 		void UNUSED *fp)
 // {
 // 	return EOF;
 // }
-//
+
 // static struct archive *_pkg_mtree_open(alpm_pkg_t UNUSED *pkg)
 // {
 // 	return NULL;
 // }
-//
+
 // static int _pkg_mtree_next(const alpm_pkg_t UNUSED *pkg,
 // 		struct archive UNUSED *archive, struct archive_entry UNUSED **entry)
 // {
 // 	return -1;
 // }
-//
+
 // static int _pkg_mtree_close(const alpm_pkg_t UNUSED *pkg,
 // 		struct archive UNUSED *archive)
 // {
 // 	return -1;
 // }
-//
+
 // static int _pkg_force_load(alpm_pkg_t UNUSED *pkg) { return 0; }
-//
+
 // /** The standard package operations struct. Get fields directly from the
 //  * struct itself with no abstraction layer or any type of lazy loading.
 //  */
@@ -406,15 +406,13 @@ impl alpm_pkg_t {
     // 	return pkg->ops->get_arch(pkg);
     // }
     //
-    pub fn alpm_pkg_get_size(&self) -> i64
-    {
-    	return self.size;
+    pub fn alpm_pkg_get_size(&self) -> i64 {
+        return self.size;
     }
 
-    pub fn alpm_pkg_get_isize(&self) -> off_t
-    {
+    pub fn alpm_pkg_get_isize(&self) -> off_t {
         unimplemented!();
-    	// return self.ops.get_isize(pkg);
+        // return self.ops.get_isize(pkg);
     }
 
     // alpm_pkgreason_t SYMEXPORT alpm_pkg_get_reason(alpm_pkg_t *pkg)
@@ -445,76 +443,75 @@ impl alpm_pkg_t {
     // 	return pkg->ops->get_groups(pkg);
     // }
     //
-}
 pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
     // ASSERT(pkg != NULL, return NULL);
     // pkg.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
     return &mut pkg.depends;
 }
-//
+
 // alpm_list_t SYMEXPORT *alpm_pkg_get_optdepends(alpm_pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->get_optdepends(pkg);
 // }
-//
+
 // alpm_list_t SYMEXPORT *alpm_pkg_get_checkdepends(alpm_pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->get_checkdepends(pkg);
 // }
-//
+
 // alpm_list_t SYMEXPORT *alpm_pkg_get_makedepends(alpm_pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->get_makedepends(pkg);
 // }
-//
+
 // alpm_list_t SYMEXPORT *alpm_pkg_get_conflicts(alpm_pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->get_conflicts(pkg);
 // }
-//
+
 // alpm_list_t SYMEXPORT *alpm_pkg_get_provides(alpm_pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->get_provides(pkg);
 // }
-//
+
 // alpm_list_t SYMEXPORT *alpm_pkg_get_replaces(alpm_pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->get_replaces(pkg);
 // }
-//
+
 // alpm_list_t SYMEXPORT *alpm_pkg_get_deltas(alpm_pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->deltas;
 // }
-//
+
 // alpm_filelist_t SYMEXPORT *alpm_pkg_get_files(alpm_pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->get_files(pkg);
 // }
-//
+
 // alpm_list_t SYMEXPORT *alpm_pkg_get_backup(alpm_pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->get_backup(pkg);
 // }
-//
+
 // alpm_db_t SYMEXPORT *alpm_pkg_get_db(alpm_pkg_t *pkg)
 // {
 // 	/* Sanity checks */
@@ -524,7 +521,7 @@ pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
 //
 // 	return pkg->origin_data.db;
 // }
-//
+
 // /** Open a package changelog for reading. */
 // void SYMEXPORT *alpm_pkg_changelog_open(alpm_pkg_t *pkg)
 // {
@@ -532,7 +529,7 @@ pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->changelog_open(pkg);
 // }
-//
+
 // /** Read data from an open changelog 'file stream'. */
 // size_t SYMEXPORT alpm_pkg_changelog_read(void *ptr, size_t size,
 // 		const alpm_pkg_t *pkg, void *fp)
@@ -541,7 +538,7 @@ pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->changelog_read(ptr, size, pkg, fp);
 // }
-//
+
 // /** Close a package changelog for reading. */
 // int SYMEXPORT alpm_pkg_changelog_close(const alpm_pkg_t *pkg, void *fp)
 // {
@@ -549,7 +546,7 @@ pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 // 	return pkg->ops->changelog_close(pkg, fp);
 // }
-//
+
 // /** Open a package mtree file for reading. */
 // struct archive SYMEXPORT *alpm_pkg_mtree_open(alpm_pkg_t * pkg)
 // {
@@ -686,7 +683,7 @@ pub fn alpm_pkg_get_depends(pkg: &mut alpm_pkg_t) -> &mut Vec<alpm_depend_t> {
 /// * `pkg` - the package to duplicate
 /// * `new_ptr` - location to store duplicated package pointer
 /// * returns 0 on success, -1 on fatal error, 1 on non-fatal error
-pub fn _alpm_pkg_dup(pkg: &alpm_pkg_t) -> Result<alpm_pkg_t, i32> {
+pub fn _alpm_pkg_dup(&self) -> Result<alpm_pkg_t, i32> {
     unimplemented!();
     // 	alpm_pkg_t *newpkg;
     // 	alpm_list_t *i;
@@ -862,7 +859,7 @@ fn _alpm_pkg_compare_versions(spkg: &alpm_pkg_t, localpkg: &alpm_pkg_t) -> i8 {
 // 	const alpm_pkg_t *pkg2 = p2;
 // 	return strcmp(pkg1->name, pkg2->name);
 // }
-
+}
 /// Find a package in a list by name.
 /// # Arguments
 /// * `haystack` - a Vec of alpm_pkg_t
@@ -876,7 +873,7 @@ pub fn alpm_pkg_find<'a>(haystack: &'a Vec<alpm_pkg_t>, needle: &String) -> Opti
         }
         Err(_) => return None,
     }
-}
+
 
 // /** Test if a package should be ignored.
 //  *
@@ -909,3 +906,4 @@ pub fn alpm_pkg_find<'a>(haystack: &'a Vec<alpm_pkg_t>, needle: &String) -> Opti
 // }
 //
 // /* vim: set noet: */
+}
