@@ -59,7 +59,7 @@ fn change_install_reason(targets: Vec<String>, config: &super::conf::config_t) -
         // 		char *pkgname = i->data;
         // alpm_pkg_t *pkg = alpm_db_get_pkg(db_local, pkgname);
         let pkg = db_local.alpm_db_get_pkg(&pkgname);
-        if pkg.is_none() || alpm_pkg_set_reason(&pkg.unwrap(), &reason) != 0 {
+        if pkg.is_none() || pkg.unwrap().alpm_pkg_set_reason(&reason) != 0 {
             eprintln!(
                 "could not set install reason for package {} ()",
                 pkgname /*alpm_strerror(alpm_errno(config->handle))*/,
@@ -99,9 +99,9 @@ fn check_db_missing_deps(config: &conf::config_t, pkglist: &mut Vec<alpm_pkg_t>)
     let mut ret = 0;
     // /* check dependencies */
 
-    for miss in alpm_checkdeps(&config.handle, None, None, pkglist, 0) {
+    for miss in config.handle.alpm_checkdeps(None, None, pkglist, 0) {
         //     let miss = i.data;
-        let depstring = alpm_dep_compute_string(&miss.depend);
+        let depstring = miss.depend.alpm_dep_compute_string();
         eprintln!("missing '{}' dependency for '{}'", depstring, miss.target);
         ret += 1;
     }
@@ -116,7 +116,7 @@ fn check_db_local_files(config: &conf::config_t) -> i32 {
     let mut ret = 0;
     let dbdir; // DIR *dbdir;
 
-    dbpath = alpm_option_get_dbpath(&config.handle);
+    dbpath = config.handle.alpm_option_get_dbpath();
     let mut path = format!("{}local", dbpath);
     use std;
     dbdir = match std::fs::read_dir(path) {
@@ -159,7 +159,7 @@ fn check_db_local_package_conflicts(pkglist: &Vec<alpm_pkg_t>, config: &conf::co
     // alpm_list_t *data, *i;
     let mut ret = 0;
     // /* check conflicts */
-    let data = alpm_checkconflicts(&config.handle, &pkglist);
+    let data = config.handle.alpm_checkconflicts(&pkglist);
     for conflict in data {
         // alpm_conflict_t *conflict = i->data;
         eprintln!(

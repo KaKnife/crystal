@@ -55,7 +55,7 @@ pub fn pacman_upgrade(mut targets: Vec<String>, config: &mut config_t) -> Result
     for ref mut target in &mut targets {
         if target.contains("://") {
             // char *str = alpm_fetch_pkgurl(config->handle, i->data);
-            let url = alpm_fetch_pkgurl(&config.handle, &target);
+            let url = config.handle.alpm_fetch_pkgurl(&target);
             if url == "" {
                 eprintln!(
                     "'{}': {}\n",
@@ -97,7 +97,7 @@ pub fn pacman_upgrade(mut targets: Vec<String>, config: &mut config_t) -> Result
         } else {
             siglevel = config.handle.alpm_option_get_local_file_siglevel();
         }
-        if alpm_pkg_load(&config.handle, targ, 1, &siglevel, &pkg) != 0 {
+        if config.handle.alpm_pkg_load(targ, 1, &siglevel, &pkg) != 0 {
             eprintln!("'{}': {}", targ, config.handle.alpm_errno().alpm_strerror());
             retval = 1;
             continue;

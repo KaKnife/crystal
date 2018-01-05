@@ -1,26 +1,26 @@
 use super::*;
-// /*
-//  *  deps.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
-//  *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
+/*
+ *  deps.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
+ *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // #include <stdlib.h>
 // #include <stdio.h>
 // #include <string.h>
@@ -35,7 +35,7 @@ use super::*;
 // #include "db.h"
 // #include "handle.h"
 // #include "trans.h"
-//
+
 // void SYMEXPORT alpm_dep_free(alpm_depend_t *dep)
 // {
 // 	ASSERT(dep != NULL, return);
@@ -92,7 +92,7 @@ fn find_dep_satisfier<'a>(
 
     for pkg in pkgs {
         // alpm_pkg_t *pkg = i->data;
-        if _alpm_depcmp(&pkg, dep) {
+        if pkg._alpm_depcmp(dep) {
             return Some(pkg);
         }
     }
@@ -281,154 +281,152 @@ fn find_dep_satisfier<'a>(
 // 	return newtargs;
 // }
 
-fn no_dep_version(handle: &alpm_handle_t) -> bool {
-    handle.trans.flags.NODEPVERSION
-    // if(handle.trans.is_none()) {
-    // 	return false;
+impl alpm_handle_t {
+    fn no_dep_version(&self) -> bool {
+        self.trans.flags.NODEPVERSION
+    }
+
+    // /** Find a package satisfying a specified dependency.
+    //  * The dependency can include versions with depmod operators.
+    //  * @param pkgs an alpm_list_t* of alpm_pkg_t where the satisfier will be searched
+    //  * @param depstring package or provision name, versioned or not
+    //  * @return a alpm_pkg_t* satisfying depstring
+    //  */
+    // alpm_pkg_t SYMEXPORT *alpm_find_satisfier(alpm_list_t *pkgs, const char *depstring)
+    // {
+    // 	alpm_depend_t *dep = alpm_dep_from_string(depstring);
+    // 	if(!dep) {
+    // 		return NULL;
+    // 	}
+    // 	alpm_pkg_t *pkg = find_dep_satisfier(pkgs, dep);
+    // 	alpm_dep_free(dep);
+    // 	return pkg;
     // }
-    // handle.trans.unwrap().flags.NODEPVERSION
-}
 
-// /** Find a package satisfying a specified dependency.
-//  * The dependency can include versions with depmod operators.
-//  * @param pkgs an alpm_list_t* of alpm_pkg_t where the satisfier will be searched
-//  * @param depstring package or provision name, versioned or not
-//  * @return a alpm_pkg_t* satisfying depstring
-//  */
-// alpm_pkg_t SYMEXPORT *alpm_find_satisfier(alpm_list_t *pkgs, const char *depstring)
-// {
-// 	alpm_depend_t *dep = alpm_dep_from_string(depstring);
-// 	if(!dep) {
-// 		return NULL;
-// 	}
-// 	alpm_pkg_t *pkg = find_dep_satisfier(pkgs, dep);
-// 	alpm_dep_free(dep);
-// 	return pkg;
-// }
-
-/** Checks dependencies and returns missing ones in a list.
- * Dependencies can include versions with depmod operators.
- * @param handle the context handle
- * @param pkglist the list of local packages
- * @param remove an alpm_list_t* of packages to be removed
- * @param upgrade an alpm_list_t* of packages to be upgraded (remove-then-upgrade)
- * @param reversedeps handles the backward dependencies
- * @return an alpm_list_t* of alpm_depmissing_t pointers.
- */
-pub fn alpm_checkdeps(
-    handle: &alpm_handle_t,
-    pkglist: Option<Vec<alpm_pkg_t>>,
-    remw: Option<Vec<alpm_pkg_t>>,
-    upgrade: &mut Vec<alpm_pkg_t>,
-    reversedeps: i32,
-) -> Vec<alpm_depmissing_t> {
-    unimplemented!();
-    // 	alpm_list_t *i, *j;
-    // 	alpm_list_t *dblist = NULL, *modified = NULL;
-    let mut dblist = Vec::new();
-    let mut modified = Vec::new();
-    let mut baddeps = Vec::new(); // 	alpm_list_t *baddeps = NULL;
-    let nodepversion; // 	int nodepversion;
-    let rem; //
-
-    if remw.is_some() {
-        rem = remw.unwrap();
-    } else {
-        rem = Vec::new();
-    }
-    if pkglist.is_some() {
-        for pkg in pkglist.unwrap() {
-            // alpm_pkg_t *pkg = i->data;
-            if alpm_pkg_find(&upgrade, &pkg.name).is_some()
-                || alpm_pkg_find(&rem, &pkg.name).is_some()
-            {
-                modified.push(pkg);
-            } else {
-                dblist.push(pkg);
-            }
-        }
-    }
-
-    nodepversion = no_dep_version(handle);
-
-    /* look for unsatisfied dependencies of the upgrade list */
-    for ref mut tp in &*upgrade {
-        // alpm_pkg_t *tp = i->data;
-        // _alpm_log(
-        //     handle,
-        //     ALPM_LOG_DEBUG,
-        //     "checkdeps: package %s-%s\n",
-        //     tp.name,
-        //     tp.version,
-        // );
-
-        for mut depend in &tp.depends {
-            // alpm_depend_t *depend = j->data;
-            let orig_mod = depend.depmod.clone();
-            // if (nodepversion) {
-            //     depend.depmod = alpm_depmod_t::ALPM_DEP_MOD_ANY;
-            // }
-            /* 1. we check the upgrade list */
-            /* 2. we check database for untouched satisfying packages */
-            /* 3. we check the dependency ignore list */
-            if find_dep_satisfier(upgrade, &depend).is_none()
-                && find_dep_satisfier(&dblist, &depend).is_none()
-                && _alpm_depcmp_provides(&depend, &handle.assumeinstalled)
-            {
-                unimplemented!();
-                /* Unsatisfied dependency in the upgrade list */
-                // alpm_depmissing_t *miss;
-                // let missdepstring = alpm_dep_compute_string(depend);
-                // _alpm_log(handle, ALPM_LOG_DEBUG,
-                //"checkdeps: missing dependency '%s' for package '%s'\n",
-                // 		missdepstring, tp->name);
-                // free(missdepstring);
-                // miss = depmiss_new(tp->name, depend, NULL);
-                // baddeps = alpm_list_add(baddeps, miss);
-            }
-            // depend.depmod = orig_mod;
-        }
-    }
-
-    if reversedeps != 0 {
+    /** Checks dependencies and returns missing ones in a list.
+     * Dependencies can include versions with depmod operators.
+     * @param handle the context handle
+     * @param pkglist the list of local packages
+     * @param remove an alpm_list_t* of packages to be removed
+     * @param upgrade an alpm_list_t* of packages to be upgraded (remove-then-upgrade)
+     * @param reversedeps handles the backward dependencies
+     * @return an alpm_list_t* of alpm_depmissing_t pointers.
+     */
+    pub fn alpm_checkdeps(
+        &self,
+        pkglist: Option<Vec<alpm_pkg_t>>,
+        remw: Option<Vec<alpm_pkg_t>>,
+        upgrade: &mut Vec<alpm_pkg_t>,
+        reversedeps: i32,
+    ) -> Vec<alpm_depmissing_t> {
         unimplemented!();
-        // 		/* reversedeps handles the backwards dependencies, ie,
-        // 		 * the packages listed in the requiredby field. */
-        // 		for(i = dblist; i; i = i->next) {
-        // 			alpm_pkg_t *lp = i->data;
-        // 			for(j = alpm_pkg_get_depends(lp); j; j = j->next) {
-        // 				alpm_depend_t *depend = j->data;
-        // 				alpm_depmod_t orig_mod = depend->mod;
-        // 				if(nodepversion) {
-        // 					depend->mod = ALPM_DEP_MOD_ANY;
-        // 				}
-        // 				alpm_pkg_t *causingpkg = find_dep_satisfier(modified, depend);
-        // 				/* we won't break this depend, if it is already broken, we ignore it */
-        // 				/* 1. check upgrade list for satisfiers */
-        // 				/* 2. check dblist for satisfiers */
-        // 				/* 3. we check the dependency ignore list */
-        // 				if(causingpkg &&
-        // 						!find_dep_satisfier(upgrade, depend) &&
-        // 						!find_dep_satisfier(dblist, depend) &&
-        // 						!_alpm_depcmp_provides(depend, handle->assumeinstalled)) {
-        // 					alpm_depmissing_t *miss;
-        // 					char *missdepstring = alpm_dep_compute_string(depend);
-        //_alpm_log(handle, ALPM_LOG_DEBUG,
-        //"checkdeps: transaction would break '%s' dependency of '%s'\n",
-        // 							missdepstring, lp->name);
-        // 					free(missdepstring);
-        // 					miss = depmiss_new(lp->name, depend, causingpkg->name);
-        // 					baddeps = alpm_list_add(baddeps, miss);
-        // 				}
-        // 				depend->mod = orig_mod;
-        // 			}
-        // 		}
-    }
+        // 	alpm_list_t *i, *j;
+        // 	alpm_list_t *dblist = NULL, *modified = NULL;
+        let mut dblist = Vec::new();
+        let mut modified = Vec::new();
+        let mut baddeps = Vec::new(); // 	alpm_list_t *baddeps = NULL;
+        let nodepversion; // 	int nodepversion;
+        let rem; //
 
-    // 	alpm_list_free(modified);
-    // 	alpm_list_free(dblist);
-    //
-    return baddeps;
+        if remw.is_some() {
+            rem = remw.unwrap();
+        } else {
+            rem = Vec::new();
+        }
+        if pkglist.is_some() {
+            for pkg in pkglist.unwrap() {
+                // alpm_pkg_t *pkg = i->data;
+                if alpm_pkg_find(&upgrade, &pkg.name).is_some()
+                    || alpm_pkg_find(&rem, &pkg.name).is_some()
+                {
+                    modified.push(pkg);
+                } else {
+                    dblist.push(pkg);
+                }
+            }
+        }
+
+        nodepversion = self.no_dep_version();
+
+        /* look for unsatisfied dependencies of the upgrade list */
+        for ref mut tp in &*upgrade {
+            // alpm_pkg_t *tp = i->data;
+            // _alpm_log(
+            //     handle,
+            //     ALPM_LOG_DEBUG,
+            //     "checkdeps: package %s-%s\n",
+            //     tp.name,
+            //     tp.version,
+            // );
+
+            for mut depend in &tp.depends {
+                // alpm_depend_t *depend = j->data;
+                let orig_mod = depend.depmod.clone();
+                // if (nodepversion) {
+                //     depend.depmod = alpm_depmod_t::ALPM_DEP_MOD_ANY;
+                // }
+                /* 1. we check the upgrade list */
+                /* 2. we check database for untouched satisfying packages */
+                /* 3. we check the dependency ignore list */
+                if find_dep_satisfier(upgrade, &depend).is_none()
+                    && find_dep_satisfier(&dblist, &depend).is_none()
+                    && depend._alpm_depcmp_provides(&self.assumeinstalled)
+                {
+                    unimplemented!();
+                    /* Unsatisfied dependency in the upgrade list */
+                    // alpm_depmissing_t *miss;
+                    // let missdepstring = alpm_dep_compute_string(depend);
+                    // _alpm_log(handle, ALPM_LOG_DEBUG,
+                    //"checkdeps: missing dependency '%s' for package '%s'\n",
+                    // 		missdepstring, tp->name);
+                    // free(missdepstring);
+                    // miss = depmiss_new(tp->name, depend, NULL);
+                    // baddeps = alpm_list_add(baddeps, miss);
+                }
+                // depend.depmod = orig_mod;
+            }
+        }
+
+        if reversedeps != 0 {
+            unimplemented!();
+            // 		/* reversedeps handles the backwards dependencies, ie,
+            // 		 * the packages listed in the requiredby field. */
+            // 		for(i = dblist; i; i = i->next) {
+            // 			alpm_pkg_t *lp = i->data;
+            // 			for(j = alpm_pkg_get_depends(lp); j; j = j->next) {
+            // 				alpm_depend_t *depend = j->data;
+            // 				alpm_depmod_t orig_mod = depend->mod;
+            // 				if(nodepversion) {
+            // 					depend->mod = ALPM_DEP_MOD_ANY;
+            // 				}
+            // 				alpm_pkg_t *causingpkg = find_dep_satisfier(modified, depend);
+            // 				/* we won't break this depend, if it is already broken, we ignore it */
+            // 				/* 1. check upgrade list for satisfiers */
+            // 				/* 2. check dblist for satisfiers */
+            // 				/* 3. we check the dependency ignore list */
+            // 				if(causingpkg &&
+            // 						!find_dep_satisfier(upgrade, depend) &&
+            // 						!find_dep_satisfier(dblist, depend) &&
+            // 						!_alpm_depcmp_provides(depend, handle->assumeinstalled)) {
+            // 					alpm_depmissing_t *miss;
+            // 					char *missdepstring = alpm_dep_compute_string(depend);
+            //_alpm_log(handle, ALPM_LOG_DEBUG,
+            //"checkdeps: transaction would break '%s' dependency of '%s'\n",
+            // 							missdepstring, lp->name);
+            // 					free(missdepstring);
+            // 					miss = depmiss_new(lp->name, depend, causingpkg->name);
+            // 					baddeps = alpm_list_add(baddeps, miss);
+            // 				}
+            // 				depend->mod = orig_mod;
+            // 			}
+            // 		}
+        }
+
+        // 	alpm_list_free(modified);
+        // 	alpm_list_free(dblist);
+        //
+        return baddeps;
+    }
 }
 
 fn dep_vercmp(version1: &String, depmod: &alpm_depmod_t, version2: &String) -> bool {
@@ -445,534 +443,538 @@ fn dep_vercmp(version1: &String, depmod: &alpm_depmod_t, version2: &String) -> b
     }
 }
 
-fn _alpm_depcmp_literal(pkg: &alpm_pkg_t, dep: &alpm_depend_t) -> bool {
-    if pkg.name_hash != dep.name_hash || pkg.name != dep.name {
-        /* skip more expensive checks */
-        return false;
-    }
-    return dep_vercmp(&pkg.version, &dep.depmod, &dep.version);
-}
-
-/**
- * @param dep dependency to check against the provision list
- * @param provisions provision list
- * @return 1 if provider is found, 0 otherwise
- */
-fn _alpm_depcmp_provides(dep: &alpm_depend_t, provisions: &Vec<alpm_depend_t>) -> bool {
-    let satisfy = false;
-    // alpm_list_t * i;
-
-    /* check provisions, name and version if available */
-    for provision in provisions {
-        // alpm_depend_t *provision = i->data;
-
-        match dep.depmod {
-            alpm_depmod_t::ALPM_DEP_MOD_ANY => {
-                /* any version will satisfy the requirement */
-                return provision.name_hash == dep.name_hash && provision.name == dep.name;
-            }
-            _ => {}
+impl alpm_pkg_t {
+    fn _alpm_depcmp_literal(&self, dep: &alpm_depend_t) -> bool {
+        if self.name_hash != dep.name_hash || self.name != dep.name {
+            /* skip more expensive checks */
+            return false;
         }
-        match provision.depmod {
-            alpm_depmod_t::ALPM_DEP_MOD_EQ => {
-                /* provision specifies a version, so try it out */
-                return provision.name_hash == dep.name_hash && provision.name == dep.name
-                    && dep_vercmp(&provision.version, &dep.depmod, &dep.version);
-            }
-            _ => {}
-        }
+        return dep_vercmp(&self.version, &dep.depmod, &dep.version);
     }
 
-    return satisfy;
+    fn _alpm_depcmp(&self, dep: &alpm_depend_t) -> bool {
+        return self._alpm_depcmp_literal(dep) || dep._alpm_depcmp_provides(&self.provides);
+    }
 }
-//
-fn _alpm_depcmp(pkg: &alpm_pkg_t, dep: &alpm_depend_t) -> bool {
-    return _alpm_depcmp_literal(pkg, dep) || _alpm_depcmp_provides(dep, &pkg.provides);
-}
-//
-// alpm_depend_t SYMEXPORT *alpm_dep_from_string(const char *depstring)
-// {
-// 	alpm_depend_t *depend;
-// 	const char *ptr, *version, *desc;
-// 	size_t deplen;
-//
-// 	if(depstring == NULL) {
-// 		return NULL;
-// 	}
-//
-// 	CALLOC(depend, 1, sizeof(alpm_depend_t), return NULL);
-//
-// 	/* Note the extra space in ": " to avoid matching the epoch */
-// 	if((desc = strstr(depstring, ": ")) != NULL) {
-// 		STRDUP(depend->desc, desc + 2, goto error);
-// 		deplen = desc - depstring;
-// 	} else {
-// 		/* no description- point desc at NULL at end of string for later use */
-// 		depend->desc = NULL;
-// 		deplen = strlen(depstring);
-// 		desc = depstring + deplen;
-// 	}
-//
-// 	/* Find a version comparator if one exists. If it does, set the type and
-// 	 * increment the ptr accordingly so we can copy the right strings. */
-// 	if((ptr = memchr(depstring, '<', deplen))) {
-// 		if(ptr[1] == '=') {
-// 			depend->mod = ALPM_DEP_MOD_LE;
-// 			version = ptr + 2;
-// 		} else {
-// 			depend->mod = ALPM_DEP_MOD_LT;
-// 			version = ptr + 1;
-// 		}
-// 	} else if((ptr = memchr(depstring, '>', deplen))) {
-// 		if(ptr[1] == '=') {
-// 			depend->mod = ALPM_DEP_MOD_GE;
-// 			version = ptr + 2;
-// 		} else {
-// 			depend->mod = ALPM_DEP_MOD_GT;
-// 			version = ptr + 1;
-// 		}
-// 	} else if((ptr = memchr(depstring, '=', deplen))) {
-// 		/* Note: we must do =,<,> checks after <=, >= checks */
-// 		depend->mod = ALPM_DEP_MOD_EQ;
-// 		version = ptr + 1;
-// 	} else {
-// 		/* no version specified, set ptr to end of string and version to NULL */
-// 		ptr = depstring + deplen;
-// 		depend->mod = ALPM_DEP_MOD_ANY;
-// 		depend->version = NULL;
-// 		version = NULL;
-// 	}
-//
-// 	/* copy the right parts to the right places */
-// 	STRNDUP(depend->name, depstring, ptr - depstring, goto error);
-// 	depend->name_hash = _alpm_hash_sdbm(depend->name);
-// 	if(version) {
-// 		STRNDUP(depend->version, version, desc - version, goto error);
-// 	}
-//
-// 	return depend;
-//
-// error:
-// 	alpm_dep_free(depend);
-// 	return NULL;
-// }
-//
-// alpm_depend_t *_alpm_dep_dup(const alpm_depend_t *dep)
-// {
-// 	alpm_depend_t *newdep;
-// 	CALLOC(newdep, 1, sizeof(alpm_depend_t), return NULL);
-//
-// 	STRDUP(newdep->name, dep->name, goto error);
-// 	STRDUP(newdep->version, dep->version, goto error);
-// 	STRDUP(newdep->desc, dep->desc, goto error);
-// 	newdep->name_hash = dep->name_hash;
-// 	newdep->mod = dep->mod;
-//
-// 	return newdep;
-//
-// error:
-// 	alpm_dep_free(newdep);
-// 	return NULL;
-// }
-//
-// /** Move package dependencies from one list to another
-//  * @param from list to scan for dependencies
-//  * @param to list to add dependencies to
-//  * @param pkg package whose dependencies are moved
-//  * @param explicit if 0, explicitly installed packages are not moved
-//  */
-// static void _alpm_select_depends(alpm_list_t **from, alpm_list_t **to,
-// 		alpm_pkg_t *pkg, int explicit)
-// {
-// 	alpm_list_t *i, *next;
-// 	if(!alpm_pkg_get_depends(pkg)) {
-// 		return;
-// 	}
-// 	for(i = *from; i; i = next) {
-// 		alpm_pkg_t *deppkg = i->data;
-// 		next = i->next;
-// 		if((explicit || alpm_pkg_get_reason(deppkg) != ALPM_PKG_REASON_EXPLICIT)
-// 				&& _alpm_pkg_depends_on(pkg, deppkg)) {
-// 			*to = alpm_list_add(*to, deppkg);
-// 			*from = alpm_list_remove_item(*from, i);
-// 			free(i);
-// 		}
-// 	}
-// }
-//
-// /**
-//  * @brief Adds unneeded dependencies to an existing list of packages.
-//  * By unneeded, we mean dependencies that are only required by packages in the
-//  * target list, so they can be safely removed.
-//  * If the input list was topo sorted, the output list will be topo sorted too.
-//  *
-//  * @param db package database to do dependency tracing in
-//  * @param *targs pointer to a list of packages
-//  * @param include_explicit if 0, explicitly installed packages are not included
-//  * @return 0 on success, -1 on errors
-//  */
-// int _alpm_recursedeps(alpm_db_t *db, alpm_list_t **targs, int include_explicit)
-// {
-// 	alpm_list_t *i, *keep, *rem = NULL;
-//
-// 	if(db == NULL || targs == NULL) {
-// 		return -1;
-// 	}
-//
-// 	keep = alpm_list_copy(_alpm_db_get_pkgcache(db));
-// 	for(i = *targs; i; i = i->next) {
-// 		keep = alpm_list_remove(keep, i->data, _alpm_pkg_cmp, NULL);
-// 	}
-//
-// 	/* recursively select all dependencies for removal */
-// 	for(i = *targs; i; i = i->next) {
-// 		_alpm_select_depends(&keep, &rem, i->data, include_explicit);
-// 	}
-// 	for(i = rem; i; i = i->next) {
-// 		_alpm_select_depends(&keep, &rem, i->data, include_explicit);
-// 	}
-//
-// 	/* recursively select any still needed packages to keep */
-// 	for(i = keep; i && rem; i = i->next) {
-// 		_alpm_select_depends(&rem, &keep, i->data, 1);
-// 	}
-// 	alpm_list_free(keep);
-//
-// 	/* copy selected packages into the target list */
-// 	for(i = rem; i; i = i->next) {
-// 		alpm_pkg_t *pkg = i->data, *copy = NULL;
-// 		_alpm_log(db->handle, ALPM_LOG_DEBUG,
-// 				"adding '%s' to the targets\n", pkg->name);
-// 		if(_alpm_pkg_dup(pkg, &copy)) {
-// 			/* we return memory on "non-fatal" error in _alpm_pkg_dup */
-// 			_alpm_pkg_free(copy);
-// 			alpm_list_free(rem);
-// 			return -1;
-// 		}
-// 		*targs = alpm_list_add(*targs, copy);
-// 	}
-// 	alpm_list_free(rem);
-//
-// 	return 0;
-// }
-//
-// /**
-//  * helper function for resolvedeps: search for dep satisfier in dbs
-//  *
-//  * @param handle the context handle
-//  * @param dep is the dependency to search for
-//  * @param dbs are the databases to search
-//  * @param excluding are the packages to exclude from the search
-//  * @param prompt if true, will cause an unresolvable dependency to issue an
-//  *        interactive prompt asking whether the package should be removed from
-//  *        the transaction or the transaction aborted; if false, simply returns
-//  *        an error code without prompting
-//  * @return the resolved package
-//  **/
-// static alpm_pkg_t *resolvedep(alpm_handle_t *handle, alpm_depend_t *dep,
-// 		alpm_list_t *dbs, alpm_list_t *excluding, int prompt)
-// {
-// 	alpm_list_t *i, *j;
-// 	int ignored = 0;
-//
-// 	alpm_list_t *providers = NULL;
-// 	int count;
-//
-// 	/* 1. literals */
-// 	for(i = dbs; i; i = i->next) {
-// 		alpm_pkg_t *pkg;
-// 		alpm_db_t *db = i->data;
-//
-// 		if(!(db->usage & (ALPM_DB_USAGE_INSTALL|ALPM_DB_USAGE_UPGRADE))) {
-// 			continue;
-// 		}
-//
-// 		pkg = _alpm_db_get_pkgfromcache(db, dep->name);
-// 		if(pkg && _alpm_depcmp_literal(pkg, dep)
-// 				&& !alpm_pkg_find(excluding, pkg->name)) {
-// 			if(alpm_pkg_should_ignore(handle, pkg)) {
-// 				alpm_question_install_ignorepkg_t question = {
-// 					.type = ALPM_QUESTION_INSTALL_IGNOREPKG,
-// 					.install = 0,
-// 					.pkg = pkg
-// 				};
-// 				if(prompt) {
-// 					QUESTION(handle, &question);
-// 				} else {
-// 					_alpm_log(handle, ALPM_LOG_WARNING, _("ignoring package %s-%s\n"),
-// 							pkg->name, pkg->version);
-// 				}
-// 				if(!question.install) {
-// 					ignored = 1;
-// 					continue;
-// 				}
-// 			}
-// 			return pkg;
-// 		}
-// 	}
-// 	/* 2. satisfiers (skip literals here) */
-// 	for(i = dbs; i; i = i->next) {
-// 		alpm_db_t *db = i->data;
-// 		if(!(db->usage & (ALPM_DB_USAGE_INSTALL|ALPM_DB_USAGE_UPGRADE))) {
-// 			continue;
-// 		}
-// 		for(j = _alpm_db_get_pkgcache(db); j; j = j->next) {
-// 			alpm_pkg_t *pkg = j->data;
-// 			/* with hash != hash, we can even skip the strcmp() as we know they can't
-// 			 * possibly be the same string */
-// 			if(pkg->name_hash != dep->name_hash && _alpm_depcmp(pkg, dep)
-// 					&& !alpm_pkg_find(excluding, pkg->name)) {
-// 				if(alpm_pkg_should_ignore(handle, pkg)) {
-// 					alpm_question_install_ignorepkg_t question = {
-// 						.type = ALPM_QUESTION_INSTALL_IGNOREPKG,
-// 						.install = 0,
-// 						.pkg = pkg
-// 					};
-// 					if(prompt) {
-// 						QUESTION(handle, &question);
-// 					} else {
-// 						_alpm_log(handle, ALPM_LOG_WARNING, _("ignoring package %s-%s\n"),
-// 								pkg->name, pkg->version);
-// 					}
-// 					if(!question.install) {
-// 						ignored = 1;
-// 						continue;
-// 					}
-// 				}
-// 				_alpm_log(handle, ALPM_LOG_DEBUG, "provider found (%s provides %s)\n",
-// 						pkg->name, dep->name);
-// 				providers = alpm_list_add(providers, pkg);
-// 				/* keep looking for other providers in the all dbs */
-// 			}
-// 		}
-// 	}
-//
-// 	/* first check if one provider is already installed locally */
-// 	for(i = providers; i; i = i->next) {
-// 		alpm_pkg_t *pkg = i->data;
-// 		if(_alpm_db_get_pkgfromcache(handle->db_local, pkg->name)) {
-// 			alpm_list_free(providers);
-// 			return pkg;
-// 		}
-// 	}
-// 	count = alpm_list_count(providers);
-// 	if(count >= 1) {
-// 		alpm_question_select_provider_t question = {
-// 			.type = ALPM_QUESTION_SELECT_PROVIDER,
-// 			/* default to first provider if there is no QUESTION callback */
-// 			.use_index = 0,
-// 			.providers = providers,
-// 			.depend = dep
-// 		};
-// 		if(count > 1) {
-// 			/* if there is more than one provider, we ask the user */
-// 			QUESTION(handle, &question);
-// 		}
-// 		if(question.use_index >= 0 && question.use_index < count) {
-// 			alpm_list_t *nth = alpm_list_nth(providers, question.use_index);
-// 			alpm_pkg_t *pkg = nth->data;
-// 			alpm_list_free(providers);
-// 			return pkg;
-// 		}
-// 		alpm_list_free(providers);
-// 		providers = NULL;
-// 	}
-//
-// 	if(ignored) { /* resolvedeps will override these */
-// 		handle->pm_errno = ALPM_ERR_PKG_IGNORED;
-// 	} else {
-// 		handle->pm_errno = ALPM_ERR_PKG_NOT_FOUND;
-// 	}
-// 	return NULL;
-// }
-//
-// /** Find a package satisfying a specified dependency.
-//  * First look for a literal, going through each db one by one. Then look for
-//  * providers. The first satisfier found is returned.
-//  * The dependency can include versions with depmod operators.
-//  * @param handle the context handle
-//  * @param dbs an alpm_list_t* of alpm_db_t where the satisfier will be searched
-//  * @param depstring package or provision name, versioned or not
-//  * @return a alpm_pkg_t* satisfying depstring
-//  */
-// alpm_pkg_t SYMEXPORT *alpm_find_dbs_satisfier(alpm_handle_t *handle,
-// 		alpm_list_t *dbs, const char *depstring)
-// {
-// 	alpm_depend_t *dep;
-// 	alpm_pkg_t *pkg;
-//
-// 	CHECK_HANDLE(handle, return NULL);
-// 	ASSERT(dbs, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
-//
-// 	dep = alpm_dep_from_string(depstring);
-// 	ASSERT(dep, return NULL);
-// 	pkg = resolvedep(handle, dep, dbs, NULL, 1);
-// 	alpm_dep_free(dep);
-// 	return pkg;
-// }
-//
-// /**
-//  * Computes resolvable dependencies for a given package and adds that package
-//  * and those resolvable dependencies to a list.
-//  *
-//  * @param handle the context handle
-//  * @param localpkgs is the list of local packages
-//  * @param pkg is the package to resolve
-//  * @param preferred packages to prefer when resolving
-//  * @param packages is a pointer to a list of packages which will be
-//  *        searched first for any dependency packages needed to complete the
-//  *        resolve, and to which will be added any [pkg] and all of its
-//  *        dependencies not already on the list
-//  * @param remove is the set of packages which will be removed in this
-//  *        transaction
-//  * @param data returns the dependency which could not be satisfied in the
-//  *        event of an error
-//  * @return 0 on success, with [pkg] and all of its dependencies not already on
-//  *         the [*packages] list added to that list, or -1 on failure due to an
-//  *         unresolvable dependency, in which case the [*packages] list will be
-//  *         unmodified by this function
-//  */
-// int _alpm_resolvedeps(alpm_handle_t *handle, alpm_list_t *localpkgs,
-// 		alpm_pkg_t *pkg, alpm_list_t *preferred, alpm_list_t **packages,
-// 		alpm_list_t *rem, alpm_list_t **data)
-// {
-// 	int ret = 0;
-// 	alpm_list_t *j;
-// 	alpm_list_t *targ;
-// 	alpm_list_t *deps = NULL;
-// 	alpm_list_t *packages_copy;
-//
-// 	if(alpm_pkg_find(*packages, pkg->name) != NULL) {
-// 		return 0;
-// 	}
-//
-// 	/* Create a copy of the packages list, so that it can be restored
-// 	   on error */
-// 	packages_copy = alpm_list_copy(*packages);
-// 	/* [pkg] has not already been resolved into the packages list, so put it
-// 	   on that list */
-// 	*packages = alpm_list_add(*packages, pkg);
-//
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "started resolving dependencies\n");
-// 	targ = alpm_list_add(NULL, pkg);
-// 	deps = alpm_checkdeps(handle, localpkgs, rem, targ, 0);
-// 	alpm_list_free(targ);
-// 	targ = NULL;
-//
-// 	for(j = deps; j; j = j->next) {
-// 		alpm_depmissing_t *miss = j->data;
-// 		alpm_depend_t *missdep = miss->depend;
-// 		/* check if one of the packages in the [*packages] list already satisfies
-// 		 * this dependency */
-// 		if(find_dep_satisfier(*packages, missdep)) {
-// 			alpm_depmissing_free(miss);
-// 			continue;
-// 		}
-// 		/* check if one of the packages in the [preferred] list already satisfies
-// 		 * this dependency */
-// 		alpm_pkg_t *spkg = find_dep_satisfier(preferred, missdep);
-// 		if(!spkg) {
-// 			/* find a satisfier package in the given repositories */
-// 			spkg = resolvedep(handle, missdep, handle->dbs_sync, *packages, 0);
-// 		}
-// 		if(spkg && _alpm_resolvedeps(handle, localpkgs, spkg, preferred, packages, rem, data) == 0) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG,
-// 					"pulling dependency %s (needed by %s)\n",
-// 					spkg->name, pkg->name);
-// 			alpm_depmissing_free(miss);
-// } else if(resolvedep(handle, missdep, (targ = alpm_list_add(NULL, handle->db_local)), rem, 0)) {
-// 			alpm_depmissing_free(miss);
-// 		} else {
-// 			handle->pm_errno = ALPM_ERR_UNSATISFIED_DEPS;
-// 			char *missdepstring = alpm_dep_compute_string(missdep);
-// 			_alpm_log(handle, ALPM_LOG_WARNING,
-// 					_("cannot resolve \"%s\", a dependency of \"%s\"\n"),
-// 					missdepstring, pkg->name);
-// 			free(missdepstring);
-// 			if(data) {
-// 				*data = alpm_list_add(*data, miss);
-// 			}
-// 			ret = -1;
-// 		}
-// 		alpm_list_free(targ);
-// 		targ = NULL;
-// 	}
-// 	alpm_list_free(deps);
-//
-// 	if(ret != 0) {
-// 		alpm_list_free(*packages);
-// 		*packages = packages_copy;
-// 	} else {
-// 		alpm_list_free(packages_copy);
-// 	}
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "finished resolving dependencies\n");
-// 	return ret;
-// }
-//
-/** Reverse of splitdep; make a dep string from a alpm_depend_t struct.
- * The string must be freed!
- * @param dep the depend to turn into a string
- * @return a string-formatted dependency with operator if necessary
- */
-pub fn alpm_dep_compute_string(dep: &alpm_depend_t) -> String {
-    unimplemented!();
-    // 	const char *name, *opr, *ver, *desc_delim, *desc;
-    // 	char *str;
-    // 	size_t len;
+
+impl alpm_depend_t {
+    /**
+     * @param dep dependency to check against the provision list
+     * @param provisions provision list
+     * @return 1 if provider is found, 0 otherwise
+     */
+    fn _alpm_depcmp_provides(&self, provisions: &Vec<alpm_depend_t>) -> bool {
+        let satisfy = false;
+        // alpm_list_t * i;
+
+        /* check provisions, name and version if available */
+        for provision in provisions {
+            // alpm_depend_t *provision = i->data;
+
+            match self.depmod {
+                alpm_depmod_t::ALPM_DEP_MOD_ANY => {
+                    /* any version will satisfy the requirement */
+                    return provision.name_hash == self.name_hash && provision.name == self.name;
+                }
+                _ => {}
+            }
+            match provision.depmod {
+                alpm_depmod_t::ALPM_DEP_MOD_EQ => {
+                    /* provision specifies a version, so try it out */
+                    return provision.name_hash == self.name_hash && provision.name == self.name
+                        && dep_vercmp(&provision.version, &self.depmod, &self.version);
+                }
+                _ => {}
+            }
+        }
+
+        return satisfy;
+    }
+
+    // alpm_depend_t SYMEXPORT *alpm_dep_from_string(const char *depstring)
+    // {
+    // 	alpm_depend_t *depend;
+    // 	const char *ptr, *version, *desc;
+    // 	size_t deplen;
     //
-    // 	ASSERT(dep != NULL, return NULL);
+    // 	if(depstring == NULL) {
+    // 		return NULL;
+    // 	}
     //
-    // 	if(dep->name) {
-    // 		name = dep->name;
+    // 	CALLOC(depend, 1, sizeof(alpm_depend_t), return NULL);
+    //
+    // 	/* Note the extra space in ": " to avoid matching the epoch */
+    // 	if((desc = strstr(depstring, ": ")) != NULL) {
+    // 		STRDUP(depend->desc, desc + 2, goto error);
+    // 		deplen = desc - depstring;
     // 	} else {
-    // 		name = "";
+    // 		/* no description- point desc at NULL at end of string for later use */
+    // 		depend->desc = NULL;
+    // 		deplen = strlen(depstring);
+    // 		desc = depstring + deplen;
     // 	}
     //
-    // 	switch(dep->mod) {
-    // 		case ALPM_DEP_MOD_ANY:
-    // 			opr = "";
-    // 			break;
-    // 		case ALPM_DEP_MOD_GE:
-    // 			opr = ">=";
-    // 			break;
-    // 		case ALPM_DEP_MOD_LE:
-    // 			opr = "<=";
-    // 			break;
-    // 		case ALPM_DEP_MOD_EQ:
-    // 			opr = "=";
-    // 			break;
-    // 		case ALPM_DEP_MOD_LT:
-    // 			opr = "<";
-    // 			break;
-    // 		case ALPM_DEP_MOD_GT:
-    // 			opr = ">";
-    // 			break;
-    // 		default:
-    // 			opr = "";
-    // 			break;
-    // 	}
-    //
-    // 	if(dep->mod != ALPM_DEP_MOD_ANY && dep->version) {
-    // 		ver = dep->version;
+    // 	/* Find a version comparator if one exists. If it does, set the type and
+    // 	 * increment the ptr accordingly so we can copy the right strings. */
+    // 	if((ptr = memchr(depstring, '<', deplen))) {
+    // 		if(ptr[1] == '=') {
+    // 			depend->mod = ALPM_DEP_MOD_LE;
+    // 			version = ptr + 2;
+    // 		} else {
+    // 			depend->mod = ALPM_DEP_MOD_LT;
+    // 			version = ptr + 1;
+    // 		}
+    // 	} else if((ptr = memchr(depstring, '>', deplen))) {
+    // 		if(ptr[1] == '=') {
+    // 			depend->mod = ALPM_DEP_MOD_GE;
+    // 			version = ptr + 2;
+    // 		} else {
+    // 			depend->mod = ALPM_DEP_MOD_GT;
+    // 			version = ptr + 1;
+    // 		}
+    // 	} else if((ptr = memchr(depstring, '=', deplen))) {
+    // 		/* Note: we must do =,<,> checks after <=, >= checks */
+    // 		depend->mod = ALPM_DEP_MOD_EQ;
+    // 		version = ptr + 1;
     // 	} else {
-    // 		ver = "";
+    // 		/* no version specified, set ptr to end of string and version to NULL */
+    // 		ptr = depstring + deplen;
+    // 		depend->mod = ALPM_DEP_MOD_ANY;
+    // 		depend->version = NULL;
+    // 		version = NULL;
     // 	}
     //
-    // 	if(dep->desc) {
-    // 		desc_delim = ": ";
-    // 		desc = dep->desc;
+    // 	/* copy the right parts to the right places */
+    // 	STRNDUP(depend->name, depstring, ptr - depstring, goto error);
+    // 	depend->name_hash = _alpm_hash_sdbm(depend->name);
+    // 	if(version) {
+    // 		STRNDUP(depend->version, version, desc - version, goto error);
+    // 	}
+    //
+    // 	return depend;
+    //
+    // error:
+    // 	alpm_dep_free(depend);
+    // 	return NULL;
+    // }
+
+    // alpm_depend_t *_alpm_dep_dup(const alpm_depend_t *dep)
+    // {
+    // 	alpm_depend_t *newdep;
+    // 	CALLOC(newdep, 1, sizeof(alpm_depend_t), return NULL);
+    //
+    // 	STRDUP(newdep->name, dep->name, goto error);
+    // 	STRDUP(newdep->version, dep->version, goto error);
+    // 	STRDUP(newdep->desc, dep->desc, goto error);
+    // 	newdep->name_hash = dep->name_hash;
+    // 	newdep->mod = dep->mod;
+    //
+    // 	return newdep;
+    //
+    // error:
+    // 	alpm_dep_free(newdep);
+    // 	return NULL;
+    // }
+    //
+    // /** Move package dependencies from one list to another
+    //  * @param from list to scan for dependencies
+    //  * @param to list to add dependencies to
+    //  * @param pkg package whose dependencies are moved
+    //  * @param explicit if 0, explicitly installed packages are not moved
+    //  */
+    // static void _alpm_select_depends(alpm_list_t **from, alpm_list_t **to,
+    // 		alpm_pkg_t *pkg, int explicit)
+    // {
+    // 	alpm_list_t *i, *next;
+    // 	if(!alpm_pkg_get_depends(pkg)) {
+    // 		return;
+    // 	}
+    // 	for(i = *from; i; i = next) {
+    // 		alpm_pkg_t *deppkg = i->data;
+    // 		next = i->next;
+    // 		if((explicit || alpm_pkg_get_reason(deppkg) != ALPM_PKG_REASON_EXPLICIT)
+    // 				&& _alpm_pkg_depends_on(pkg, deppkg)) {
+    // 			*to = alpm_list_add(*to, deppkg);
+    // 			*from = alpm_list_remove_item(*from, i);
+    // 			free(i);
+    // 		}
+    // 	}
+    // }
+    //
+    // /**
+    //  * @brief Adds unneeded dependencies to an existing list of packages.
+    //  * By unneeded, we mean dependencies that are only required by packages in the
+    //  * target list, so they can be safely removed.
+    //  * If the input list was topo sorted, the output list will be topo sorted too.
+    //  *
+    //  * @param db package database to do dependency tracing in
+    //  * @param *targs pointer to a list of packages
+    //  * @param include_explicit if 0, explicitly installed packages are not included
+    //  * @return 0 on success, -1 on errors
+    //  */
+    // int _alpm_recursedeps(alpm_db_t *db, alpm_list_t **targs, int include_explicit)
+    // {
+    // 	alpm_list_t *i, *keep, *rem = NULL;
+    //
+    // 	if(db == NULL || targs == NULL) {
+    // 		return -1;
+    // 	}
+    //
+    // 	keep = alpm_list_copy(_alpm_db_get_pkgcache(db));
+    // 	for(i = *targs; i; i = i->next) {
+    // 		keep = alpm_list_remove(keep, i->data, _alpm_pkg_cmp, NULL);
+    // 	}
+    //
+    // 	/* recursively select all dependencies for removal */
+    // 	for(i = *targs; i; i = i->next) {
+    // 		_alpm_select_depends(&keep, &rem, i->data, include_explicit);
+    // 	}
+    // 	for(i = rem; i; i = i->next) {
+    // 		_alpm_select_depends(&keep, &rem, i->data, include_explicit);
+    // 	}
+    //
+    // 	/* recursively select any still needed packages to keep */
+    // 	for(i = keep; i && rem; i = i->next) {
+    // 		_alpm_select_depends(&rem, &keep, i->data, 1);
+    // 	}
+    // 	alpm_list_free(keep);
+    //
+    // 	/* copy selected packages into the target list */
+    // 	for(i = rem; i; i = i->next) {
+    // 		alpm_pkg_t *pkg = i->data, *copy = NULL;
+    // 		_alpm_log(db->handle, ALPM_LOG_DEBUG,
+    // 				"adding '%s' to the targets\n", pkg->name);
+    // 		if(_alpm_pkg_dup(pkg, &copy)) {
+    // 			/* we return memory on "non-fatal" error in _alpm_pkg_dup */
+    // 			_alpm_pkg_free(copy);
+    // 			alpm_list_free(rem);
+    // 			return -1;
+    // 		}
+    // 		*targs = alpm_list_add(*targs, copy);
+    // 	}
+    // 	alpm_list_free(rem);
+    //
+    // 	return 0;
+    // }
+
+    // /**
+    //  * helper function for resolvedeps: search for dep satisfier in dbs
+    //  *
+    //  * @param handle the context handle
+    //  * @param dep is the dependency to search for
+    //  * @param dbs are the databases to search
+    //  * @param excluding are the packages to exclude from the search
+    //  * @param prompt if true, will cause an unresolvable dependency to issue an
+    //  *        interactive prompt asking whether the package should be removed from
+    //  *        the transaction or the transaction aborted; if false, simply returns
+    //  *        an error code without prompting
+    //  * @return the resolved package
+    //  **/
+    // static alpm_pkg_t *resolvedep(alpm_handle_t *handle, alpm_depend_t *dep,
+    // 		alpm_list_t *dbs, alpm_list_t *excluding, int prompt)
+    // {
+    // 	alpm_list_t *i, *j;
+    // 	int ignored = 0;
+    //
+    // 	alpm_list_t *providers = NULL;
+    // 	int count;
+    //
+    // 	/* 1. literals */
+    // 	for(i = dbs; i; i = i->next) {
+    // 		alpm_pkg_t *pkg;
+    // 		alpm_db_t *db = i->data;
+    //
+    // 		if(!(db->usage & (ALPM_DB_USAGE_INSTALL|ALPM_DB_USAGE_UPGRADE))) {
+    // 			continue;
+    // 		}
+    //
+    // 		pkg = _alpm_db_get_pkgfromcache(db, dep->name);
+    // 		if(pkg && _alpm_depcmp_literal(pkg, dep)
+    // 				&& !alpm_pkg_find(excluding, pkg->name)) {
+    // 			if(alpm_pkg_should_ignore(handle, pkg)) {
+    // 				alpm_question_install_ignorepkg_t question = {
+    // 					.type = ALPM_QUESTION_INSTALL_IGNOREPKG,
+    // 					.install = 0,
+    // 					.pkg = pkg
+    // 				};
+    // 				if(prompt) {
+    // 					QUESTION(handle, &question);
+    // 				} else {
+    // 					_alpm_log(handle, ALPM_LOG_WARNING, _("ignoring package %s-%s\n"),
+    // 							pkg->name, pkg->version);
+    // 				}
+    // 				if(!question.install) {
+    // 					ignored = 1;
+    // 					continue;
+    // 				}
+    // 			}
+    // 			return pkg;
+    // 		}
+    // 	}
+    // 	/* 2. satisfiers (skip literals here) */
+    // 	for(i = dbs; i; i = i->next) {
+    // 		alpm_db_t *db = i->data;
+    // 		if(!(db->usage & (ALPM_DB_USAGE_INSTALL|ALPM_DB_USAGE_UPGRADE))) {
+    // 			continue;
+    // 		}
+    // 		for(j = _alpm_db_get_pkgcache(db); j; j = j->next) {
+    // 			alpm_pkg_t *pkg = j->data;
+    // 			/* with hash != hash, we can even skip the strcmp() as we know they can't
+    // 			 * possibly be the same string */
+    // 			if(pkg->name_hash != dep->name_hash && _alpm_depcmp(pkg, dep)
+    // 					&& !alpm_pkg_find(excluding, pkg->name)) {
+    // 				if(alpm_pkg_should_ignore(handle, pkg)) {
+    // 					alpm_question_install_ignorepkg_t question = {
+    // 						.type = ALPM_QUESTION_INSTALL_IGNOREPKG,
+    // 						.install = 0,
+    // 						.pkg = pkg
+    // 					};
+    // 					if(prompt) {
+    // 						QUESTION(handle, &question);
+    // 					} else {
+    // 						_alpm_log(handle, ALPM_LOG_WARNING, _("ignoring package %s-%s\n"),
+    // 								pkg->name, pkg->version);
+    // 					}
+    // 					if(!question.install) {
+    // 						ignored = 1;
+    // 						continue;
+    // 					}
+    // 				}
+    // 				_alpm_log(handle, ALPM_LOG_DEBUG, "provider found (%s provides %s)\n",
+    // 						pkg->name, dep->name);
+    // 				providers = alpm_list_add(providers, pkg);
+    // 				/* keep looking for other providers in the all dbs */
+    // 			}
+    // 		}
+    // 	}
+    //
+    // 	/* first check if one provider is already installed locally */
+    // 	for(i = providers; i; i = i->next) {
+    // 		alpm_pkg_t *pkg = i->data;
+    // 		if(_alpm_db_get_pkgfromcache(handle->db_local, pkg->name)) {
+    // 			alpm_list_free(providers);
+    // 			return pkg;
+    // 		}
+    // 	}
+    // 	count = alpm_list_count(providers);
+    // 	if(count >= 1) {
+    // 		alpm_question_select_provider_t question = {
+    // 			.type = ALPM_QUESTION_SELECT_PROVIDER,
+    // 			/* default to first provider if there is no QUESTION callback */
+    // 			.use_index = 0,
+    // 			.providers = providers,
+    // 			.depend = dep
+    // 		};
+    // 		if(count > 1) {
+    // 			/* if there is more than one provider, we ask the user */
+    // 			QUESTION(handle, &question);
+    // 		}
+    // 		if(question.use_index >= 0 && question.use_index < count) {
+    // 			alpm_list_t *nth = alpm_list_nth(providers, question.use_index);
+    // 			alpm_pkg_t *pkg = nth->data;
+    // 			alpm_list_free(providers);
+    // 			return pkg;
+    // 		}
+    // 		alpm_list_free(providers);
+    // 		providers = NULL;
+    // 	}
+    //
+    // 	if(ignored) { /* resolvedeps will override these */
+    // 		handle->pm_errno = ALPM_ERR_PKG_IGNORED;
     // 	} else {
-    // 		desc_delim = "";
-    // 		desc = "";
+    // 		handle->pm_errno = ALPM_ERR_PKG_NOT_FOUND;
+    // 	}
+    // 	return NULL;
+    // }
+
+    // /** Find a package satisfying a specified dependency.
+    //  * First look for a literal, going through each db one by one. Then look for
+    //  * providers. The first satisfier found is returned.
+    //  * The dependency can include versions with depmod operators.
+    //  * @param handle the context handle
+    //  * @param dbs an alpm_list_t* of alpm_db_t where the satisfier will be searched
+    //  * @param depstring package or provision name, versioned or not
+    //  * @return a alpm_pkg_t* satisfying depstring
+    //  */
+    // alpm_pkg_t SYMEXPORT *alpm_find_dbs_satisfier(alpm_handle_t *handle,
+    // 		alpm_list_t *dbs, const char *depstring)
+    // {
+    // 	alpm_depend_t *dep;
+    // 	alpm_pkg_t *pkg;
+    //
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	ASSERT(dbs, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
+    //
+    // 	dep = alpm_dep_from_string(depstring);
+    // 	ASSERT(dep, return NULL);
+    // 	pkg = resolvedep(handle, dep, dbs, NULL, 1);
+    // 	alpm_dep_free(dep);
+    // 	return pkg;
+    // }
+    //
+    // /**
+    //  * Computes resolvable dependencies for a given package and adds that package
+    //  * and those resolvable dependencies to a list.
+    //  *
+    //  * @param handle the context handle
+    //  * @param localpkgs is the list of local packages
+    //  * @param pkg is the package to resolve
+    //  * @param preferred packages to prefer when resolving
+    //  * @param packages is a pointer to a list of packages which will be
+    //  *        searched first for any dependency packages needed to complete the
+    //  *        resolve, and to which will be added any [pkg] and all of its
+    //  *        dependencies not already on the list
+    //  * @param remove is the set of packages which will be removed in this
+    //  *        transaction
+    //  * @param data returns the dependency which could not be satisfied in the
+    //  *        event of an error
+    //  * @return 0 on success, with [pkg] and all of its dependencies not already on
+    //  *         the [*packages] list added to that list, or -1 on failure due to an
+    //  *         unresolvable dependency, in which case the [*packages] list will be
+    //  *         unmodified by this function
+    //  */
+    // int _alpm_resolvedeps(alpm_handle_t *handle, alpm_list_t *localpkgs,
+    // 		alpm_pkg_t *pkg, alpm_list_t *preferred, alpm_list_t **packages,
+    // 		alpm_list_t *rem, alpm_list_t **data)
+    // {
+    // 	int ret = 0;
+    // 	alpm_list_t *j;
+    // 	alpm_list_t *targ;
+    // 	alpm_list_t *deps = NULL;
+    // 	alpm_list_t *packages_copy;
+    //
+    // 	if(alpm_pkg_find(*packages, pkg->name) != NULL) {
+    // 		return 0;
     // 	}
     //
-    // 	/* we can always compute len and print the string like this because opr
-    // 	 * and ver will be empty when ALPM_DEP_MOD_ANY is the depend type. the
-    // 	 * reassignments above also ensure we do not do a strlen(NULL). */
-    // 	len = strlen(name) + strlen(opr) + strlen(ver)
-    // 		+ strlen(desc_delim) + strlen(desc) + 1;
-    // 	MALLOC(str, len, return NULL);
-    // 	snprintf(str, len, "%s%s%s%s%s", name, opr, ver, desc_delim, desc);
+    // 	/* Create a copy of the packages list, so that it can be restored
+    // 	   on error */
+    // 	packages_copy = alpm_list_copy(*packages);
+    // 	/* [pkg] has not already been resolved into the packages list, so put it
+    // 	   on that list */
+    // 	*packages = alpm_list_add(*packages, pkg);
     //
-    // 	return str;
+    // 	_alpm_log(handle, ALPM_LOG_DEBUG, "started resolving dependencies\n");
+    // 	targ = alpm_list_add(NULL, pkg);
+    // 	deps = alpm_checkdeps(handle, localpkgs, rem, targ, 0);
+    // 	alpm_list_free(targ);
+    // 	targ = NULL;
+    //
+    // 	for(j = deps; j; j = j->next) {
+    // 		alpm_depmissing_t *miss = j->data;
+    // 		alpm_depend_t *missdep = miss->depend;
+    // 		/* check if one of the packages in the [*packages] list already satisfies
+    // 		 * this dependency */
+    // 		if(find_dep_satisfier(*packages, missdep)) {
+    // 			alpm_depmissing_free(miss);
+    // 			continue;
+    // 		}
+    // 		/* check if one of the packages in the [preferred] list already satisfies
+    // 		 * this dependency */
+    // 		alpm_pkg_t *spkg = find_dep_satisfier(preferred, missdep);
+    // 		if(!spkg) {
+    // 			/* find a satisfier package in the given repositories */
+    // 			spkg = resolvedep(handle, missdep, handle->dbs_sync, *packages, 0);
+    // 		}
+    // 		if(spkg && _alpm_resolvedeps(handle, localpkgs, spkg, preferred, packages, rem, data) == 0) {
+    // 			_alpm_log(handle, ALPM_LOG_DEBUG,
+    // 					"pulling dependency %s (needed by %s)\n",
+    // 					spkg->name, pkg->name);
+    // 			alpm_depmissing_free(miss);
+    // } else if(resolvedep(handle, missdep, (targ = alpm_list_add(NULL, handle->db_local)), rem, 0)) {
+    // 			alpm_depmissing_free(miss);
+    // 		} else {
+    // 			handle->pm_errno = ALPM_ERR_UNSATISFIED_DEPS;
+    // 			char *missdepstring = alpm_dep_compute_string(missdep);
+    // 			_alpm_log(handle, ALPM_LOG_WARNING,
+    // 					_("cannot resolve \"%s\", a dependency of \"%s\"\n"),
+    // 					missdepstring, pkg->name);
+    // 			free(missdepstring);
+    // 			if(data) {
+    // 				*data = alpm_list_add(*data, miss);
+    // 			}
+    // 			ret = -1;
+    // 		}
+    // 		alpm_list_free(targ);
+    // 		targ = NULL;
+    // 	}
+    // 	alpm_list_free(deps);
+    //
+    // 	if(ret != 0) {
+    // 		alpm_list_free(*packages);
+    // 		*packages = packages_copy;
+    // 	} else {
+    // 		alpm_list_free(packages_copy);
+    // 	}
+    // 	_alpm_log(handle, ALPM_LOG_DEBUG, "finished resolving dependencies\n");
+    // 	return ret;
+    // }
+
+    /** Reverse of splitdep; make a dep string from a alpm_depend_t struct.
+     * The string must be freed!
+     * @param dep the depend to turn into a string
+     * @return a string-formatted dependency with operator if necessary
+     */
+    pub fn alpm_dep_compute_string(&self) -> String {
+        unimplemented!();
+        // 	const char *name, *opr, *ver, *desc_delim, *desc;
+        // 	char *str;
+        // 	size_t len;
+        //
+        // 	ASSERT(dep != NULL, return NULL);
+        //
+        // 	if(dep->name) {
+        // 		name = dep->name;
+        // 	} else {
+        // 		name = "";
+        // 	}
+        //
+        // 	switch(dep->mod) {
+        // 		case ALPM_DEP_MOD_ANY:
+        // 			opr = "";
+        // 			break;
+        // 		case ALPM_DEP_MOD_GE:
+        // 			opr = ">=";
+        // 			break;
+        // 		case ALPM_DEP_MOD_LE:
+        // 			opr = "<=";
+        // 			break;
+        // 		case ALPM_DEP_MOD_EQ:
+        // 			opr = "=";
+        // 			break;
+        // 		case ALPM_DEP_MOD_LT:
+        // 			opr = "<";
+        // 			break;
+        // 		case ALPM_DEP_MOD_GT:
+        // 			opr = ">";
+        // 			break;
+        // 		default:
+        // 			opr = "";
+        // 			break;
+        // 	}
+        //
+        // 	if(dep->mod != ALPM_DEP_MOD_ANY && dep->version) {
+        // 		ver = dep->version;
+        // 	} else {
+        // 		ver = "";
+        // 	}
+        //
+        // 	if(dep->desc) {
+        // 		desc_delim = ": ";
+        // 		desc = dep->desc;
+        // 	} else {
+        // 		desc_delim = "";
+        // 		desc = "";
+        // 	}
+        //
+        // 	/* we can always compute len and print the string like this because opr
+        // 	 * and ver will be empty when ALPM_DEP_MOD_ANY is the depend type. the
+        // 	 * reassignments above also ensure we do not do a strlen(NULL). */
+        // 	len = strlen(name) + strlen(opr) + strlen(ver)
+        // 		+ strlen(desc_delim) + strlen(desc) + 1;
+        // 	MALLOC(str, len, return NULL);
+        // 	snprintf(str, len, "%s%s%s%s%s", name, opr, ver, desc_delim, desc);
+        //
+        // 	return str;
+    }
 }

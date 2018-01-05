@@ -1,33 +1,24 @@
 use super::*;
-// /*
-//  *  error.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *
-//  *  This program is free software, you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation, either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY, without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http=>//www.gnu.org/licenses/>.
-//  */
-//
-// #ifdef HAVE_LIBCURL
-// #include <curl/curl.h>
-// #endif
-//
-// /* libalpm */
-// #include "util.h"
-// #include "alpm.h"
-// #include "handle.h"
-//
+/*
+ *  error.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *
+ *  This program is free software, you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY, without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http=>//www.gnu.org/licenses/>.
+ */
+
 impl alpm_handle_t {
     pub fn alpm_errno(&self) -> alpm_errno_t {
         self.pm_errno
@@ -148,23 +139,18 @@ impl alpm_errno_t {
 		/* Miscellaenous */
 		 &ALPM_ERR_RETRIEVE=>
 			return String::from("failed to retrieve some files"),
-		 &ALPM_ERR_INVALID_REGEX=>
-			return String::from("invalid regular expression"),
+		 &ALPM_ERR_INVALID_REGEX=>String::from("invalid regular expression"),
 		/* Errors from external libraries- our own wrapper error */
 		 &ALPM_ERR_LIBARCHIVE=>
 			/* it would be nice to use archive_error_string() here, but that
 			 * requires the archive struct, so we can't. Just use a generic
 			 * error string instead. */
 			return String::from("libarchive error"),
-		 &ALPM_ERR_LIBCURL=>
-			return String::from("download library error"),
-		 &ALPM_ERR_GPGME=>
-			return String::from("gpgme error"),
-		 &ALPM_ERR_EXTERNAL_DOWNLOAD=>
-			return String::from("error invoking external downloader"),
+		 &ALPM_ERR_LIBCURL=> String::from("download library error"),
+		 &ALPM_ERR_GPGME=> String::from("gpgme error"),
+		 &ALPM_ERR_EXTERNAL_DOWNLOAD=> String::from("error invoking external downloader"),
 		/* Unknown error! */
-		_=>
-			return String::from("unexpected error"),
+		_=> String::from("unexpected error"),
 	}
     }
 }

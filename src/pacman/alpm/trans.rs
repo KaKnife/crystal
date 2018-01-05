@@ -97,245 +97,240 @@ pub struct alpm_trans_t {
 // #include "alpm.h"
 // #include "deps.h"
 // #include "hook.h"
-//
-/** \addtogroup alpm_trans Transaction Functions
- * @brief Functions to manipulate libalpm transactions
- * @{
- */
 
-/** Initialize the transaction. */
-pub fn alpm_trans_init(handle: &alpm_handle_t, flags: &alpm_transflag_t) -> i32 {
-    unimplemented!();
-    // 	alpm_trans_t *trans;
+impl alpm_handle_t {
+    /** Initialize the transaction. */
+    pub fn alpm_trans_init(&self, flags: &alpm_transflag_t) -> i32 {
+        unimplemented!();
+        // 	alpm_trans_t *trans;
+        //
+        // 	/* Sanity checks */
+        // 	CHECK_HANDLE(handle, return -1);
+        // 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
+        //
+        // 	/* lock db */
+        // 	if(!(flags & ALPM_TRANS_FLAG_NOLOCK)) {
+        // 		if(_alpm_handle_lock(handle)) {
+        // 			RET_ERR(handle, ALPM_ERR_HANDLE_LOCK, -1);
+        // 		}
+        // 	}
+        //
+        // 	CALLOC(trans, 1, sizeof(alpm_trans_t), RET_ERR(handle, ALPM_ERR_MEMORY, -1));
+        // 	trans->flags = flags;
+        // 	trans->state = STATE_INITIALIZED;
+        //
+        // 	handle->trans = trans;
+        //
+        // 	return 0;
+    }
+
+    // static alpm_list_t *check_arch(alpm_handle_t *handle, alpm_list_t *pkgs)
+    // {
+    // 	alpm_list_t *i;
+    // 	alpm_list_t *invalid = NULL;
     //
-    // 	/* Sanity checks */
-    // 	CHECK_HANDLE(handle, return -1);
-    // 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
-    //
-    // 	/* lock db */
-    // 	if(!(flags & ALPM_TRANS_FLAG_NOLOCK)) {
-    // 		if(_alpm_handle_lock(handle)) {
-    // 			RET_ERR(handle, ALPM_ERR_HANDLE_LOCK, -1);
+    // 	const char *arch = handle->arch;
+    // 	if(!arch) {
+    // 		return NULL;
+    // 	}
+    // 	for(i = pkgs; i; i = i->next) {
+    // 		alpm_pkg_t *pkg = i->data;
+    // 		const char *pkgarch = alpm_pkg_get_arch(pkg);
+    // 		if(pkgarch && strcmp(pkgarch, arch) && strcmp(pkgarch, "any")) {
+    // 			char *string;
+    // 			const char *pkgname = pkg->name;
+    // 			const char *pkgver = pkg->version;
+    // 			size_t len = strlen(pkgname) + strlen(pkgver) + strlen(pkgarch) + 3;
+    // 			MALLOC(string, len, RET_ERR(handle, ALPM_ERR_MEMORY, invalid));
+    // 			sprintf(string, "%s-%s-%s", pkgname, pkgver, pkgarch);
+    // 			invalid = alpm_list_add(invalid, string);
     // 		}
     // 	}
-    //
-    // 	CALLOC(trans, 1, sizeof(alpm_trans_t), RET_ERR(handle, ALPM_ERR_MEMORY, -1));
-    // 	trans->flags = flags;
-    // 	trans->state = STATE_INITIALIZED;
-    //
-    // 	handle->trans = trans;
-    //
-    // 	return 0;
-}
+    // 	return invalid;
+    // }
 
-// static alpm_list_t *check_arch(alpm_handle_t *handle, alpm_list_t *pkgs)
-// {
-// 	alpm_list_t *i;
-// 	alpm_list_t *invalid = NULL;
-//
-// 	const char *arch = handle->arch;
-// 	if(!arch) {
-// 		return NULL;
-// 	}
-// 	for(i = pkgs; i; i = i->next) {
-// 		alpm_pkg_t *pkg = i->data;
-// 		const char *pkgarch = alpm_pkg_get_arch(pkg);
-// 		if(pkgarch && strcmp(pkgarch, arch) && strcmp(pkgarch, "any")) {
-// 			char *string;
-// 			const char *pkgname = pkg->name;
-// 			const char *pkgver = pkg->version;
-// 			size_t len = strlen(pkgname) + strlen(pkgver) + strlen(pkgarch) + 3;
-// 			MALLOC(string, len, RET_ERR(handle, ALPM_ERR_MEMORY, invalid));
-// 			sprintf(string, "%s-%s-%s", pkgname, pkgver, pkgarch);
-// 			invalid = alpm_list_add(invalid, string);
-// 		}
-// 	}
-// 	return invalid;
-// }
+    /** Prepare a transaction. */
+    pub fn alpm_trans_prepare(&self, data: &Vec<alpm_depmissing_t>) -> i32 {
+        unimplemented!();
+        // 	alpm_trans_t *trans;
+        //
+        // 	/* Sanity checks */
+        // 	CHECK_HANDLE(handle, return -1);
+        // 	ASSERT(data != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+        //
+        // 	trans = handle->trans;
+        //
+        // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+        // 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
+        //
+        // 	/* If there's nothing to do, return without complaining */
+        // 	if(trans->add == NULL && trans->remove == NULL) {
+        // 		return 0;
+        // 	}
+        //
+        // 	alpm_list_t *invalid = check_arch(handle, trans->add);
+        // 	if(invalid) {
+        // 		if(data) {
+        // 			*data = invalid;
+        // 		}
+        // 		RET_ERR(handle, ALPM_ERR_PKG_INVALID_ARCH, -1);
+        // 	}
+        //
+        // 	if(trans->add == NULL) {
+        // 		if(_alpm_remove_prepare(handle, data) == -1) {
+        // 			/* pm_errno is set by _alpm_remove_prepare() */
+        // 			return -1;
+        // 		}
+        // 	}	else {
+        // 		if(_alpm_sync_prepare(handle, data) == -1) {
+        // 			/* pm_errno is set by _alpm_sync_prepare() */
+        // 			return -1;
+        // 		}
+        // 	}
+        //
+        //
+        // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
+        // 		_alpm_log(handle, ALPM_LOG_DEBUG, "sorting by dependencies\n");
+        // 		if(trans->add) {
+        // 			alpm_list_t *add_orig = trans->add;
+        // 			trans->add = _alpm_sortbydeps(handle, add_orig, trans->remove, 0);
+        // 			alpm_list_free(add_orig);
+        // 		}
+        // 		if(trans->remove) {
+        // 			alpm_list_t *rem_orig = trans->remove;
+        // 			trans->remove = _alpm_sortbydeps(handle, rem_orig, NULL, 1);
+        // 			alpm_list_free(rem_orig);
+        // 		}
+        // 	}
+        //
+        // 	trans->state = STATE_PREPARED;
+        //
+        // 	return 0;
+    }
 
-/** Prepare a transaction. */
-pub fn alpm_trans_prepare(handle: &alpm_handle_t, data: &Vec<alpm_depmissing_t>) -> i32 {
-    unimplemented!();
+    // /** Commit a transaction. */
+    // int SYMEXPORT alpm_trans_commit(alpm_handle_t *handle, alpm_list_t **data)
+    // {
     // 	alpm_trans_t *trans;
+    // 	alpm_event_any_t event;
     //
     // 	/* Sanity checks */
     // 	CHECK_HANDLE(handle, return -1);
-    // 	ASSERT(data != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
     //
     // 	trans = handle->trans;
     //
     // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-    // 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
+    // 	ASSERT(trans->state == STATE_PREPARED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_PREPARED, -1));
+    //
+    //ASSERT(!(trans->flags & ALPM_TRANS_FLAG_NOLOCK), RET_ERR(handle, ALPM_ERR_TRANS_NOT_LOCKED, -1));
     //
     // 	/* If there's nothing to do, return without complaining */
     // 	if(trans->add == NULL && trans->remove == NULL) {
     // 		return 0;
     // 	}
     //
-    // 	alpm_list_t *invalid = check_arch(handle, trans->add);
-    // 	if(invalid) {
-    // 		if(data) {
-    // 			*data = invalid;
+    // 	if(trans->add) {
+    // 		if(_alpm_sync_load(handle, data) != 0) {
+    // 			/* pm_errno is set by _alpm_sync_load() */
+    // 			return -1;
     // 		}
-    // 		RET_ERR(handle, ALPM_ERR_PKG_INVALID_ARCH, -1);
+    // 		if(trans->flags & ALPM_TRANS_FLAG_DOWNLOADONLY) {
+    // 			return 0;
+    // 		}
+    // 		if(_alpm_sync_check(handle, data) != 0) {
+    // 			/* pm_errno is set by _alpm_sync_check() */
+    // 			return -1;
+    // 		}
     // 	}
+    //
+    // 	if(_alpm_hook_run(handle, ALPM_HOOK_PRE_TRANSACTION) != 0) {
+    // 		RET_ERR(handle, ALPM_ERR_TRANS_HOOK_FAILED, -1);
+    // 	}
+    //
+    // 	trans->state = STATE_COMMITING;
+    //
+    // 	alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction started\n");
+    // 	event.type = ALPM_EVENT_TRANSACTION_START;
+    // 	EVENT(handle, (void *)&event);
     //
     // 	if(trans->add == NULL) {
-    // 		if(_alpm_remove_prepare(handle, data) == -1) {
-    // 			/* pm_errno is set by _alpm_remove_prepare() */
+    // 		if(_alpm_remove_packages(handle, 1) == -1) {
+    // 			/* pm_errno is set by _alpm_remove_packages() */
+    // 			alpm_errno_t save = handle->pm_errno;
+    // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
+    // 			handle->pm_errno = save;
     // 			return -1;
     // 		}
-    // 	}	else {
-    // 		if(_alpm_sync_prepare(handle, data) == -1) {
-    // 			/* pm_errno is set by _alpm_sync_prepare() */
+    // 	} else {
+    // 		if(_alpm_sync_commit(handle) == -1) {
+    // 			/* pm_errno is set by _alpm_sync_commit() */
+    // 			alpm_errno_t save = handle->pm_errno;
+    // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
+    // 			handle->pm_errno = save;
     // 			return -1;
     // 		}
     // 	}
     //
-    //
-    // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
-    // 		_alpm_log(handle, ALPM_LOG_DEBUG, "sorting by dependencies\n");
-    // 		if(trans->add) {
-    // 			alpm_list_t *add_orig = trans->add;
-    // 			trans->add = _alpm_sortbydeps(handle, add_orig, trans->remove, 0);
-    // 			alpm_list_free(add_orig);
-    // 		}
-    // 		if(trans->remove) {
-    // 			alpm_list_t *rem_orig = trans->remove;
-    // 			trans->remove = _alpm_sortbydeps(handle, rem_orig, NULL, 1);
-    // 			alpm_list_free(rem_orig);
-    // 		}
+    // 	if(trans->state == STATE_INTERRUPTED) {
+    // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction interrupted\n");
+    // 	} else {
+    // 		event.type = ALPM_EVENT_TRANSACTION_DONE;
+    // 		EVENT(handle, (void *)&event);
+    // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction completed\n");
+    // 		_alpm_hook_run(handle, ALPM_HOOK_POST_TRANSACTION);
     // 	}
     //
-    // 	trans->state = STATE_PREPARED;
+    // 	trans->state = STATE_COMMITED;
     //
     // 	return 0;
-}
-
-// /** Commit a transaction. */
-// int SYMEXPORT alpm_trans_commit(alpm_handle_t *handle, alpm_list_t **data)
-// {
-// 	alpm_trans_t *trans;
-// 	alpm_event_any_t event;
-//
-// 	/* Sanity checks */
-// 	CHECK_HANDLE(handle, return -1);
-//
-// 	trans = handle->trans;
-//
-// 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-// 	ASSERT(trans->state == STATE_PREPARED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_PREPARED, -1));
-//
-//ASSERT(!(trans->flags & ALPM_TRANS_FLAG_NOLOCK), RET_ERR(handle, ALPM_ERR_TRANS_NOT_LOCKED, -1));
-//
-// 	/* If there's nothing to do, return without complaining */
-// 	if(trans->add == NULL && trans->remove == NULL) {
-// 		return 0;
-// 	}
-//
-// 	if(trans->add) {
-// 		if(_alpm_sync_load(handle, data) != 0) {
-// 			/* pm_errno is set by _alpm_sync_load() */
-// 			return -1;
-// 		}
-// 		if(trans->flags & ALPM_TRANS_FLAG_DOWNLOADONLY) {
-// 			return 0;
-// 		}
-// 		if(_alpm_sync_check(handle, data) != 0) {
-// 			/* pm_errno is set by _alpm_sync_check() */
-// 			return -1;
-// 		}
-// 	}
-//
-// 	if(_alpm_hook_run(handle, ALPM_HOOK_PRE_TRANSACTION) != 0) {
-// 		RET_ERR(handle, ALPM_ERR_TRANS_HOOK_FAILED, -1);
-// 	}
-//
-// 	trans->state = STATE_COMMITING;
-//
-// 	alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction started\n");
-// 	event.type = ALPM_EVENT_TRANSACTION_START;
-// 	EVENT(handle, (void *)&event);
-//
-// 	if(trans->add == NULL) {
-// 		if(_alpm_remove_packages(handle, 1) == -1) {
-// 			/* pm_errno is set by _alpm_remove_packages() */
-// 			alpm_errno_t save = handle->pm_errno;
-// 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
-// 			handle->pm_errno = save;
-// 			return -1;
-// 		}
-// 	} else {
-// 		if(_alpm_sync_commit(handle) == -1) {
-// 			/* pm_errno is set by _alpm_sync_commit() */
-// 			alpm_errno_t save = handle->pm_errno;
-// 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
-// 			handle->pm_errno = save;
-// 			return -1;
-// 		}
-// 	}
-//
-// 	if(trans->state == STATE_INTERRUPTED) {
-// 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction interrupted\n");
-// 	} else {
-// 		event.type = ALPM_EVENT_TRANSACTION_DONE;
-// 		EVENT(handle, (void *)&event);
-// 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction completed\n");
-// 		_alpm_hook_run(handle, ALPM_HOOK_POST_TRANSACTION);
-// 	}
-//
-// 	trans->state = STATE_COMMITED;
-//
-// 	return 0;
-// }
-//
-// /** Interrupt a transaction.
-//  * @note Safe to call from inside signal handlers.
-//  */
-// int SYMEXPORT alpm_trans_interrupt(alpm_handle_t *handle)
-// {
-// 	alpm_trans_t *trans;
-//
-// 	/* Sanity checks */
-// 	CHECK_HANDLE(handle, return -1);
-//
-// 	trans = handle->trans;
-// 	ASSERT(trans != NULL, RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_NULL, -1));
-// 	ASSERT(trans->state == STATE_COMMITING || trans->state == STATE_INTERRUPTED,
-// 			RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_TYPE, -1));
-//
-// 	trans->state = STATE_INTERRUPTED;
-//
-// 	return 0;
-// }
-//
-/** Release a transaction. */
-pub fn alpm_trans_release(handle: &alpm_handle_t) -> i32 {
-    unimplemented!();
+    // }
+    //
+    // /** Interrupt a transaction.
+    //  * @note Safe to call from inside signal handlers.
+    //  */
+    // int SYMEXPORT alpm_trans_interrupt(alpm_handle_t *handle)
+    // {
     // 	alpm_trans_t *trans;
     //
     // 	/* Sanity checks */
     // 	CHECK_HANDLE(handle, return -1);
     //
     // 	trans = handle->trans;
-    // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-    // 	ASSERT(trans->state != STATE_IDLE, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+    // 	ASSERT(trans != NULL, RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_NULL, -1));
+    // 	ASSERT(trans->state == STATE_COMMITING || trans->state == STATE_INTERRUPTED,
+    // 			RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_TYPE, -1));
     //
-    // 	int nolock_flag = trans->flags & ALPM_TRANS_FLAG_NOLOCK;
-    //
-    // 	_alpm_trans_free(trans);
-    // 	handle->trans = NULL;
-    //
-    // 	/* unlock db */
-    // 	if(!nolock_flag) {
-    // 		_alpm_handle_unlock(handle);
-    // 	}
+    // 	trans->state = STATE_INTERRUPTED;
     //
     // 	return 0;
+    // }
+    //
+    /** Release a transaction. */
+    pub fn alpm_trans_release(&self) -> i32 {
+        unimplemented!();
+        // 	alpm_trans_t *trans;
+        //
+        // 	/* Sanity checks */
+        // 	CHECK_HANDLE(handle, return -1);
+        //
+        // 	trans = handle->trans;
+        // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+        // 	ASSERT(trans->state != STATE_IDLE, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+        //
+        // 	int nolock_flag = trans->flags & ALPM_TRANS_FLAG_NOLOCK;
+        //
+        // 	_alpm_trans_free(trans);
+        // 	handle->trans = NULL;
+        //
+        // 	/* unlock db */
+        // 	if(!nolock_flag) {
+        // 		_alpm_handle_unlock(handle);
+        // 	}
+        //
+        // 	return 0;
+    }
 }
-//
-// /** @} */
-//
+
 // void _alpm_trans_free(alpm_trans_t *trans)
 // {
 // 	if(trans == NULL) {

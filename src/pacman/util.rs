@@ -68,7 +68,7 @@ pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: i32, config: &con
 
     check_syncdbs(0, check_valid, config);
 
-    ret = alpm::alpm_trans_init(&config.handle, flags);
+    ret = config.handle.alpm_trans_init(flags);
     if ret == -1 {
         trans_init_error(config);
         return -1;
@@ -95,7 +95,7 @@ fn trans_init_error(config: &config_t) {
 }
 
 pub fn trans_release(config: &config_t) -> bool {
-    if alpm_trans_release(&config.handle) == -1 {
+    if config.handle.alpm_trans_release() == -1 {
         eprintln!(
             "failed to release transaction: {}",
             config.handle.alpm_errno().alpm_strerror()

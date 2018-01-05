@@ -244,23 +244,21 @@ use super::*;
 // 	return baddeps;
 // }
 
-/**
- * @brief Check the package conflicts in a database
- *
- * @param handle the context handle
- * @param pkglist the list of packages to check
- *
- * @return an alpm_list_t of alpm_conflict_t
- */
-pub fn alpm_checkconflicts(
-    handle: &alpm_handle_t,
-    pkglist: &Vec<alpm_pkg_t>,
-) -> Vec<alpm_conflict_t> {
-    unimplemented!();
-    // CHECK_HANDLE(handle, return NULL);
-    // return _alpm_innerconflicts(handle, pkglist);
+impl alpm_handle_t {
+    /**
+     * @brief Check the package conflicts in a database
+     *
+     * @param handle the context handle
+     * @param pkglist the list of packages to check
+     *
+     * @return an alpm_list_t of alpm_conflict_t
+     */
+    pub fn alpm_checkconflicts(&self, pkglist: &Vec<alpm_pkg_t>) -> Vec<alpm_conflict_t> {
+        unimplemented!();
+        // CHECK_HANDLE(handle, return NULL);
+        // return _alpm_innerconflicts(handle, pkglist);
+    }
 }
-
 // /**
 //  * @brief Creates and adds a file conflict to a conflict list.
 //  *

@@ -1809,5 +1809,3 @@ pub fn alpm_capabilities() -> alpm_caps {
     // #endif
     // 		| 0;
 }
-
-// /* vim: set noet: */
