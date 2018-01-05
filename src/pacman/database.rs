@@ -58,7 +58,7 @@ fn change_install_reason(targets: Vec<String>, config: &super::conf::config_t) -
     for pkgname in targets {
         // 		char *pkgname = i->data;
         // alpm_pkg_t *pkg = alpm_db_get_pkg(db_local, pkgname);
-        let pkg = alpm_db_get_pkg(&db_local, &pkgname);
+        let pkg = db_local.alpm_db_get_pkg(&pkgname);
         if pkg.is_none() || alpm_pkg_set_reason(&pkg.unwrap(), &reason) != 0 {
             eprintln!(
                 "could not set install reason for package {} ()",
@@ -250,7 +250,7 @@ fn check_db_local(config: &conf::config_t) -> i32 {
     }
 
     db = config.handle.alpm_get_localdb();
-    pkglist = alpm_db_get_pkgcache(&db);
+    pkglist = db.alpm_db_get_pkgcache();
     ret += check_db_missing_deps(config, &mut pkglist);
     ret += check_db_local_package_conflicts(&pkglist, config);
     ret += check_db_local_filelist_conflicts(&pkglist);
@@ -272,7 +272,7 @@ fn check_db_sync(config: &mut config_t) -> i32 {
     //
     match config.handle.dbs_sync {
         Some(ref mut dblist) => for mut db in dblist {
-            pkglist = alpm_db_get_pkgcache(&mut db);
+            pkglist = db.alpm_db_get_pkgcache();
             syncpkglist.append(&mut pkglist);
         },
         _ => unimplemented!(),

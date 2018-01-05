@@ -14,6 +14,8 @@ mod be_package;
 mod add;
 mod dload;
 mod sync;
+mod pkghash;
+pub use self::pkghash::*;
 pub use self::sync::*;
 pub use self::util::*;
 pub use self::dload::*;
@@ -181,18 +183,25 @@ type alpm_time_t = i64;
 //  */
 //
 /** Package install reasons. */
+#[derive(Debug, Clone)]
 pub enum alpm_pkgreason_t {
     /** Explicitly requested by the user. */ ALPM_PKG_REASON_EXPLICIT = 0,
     /** Installed as a dependency for another package. */ ALPM_PKG_REASON_DEPEND = 1,
 }
-//
-// /** Location a package object was loaded from. */
-// typedef enum _alpm_pkgfrom_t {
-// 	ALPM_PKG_FROM_FILE = 1,
-// 	ALPM_PKG_FROM_LOCALDB,
-// 	ALPM_PKG_FROM_SYNCDB
-// } alpm_pkgfrom_t;
-//
+
+impl Default for alpm_pkgfrom_t {
+    fn default() -> Self {
+        alpm_pkgfrom_t::ALPM_PKG_FROM_FILE
+    }
+}
+/// Location a package object was loaded from.
+#[derive(Debug, Clone)]
+pub enum alpm_pkgfrom_t {
+	ALPM_PKG_FROM_FILE = 1,
+	ALPM_PKG_FROM_LOCALDB,
+	ALPM_PKG_FROM_SYNCDB
+}
+
 // /** Method used to validate a package. */
 // typedef enum _alpm_pkgvalidation_t {
 // 	ALPM_PKG_VALIDATION_UNKNOWN = 0,

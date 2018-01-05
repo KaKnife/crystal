@@ -102,9 +102,8 @@ pub fn pacman_upgrade(mut targets: Vec<String>, config: &mut config_t) -> Result
             retval = 1;
             continue;
         }
-        if alpm_add_pkg(&config.handle, &pkg) == -1 {
-            // pm_printf(ALPM_LOG_ERROR, "'%s': %s\n",
-            // 		targ, alpm_strerror(alpm_errno(config->handle)));
+        if config.handle.alpm_add_pkg(&pkg) == -1 {
+            eprintln!("'{}': {}", targ, config.handle.alpm_errno().alpm_strerror());
             // alpm_pkg_free(pkg);
             retval = 1;
             continue;

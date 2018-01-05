@@ -123,8 +123,7 @@ pub struct alpm_pkg_t {
     pub db: alpm_db_t,
     pub file: String,
     // } origin_data;
-
-    // 	alpm_pkgfrom_t origin;
+    origin: alpm_pkgfrom_t,
     // 	alpm_pkgreason_t reason;
     // 	int scriptlet;
     //
@@ -337,9 +336,9 @@ impl alpm_pkg_t {
         return self.version.clone();
     }
 
-    // pub fn alpm_pkg_get_origin(&self) -> alpm_pkgfrom_t {
-    //     return self.origin;
-    // }
+    pub fn alpm_pkg_get_origin(&self) -> alpm_pkgfrom_t {
+        return self.origin.clone();
+    }
 
     // pub fn alpm_pkg_get_desc(&self) -> String {
     //     return self.ops.get_desc(self);
@@ -486,15 +485,10 @@ impl alpm_pkg_t {
     // 	return pkg->ops->get_backup(pkg);
     // }
 
-    // alpm_db_t SYMEXPORT *alpm_pkg_get_db(&self)
-    // {
-    // 	/* Sanity checks */
-    // 	ASSERT(pkg != NULL, return NULL);
-    // 	ASSERT(pkg->origin != ALPM_PKG_FROM_FILE, return NULL);
-    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
-    //
-    // 	return pkg->origin_data.db;
-    // }
+    pub fn alpm_pkg_get_db(&self)->&alpm_db_t
+    {
+    	return &self.db;
+    }
 
     // /** Open a package changelog for reading. */
     // void SYMEXPORT *alpm_pkg_changelog_open(&self)

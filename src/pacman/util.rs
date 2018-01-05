@@ -118,7 +118,7 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
         (_, &Some(ref sync_dbs), _) => {
             /* ensure all known dbs are valid */
             for db in sync_dbs {
-                if !alpm::alpm_db_get_valid(&db) {
+                if !db.alpm_db_get_valid() {
                     eprintln!(
                         "database '{}' is not valid ({})",
                         db.treename,
@@ -1008,45 +1008,44 @@ fn pkg_get_size(pkg: &alpm_pkg_t, config: &config_t) -> off_t {
     }
 }
 
-fn pkg_get_location(pkg: &alpm_pkg_t) -> String {
+fn pkg_get_location(pkg: &alpm_pkg_t, config: &config_t) -> String {
     unimplemented!();
     // alpm_list_t *servers;
     // char *string = NULL;
-    // switch(alpm_pkg_get_origin(pkg)) {
-    // 	case ALPM_PKG_FROM_SYNCDB:
-    // 		if(alpm_pkg_download_size(pkg) == 0) {
-    // 			/* file is already in the package cache */
-    // 			alpm_list_t *i;
-    // 			const char *pkgfile = alpm_pkg_get_filename(pkg);
-    // 			char path[PATH_MAX];
-    // 			struct stat buf;
-    //
-    // 			for(i = alpm_option_get_cachedirs(config->handle); i; i = i->next) {
-    // 				snprintf(path, PATH_MAX, "%s%s", (char *)i->data, pkgfile);
-    // 				if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
-    // 					pm_asprintf(&string, "file://%s", path);
-    // 					return string;
-    // 				}
-    // 			}
-    // 		}
-    //
-    // 		servers = alpm_db_get_servers(alpm_pkg_get_db(pkg));
-    // 		if(servers) {
-    // 			pm_asprintf(&string, "%s/%s", (char *)(servers->data),
-    // 					alpm_pkg_get_filename(pkg));
-    // 			return string;
-    // 		}
-    //
-    // 		/* fallthrough - for theoretical serverless repos */
-    //
-    // 	case ALPM_PKG_FROM_FILE:
-    // 		return strdup(alpm_pkg_get_filename(pkg));
-    //
-    // 	case ALPM_PKG_FROM_LOCALDB:
-    // 	default:
-    // 		pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));
-    // 		return string;
-    // }
+    // use alpm_pkgfrom_t::*;
+    match pkg.alpm_pkg_get_origin() {
+        alpm_pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+            if pkg.alpm_pkg_download_size() == 0 {
+                /* file is already in the package cache */
+                let pkgfile = pkg.alpm_pkg_get_filename();
+                // struct stat buf;
+                for item in config.handle.alpm_option_get_cachedirs() {
+                    let path = format!("{}{}", item, pkgfile);
+                    unimplemented!();
+                    // if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
+                    // 		pm_asprintf(&string, "file://%s", path);
+                    // 		return string;
+                    // }
+                }
+            }
+
+            let servers = pkg.alpm_pkg_get_db().alpm_db_get_servers();
+            // if(servers) {
+            // 	pm_asprintf(&string, "%s/%s", (char *)(servers->data),
+            // 			alpm_pkg_get_filename(pkg));
+            // 	return string;
+            // }
+
+            /* fallthrough - for theoretical serverless repos */
+            return pkg.alpm_pkg_get_filename();
+        }
+        alpm_pkgfrom_t::ALPM_PKG_FROM_FILE => return pkg.alpm_pkg_get_filename(),
+        _ => {
+            unimplemented!();
+            // pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));
+            // return string;
+        }
+    }
 }
 
 // /* a pow() implementation that is specialized for an integer base and small,
@@ -1108,7 +1107,7 @@ fn pkg_get_location(pkg: &alpm_pkg_t) -> String {
 pub fn print_packages(packages: &Vec<alpm_pkg_t>, print_format: &String, config: &config_t) {
     for pkg in packages {
         if print_format == "" {
-            println!("{}", pkg_get_location(&pkg));
+            println!("{}", pkg_get_location(&pkg, config));
             continue;
         }
         let string = &print_format;
@@ -1117,7 +1116,7 @@ pub fn print_packages(packages: &Vec<alpm_pkg_t>, print_format: &String, config:
         /* %v : pkgver */
         string.replace("%v", &pkg.version);
         /* %l : location */
-        string.replace("%l", &pkg_get_location(&pkg));
+        string.replace("%l", &pkg_get_location(&pkg, config));
         /* %r : repo */
         string.replace("%r", &pkg.db.treename);
         /* %s : size */

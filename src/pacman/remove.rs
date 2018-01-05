@@ -26,7 +26,7 @@ fn fnmatch_cmp(pattern: &String, string: &String) -> std::cmp::Ordering {
 }
 
 fn remove_target(target: String, config: &mut config_t) -> i32 {
-    match alpm_db_get_pkg(&config.handle.db_local, &target) {
+    match config.handle.db_local.alpm_db_get_pkg(&target) {
         Some(pkg) => {
             if alpm_remove_pkg(&mut config.handle.pm_errno, &mut config.handle.trans, &pkg) == -1 {
                 let err = config.handle.alpm_errno();

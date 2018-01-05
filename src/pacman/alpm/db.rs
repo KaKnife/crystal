@@ -44,7 +44,7 @@ use super::*;
 // 	INFRQ_ERROR = (1 << 30)
 // } alpm_dbinfrq_t;
 //
-/** Database status. Bitflags. */
+/// Database status. Bitflags. */
 #[derive(Debug, Clone)]
 enum alpm_dbstatus_t {
     DB_STATUS_VALID = (1 << 0),
@@ -76,7 +76,7 @@ pub struct alpm_db_t {
     pub treename: String,
     /* do not access directly, use _alpm_db_path(db) for lazy access */
     path: String,
-    // pkgcache:alpm_pkghash_t,
+    pkgcache: alpm_pkghash_t,
     grpcache: Vec<alpm_group_t>,
     servers: Vec<String>,
     // ops:db_operations,
@@ -85,41 +85,10 @@ pub struct alpm_db_t {
 	/* From _alpm_dbstatus_t */
     status: alpm_dbstatus_t,
     /* alpm_siglevel_t */
-    siglevel: i32,
+    siglevel: siglevel,
     /* alpm_db_usage_t */
     usage: i32,
 }
-
-// /* db.c, database general calls */
-// alpm_db_t *_alpm_db_new(const char *treename, int is_local);
-// void _alpm_db_free(alpm_db_t *db);
-// const char *_alpm_db_path(alpm_db_t *db);
-// int _alpm_db_cmp(const void *d1, const void *d2);
-// alpm_list_t *_alpm_db_search(alpm_db_t *db, const alpm_list_t *needles);
-// alpm_db_t *_alpm_db_register_local(alpm_handle_t *handle);
-// alpm_db_t *_alpm_db_register_sync(alpm_handle_t *handle, const char *treename,
-// 		int level);
-// void _alpm_db_unregister(alpm_db_t *db);
-//
-// /* be_*.c, backend specific calls */
-// int _alpm_local_db_prepare(alpm_db_t *db, alpm_pkg_t *info);
-// int _alpm_local_db_write(alpm_db_t *db, alpm_pkg_t *info, int inforeq);
-// int _alpm_local_db_remove(alpm_db_t *db, alpm_pkg_t *info);
-// char *_alpm_local_db_pkgpath(alpm_db_t *db, alpm_pkg_t *info, const char *filename);
-//
-// /* cache bullshit */
-// /* packages */
-// void _alpm_db_free_pkgcache(alpm_db_t *db);
-// int _alpm_db_add_pkgincache(alpm_db_t *db, alpm_pkg_t *pkg);
-// int _alpm_db_remove_pkgfromcache(alpm_db_t *db, alpm_pkg_t *pkg);
-// alpm_pkghash_t *_alpm_db_get_pkgcache_hash(alpm_db_t *db);
-// alpm_list_t *_alpm_db_get_pkgcache(alpm_db_t *db);
-// alpm_pkg_t *_alpm_db_get_pkgfromcache(alpm_db_t *db, const char *target);
-// /* groups */
-// alpm_list_t *_alpm_db_get_groupcache(alpm_db_t *db);
-// alpm_group_t *_alpm_db_get_groupfromcache(alpm_db_t *db, const char *target);
-//
-// #endif /* ALPM_DB_H */
 
 /*
  *  db.c
@@ -160,12 +129,7 @@ pub struct alpm_db_t {
 // #include "package.h"
 // #include "group.h"
 
-// /** \addtogroup alpm_databases Database Functions
-//  * @brief Functions to query and manipulate the database of libalpm
-//  * @{
-//  */
-//
-// /** Register a sync database of packages. */
+// /// Register a sync database of packages. */
 // alpm_db_t SYMEXPORT *alpm_register_syncdb(alpm_handle_t *handle,
 // 		const char *treename, int siglevel)
 // {
@@ -205,23 +169,22 @@ impl alpm_db_t {
     // 	_alpm_db_free(db);
     // }
 
-    /** Get the serverlist of a database. */
-    fn alpm_db_get_servers(&self) -> &Vec<String> {
+    /// Get the serverlist of a database. */
+    pub fn alpm_db_get_servers(&self) -> &Vec<String> {
         &self.servers
     }
 
-    /** Set the serverlist of a database. */
+    /// Set the serverlist of a database. */
     fn alpm_db_set_servers(&mut self, servers: Vec<String>) {
         // ASSERT(db != NULL, return -1);
         // FREELIST(db->servers);
         self.servers = servers;
     }
 
-    /** Add a download server to a database.
-     * @param db database pointer
-     * @param url url of the server
-     * @return 0 on success, -1 on error (pm_errno is set accordingly)
-     */
+    /// Add a download server to a database.
+    /// db database pointer
+    /// url url of the server
+    /// return - 0 on success, -1 on error (pm_errno is set accordingly)
     fn alpm_db_add_server(&mut self, url: String) {
         let newurl;
 
@@ -239,12 +202,11 @@ impl alpm_db_t {
         // 		db->treename, newurl);
     }
 
-    /** Remove a download server from a database.
-     * @param db database pointer
-     * @param url url of the server
-     * @return 0 on success, 1 on server not present,
-     * -1 on error (pm_errno is set accordingly)
-     */
+    /// Remove a download server from a database.
+    /// db database pointer
+    /// url url of the server
+    /// return - 0 on success, 1 on server not present,
+    /// -1 on error (pm_errno is set accordingly)
     fn alpm_db_remove_server(&mut self, url: &String) -> i32 {
         let newurl;
         // let vdata;
@@ -279,7 +241,7 @@ impl alpm_db_t {
         // return ret;
     }
 
-    /** Get a group entry from a package database. */
+    /// Get a group entry from a package database. */
     pub fn alpm_db_get_group(&self, name: &String) -> Option<alpm_group_t> {
         // ASSERT(db != NULL, return NULL);
         // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
@@ -372,72 +334,267 @@ impl alpm_db_t {
         // return 0;
     }
 
-    /** Get the group cache of a package database. */
+    /// Get the group cache of a package database. */
     fn alpm_db_get_groupcache(&mut self) -> &Vec<alpm_group_t> {
         // ASSERT(db != NULL, return NULL);
         // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
 
         return self._alpm_db_get_groupcache();
     }
+
+    pub fn _alpm_db_get_pkgfromcache(&self, target: &String) -> Option<alpm_pkg_t> {
+        let pkgcache = self._alpm_db_get_pkgcache_hash();
+        match pkgcache {
+            None => {
+                return None;
+            }
+
+            Some(pkgcache) => {
+                return Some(pkgcache._alpm_pkghash_find(target));
+            }
+        }
+    }
+
+    fn _alpm_db_get_pkgcache_hash(&self) -> Option<&alpm_pkghash_t> {
+        unimplemented!();
+        match self.status {
+            alpm_dbstatus_t::DB_STATUS_VALID => {
+                unimplemented!();
+                // _alpm_log(db.handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n",
+                // ALPM_ERR_DB_INVALID, __func__, alpm_strerror(ALPM_ERR_DB_INVALID));
+                // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_INVALID;
+                return None;
+            }
+
+            alpm_dbstatus_t::DB_STATUS_PKGCACHE => {
+                if self.load_pkgcache() != 0 {
+                    /* handle->error set in local/sync-db-populate */
+                    return None;
+                }
+            }
+            _ => {}
+        }
+        return Some(&self.pkgcache);
+    }
+
+    /// Returns a new package cache from db.
+    /// It frees the cache if it already exists.
+    pub fn load_pkgcache(&self) -> i32 {
+        unimplemented!();
+        // _alpm_db_free_pkgcache(db);
+
+        // _alpm_log(db->handle, ALPM_LOG_DEBUG, "loading package cache for repository '%s'\n",
+        // 		db->treename);
+        // if(db->ops->populate(db) == -1) {
+        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
+        // 			"failed to load package cache for repository '%s'\n", db->treename);
+        // 	return -1;
+        // }
+        //
+        // db->status |= DB_STATUS_PKGCACHE;
+        // return 0;
+    }
+
+    /* Unregister a package database. */
+    // int SYMEXPORT alpm_db_unregister(alpm_db_t *db)
+    // {
+    // 	int found = 0;
+    // 	alpm_handle_t *handle;
+    //
+    // 	/* Sanity checks */
+    // 	ASSERT(db != NULL, return -1);
+    // 	/* Do not unregister a database if a transaction is on-going */
+    // 	handle = db->handle;
+    // 	handle->pm_errno = ALPM_ERR_OK;
+    // 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
+    //
+    // 	if(db == handle->db_local) {
+    // 		handle->db_local = NULL;
+    // 		found = 1;
+    // 	} else {
+    // 		/* Warning : this function shouldn't be used to unregister all sync
+    // 		 * databases by walking through the list returned by
+    // 		 * alpm_get_syncdbs, because the db is removed from that list here.
+    // 		 */
+    // 		void *data;
+    // 		handle->dbs_sync = alpm_list_remove(handle->dbs_sync,
+    // 				db, _alpm_db_cmp, &data);
+    // 		if(data) {
+    // 			found = 1;
+    // 		}
+    // 	}
+    //
+    // 	if(!found) {
+    // 		RET_ERR(handle, ALPM_ERR_DB_NOT_FOUND, -1);
+    // 	}
+    //
+    // 	db->ops->unregister(db);
+    // 	return 0;
+    // }
+
+    /// Check the validity of a database.
+    pub fn alpm_db_get_valid(&self) -> bool {
+        unimplemented!();
+        // return db.validate(db);
+    }
+
+    /// Get a package entry from a package database. */
+    pub fn alpm_db_get_pkg(&self, name: &String) -> Option<alpm_pkg_t> {
+        unimplemented!()
+        // alpm_pkg_t *pkg;
+        // ASSERT(db != NULL, return NULL);
+        // db->handle->pm_errno = ALPM_ERR_OK;
+        // ASSERT(name != NULL && strlen(name) != 0,
+        // 		RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, NULL));
+        //
+        // pkg = _alpm_db_get_pkgfromcache(db, name);
+        // if(!pkg) {
+        // 	RET_ERR(db->handle, ALPM_ERR_PKG_NOT_FOUND, NULL);
+        // }
+        // return pkg;
+    }
+
+    /// Get the package cache of a package database. */
+    pub fn alpm_db_get_pkgcache(&self) -> Vec<alpm_pkg_t> {
+        return self._alpm_db_get_pkgcache();
+    }
+
+    /// Get the name of a package database. */
+    pub fn alpm_db_get_name(&self) -> String {
+        return self.treename.clone();
+    }
+
+    /// Get the signature verification level for a database. */
+    pub fn alpm_db_get_siglevel(&self) -> siglevel {
+        if self.siglevel.ALPM_SIG_USE_DEFAULT {
+            unimplemented!();
+        // return self.handle.siglevel;
+        } else {
+            return self.siglevel;
+        }
+    }
+
+    /// Searches a database. */
+    pub fn alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
+        return self._alpm_db_search(needles);
+    }
+
+    pub fn _alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
+        unimplemented!();
+        // 	const alpm_list_t *i, *j, *k;
+        // 	alpm_list_t *ret = NULL;
+        //
+        // 	if(!(db->usage & ALPM_DB_USAGE_SEARCH)) {
+        // 		return NULL;
+        // 	}
+        //
+        // 	/* copy the pkgcache- we will free the list var after each needle */
+        // 	alpm_list_t *list = alpm_list_copy(_alpm_db_get_pkgcache(db));
+        //
+        // 	for(i = needles; i; i = i->next) {
+        // 		char *targ;
+        // 		regex_t reg;
+        //
+        // 		if(i->data == NULL) {
+        // 			continue;
+        // 		}
+        // 		ret = NULL;
+        // 		targ = i->data;
+        // 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "searching for target '%s'\n", targ);
+        //
+        // 		if(regcomp(&reg, targ, REG_EXTENDED | REG_NOSUB | REG_ICASE | REG_NEWLINE) != 0) {
+        // 			RET_ERR(db->handle, ALPM_ERR_INVALID_REGEX, NULL);
+        // 		}
+        //
+        // 		for(j = list; j; j = j->next) {
+        // 			alpm_pkg_t *pkg = j->data;
+        // 			const char *matched = NULL;
+        // 			const char *name = pkg->name;
+        // 			const char *desc = alpm_pkg_get_desc(pkg);
+        //
+        // 			/* check name as regex AND as plain text */
+        // 			if(name && (regexec(&reg, name, 0, 0, 0) == 0 || strstr(name, targ))) {
+        // 				matched = name;
+        // 			}
+        // 			/* check desc */
+        // 			else if(desc && regexec(&reg, desc, 0, 0, 0) == 0) {
+        // 				matched = desc;
+        // 			}
+        // 			/* TODO: should we be doing this, and should we print something
+        // 			 * differently when we do match it since it isn't currently printed? */
+        // 			if(!matched) {
+        // 				/* check provides */
+        // 				for(k = alpm_pkg_get_provides(pkg); k; k = k->next) {
+        // 					alpm_depend_t *provide = k->data;
+        // 					if(regexec(&reg, provide->name, 0, 0, 0) == 0) {
+        // 						matched = provide->name;
+        // 						break;
+        // 					}
+        // 				}
+        // 			}
+        // 			if(!matched) {
+        // 				/* check groups */
+        // 				for(k = alpm_pkg_get_groups(pkg); k; k = k->next) {
+        // 					if(regexec(&reg, k->data, 0, 0, 0) == 0) {
+        // 						matched = k->data;
+        // 						break;
+        // 					}
+        // 				}
+        // 			}
+        //
+        // 			if(matched != NULL) {
+        // 				_alpm_log(db->handle, ALPM_LOG_DEBUG,
+        // 						"search target '%s' matched '%s' on package '%s'\n",
+        // 						targ, matched, name);
+        // 				ret = alpm_list_add(ret, pkg);
+        // 			}
+        // 		}
+        //
+        // 		/* Free the existing search list, and use the returned list for the
+        // 		 * next needle. This allows for AND-based package searching. */
+        // 		alpm_list_free(list);
+        // 		list = ret;
+        // 		regfree(&reg);
+        // 	}
+        //
+        // 	return ret;
+    }
+
+    fn _alpm_db_get_pkgcache(&self) -> Vec<alpm_pkg_t> {
+        unimplemented!();
+        // let hash = self._alpm_db_get_pkgcache_hash();
+        //
+        // if hash.is_none() {
+        // 	return None;
+        // }
+        //
+        // return hash.list;
+    }
+
 }
 
-// /** Unregister all package databases. */
-// int SYMEXPORT alpm_unregister_all_syncdbs(alpm_handle_t *handle)
-// {
-// 	alpm_list_t *i;
-// 	alpm_db_t *db;
-//
-// 	/* Sanity checks */
-// 	CHECK_HANDLE(handle, return -1);
-// 	/* Do not unregister a database if a transaction is on-going */
-// 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
-//
-// 	/* unregister all sync dbs */
-// 	for(i = handle->dbs_sync; i; i = i->next) {
-// 		db = i->data;
-// 		db->ops->unregister(db);
-// 		i->data = NULL;
-// 	}
-// 	FREELIST(handle->dbs_sync);
-// 	return 0;
-// }
-
-// /** Unregister a package database. */
-// int SYMEXPORT alpm_db_unregister(alpm_db_t *db)
-// {
-// 	int found = 0;
-// 	alpm_handle_t *handle;
-//
-// 	/* Sanity checks */
-// 	ASSERT(db != NULL, return -1);
-// 	/* Do not unregister a database if a transaction is on-going */
-// 	handle = db->handle;
-// 	handle->pm_errno = ALPM_ERR_OK;
-// 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
-//
-// 	if(db == handle->db_local) {
-// 		handle->db_local = NULL;
-// 		found = 1;
-// 	} else {
-// 		/* Warning : this function shouldn't be used to unregister all sync
-// 		 * databases by walking through the list returned by
-// 		 * alpm_get_syncdbs, because the db is removed from that list here.
-// 		 */
-// 		void *data;
-// 		handle->dbs_sync = alpm_list_remove(handle->dbs_sync,
-// 				db, _alpm_db_cmp, &data);
-// 		if(data) {
-// 			found = 1;
-// 		}
-// 	}
-//
-// 	if(!found) {
-// 		RET_ERR(handle, ALPM_ERR_DB_NOT_FOUND, -1);
-// 	}
-//
-// 	db->ops->unregister(db);
-// 	return 0;
-// }
+impl alpm_handle_t {
+    /// Unregister all package databases. */
+    pub fn alpm_unregister_all_syncdbs(&self) -> i32 {
+        unimplemented!();
+        // 	alpm_list_t *i;
+        // 	alpm_db_t *db;
+        //
+        // 	/* Sanity checks */
+        // 	CHECK_HANDLE(handle, return -1);
+        // 	/* Do not unregister a database if a transaction is on-going */
+        // 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
+        //
+        // 	/* unregister all sync dbs */
+        // 	for(i = handle->dbs_sync; i; i = i->next) {
+        // 		db = i->data;
+        // 		db->ops->unregister(db);
+        // 		i->data = NULL;
+        // 	}
+        // 	FREELIST(handle->dbs_sync);
+        // 	return 0;
+    }
+}
 
 fn sanitize_url(url: &String) -> String {
     let newurl: String;
@@ -447,64 +604,7 @@ fn sanitize_url(url: &String) -> String {
     return newurl;
 }
 
-// /** Get the name of a package database. */
-// const char SYMEXPORT *alpm_db_get_name(const alpm_db_t *db)
-// {
-// 	ASSERT(db != NULL, return NULL);
-// 	return db->treename;
-// }
-
-// /** Get the signature verification level for a database. */
-// int SYMEXPORT alpm_db_get_siglevel(alpm_db_t *db)
-// {
-// 	ASSERT(db != NULL, return -1);
-// 	if(db->siglevel & ALPM_SIG_USE_DEFAULT) {
-// 		return db->handle->siglevel;
-// 	} else {
-// 		return db->siglevel;
-// 	}
-// }
-
-/** Check the validity of a database. */
-pub fn alpm_db_get_valid(db: &alpm_db_t) -> bool {
-    unimplemented!();
-    // ASSERT(db != NULL, return -1);
-    // db.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
-    // return db.validate(db);
-}
-
-/** Get a package entry from a package database. */
-pub fn alpm_db_get_pkg(db: &alpm_db_t, name: &String) -> Option<alpm_pkg_t> {
-    unimplemented!()
-    // alpm_pkg_t *pkg;
-    // ASSERT(db != NULL, return NULL);
-    // db->handle->pm_errno = ALPM_ERR_OK;
-    // ASSERT(name != NULL && strlen(name) != 0,
-    // 		RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, NULL));
-    //
-    // pkg = _alpm_db_get_pkgfromcache(db, name);
-    // if(!pkg) {
-    // 	RET_ERR(db->handle, ALPM_ERR_PKG_NOT_FOUND, NULL);
-    // }
-    // return pkg;
-}
-
-/** Get the package cache of a package database. */
-pub fn alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
-    // db.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
-    return _alpm_db_get_pkgcache(db);
-}
-
-// /** Searches a database. */
-// alpm_list_t SYMEXPORT *alpm_db_search(alpm_db_t *db, const alpm_list_t *needles)
-// {
-// 	ASSERT(db != NULL, return NULL);
-// 	db->handle->pm_errno = ALPM_ERR_OK;
-//
-// 	return _alpm_db_search(db, needles);
-// }
-
-// /** Sets the usage bitmask for a repo */
+// /// Sets the usage bitmask for a repo */
 // int SYMEXPORT alpm_db_set_usage(alpm_db_t *db, int usage)
 // {
 // 	ASSERT(db != NULL, return -1);
@@ -512,7 +612,7 @@ pub fn alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	return 0;
 // }
 
-// /** Gets the usage bitmask for a repo */
+// /// Gets the usage bitmask for a repo */
 // int SYMEXPORT alpm_db_get_usage(alpm_db_t *db, int *usage)
 // {
 // 	ASSERT(db != NULL, return -1);
@@ -520,8 +620,6 @@ pub fn alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	*usage = db->usage;
 // 	return 0;
 // }
-
-// /** @} */
 
 // alpm_db_t *_alpm_db_new(const char *treename, int is_local)
 // {
@@ -593,106 +691,6 @@ pub fn alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	return strcmp(db1->treename, db2->treename);
 // }
 
-// alpm_list_t *_alpm_db_search(alpm_db_t *db, const alpm_list_t *needles)
-// {
-// 	const alpm_list_t *i, *j, *k;
-// 	alpm_list_t *ret = NULL;
-//
-// 	if(!(db->usage & ALPM_DB_USAGE_SEARCH)) {
-// 		return NULL;
-// 	}
-//
-// 	/* copy the pkgcache- we will free the list var after each needle */
-// 	alpm_list_t *list = alpm_list_copy(_alpm_db_get_pkgcache(db));
-//
-// 	for(i = needles; i; i = i->next) {
-// 		char *targ;
-// 		regex_t reg;
-//
-// 		if(i->data == NULL) {
-// 			continue;
-// 		}
-// 		ret = NULL;
-// 		targ = i->data;
-// 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "searching for target '%s'\n", targ);
-//
-// 		if(regcomp(&reg, targ, REG_EXTENDED | REG_NOSUB | REG_ICASE | REG_NEWLINE) != 0) {
-// 			RET_ERR(db->handle, ALPM_ERR_INVALID_REGEX, NULL);
-// 		}
-//
-// 		for(j = list; j; j = j->next) {
-// 			alpm_pkg_t *pkg = j->data;
-// 			const char *matched = NULL;
-// 			const char *name = pkg->name;
-// 			const char *desc = alpm_pkg_get_desc(pkg);
-//
-// 			/* check name as regex AND as plain text */
-// 			if(name && (regexec(&reg, name, 0, 0, 0) == 0 || strstr(name, targ))) {
-// 				matched = name;
-// 			}
-// 			/* check desc */
-// 			else if(desc && regexec(&reg, desc, 0, 0, 0) == 0) {
-// 				matched = desc;
-// 			}
-// 			/* TODO: should we be doing this, and should we print something
-// 			 * differently when we do match it since it isn't currently printed? */
-// 			if(!matched) {
-// 				/* check provides */
-// 				for(k = alpm_pkg_get_provides(pkg); k; k = k->next) {
-// 					alpm_depend_t *provide = k->data;
-// 					if(regexec(&reg, provide->name, 0, 0, 0) == 0) {
-// 						matched = provide->name;
-// 						break;
-// 					}
-// 				}
-// 			}
-// 			if(!matched) {
-// 				/* check groups */
-// 				for(k = alpm_pkg_get_groups(pkg); k; k = k->next) {
-// 					if(regexec(&reg, k->data, 0, 0, 0) == 0) {
-// 						matched = k->data;
-// 						break;
-// 					}
-// 				}
-// 			}
-//
-// 			if(matched != NULL) {
-// 				_alpm_log(db->handle, ALPM_LOG_DEBUG,
-// 						"search target '%s' matched '%s' on package '%s'\n",
-// 						targ, matched, name);
-// 				ret = alpm_list_add(ret, pkg);
-// 			}
-// 		}
-//
-// 		/* Free the existing search list, and use the returned list for the
-// 		 * next needle. This allows for AND-based package searching. */
-// 		alpm_list_free(list);
-// 		list = ret;
-// 		regfree(&reg);
-// 	}
-//
-// 	return ret;
-// }
-
-// /* Returns a new package cache from db.
-//  * It frees the cache if it already exists.
-//  */
-// static int load_pkgcache(alpm_db_t *db)
-// {
-// 	_alpm_db_free_pkgcache(db);
-//
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "loading package cache for repository '%s'\n",
-// 			db->treename);
-// 	if(db->ops->populate(db) == -1) {
-// 		_alpm_log(db->handle, ALPM_LOG_DEBUG,
-// 				"failed to load package cache for repository '%s'\n", db->treename);
-// 		return -1;
-// 	}
-//
-// 	db->status |= DB_STATUS_PKGCACHE;
-// 	return 0;
-// }
-
 // static void free_groupcache(alpm_db_t *db)
 // {
 // 	alpm_list_t *lg;
@@ -731,36 +729,6 @@ pub fn alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	free_groupcache(db);
 // }
 
-//fn _alpm_db_get_pkgcache_hash(db: alpm_db_t) -> Option<alpm_pkghash_t> {
-//unimplemented!()
-// match db.status {
-// 	alpm_dbstatus_t::DB_STATUS_VALID => {
-// 		// _alpm_log(db.handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n",
-//ALPM_ERR_DB_INVALID, __func__, alpm_strerror(ALPM_ERR_DB_INVALID));
-// 		db.handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_INVALID;
-// 		return None;
-// 	}
-//
-// 	alpm_dbstatus_t::DB_STATUS_PKGCACHE => {
-// 		if (load_pkgcache(db)) {
-// 			/* handle->error set in local/sync-db-populate */
-// 			return None;
-// 		}
-// 	}
-// }
-// return Some(db.pkgcache);
-// }
-
-fn _alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
-    unimplemented!();
-    // let hash = _alpm_db_get_pkgcache_hash(db);
-    //
-    // if hash.is_none() {
-    // 	return None;
-    // }
-    //
-    // return hash.list;
-}
 
 // /* "duplicate" pkg then add it to pkgcache */
 // int _alpm_db_add_pkgincache(alpm_db_t *db, alpm_pkg_t *pkg)
@@ -817,18 +785,4 @@ fn _alpm_db_get_pkgcache(db: &alpm_db_t) -> Vec<alpm_pkg_t> {
 // 	free_groupcache(db);
 //
 // 	return 0;
-// }
-
-// alpm_pkg_t *_alpm_db_get_pkgfromcache(alpm_db_t *db, const char *target)
-// {
-// 	if(db == NULL) {
-// 		return NULL;
-// 	}
-//
-// 	alpm_pkghash_t *pkgcache = _alpm_db_get_pkgcache_hash(db);
-// 	if(!pkgcache) {
-// 		return NULL;
-// 	}
-//
-// 	return _alpm_pkghash_find(pkgcache, target);
 // }

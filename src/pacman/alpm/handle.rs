@@ -227,84 +227,84 @@ pub fn alpm_option_get_dbpath(handle: &alpm_handle_t) -> &String {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->hookdirs;
 // }
-// alpm_list_t SYMEXPORT *alpm_option_get_cachedirs(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->cachedirs;
-// }
-//
-// const char SYMEXPORT *alpm_option_get_logfile(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->logfile;
-// }
-//
-// const char SYMEXPORT *alpm_option_get_lockfile(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->lockfile;
-// }
-//
-// const char SYMEXPORT *alpm_option_get_gpgdir(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->gpgdir;
-// }
-//
-// int SYMEXPORT alpm_option_get_usesyslog(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// 	return handle->usesyslog;
-// }
-//
-// alpm_list_t SYMEXPORT *alpm_option_get_noupgrades(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->noupgrade;
-// }
-//
-// alpm_list_t SYMEXPORT *alpm_option_get_noextracts(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->noextract;
-// }
-//
-// alpm_list_t SYMEXPORT *alpm_option_get_ignorepkgs(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->ignorepkg;
-// }
-//
-// alpm_list_t SYMEXPORT *alpm_option_get_ignoregroups(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->ignoregroup;
-// }
-//
-// alpm_list_t SYMEXPORT *alpm_option_get_overwrite_files(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->overwrite_files;
-// }
-//
-// alpm_list_t SYMEXPORT *alpm_option_get_assumeinstalled(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->assumeinstalled;
-// }
-//
-// const char SYMEXPORT *alpm_option_get_arch(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->arch;
-// }
-//
-// double SYMEXPORT alpm_option_get_deltaratio(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return -1);
-// 	return handle->deltaratio;
-// }
-//
+impl alpm_handle_t {
+    pub fn alpm_option_get_cachedirs(&self) -> Vec<String> {
+        return self.cachedirs.clone();
+    }
+
+    // const char SYMEXPORT *alpm_option_get_logfile(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->logfile;
+    // }
+    //
+    // const char SYMEXPORT *alpm_option_get_lockfile(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->lockfile;
+    // }
+    //
+    // const char SYMEXPORT *alpm_option_get_gpgdir(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->gpgdir;
+    // }
+    //
+    // int SYMEXPORT alpm_option_get_usesyslog(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return -1);
+    // 	return handle->usesyslog;
+    // }
+    //
+    // alpm_list_t SYMEXPORT *alpm_option_get_noupgrades(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->noupgrade;
+    // }
+    //
+    // alpm_list_t SYMEXPORT *alpm_option_get_noextracts(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->noextract;
+    // }
+    //
+    // alpm_list_t SYMEXPORT *alpm_option_get_ignorepkgs(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->ignorepkg;
+    // }
+    //
+    // alpm_list_t SYMEXPORT *alpm_option_get_ignoregroups(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->ignoregroup;
+    // }
+    //
+    // alpm_list_t SYMEXPORT *alpm_option_get_overwrite_files(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->overwrite_files;
+    // }
+    //
+    // alpm_list_t SYMEXPORT *alpm_option_get_assumeinstalled(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->assumeinstalled;
+    // }
+    //
+    // const char SYMEXPORT *alpm_option_get_arch(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return NULL);
+    // 	return handle->arch;
+    // }
+    //
+    // double SYMEXPORT alpm_option_get_deltaratio(alpm_handle_t *handle)
+    // {
+    // 	CHECK_HANDLE(handle, return -1);
+    // 	return handle->deltaratio;
+    // }
+}
+
 // int SYMEXPORT alpm_option_get_checkspace(alpm_handle_t *handle)
 // {
 // 	CHECK_HANDLE(handle, return -1);
@@ -917,7 +917,7 @@ pub struct alpm_handle_t {
     pub logfile: String, /* Name of the log file */
     lockfile: String,    /* Name of the lock file */
     // 	char *gpgdir;            /* Directory where GnuPG files are stored */
-    // 	alpm_list_t *cachedirs;  /* Paths to pacman cache directories */
+    pub cachedirs: Vec<String>, /* Paths to pacman cache directories */
     // 	alpm_list_t *hookdirs;   /* Paths to hook directories */
     // 	alpm_list_t *overwrite_files; /* Paths that may be overwritten */
     //
