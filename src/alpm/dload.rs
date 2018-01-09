@@ -48,7 +48,32 @@ use super::*;
 // #include "log.h"
 // #include "util.h"
 // #include "handle.h"
-//
+
+#[derive(Default, Debug)]
+pub struct dload_payload {
+    // alpm_handle_t *handle;
+    // const char *tempfile_openmode;
+    pub remote_name: String,
+    pub tempfile_name: String,
+    pub destfile_name: String,
+    pub content_disp_name: String,
+    pub fileurl: String,
+    // alpm_list_t *servers;
+    // long respcode;
+    // off_t initial_size;
+    pub max_size: usize,
+    // off_t prevprogress;
+    pub force: bool,         //was int
+    pub allow_resume: i32,   //bool?
+    pub errors_ok: bool,      //was int
+    pub unlink_on_fail: i32, //bool?
+    pub trust_remote_name: i32, //bool?
+
+    // #ifdef HAVE_LIBCURL
+    // CURLcode curlerr;       /* last error produced by curl */
+    // #endif
+}
+
 // #ifdef HAVE_LIBCURL
 // static const char *get_filename(const char *url)
 // {
@@ -587,36 +612,50 @@ use super::*;
 // }
 // #endif
 //
-// /** Download a file given by a URL to a local directory.
-//  * Does not overwrite an existing file if the download fails.
-//  * @param payload the payload context
-//  * @param localpath the directory to save the file in
-//  * @param final_file the real name of the downloaded file (may be NULL)
-//  * @return 0 on success, -1 on error (pm_errno is set accordingly if errors_ok == 0)
-//  */
-// int _alpm_download(struct dload_payload *payload, const char *localpath,
-// 		char **final_file, const char **final_url)
-// {
-// 	alpm_handle_t *handle = payload->handle;
-//
-// 	if(handle->fetchcb == NULL) {
-// #ifdef HAVE_LIBCURL
-// 		return curl_download_internal(payload, localpath, final_file, final_url);
-// #else
-// 		/* work around unused warnings when building without libcurl */
-// 		(void)final_file;
-// 		(void)final_url;
-// 		RET_ERR(handle, ALPM_ERR_EXTERNAL_DOWNLOAD, -1);
-// #endif
-// 	} else {
-// 		int ret = handle->fetchcb(payload->fileurl, localpath, payload->force);
-// 		if(ret == -1 && !payload->errors_ok) {
-// 			RET_ERR(handle, ALPM_ERR_EXTERNAL_DOWNLOAD, -1);
-// 		}
-// 		return ret;
-// 	}
-// }
-//
+impl dload_payload {
+    /** Download a file given by a URL to a local directory.
+     * Does not overwrite an existing file if the download fails.
+     * @param payload the payload context
+     * @param localpath the directory to save the file in
+     * @param final_file the real name of the downloaded file (may be NULL)
+     * @return 0 on success, -1 on error (pm_errno is set accordingly if errors_ok == 0)
+     */
+    pub fn _alpm_download(
+        &self,
+        localpath: &String,
+        final_file: Option<&mut String>,
+        final_url: Option<&String>,
+    ) -> i32 {
+        unimplemented!();
+        // 	alpm_handle_t *handle = payload->handle;
+        //
+        // if handle.fetchcb == NULL {
+        // #ifdef HAVE_LIBCURL
+        // 		return curl_download_internal(payload, localpath, final_file, final_url);
+        // #else
+        // 		/* work around unused warnings when building without libcurl */
+        // 		(void)final_file;
+        // 		(void)final_url;
+        // 		RET_ERR(handle, ALPM_ERR_EXTERNAL_DOWNLOAD, -1);
+        // #endif
+        // } else {
+        // let ret = 0;
+        // 		int ret = handle->fetchcb(payload->fileurl, localpath, payload->force);
+        // 		if(ret == -1 && !payload->errors_ok) {
+        // 			RET_ERR(handle, ALPM_ERR_EXTERNAL_DOWNLOAD, -1);
+        // 		}
+        // return ret;
+        // }
+    }
+
+    pub fn _alpm_dload_payload_reset(&mut self) {
+        self.remote_name = String::new();
+        self.tempfile_name = String::new();
+        self.destfile_name = String::new();
+        self.content_disp_name = String::new();
+        self.fileurl = String::new();
+    }
+}
 // static char *filecache_find_url(alpm_handle_t *handle, const char *url)
 // {
 // 	const char *filebase = strrchr(url, '/');
@@ -713,20 +752,10 @@ impl alpm_handle_t {
         //
         // 	return filepath;
     }
+
+
 }
 
-// void _alpm_dload_payload_reset(struct dload_payload *payload)
-// {
-// 	ASSERT(payload, return);
-//
-// 	FREE(payload->remote_name);
-// 	FREE(payload->tempfile_name);
-// 	FREE(payload->destfile_name);
-// 	FREE(payload->content_disp_name);
-// 	FREE(payload->fileurl);
-// 	memset(payload, '\0', sizeof(*payload));
-// }
-//
 // void _alpm_dload_payload_reset_for_retry(struct dload_payload *payload)
 // {
 // 	ASSERT(payload, return);

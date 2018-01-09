@@ -1033,10 +1033,10 @@ impl alpm_db_t {
             return -1;
         }
 
-        dbpath = match _alpm_db_path(self, handle) {
-            Some(d) => d,
-            None => {
-                RET_ERR!(handle, alpm_errno_t::ALPM_ERR_DB_OPEN, -1);
+        dbpath = match self._alpm_db_path(handle) {
+            Ok(d) => d,
+            Err(e) => {
+                RET_ERR!(handle, e, -1);
             }
         };
 

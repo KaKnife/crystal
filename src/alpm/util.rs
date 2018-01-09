@@ -92,8 +92,8 @@ use super::*;
 // 	return token;
 // }
 // #endif
-//
-// int _alpm_makepath(const char *path)
+
+// pub fn _alpm_makepath(path: &String) -> i32
 // {
 // 	return _alpm_makepath_mode(path, 0755);
 // }
@@ -103,8 +103,9 @@ use super::*;
 //  * @param mode permission mode for created directories
 //  * @return 0 on success, 1 on error
 //  */
-// int _alpm_makepath_mode(const char *path, mode_t mode)
+// fn _alpm_makepath_mode(const char *path, mode_t mode) -> i32
 // {
+//     unimplemented!();
 // 	char *ptr, *str;
 // 	mode_t oldmask;
 // 	int ret = 0;
@@ -1658,12 +1659,12 @@ macro_rules! RET_ERR {
 //
 // /* vim: set noet: */
 
-macro_rules! EVENT
-{ ($h:expr, $e:expr) =>
-    {{
-	// if(($h).eventcb) {
-		let f = ($h).eventcb;
-        f(($e));
-	// }
-}}
-}
+// macro_rules! EVENT
+// { ($h:expr, $e:expr) =>
+//     {{
+// 	// if(($h).eventcb) {
+// 		let f = ($h).eventcb;
+//         f(($e));
+// 	// }
+// }}
+// }

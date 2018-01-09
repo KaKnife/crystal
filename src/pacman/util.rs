@@ -133,15 +133,15 @@ pub fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> 
     return ret;
 }
 
-pub fn sync_syncdbs(level: i32, syncs: &Vec<alpm_db_t>, config: &config_t) -> Result<(), i32> {
+pub fn sync_syncdbs(level: i32, syncs: &mut Vec<alpm_db_t>, handle: &mut alpm_handle_t) -> Result<(), i32> {
     let mut success = Ok(());
-    for db in syncs {
-        let ret = alpm_db_update(level >= 2, db);
+    for mut db in syncs {
+        let ret = alpm_db_update(level >= 2, &mut db, handle);
         if ret < 0 {
             eprintln!(
                 "failed to update {} ({})",
                 db.alpm_db_get_name(),
-                config.handle.alpm_errno().alpm_strerror()
+                handle.alpm_errno().alpm_strerror()
             );
             success = Err(1);
         } else if ret == 1 {

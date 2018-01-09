@@ -672,7 +672,7 @@ impl alpm_handle_t {
     // }
 
     /** Lock the database */
-    fn _alpm_handle_lock(&mut self) -> std::io::Result<()> {
+    pub fn _alpm_handle_lock(&mut self) -> std::io::Result<()> {
         assert!(self.lockfile != "");
         assert!(self.lockfd.is_none());
 
@@ -705,7 +705,7 @@ impl alpm_handle_t {
         return Ok(());
     }
 
-    fn _alpm_handle_unlock(&mut self) -> std::io::Result<()> {
+    pub fn _alpm_handle_unlock(&mut self) -> std::io::Result<()> {
         match self.alpm_unlock() {
             Err(e) => {
                 eprintln!("{}", e);

@@ -75,19 +75,16 @@ pub struct alpm_dbstatus_t {
 pub struct alpm_db_t {
     // handle: alpm_handle_t,
     pub treename: String,
-    /* do not access directly, use _alpm_db_path(db) for lazy access */
+    /// do not access directly, use _alpm_db_path(db) for lazy access
     _path: String,
     pkgcache: alpm_pkghash_t,
     grpcache: Vec<alpm_group_t>,
-    servers: Vec<String>,
+    pub servers: Vec<String>,
     // ops: db_operations,
 
     /* bitfields for validity, local, loaded caches, etc. */
-    /* From _alpm_dbstatus_t */
     pub status: alpm_dbstatus_t,
-    /* alpm_siglevel_t */
     pub siglevel: siglevel,
-    /* alpm_db_usage_t */
     pub usage: alpm_db_usage_t,
 }
 
@@ -543,6 +540,64 @@ impl alpm_db_t {
     pub fn alpm_db_set_usage(&mut self, usage: alpm_db_usage_t) {
         self.usage = usage.clone();
     }
+
+    pub fn _alpm_db_path(&mut self, handle: &mut alpm_handle_t) -> Result<String, alpm_errno_t> {
+        if self._path == "" {
+            let dbpath = handle.dbpath.clone();
+            if dbpath == "" {
+                eprintln!("database path is undefined");
+                use self::alpm_errno_t::ALPM_ERR_DB_OPEN;
+                RET_ERR!(handle, ALPM_ERR_DB_OPEN, Err(ALPM_ERR_DB_OPEN));
+            }
+
+            if self.status.DB_STATUS_LOCAL {
+                self._path = format!("{}{}/", dbpath, self.treename);
+            } else {
+                /* all sync DBs now reside in the sync/ subdir of the dbpath */
+                self._path = format!("{}/sync/{}{}", dbpath, self.treename, handle.dbext);
+            }
+            // _alpm_log(db->handle, ALPM_LOG_DEBUG, "database path for tree %s set to %s\n",
+            // db->treename, db->_path);
+        }
+        return Ok(self._path.clone());
+    }
+
+    pub fn _alpm_db_free_pkgcache(&mut self) {
+        if !self.status.DB_STATUS_PKGCACHE {
+            return;
+        }
+        self.pkgcache = alpm_pkghash_t::default();
+        //
+        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
+        // 			"freeing package cache for repository '%s'\n", db->treename);
+        //
+        // 	if(db->pkgcache) {
+        // 		alpm_list_free_inner(db->pkgcache->list,
+        // 				(alpm_list_fn_free)_alpm_pkg_free);
+        // 		_alpm_pkghash_free(db->pkgcache);
+        // 	}
+        self.status.DB_STATUS_PKGCACHE = false;
+
+        self.free_groupcache();
+    }
+
+    pub fn free_groupcache(&mut self) {
+        // 	alpm_list_t *lg;
+        //
+        // 	if(db == NULL || !(db->status & DB_STATUS_GRPCACHE)) {
+        // 		return;
+        // 	}
+        //
+        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
+        // 			"freeing group cache for repository '%s'\n", db->treename);
+        //
+        // 	for(lg = db->grpcache; lg; lg = lg->next) {
+        // 		_alpm_group_free(lg->data);
+        // 		lg->data = NULL;
+        // 	}
+        // 	FREELIST(db->grpcache);
+        self.status.DB_STATUS_GRPCACHE = false;
+    }
 }
 
 impl alpm_handle_t {
@@ -634,26 +689,6 @@ pub fn _alpm_db_new(treename: &String, is_local: bool) -> alpm_db_t {
 // 	return;
 // }
 
-pub fn _alpm_db_path(db: &mut alpm_db_t, handle: &mut alpm_handle_t) -> Option<String> {
-    if db._path == "" {
-        let dbpath = handle.dbpath.clone();
-        if dbpath == "" {
-            eprintln!("database path is undefined");
-            RET_ERR!(handle, alpm_errno_t::ALPM_ERR_DB_OPEN, None);
-        }
-
-        if db.status.DB_STATUS_LOCAL {
-            db._path = format!("{}{}/", dbpath, db.treename);
-        } else {
-            /* all sync DBs now reside in the sync/ subdir of the dbpath */
-            db._path = format!("{}/sync/{}{}", dbpath, db.treename, handle.dbext);
-        }
-        // _alpm_log(db->handle, ALPM_LOG_DEBUG, "database path for tree %s set to %s\n",
-        // db->treename, db->_path);
-    }
-    return Some(db._path.clone());
-}
-
 // int _alpm_db_cmp(const void *d1, const void *d2)
 // {
 // 	const alpm_db_t *db1 = d1;
@@ -661,43 +696,7 @@ pub fn _alpm_db_path(db: &mut alpm_db_t, handle: &mut alpm_handle_t) -> Option<S
 // 	return strcmp(db1->treename, db2->treename);
 // }
 
-// static void free_groupcache(alpm_db_t *db)
-// {
-// 	alpm_list_t *lg;
 //
-// 	if(db == NULL || !(db->status & DB_STATUS_GRPCACHE)) {
-// 		return;
-// 	}
-//
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
-// 			"freeing group cache for repository '%s'\n", db->treename);
-//
-// 	for(lg = db->grpcache; lg; lg = lg->next) {
-// 		_alpm_group_free(lg->data);
-// 		lg->data = NULL;
-// 	}
-// 	FREELIST(db->grpcache);
-// 	db->status &= ~DB_STATUS_GRPCACHE;
-// }
-
-// void _alpm_db_free_pkgcache(alpm_db_t *db)
-// {
-// 	if(db == NULL || !(db->status & DB_STATUS_PKGCACHE)) {
-// 		return;
-// 	}
-//
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
-// 			"freeing package cache for repository '%s'\n", db->treename);
-//
-// 	if(db->pkgcache) {
-// 		alpm_list_free_inner(db->pkgcache->list,
-// 				(alpm_list_fn_free)_alpm_pkg_free);
-// 		_alpm_pkghash_free(db->pkgcache);
-// 	}
-// 	db->status &= ~DB_STATUS_PKGCACHE;
-//
-// 	free_groupcache(db);
-// }
 
 // /* "duplicate" pkg then add it to pkgcache */
 // int _alpm_db_add_pkgincache(alpm_db_t *db, alpm_pkg_t *pkg)

@@ -405,7 +405,7 @@ pub fn main() {
 
     /* check if we have sufficient permission for the requested operation */
     if myuid > 0 && config.needs_root() {
-        eprintln!("you cannot perform this operation unless you are root.");
+        error!("you cannot perform this operation unless you are root.");
         cleanup(1);
     }
 
@@ -413,7 +413,7 @@ pub fn main() {
         libc::chroot(&config.sysroot.as_bytes()[0] as *const u8 as *const i8) != 0
     } || !env::set_current_dir(&std::path::Path::new("/")).is_ok())
     {
-        eprintln!("chroot to {} failed: ()\n", config.sysroot); //, libc::strerror(errno));
+        error!("chroot to {} failed: ()\n", config.sysroot); //, libc::strerror(errno));
         cleanup(1);
     }
 
@@ -548,7 +548,7 @@ pub fn main() {
         //     _ => {}
         // },
         _ => {
-            eprintln!("no operation specified (use -h for help)");
+            error!("no operation specified (use -h for help)");
             ret = 1;
         }
     }

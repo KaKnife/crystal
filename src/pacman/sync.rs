@@ -867,7 +867,7 @@ pub fn sync_prepare_execute() -> Result<(), i32> {
 
 pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> Result<(), i32> {
     // 	alpm_list_t *sync_dbs = NULL;
-    let sync_dbs: &Vec<alpm_db_t>;
+    let mut sync_dbs: Vec<alpm_db_t>;
 
     /* clean the cache */
     if config.op_s_clean != 0 {
@@ -889,9 +889,9 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> Result<(), i3
 
     check_syncdbs(1, 0, config)?;
 
-    sync_dbs = match config.handle.alpm_get_syncdbs() {
-        &Some(ref s) => s,
-        &None => unimplemented!(),
+    sync_dbs = match config.handle.alpm_get_syncdbs().clone() {
+        Some(s) => s,
+        None => unimplemented!(),
     };
 
     if config.op_s_sync != 0 {
@@ -902,14 +902,14 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> Result<(), i3
         //     PACMAN_CALLER_PREFIX,
         //     "synchronizing package lists\n",
         // );
-        sync_syncdbs(config.op_s_sync as i32, sync_dbs, config)?;
+        sync_syncdbs(config.op_s_sync as i32, &mut sync_dbs, &mut config.handle)?;
     }
 
     check_syncdbs(1, 1, config)?;
 
     /* search for a package */
     if config.op_s_search != 0 {
-        return if sync_search(sync_dbs, &targets) {
+        return if sync_search(&sync_dbs, &targets) {
             Err(1)
         } else {
             Ok(())
@@ -918,7 +918,7 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> Result<(), i3
 
     /* look for groups */
     if config.group != 0 {
-        return sync_group(config.group as i32, sync_dbs, targets);
+        return sync_group(config.group as i32, &sync_dbs, targets);
     }
 
     /* get package info */
@@ -941,7 +941,7 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> Result<(), i3
         } else {
             /* don't proceed here unless we have an operation that doesn't require a
              * target list */
-            eprintln!("no targets specified (use -h for help)");
+            error!("no targets specified (use -h for help)");
             return Err(1);
         }
     }
