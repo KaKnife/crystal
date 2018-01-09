@@ -1993,7 +1993,7 @@ fn process_include(
                     for item in items {
                         // pm_printf(ALPM_LOG_DEBUG, "config file %s, line %d: including %s\n",
                         // file, linenum, globbuf.gl_pathv[gindex]);
-                        println!("{:?}", item);
+                        // println!("{:?}", item);
                         ret = parse_ini(
                             &item.unwrap().into_os_string().into_string().unwrap(),
                             &_parse_directive,

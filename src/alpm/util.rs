@@ -1,3 +1,4 @@
+use super::*;
 // /*
 //  *  util.c
 //  *
@@ -1228,7 +1229,7 @@
 // 	return 0;
 // }
 #[derive(Default)]
-pub struct sdbm_hasher{
+pub struct sdbm_hasher {
     // /** Hash the given string to an unsigned long value.
     //  * This is the standard sdbm hashing algorithm.
     //  * @param str string to hash
@@ -1250,14 +1251,14 @@ pub struct sdbm_hasher{
     // }
     hash: u64,
 }
- use std::hash::Hasher;
+use std::hash::Hasher;
 impl Hasher for sdbm_hasher {
     fn finish(&self) -> u64 {
         self.hash
     }
-    fn write(&mut self, bytes: &[u8]){
+    fn write(&mut self, bytes: &[u8]) {
         for byte in bytes {
-            self.hash = *byte as u64 + self.hash*65599;
+            self.hash = *byte as u64 + self.hash * 65599;
         }
     }
 }
@@ -1329,46 +1330,51 @@ impl Hasher for sdbm_hasher {
 //  * @param amode access mode as described in access()
 //  * @return int value returned by access()
 //  */
-// int _alpm_access(alpm_handle_t *handle, const char *dir, const char *file, int amode)
-// {
-// 	size_t len = 0;
-// 	int ret = 0;
+// pub fn _alpm_access(
+//     handle: &alpm_handle_t,
+//     diro: Option<&String>,
+//     file: &String,
+//     amode: i32,
+// ) -> i32 {
+//     unimplemented!();
+//     // 	size_t len = 0;
+//     // 	int ret = 0;
+//     let ret;
+//     use std::os::unix::fs::PermissionsExt;
+//     let dir = match diro {
+//         Some(dir) => {
+//             let check_path = format!("{}{}", dir, file);
+//             ret = std::fs::metadata(check_path).unwrap().permissions().mode() & amode;
+//             dir;
+//         }
+//         _ => {
+//             // dir = "";
+//             ret = std::fs::metadata(file).unwrap().permissions().mode() & amode;
+//             String::from("");
+//         }
+//     };
 //
-// 	if(dir) {
-// 		char *check_path;
-//
-// 		len = strlen(dir) + strlen(file) + 1;
-// 		CALLOC(check_path, len, sizeof(char), RET_ERR(handle, ALPM_ERR_MEMORY, -1));
-// 		snprintf(check_path, len, "%s%s", dir, file);
-//
-// 		ret = access(check_path, amode);
-// 		free(check_path);
-// 	} else {
-// 		dir = "";
-// 		ret = access(file, amode);
-// 	}
-//
-// 	if(ret != 0) {
-// 		if(amode & R_OK) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not readable: %s\n",
-// 					dir, file, strerror(errno));
-// 		}
-// 		if(amode & W_OK) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not writable: %s\n",
-// 					dir, file, strerror(errno));
-// 		}
-// 		if(amode & X_OK) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not executable: %s\n",
-// 					dir, file, strerror(errno));
-// 		}
-// 		if(amode == F_OK) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" does not exist: %s\n",
-// 					dir, file, strerror(errno));
-// 		}
-// 	}
-// 	return ret;
+//     if ret != 0 {
+//         // 		if(amode & R_OK) {
+//         // 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not readable: %s\n",
+//         // 					dir, file, strerror(errno));
+//         // 		}
+//         // 		if(amode & W_OK) {
+//         // 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not writable: %s\n",
+//         // 					dir, file, strerror(errno));
+//         // 		}
+//         // 		if(amode & X_OK) {
+//         // 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not executable: %s\n",
+//         // 					dir, file, strerror(errno));
+//         // 		}
+//         // 		if(amode == F_OK) {
+//         // 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" does not exist: %s\n",
+//         // 					dir, file, strerror(errno));
+//         // 		}
+//     }
+//     return ret;
 // }
-//
+
 // /** Checks whether a string matches at least one shell wildcard pattern.
 //  * Checks for matches with fnmatch. Matches are inverted by prepending
 //  * patterns with an exclamation mark. Preceding exclamation marks may be
@@ -1651,3 +1657,13 @@ macro_rules! RET_ERR {
 // #endif /* ALPM_UTIL_H */
 //
 // /* vim: set noet: */
+
+macro_rules! EVENT
+{ ($h:expr, $e:expr) =>
+    {{
+	// if(($h).eventcb) {
+		let f = ($h).eventcb;
+        f(($e));
+	// }
+}}
+}

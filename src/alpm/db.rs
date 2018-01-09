@@ -129,31 +129,6 @@ pub struct alpm_db_t {
 // #include "alpm.h"
 // #include "package.h"
 // #include "group.h"
-impl alpm_handle_t {
-    /// Register a sync database of packages. */
-    pub fn alpm_register_syncdb(
-        &mut self,
-        treename: &String,
-        siglevel: siglevel,
-    ) -> Option<alpm_db_t> {
-        /* ensure database name is unique */
-        println!("DEBUG 1");
-        if treename == "local" {
-            RET_ERR!(self, alpm_errno_t::ALPM_ERR_DB_NOT_NULL, None);
-        }
-        println!("DEBUG 2: {:?}", &self.dbs_sync);
-        match self.dbs_sync {
-            Some(ref dbs) => for d in dbs {
-                if treename == &d.treename {
-                    RET_ERR!(self, alpm_errno_t::ALPM_ERR_DB_NOT_NULL, None);
-                }
-            },
-            _ => {},
-        }
-
-        Some(self._alpm_db_register_sync(&treename, siglevel))
-    }
-}
 
 impl alpm_db_t {
     /* Helper function for alpm_db_unregister{_all} */
@@ -591,6 +566,28 @@ impl alpm_handle_t {
         // 	FREELIST(handle->dbs_sync);
         // 	return 0;
     }
+
+    /// Register a sync database of packages. */
+    pub fn alpm_register_syncdb(
+        &mut self,
+        treename: &String,
+        siglevel: siglevel,
+    ) -> Option<alpm_db_t> {
+        /* ensure database name is unique */
+        if treename == "local" {
+            RET_ERR!(self, alpm_errno_t::ALPM_ERR_DB_NOT_NULL, None);
+        }
+        match self.dbs_sync {
+            Some(ref dbs) => for d in dbs {
+                if treename == &d.treename {
+                    RET_ERR!(self, alpm_errno_t::ALPM_ERR_DB_NOT_NULL, None);
+                }
+            },
+            _ => {}
+        }
+
+        Some(self._alpm_db_register_sync(&treename, siglevel))
+    }
 }
 
 fn sanitize_url(url: &String) -> String {
@@ -649,7 +646,7 @@ pub fn _alpm_db_path(db: &mut alpm_db_t, handle: &mut alpm_handle_t) -> Option<S
             db._path = format!("{}{}/", dbpath, db.treename);
         } else {
             /* all sync DBs now reside in the sync/ subdir of the dbpath */
-            db._path = format!("{}sync/{}{}", dbpath, db.treename, handle.dbext);
+            db._path = format!("{}/sync/{}{}", dbpath, db.treename, handle.dbext);
         }
         // _alpm_log(db->handle, ALPM_LOG_DEBUG, "database path for tree %s set to %s\n",
         // db->treename, db->_path);

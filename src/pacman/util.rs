@@ -133,74 +133,72 @@ pub fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> 
     return ret;
 }
 
-pub fn sync_syncdbs(level: i32, syncs: &Vec<alpm_db_t>) -> Result<(), i32> {
-    unimplemented!();
-    // 	alpm_list_t *i;
-    // 	unsigned int success = 1;
-    //
-    // 	for(i = syncs; i; i = alpm_list_next(i)) {
-    // 		alpm_db_t *db = i->data;
-    //
-    // 		int ret = alpm_db_update((level < 2 ? 0 : 1), db);
-    // 		if(ret < 0) {
-    // 			pm_printf(ALPM_LOG_ERROR, _("failed to update %s (%s)\n"),
-    // 					alpm_db_get_name(db), alpm_strerror(alpm_errno(config->handle)));
-    // 			success = 0;
-    // 		} else if(ret == 1) {
-    // 			printf(_(" %s is up to date\n"), alpm_db_get_name(db));
-    // 		}
-    // 	}
-    //
-    // 	if(!success) {
-    // 		pm_printf(ALPM_LOG_ERROR, _("failed to synchronize all databases\n"));
-    // 	}
-    // 	return (success > 0);
-    // }
-    //
-    // /* discard unhandled input on the terminal's input buffer */
-    // static int flush_term_input(int fd)
-    // {
-    // #ifdef HAVE_TCFLUSH
-    // 	if(isatty(fd)) {
-    // 		return tcflush(fd, TCIFLUSH);
-    // 	}
-    // #endif
-    //
-    // 	/* fail silently */
-    // 	return 0;
-    // }
-    //
-    // void columns_cache_reset(void)
-    // {
-    // 	cached_columns = -1;
-    // }
-    //
-    // static int getcols_fd(int fd)
-    // {
-    // 	int width = -1;
-    //
-    // 	if(!isatty(fd)) {
-    // 		return 0;
-    // 	}
-    //
-    // #if defined(TIOCGSIZE)
-    // 	struct ttysize win;
-    // 	if(ioctl(fd, TIOCGSIZE, &win) == 0) {
-    // 		width = win.ts_cols;
-    // 	}
-    // #elif defined(TIOCGWINSZ)
-    // 	struct winsize win;
-    // 	if(ioctl(fd, TIOCGWINSZ, &win) == 0) {
-    // 		width = win.ws_col;
-    // 	}
-    // #endif
-    //
-    // 	if(width <= 0) {
-    // 		return -EIO;
-    // 	}
-    //
-    // 	return width;
+pub fn sync_syncdbs(level: i32, syncs: &Vec<alpm_db_t>, config: &config_t) -> Result<(), i32> {
+    let mut success = Ok(());
+    for db in syncs {
+        let ret = alpm_db_update(level >= 2, db);
+        if ret < 0 {
+            eprintln!(
+                "failed to update {} ({})",
+                db.alpm_db_get_name(),
+                config.handle.alpm_errno().alpm_strerror()
+            );
+            success = Err(1);
+        } else if ret == 1 {
+            println!(" {} is up to date", db.alpm_db_get_name());
+        }
+    }
+
+    if success.is_err() {
+        eprintln!("failed to synchronize all databases");
+    }
+    return success;
 }
+//
+// /* discard unhandled input on the terminal's input buffer */
+// static int flush_term_input(int fd)
+// {
+// #ifdef HAVE_TCFLUSH
+// 	if(isatty(fd)) {
+// 		return tcflush(fd, TCIFLUSH);
+// 	}
+// #endif
+//
+// 	/* fail silently */
+// 	return 0;
+// }
+//
+// void columns_cache_reset(void)
+// {
+// 	cached_columns = -1;
+// }
+//
+// static int getcols_fd(int fd)
+// {
+// 	int width = -1;
+//
+// 	if(!isatty(fd)) {
+// 		return 0;
+// 	}
+//
+// #if defined(TIOCGSIZE)
+// 	struct ttysize win;
+// 	if(ioctl(fd, TIOCGSIZE, &win) == 0) {
+// 		width = win.ts_cols;
+// 	}
+// #elif defined(TIOCGWINSZ)
+// 	struct winsize win;
+// 	if(ioctl(fd, TIOCGWINSZ, &win) == 0) {
+// 		width = win.ws_col;
+// 	}
+// #endif
+//
+// 	if(width <= 0) {
+// 		return -EIO;
+// 	}
+//
+// 	return width;
+// }
 
 fn getcols() -> u16 {
     unimplemented!();

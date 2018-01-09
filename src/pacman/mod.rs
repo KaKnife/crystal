@@ -505,9 +505,10 @@ pub fn main() {
         println!("Log File  : {}", config.handle.alpm_option_get_logfile());
         println!("GPG Dir   : {}", config.handle.alpm_option_get_gpgdir());
         print!("Targets   :");
-        for target in pm_targets {
+        for target in &pm_targets {
             print!("{}  ", target);
         }
+        println!();
     }
 
     // /* Log command line */
@@ -516,7 +517,7 @@ pub fn main() {
     // }
 
     /* start the requested operation */
-    unimplemented!("Done with parsing");
+    // unimplemented!("Done with parsing");
     match &config.op {
         &Some(PM_OP_DATABASE) => match pacman_database(pm_targets, &mut config) {
             Err(e) => (ret = e),

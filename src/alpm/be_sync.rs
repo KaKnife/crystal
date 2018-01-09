@@ -1,24 +1,24 @@
 use super::*;
-// /*
-//  *  be_sync.c : backend for sync databases
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
+/*
+ *  be_sync.c : backend for sync databases
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // #include <errno.h>
 // #include <sys/types.h>
 // #include <sys/stat.h>
@@ -71,10 +71,6 @@ use super::*;
 // }
 impl alpm_db_t {
 	fn sync_db_validate(&mut self, handle: &mut alpm_handle_t) -> i32 {
-		unimplemented!();
-		// 	int siglevel;
-		// 	const char *dbpath;
-		//
 		if self.status.DB_STATUS_VALID || self.status.DB_STATUS_MISSING {
 			return 0;
 		}
@@ -91,31 +87,38 @@ impl alpm_db_t {
 			}
 		};
 		/* we can skip any validation if the database doesn't exist */
-		// if _alpm_access(handle, NULL, dbpath, R_OK) != 0 && errno == ENOENT {
-		// 	alpm_event_database_missing_t event = {
-		// 		.type = ALPM_EVENT_DATABASE_MISSING,
-		// 		.dbname = db->treename
-		// 	};
-		// 	db->status &= ~DB_STATUS_EXISTS;
-		// 	db->status |= DB_STATUS_MISSING;
-		// 	EVENT(db->handle, &event);
-		// 	goto valid;
-		// }
+		match std::fs::metadata(&dbpath) {
+			Err(e) => match e.kind() {
+				std::io::ErrorKind::NotFound => {
+					// unimplemented!("DB NOT Found: {}", dbpath);
+					// let event = alpm_event_database_missing_t {
+					// 	etype: alpm_event_type_t::ALPM_EVENT_DATABASE_MISSING,
+					// 	dbname: self.treename.clone(),
+					// };
+					self.status.DB_STATUS_EXISTS = false;
+					self.status.DB_STATUS_MISSING = true;
+					// EVENT!(handle, &alpm_event_t::database_missing(event));
+					self.status.DB_STATUS_VALID = true;
+					self.status.DB_STATUS_INVALID = false;
+					return 0;
+				}
+				_ => {}
+			},
+			_ => {}
+		}
 
 		self.status.DB_STATUS_EXISTS = true;
 		self.status.DB_STATUS_MISSING = false;
 
-		// 	/* this takes into account the default verification level if UNKNOWN
-		// 	 * was assigned to this db */
+		/* this takes into account the default verification level if UNKNOWN
+		 * was assigned to this db */
 		let siglevel = self.alpm_db_get_siglevel();
-		//
+
 		if siglevel.ALPM_SIG_DATABASE {
-			// 		int retry, ret;
-			let mut ret;
-			let mut retry = true;
-			while retry {
-				retry = false;
-				// 			alpm_siglist_t *siglist;
+			let mut ret = 0;
+			let mut retry = 1;
+			while retry != 0 {
+				retry = 0;
 				let siglist = alpm_siglist_t::default();
 				ret = _alpm_check_pgp_helper(
 					handle,
@@ -126,232 +129,235 @@ impl alpm_db_t {
 					siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
 					&siglist,
 				);
-				// 			if(ret) {
-				// 				retry = _alpm_process_siglist(db->handle, db->treename, siglist,
-				// 						siglevel & ALPM_SIG_DATABASE_OPTIONAL, siglevel & ALPM_SIG_DATABASE_MARGINAL_OK,
-				// 						siglevel & ALPM_SIG_DATABASE_UNKNOWN_OK);
-				// 			}
-				// 			alpm_siglist_cleanup(siglist);
-				// 			free(siglist);
+				if ret != 0 {
+					retry = _alpm_process_siglist(
+						&handle,
+						&self.treename,
+						&siglist,
+						siglevel.ALPM_SIG_DATABASE_OPTIONAL,
+						siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
+						siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
+					);
+				}
 			}
-			//
-			// 		if(ret) {
-			// 			db->status &= ~DB_STATUS_VALID;
-			// 			db->status |= DB_STATUS_INVALID;
-			// 			db->handle->pm_errno = ALPM_ERR_DB_INVALID_SIG;
-			// 			return 1;
-			// 		}
+
+			if ret != 0 {
+				self.status.DB_STATUS_VALID = false;
+				self.status.DB_STATUS_INVALID = true;
+				handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_INVALID_SIG;
+				return 1;
+			}
 		}
-		//
-		// valid:
-		// 	db->status |= DB_STATUS_VALID;
-		// 	db->status &= ~DB_STATUS_INVALID;
+
+		/* valid: */
+		self.status.DB_STATUS_VALID = true;
+		self.status.DB_STATUS_INVALID = false;
 		return 0;
 	}
 }
-//
-// /** Update a package database
-//  *
-//  * An update of the package database \a db will be attempted. Unless
-//  * \a force is true, the update will only be performed if the remote
-//  * database was modified since the last update.
-//  *
-//  * This operation requires a database lock, and will return an applicable error
-//  * if the lock could not be obtained.
-//  *
-//  * Example:
-//  * @code
-//  * alpm_list_t *syncs = alpm_get_syncdbs();
-//  * for(i = syncs; i; i = alpm_list_next(i)) {
-//  *     alpm_db_t *db = alpm_list_getdata(i);
-//  *     result = alpm_db_update(0, db);
-//  *
-//  *     if(result < 0) {
-//  *	       printf("Unable to update database: %s\n", alpm_strerrorlast());
-//  *     } else if(result == 1) {
-//  *         printf("Database already up to date\n");
-//  *     } else {
-//  *         printf("Database updated\n");
-//  *     }
-//  * }
-//  * @endcode
-//  *
-//  * @ingroup alpm_databases
-//  * @note After a successful update, the \link alpm_db_get_pkgcache()
-//  * package cache \endlink will be invalidated
-//  * @param force if true, then forces the update, otherwise update only in case
-//  * the database isn't up to date
-//  * @param db pointer to the package database to update
-//  * @return 0 on success, -1 on error (pm_errno is set accordingly), 1 if up to
-//  * to date
-//  */
-// int SYMEXPORT alpm_db_update(int force, alpm_db_t *db)
-// {
-// 	char *syncpath;
-// 	const char *dbext;
-// 	alpm_list_t *i;
-// 	int updated = 0;
-// 	int ret = -1;
-// 	mode_t oldmask;
-// 	alpm_handle_t *handle;
-// 	int siglevel;
-//
-// 	/* Sanity checks */
-// 	ASSERT(db != NULL, return -1);
-// 	handle = db->handle;
-// 	handle->pm_errno = ALPM_ERR_OK;
-// 	ASSERT(db != handle->db_local, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-// 	ASSERT(db->servers != NULL, RET_ERR(handle, ALPM_ERR_SERVER_NONE, -1));
-//
-// 	if(!(db->usage & ALPM_DB_USAGE_SYNC)) {
-// 		return 0;
-// 	}
-//
-// 	syncpath = get_sync_dir(handle);
-// 	if(!syncpath) {
-// 		return -1;
-// 	}
-//
-// 	/* force update of invalid databases to fix potential mismatched database/signature */
-// 	if(db->status & DB_STATUS_INVALID) {
-// 		force = 1;
-// 	}
-//
-// 	/* make sure we have a sane umask */
-// 	oldmask = umask(0022);
-//
-// 	siglevel = alpm_db_get_siglevel(db);
-//
-// 	/* attempt to grab a lock */
-// 	if(_alpm_handle_lock(handle)) {
-// 		free(syncpath);
-// 		umask(oldmask);
-// 		RET_ERR(handle, ALPM_ERR_HANDLE_LOCK, -1);
-// 	}
-//
-// 	dbext = db->handle->dbext;
-//
-// 	for(i = db->servers; i; i = i->next) {
-// 		const char *server = i->data, *final_db_url = NULL;
-// 		struct dload_payload payload;
-// 		size_t len;
-// 		int sig_ret = 0;
-//
-// 		memset(&payload, 0, sizeof(struct dload_payload));
-//
-// 		/* set hard upper limit of 25MiB */
-// 		payload.max_size = 25 * 1024 * 1024;
-//
-// 		/* print server + filename into a buffer */
-// 		len = strlen(server) + strlen(db->treename) + strlen(dbext) + 2;
-// 		MALLOC(payload.fileurl, len,
-// 			{
-// 				free(syncpath);
-// 				umask(oldmask);
-// 				RET_ERR(handle, ALPM_ERR_MEMORY, -1);
-// 			}
-// 		);
-// 		snprintf(payload.fileurl, len, "%s/%s%s", server, db->treename, dbext);
-// 		payload.handle = handle;
-// 		payload.force = force;
-// 		payload.unlink_on_fail = 1;
-//
-// 		ret = _alpm_download(&payload, syncpath, NULL, &final_db_url);
-// 		_alpm_dload_payload_reset(&payload);
-// 		updated = (updated || ret == 0);
-//
-// 		if(ret != -1 && updated && (siglevel & ALPM_SIG_DATABASE)) {
-// 			/* an existing sig file is no good at this point */
-// 			char *sigpath = _alpm_sigpath(handle, _alpm_db_path(db));
-// 			if(!sigpath) {
-// 				ret = -1;
-// 				break;
-// 			}
-// 			unlink(sigpath);
-// 			free(sigpath);
-//
-//
-// 			/* check if the final URL from internal downloader looks reasonable */
-// 			if(final_db_url != NULL) {
-// 				if(strlen(final_db_url) < 3
-// 						|| strcmp(final_db_url + strlen(final_db_url) - strlen(dbext),
-// 								dbext) != 0) {
-// 					final_db_url = NULL;
-// 				}
-// 			}
-//
-// 			/* if we downloaded a DB, we want the .sig from the same server */
-// 			if(final_db_url != NULL) {
-// 				/* print final_db_url into a buffer (leave space for .sig) */
-// 				len = strlen(final_db_url) + 5;
-// 			} else {
-// 				/* print server + filename into a buffer (leave space for separator and .sig) */
-// 				len = strlen(server) + strlen(db->treename) + strlen(dbext) + 6;
-// 			}
-//
-// 			MALLOC(payload.fileurl, len,
-// 				{
-// 					free(syncpath);
-// 					umask(oldmask);
-// 					RET_ERR(handle, ALPM_ERR_MEMORY, -1);
-// 				}
-// 			);
-//
-// 			if(final_db_url != NULL) {
-// 				snprintf(payload.fileurl, len, "%s.sig", final_db_url);
-// 			} else {
-// 				snprintf(payload.fileurl, len, "%s/%s%s.sig", server, db->treename, dbext);
-// 			}
-//
-// 			payload.handle = handle;
-// 			payload.force = 1;
-// 			payload.errors_ok = (siglevel & ALPM_SIG_DATABASE_OPTIONAL);
-//
-// 			/* set hard upper limit of 16KiB */
-// 			payload.max_size = 16 * 1024;
-//
-// 			sig_ret = _alpm_download(&payload, syncpath, NULL, NULL);
-// 			/* errors_ok suppresses error messages, but not the return code */
-// 			sig_ret = payload.errors_ok ? 0 : sig_ret;
-// 			_alpm_dload_payload_reset(&payload);
-// 		}
-//
-// 		if(ret != -1 && sig_ret != -1) {
-// 			break;
-// 		}
-// 	}
-//
-// 	if(updated) {
-// 		/* Cache needs to be rebuilt */
-// 		_alpm_db_free_pkgcache(db);
-//
-// 		/* clear all status flags regarding validity/existence */
-// 		db->status &= ~DB_STATUS_VALID;
-// 		db->status &= ~DB_STATUS_INVALID;
-// 		db->status &= ~DB_STATUS_EXISTS;
-// 		db->status &= ~DB_STATUS_MISSING;
-//
-// 		/* if the download failed skip validation to preserve the download error */
-// 		if(ret != -1 && sync_db_validate(db) != 0) {
-// 			/* pm_errno should be set */
-// 			ret = -1;
-// 		}
-// 	}
-//
-// 	if(ret == -1) {
-// 		/* pm_errno was set by the download code */
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "failed to sync db: %s\n",
-// 				alpm_strerror(handle->pm_errno));
-// 	} else {
-// 		handle->pm_errno = ALPM_ERR_OK;
-// 	}
-//
-// 	_alpm_handle_unlock(handle);
-// 	free(syncpath);
-// 	umask(oldmask);
-// 	return ret;
-// }
-//
+
+/** Update a package database
+ *
+ * An update of the package database \a db will be attempted. Unless
+ * \a force is true, the update will only be performed if the remote
+ * database was modified since the last update.
+ *
+ * This operation requires a database lock, and will return an applicable error
+ * if the lock could not be obtained.
+ *
+ * Example:
+ * @code
+ * alpm_list_t *syncs = alpm_get_syncdbs();
+ * for(i = syncs; i; i = alpm_list_next(i)) {
+ *     alpm_db_t *db = alpm_list_getdata(i);
+ *     result = alpm_db_update(0, db);
+ *
+ *     if(result < 0) {
+ *	       printf("Unable to update database: %s\n", alpm_strerrorlast());
+ *     } else if(result == 1) {
+ *         printf("Database already up to date\n");
+ *     } else {
+ *         printf("Database updated\n");
+ *     }
+ * }
+ * @endcode
+ *
+ * @ingroup alpm_databases
+ * @note After a successful update, the \link alpm_db_get_pkgcache()
+ * package cache \endlink will be invalidated
+ * @param force if true, then forces the update, otherwise update only in case
+ * the database isn't up to date
+ * @param db pointer to the package database to update
+ * @return 0 on success, -1 on error (pm_errno is set accordingly), 1 if up to
+ * to date
+ */
+pub fn alpm_db_update(force: bool, db: &alpm_db_t) -> i32 {
+	unimplemented!();
+	// 	char *syncpath;
+	// 	const char *dbext;
+	// 	alpm_list_t *i;
+	// 	int updated = 0;
+	// 	int ret = -1;
+	// 	mode_t oldmask;
+	// 	alpm_handle_t *handle;
+	// 	int siglevel;
+	//
+	// 	/* Sanity checks */
+	// 	ASSERT(db != NULL, return -1);
+	// 	handle = db->handle;
+	// 	handle->pm_errno = ALPM_ERR_OK;
+	// 	ASSERT(db != handle->db_local, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+	// 	ASSERT(db->servers != NULL, RET_ERR(handle, ALPM_ERR_SERVER_NONE, -1));
+	//
+	// 	if(!(db->usage & ALPM_DB_USAGE_SYNC)) {
+	// 		return 0;
+	// 	}
+	//
+	// 	syncpath = get_sync_dir(handle);
+	// 	if(!syncpath) {
+	// 		return -1;
+	// 	}
+	//
+	// 	/* force update of invalid databases to fix potential mismatched database/signature */
+	// 	if(db->status & DB_STATUS_INVALID) {
+	// 		force = 1;
+	// 	}
+	//
+	// 	/* make sure we have a sane umask */
+	// 	oldmask = umask(0022);
+	//
+	// 	siglevel = alpm_db_get_siglevel(db);
+	//
+	// 	/* attempt to grab a lock */
+	// 	if(_alpm_handle_lock(handle)) {
+	// 		free(syncpath);
+	// 		umask(oldmask);
+	// 		RET_ERR(handle, ALPM_ERR_HANDLE_LOCK, -1);
+	// 	}
+	//
+	// 	dbext = db->handle->dbext;
+	//
+	// 	for(i = db->servers; i; i = i->next) {
+	// 		const char *server = i->data, *final_db_url = NULL;
+	// 		struct dload_payload payload;
+	// 		size_t len;
+	// 		int sig_ret = 0;
+	//
+	// 		memset(&payload, 0, sizeof(struct dload_payload));
+	//
+	// 		/* set hard upper limit of 25MiB */
+	// 		payload.max_size = 25 * 1024 * 1024;
+	//
+	// 		/* print server + filename into a buffer */
+	// 		len = strlen(server) + strlen(db->treename) + strlen(dbext) + 2;
+	// 		MALLOC(payload.fileurl, len,
+	// 			{
+	// 				free(syncpath);
+	// 				umask(oldmask);
+	// 				RET_ERR(handle, ALPM_ERR_MEMORY, -1);
+	// 			}
+	// 		);
+	// 		snprintf(payload.fileurl, len, "%s/%s%s", server, db->treename, dbext);
+	// 		payload.handle = handle;
+	// 		payload.force = force;
+	// 		payload.unlink_on_fail = 1;
+	//
+	// 		ret = _alpm_download(&payload, syncpath, NULL, &final_db_url);
+	// 		_alpm_dload_payload_reset(&payload);
+	// 		updated = (updated || ret == 0);
+	//
+	// 		if(ret != -1 && updated && (siglevel & ALPM_SIG_DATABASE)) {
+	// 			/* an existing sig file is no good at this point */
+	// 			char *sigpath = _alpm_sigpath(handle, _alpm_db_path(db));
+	// 			if(!sigpath) {
+	// 				ret = -1;
+	// 				break;
+	// 			}
+	// 			unlink(sigpath);
+	// 			free(sigpath);
+	//
+	//
+	// 			/* check if the final URL from internal downloader looks reasonable */
+	// 			if(final_db_url != NULL) {
+	// 				if(strlen(final_db_url) < 3
+	// 						|| strcmp(final_db_url + strlen(final_db_url) - strlen(dbext),
+	// 								dbext) != 0) {
+	// 					final_db_url = NULL;
+	// 				}
+	// 			}
+	//
+	// 			/* if we downloaded a DB, we want the .sig from the same server */
+	// 			if(final_db_url != NULL) {
+	// 				/* print final_db_url into a buffer (leave space for .sig) */
+	// 				len = strlen(final_db_url) + 5;
+	// 			} else {
+	// 				/* print server + filename into a buffer (leave space for separator and .sig) */
+	// 				len = strlen(server) + strlen(db->treename) + strlen(dbext) + 6;
+	// 			}
+	//
+	// 			MALLOC(payload.fileurl, len,
+	// 				{
+	// 					free(syncpath);
+	// 					umask(oldmask);
+	// 					RET_ERR(handle, ALPM_ERR_MEMORY, -1);
+	// 				}
+	// 			);
+	//
+	// 			if(final_db_url != NULL) {
+	// 				snprintf(payload.fileurl, len, "%s.sig", final_db_url);
+	// 			} else {
+	// 				snprintf(payload.fileurl, len, "%s/%s%s.sig", server, db->treename, dbext);
+	// 			}
+	//
+	// 			payload.handle = handle;
+	// 			payload.force = 1;
+	// 			payload.errors_ok = (siglevel & ALPM_SIG_DATABASE_OPTIONAL);
+	//
+	// 			/* set hard upper limit of 16KiB */
+	// 			payload.max_size = 16 * 1024;
+	//
+	// 			sig_ret = _alpm_download(&payload, syncpath, NULL, NULL);
+	// 			/* errors_ok suppresses error messages, but not the return code */
+	// 			sig_ret = payload.errors_ok ? 0 : sig_ret;
+	// 			_alpm_dload_payload_reset(&payload);
+	// 		}
+	//
+	// 		if(ret != -1 && sig_ret != -1) {
+	// 			break;
+	// 		}
+	// 	}
+	//
+	// 	if(updated) {
+	// 		/* Cache needs to be rebuilt */
+	// 		_alpm_db_free_pkgcache(db);
+	//
+	// 		/* clear all status flags regarding validity/existence */
+	// 		db->status &= ~DB_STATUS_VALID;
+	// 		db->status &= ~DB_STATUS_INVALID;
+	// 		db->status &= ~DB_STATUS_EXISTS;
+	// 		db->status &= ~DB_STATUS_MISSING;
+	//
+	// 		/* if the download failed skip validation to preserve the download error */
+	// 		if(ret != -1 && sync_db_validate(db) != 0) {
+	// 			/* pm_errno should be set */
+	// 			ret = -1;
+	// 		}
+	// 	}
+	//
+	// 	if(ret == -1) {
+	// 		/* pm_errno was set by the download code */
+	// 		_alpm_log(handle, ALPM_LOG_DEBUG, "failed to sync db: %s\n",
+	// 				alpm_strerror(handle->pm_errno));
+	// 	} else {
+	// 		handle->pm_errno = ALPM_ERR_OK;
+	// 	}
+	//
+	// 	_alpm_handle_unlock(handle);
+	// 	free(syncpath);
+	// 	umask(oldmask);
+	// 	return ret;
+}
+
 // /* Forward decl so I don't reorganize the whole file right now */
 // static int sync_db_read(alpm_db_t *db, struct archive *archive,
 // 		struct archive_entry *entry, alpm_pkg_t **likely_pkg);

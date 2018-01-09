@@ -840,7 +840,7 @@ pub fn _alpm_check_pgp_helper(
 	//
 	// 	return ret;
 }
-//
+
 // /**
 //  * Examine a signature result list and take any appropriate or necessary
 //  * actions. This may include asking the user to import a key or simply printing
@@ -855,9 +855,10 @@ pub fn _alpm_check_pgp_helper(
 //  * @return 0 if all signatures are OK, -1 on errors, 1 if we should retry the
 //  * validation process
 //  */
-// int _alpm_process_siglist(alpm_handle_t *handle, const char *identifier,
-// 		alpm_siglist_t *siglist, int optional, int marginal, int unknown)
-// {
+pub fn _alpm_process_siglist(handle: &alpm_handle_t, identifier: &String,
+		siglist: &alpm_siglist_t, optional: bool, marginal: bool, unknown: bool) -> i32
+{
+	unimplemented!();
 // 	size_t i;
 // 	int retry = 0;
 //
@@ -929,8 +930,8 @@ pub fn _alpm_check_pgp_helper(
 // 	}
 //
 // 	return retry;
-// }
-//
+}
+
 // /**
 //  * Check the PGP signature for the given package file.
 //  * @param pkg the package to check

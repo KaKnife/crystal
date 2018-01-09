@@ -902,7 +902,7 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> Result<(), i3
         //     PACMAN_CALLER_PREFIX,
         //     "synchronizing package lists\n",
         // );
-        sync_syncdbs(config.op_s_sync as i32, sync_dbs)?;
+        sync_syncdbs(config.op_s_sync as i32, sync_dbs, config)?;
     }
 
     check_syncdbs(1, 1, config)?;
