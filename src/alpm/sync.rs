@@ -199,10 +199,11 @@ use super::*;
 // 	}
 // 	return replacers;
 // }
-//
-// /** Search for packages to upgrade and add them to the transaction. */
-// int SYMEXPORT alpm_sync_sysupgrade(alpm_handle_t *handle, int enable_downgrade)
-// {
+
+/** Search for packages to upgrade and add them to the transaction. */
+pub fn alpm_sync_sysupgrade(handle: &alpm_handle_t, enable_downgrade:bool) -> i32
+{
+	unimplemented!();
 // 	alpm_list_t *i, *j;
 // 	alpm_trans_t *trans;
 //
@@ -254,15 +255,15 @@ use super::*;
 // 	}
 //
 // 	return 0;
-// }
-//
-// /** Find group members across a list of databases.
-//  * If a member exists in several databases, only the first database is used.
-//  * IgnorePkg is also handled.
-//  * @param dbs the list of alpm_db_t *
-//  * @param name the name of the group
-//  * @return the list of alpm_pkg_t * (caller is responsible for alpm_list_free)
-//  */
+}
+
+/** Find group members across a list of databases.
+ * If a member exists in several databases, only the first database is used.
+ * IgnorePkg is also handled.
+ * @param dbs the list of alpm_db_t *
+ * @param name the name of the group
+ * @return the list of alpm_pkg_t * (caller is responsible for alpm_list_free)
+ */
 // alpm_list_t SYMEXPORT *alpm_find_group_pkgs(alpm_list_t *dbs,
 // 		const char *name)
 // {
@@ -678,11 +679,8 @@ use super::*;
 // }
 //
 impl alpm_pkg_t {
-	/** Returns the size of the files that will be downloaded to install a
-	 * package.
-	 * @param newpkg the new package to upgrade to
-	 * @return the size of the download
-	 */
+	/// Returns the size of the files that will be downloaded to install a
+	/// package. returns the size of the download
 	pub fn alpm_pkg_download_size(&self) -> i64 {
 		unimplemented!();
 		// if !(self.infolevel & INFRQ_DSIZE) {

@@ -79,8 +79,9 @@ fn remove_target(target: String, config: &mut config_t) -> i32 {
 }
 
 /// Remove a specified list of packages.
-///* returns - Ok on success, Err(1) on failure
-///* `targets` - a Vec of packages (as strings) to remove from the system
+/// returns Ok on success, Err(1) on failure.
+///
+/// * `targets` - a Vec of packages (as strings) to remove from the system
 pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> Result<(), i32> {
     unimplemented!();
     let mut retval = 0;

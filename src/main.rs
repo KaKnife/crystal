@@ -4,8 +4,9 @@
 #![allow(unreachable_code)]
 #![allow(unused_mut)]
 #![allow(unused_imports)]
-mod pacman;
-mod common;
+pub mod pacman;
+pub mod common;
+pub mod alpm;
 pub use self::common::*;
 extern crate libc;
 extern crate getopts;

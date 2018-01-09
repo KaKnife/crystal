@@ -118,10 +118,7 @@ pub fn pacman_upgrade(mut targets: Vec<String>, config: &mut config_t) -> Result
     // free(file_is_remote);
 
     /* now that targets are resolved, we can hand it all off to the sync code */
-    match sync_prepare_execute() {
-        0 => Ok(()),
-        e @ _ => Err(e),
-    }
+    sync_prepare_execute() 
 
     // fail_release:
     // trans_release();

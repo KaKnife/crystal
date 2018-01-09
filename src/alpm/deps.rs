@@ -303,7 +303,7 @@ impl alpm_handle_t {
     // 	return pkg;
     // }
 
-    /** Checks dependencies and returns missing ones in a list.
+    /* Checks dependencies and returns missing ones in a list.
      * Dependencies can include versions with depmod operators.
      * @param handle the context handle
      * @param pkglist the list of local packages
@@ -427,72 +427,56 @@ impl alpm_handle_t {
         //
         return baddeps;
     }
+
+    /** Find a package satisfying a specified dependency.
+     * First look for a literal, going through each db one by one. Then look for
+     * providers. The first satisfier found is returned.
+     * The dependency can include versions with depmod operators.
+     * @param handle the context handle
+     * @param dbs an alpm_list_t* of alpm_db_t where the satisfier will be searched
+     * @param depstring package or provision name, versioned or not
+     * @return a alpm_pkg_t* satisfying depstring
+     */
+    pub fn alpm_find_dbs_satisfier<T>(
+        &self,
+        dbs: &Vec<T>,
+        depstring: &String,
+    ) -> Option<alpm_pkg_t> {
+        unimplemented!();
+        // 	alpm_depend_t *dep;
+        // 	alpm_pkg_t *pkg;
+        //
+        // 	CHECK_HANDLE(handle, return NULL);
+        // 	ASSERT(dbs, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
+        //
+        // 	dep = alpm_dep_from_string(depstring);
+        // 	ASSERT(dep, return NULL);
+        // 	pkg = resolvedep(handle, dep, dbs, NULL, 1);
+        // 	alpm_dep_free(dep);
+        // 	return pkg;
+    }
 }
 
 fn dep_vercmp(version1: &String, depmod: &alpm_depmod_t, version2: &String) -> bool {
     // int equal = 0;
     let cmp = alpm_pkg_vercmp(version1, version2);
+    // use alpm_depmod_t::*;
     match depmod {
-        ALPM_DEP_MOD_ANY => true,
-        ALPM_DEP_MOD_EQ => cmp == 0,
-        ALPM_DEP_MOD_GE => cmp >= 0,
-        ALPM_DEP_MOD_LE => cmp <= 0,
-        ALPM_DEP_MOD_LT => cmp < 0,
-        ALPM_DEP_MOD_GT => cmp > 0,
-        _ => true,
+        &alpm_depmod_t::ALPM_DEP_MOD_ANY => true,
+        &alpm_depmod_t::ALPM_DEP_MOD_EQ => cmp == 0,
+        &alpm_depmod_t::ALPM_DEP_MOD_GE => cmp >= 0,
+        &alpm_depmod_t::ALPM_DEP_MOD_LE => cmp <= 0,
+        &alpm_depmod_t::ALPM_DEP_MOD_LT => cmp < 0,
+        &alpm_depmod_t::ALPM_DEP_MOD_GT => cmp > 0,
+        // _ => true,
     }
 }
 
-impl alpm_pkg_t {
-    fn _alpm_depcmp_literal(&self, dep: &alpm_depend_t) -> bool {
-        if self.name_hash != dep.name_hash || self.name != dep.name {
-            /* skip more expensive checks */
-            return false;
-        }
-        return dep_vercmp(&self.version, &dep.depmod, &dep.version);
-    }
-
-    fn _alpm_depcmp(&self, dep: &alpm_depend_t) -> bool {
-        return self._alpm_depcmp_literal(dep) || dep._alpm_depcmp_provides(&self.provides);
-    }
-}
-
-impl alpm_depend_t {
-    /**
-     * @param dep dependency to check against the provision list
-     * @param provisions provision list
-     * @return 1 if provider is found, 0 otherwise
-     */
-    fn _alpm_depcmp_provides(&self, provisions: &Vec<alpm_depend_t>) -> bool {
-        let satisfy = false;
-        // alpm_list_t * i;
-
-        /* check provisions, name and version if available */
-        for provision in provisions {
-            // alpm_depend_t *provision = i->data;
-
-            match self.depmod {
-                alpm_depmod_t::ALPM_DEP_MOD_ANY => {
-                    /* any version will satisfy the requirement */
-                    return provision.name_hash == self.name_hash && provision.name == self.name;
-                }
-                _ => {}
-            }
-            match provision.depmod {
-                alpm_depmod_t::ALPM_DEP_MOD_EQ => {
-                    /* provision specifies a version, so try it out */
-                    return provision.name_hash == self.name_hash && provision.name == self.name
-                        && dep_vercmp(&provision.version, &self.depmod, &self.version);
-                }
-                _ => {}
-            }
-        }
-
-        return satisfy;
-    }
-
-    // alpm_depend_t SYMEXPORT *alpm_dep_from_string(const char *depstring)
-    // {
+/// Return a newly allocated dependency information parsed from a string
+/// * `depstring` - a formatted string, e.g. "glibc=2.12"
+/// * return - a dependency info structure
+pub fn alpm_dep_from_string(depstring: &String) -> alpm_depend_t {
+    unimplemented!()
     // 	alpm_depend_t *depend;
     // 	const char *ptr, *version, *desc;
     // 	size_t deplen;
@@ -556,7 +540,55 @@ impl alpm_depend_t {
     // error:
     // 	alpm_dep_free(depend);
     // 	return NULL;
-    // }
+}
+
+impl alpm_pkg_t {
+    fn _alpm_depcmp_literal(&self, dep: &alpm_depend_t) -> bool {
+        if self.name_hash != dep.name_hash || self.name != dep.name {
+            /* skip more expensive checks */
+            return false;
+        }
+        return dep_vercmp(&self.version, &dep.depmod, &dep.version);
+    }
+
+    fn _alpm_depcmp(&self, dep: &alpm_depend_t) -> bool {
+        return self._alpm_depcmp_literal(dep) || dep._alpm_depcmp_provides(&self.provides);
+    }
+}
+
+impl alpm_depend_t {
+    /**
+     * @param dep dependency to check against the provision list
+     * @param provisions provision list
+     * @return 1 if provider is found, 0 otherwise
+     */
+    fn _alpm_depcmp_provides(&self, provisions: &Vec<alpm_depend_t>) -> bool {
+        let satisfy = false;
+        // alpm_list_t * i;
+
+        /* check provisions, name and version if available */
+        for provision in provisions {
+            // alpm_depend_t *provision = i->data;
+
+            match self.depmod {
+                alpm_depmod_t::ALPM_DEP_MOD_ANY => {
+                    /* any version will satisfy the requirement */
+                    return provision.name_hash == self.name_hash && provision.name == self.name;
+                }
+                _ => {}
+            }
+            match provision.depmod {
+                alpm_depmod_t::ALPM_DEP_MOD_EQ => {
+                    /* provision specifies a version, so try it out */
+                    return provision.name_hash == self.name_hash && provision.name == self.name
+                        && dep_vercmp(&provision.version, &self.depmod, &self.version);
+                }
+                _ => {}
+            }
+        }
+
+        return satisfy;
+    }
 
     // alpm_depend_t *_alpm_dep_dup(const alpm_depend_t *dep)
     // {
@@ -787,31 +819,6 @@ impl alpm_depend_t {
     // 	return NULL;
     // }
 
-    // /** Find a package satisfying a specified dependency.
-    //  * First look for a literal, going through each db one by one. Then look for
-    //  * providers. The first satisfier found is returned.
-    //  * The dependency can include versions with depmod operators.
-    //  * @param handle the context handle
-    //  * @param dbs an alpm_list_t* of alpm_db_t where the satisfier will be searched
-    //  * @param depstring package or provision name, versioned or not
-    //  * @return a alpm_pkg_t* satisfying depstring
-    //  */
-    // alpm_pkg_t SYMEXPORT *alpm_find_dbs_satisfier(alpm_handle_t *handle,
-    // 		alpm_list_t *dbs, const char *depstring)
-    // {
-    // 	alpm_depend_t *dep;
-    // 	alpm_pkg_t *pkg;
-    //
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	ASSERT(dbs, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
-    //
-    // 	dep = alpm_dep_from_string(depstring);
-    // 	ASSERT(dep, return NULL);
-    // 	pkg = resolvedep(handle, dep, dbs, NULL, 1);
-    // 	alpm_dep_free(dep);
-    // 	return pkg;
-    // }
-    //
     // /**
     //  * Computes resolvable dependencies for a given package and adds that package
     //  * and those resolvable dependencies to a list.
@@ -910,11 +917,8 @@ impl alpm_depend_t {
     // 	return ret;
     // }
 
-    /** Reverse of splitdep; make a dep string from a alpm_depend_t struct.
-     * The string must be freed!
-     * @param dep the depend to turn into a string
-     * @return a string-formatted dependency with operator if necessary
-     */
+    /// Reverse of splitdep; make a dep string from a alpm_depend_t struct.
+    /// returns a string-formatted dependency with operator if necessary
     pub fn alpm_dep_compute_string(&self) -> String {
         unimplemented!();
         // 	const char *name, *opr, *ver, *desc_delim, *desc;

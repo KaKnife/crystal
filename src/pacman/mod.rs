@@ -1,12 +1,18 @@
 use libc;
 use std::env;
-mod conf;
-mod alpm;
-mod database;
-mod util;
-mod remove;
-mod upgrade;
-mod sync;
+pub mod conf;
+pub use super::alpm;
+pub mod database;
+pub mod util;
+pub mod remove;
+pub mod upgrade;
+pub mod sync;
+pub mod query;
+pub mod deptest;
+pub mod package;
+pub use self::package::*;
+pub use self::deptest::*;
+pub use self::query::*;
 pub use self::sync::*;
 pub use self::upgrade::*;
 pub use self::alpm::*;
@@ -15,6 +21,7 @@ pub use self::util::*;
 pub use self::database::*;
 pub use self::conf::*;
 pub use self::operations::*;
+pub use self::conf::config_t;
 use super::*;
 use super::common::*;
 // use pacman::conf::PKG_LOCALITY_FOREIGN;
@@ -304,10 +311,8 @@ use std;
 // 	setenv("HTTP_USER_AGENT", agent, 0);
 // }
 
-// /** Free the resources.
-//  *
-//  * @param ret the return value
-//  */
+// Free the resources.
+// *param ret the return value
 fn cleanup(ret: i32) {
     //TODO:implement this
     // remove_soft_interrupt_handler();
@@ -356,14 +361,9 @@ fn cleanup(ret: i32) {
 // 	free(cl_text);
 // }
 
-/** Main function.
- * @param argc
- * @param argv
- * @return A return code indicating success, failure, etc.
- */
+/// Main function.
 pub fn main() {
     let argv: Vec<String> = env::args().collect();
-    // let argc = argv.len();
     let mut ret = 0;
     let mut config;
     let myuid = unsafe { libc::getuid() }; //uid_t myuid = getuid();
@@ -386,7 +386,7 @@ pub fn main() {
         config.noprogressbar = 1;
     } else {
         /* install signal handler to update output width */
-        unimplemented!();
+        // unimplemented!();
         // install_winch_handler();
     }
 
@@ -493,26 +493,26 @@ pub fn main() {
         config.logmask.ALPM_LOG_WARNING = false;
     }
 
-    // if(config.verbose > 0) {
-    // 	alpm_list_t *j;
-    // 	println!("Root      : {}", alpm_option_get_root(config.handle));
-    // 	println!("Conf File : {}", config.configfile);
-    // 	println!("DB Path   : {}", alpm_option_get_dbpath(config.handle));
-    // 	print!("Cache Dirs: ");
-    // 	for(j = alpm_option_get_cachedirs(config.handle); j; j = alpm_list_next(j)) {
-    // 		printf("%s  ", (const char *)j->data);
-    // 	}
-    // 	printf("\n");
-    // 	printf("Hook Dirs : ");
-    // 	for(j = alpm_option_get_hookdirs(config.handle); j; j = alpm_list_next(j)) {
-    // 		printf("%s  ", (const char *)j->data);
-    // 	}
-    // 	printf("\n");
-    // 	printf("Lock File : %s\n", alpm_option_get_lockfile(config.handle));
-    // 	printf("Log File  : %s\n", alpm_option_get_logfile(config.handle));
-    // 	printf("GPG Dir   : %s\n", alpm_option_get_gpgdir(config.handle));
-    // 	list_display("Targets   :", pm_targets, 0);
-    // }
+    if config.verbose > 0 {
+        // 	alpm_list_t *j;
+        println!("Root      : {}", config.handle.alpm_option_get_root());
+        println!("Conf File : {}", config.configfile);
+        println!("DB Path   : {}", config.handle.alpm_option_get_dbpath());
+        // 	print!("Cache Dirs: ");
+        // 	for(j = alpm_option_get_cachedirs(config.handle); j; j = alpm_list_next(j)) {
+        // 		printf("%s  ", (const char *)j->data);
+        // 	}
+        // 	printf("\n");
+        // 	printf("Hook Dirs : ");
+        // 	for(j = alpm_option_get_hookdirs(config.handle); j; j = alpm_list_next(j)) {
+        // 		printf("%s  ", (const char *)j->data);
+        // 	}
+        // 	printf("\n");
+        // 	printf("Lock File : %s\n", alpm_option_get_lockfile(config.handle));
+        // 	printf("Log File  : %s\n", alpm_option_get_logfile(config.handle));
+        // 	printf("GPG Dir   : %s\n", alpm_option_get_gpgdir(config.handle));
+        // 	list_display("Targets   :", pm_targets, 0);
+    }
 
     // /* Log command line */
     // if(needs_root()) {
@@ -520,24 +520,36 @@ pub fn main() {
     // }
 
     /* start the requested operation */
-
+    unimplemented!("Done with parsing");
     match &config.op {
         &Some(PM_OP_DATABASE) => match pacman_database(pm_targets, &mut config) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(PM_OP_REMOVE) => match pacman_remove(pm_targets, &mut config){
+        &Some(PM_OP_REMOVE) => match pacman_remove(pm_targets, &mut config) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(PM_OP_UPGRADE) => match pacman_upgrade(pm_targets, &mut config){
+        &Some(PM_OP_UPGRADE) => match pacman_upgrade(pm_targets, &mut config) {
             Err(e) => (ret = e),
             _ => {}
         },
-        // Some(PM_OP_QUERY) => ret = pacman_query(pm_targets),
-        &Some(PM_OP_SYNC) => /*ret = pacman_sync(pm_targets)*/println!("Hi"),
-        // Some(PM_OP_DEPTEST) => ret = pacman_deptest(pm_targets),
-        // Some(PM_OP_FILES) => ret = pacman_files(pm_targets),
+        &Some(PM_OP_QUERY) => match pacman_query(pm_targets, &mut config) {
+            Err(e) => (ret = e),
+            _ => {}
+        },
+        &Some(PM_OP_SYNC) => match pacman_sync(pm_targets, &mut config) {
+            Err(e) => (ret = e),
+            _ => {}
+        },
+        &Some(PM_OP_DEPTEST) => match pacman_deptest(pm_targets, &mut config) {
+            Err(e) => (ret = e),
+            _ => {}
+        },
+        // &Some(PM_OP_FILES) => match pacman_files(pm_targets, &mut config) {
+        //     Err(e) => (ret = e),
+        //     _ => {}
+        // },
         _ => {
             eprintln!("no operation specified (use -h for help)");
             ret = 1;

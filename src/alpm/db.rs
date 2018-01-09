@@ -20,7 +20,7 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 // #ifndef ALPM_DB_H
 // #define ALPM_DB_H
 //
@@ -46,29 +46,29 @@ use super::*;
 // } alpm_dbinfrq_t;
 //
 /// Database status. Bitflags. */
-#[derive(Debug, Clone)]
-enum alpm_dbstatus_t {
-    DB_STATUS_VALID = (1 << 0),
-    DB_STATUS_INVALID = (1 << 1),
-    DB_STATUS_EXISTS = (1 << 2),
-    DB_STATUS_MISSING = (1 << 3),
+#[derive(Debug, Clone, Default)]
+pub struct alpm_dbstatus_t {
+    pub DB_STATUS_VALID: bool,
+    pub DB_STATUS_INVALID: bool,
+    pub DB_STATUS_EXISTS: bool,
+    pub DB_STATUS_MISSING: bool,
 
-    DB_STATUS_LOCAL = (1 << 10),
-    DB_STATUS_PKGCACHE = (1 << 11),
-    DB_STATUS_GRPCACHE = (1 << 12),
+    pub DB_STATUS_LOCAL: bool,
+    pub DB_STATUS_PKGCACHE: bool,
+    pub DB_STATUS_GRPCACHE: bool,
 }
 
-impl Default for alpm_dbstatus_t {
-    fn default() -> Self {
-        alpm_dbstatus_t::DB_STATUS_VALID
-    }
-}
+// impl Default for alpm_dbstatus_t {
+//     fn default() -> Self {
+//         alpm_dbstatus_t::DB_STATUS_VALID
+//     }
+// }
 
 // struct db_operations {
-// 	int (*validate) (alpm_db_t *);
-// 	int (*populate) (alpm_db_t *);
-// 	void (*unregister) (alpm_db_t *);
-// };
+//     validate: &Fn(&alpm_db_t) -> i32,
+//     populate: Fn(&alpm_db_t) -> i32,
+//     unregister: Fn(&alpm_db_t),
+// }
 
 /* Database */
 #[derive(Debug, Default, Clone)]
@@ -76,19 +76,19 @@ pub struct alpm_db_t {
     // handle: alpm_handle_t,
     pub treename: String,
     /* do not access directly, use _alpm_db_path(db) for lazy access */
-    path: String,
+    _path: String,
     pkgcache: alpm_pkghash_t,
     grpcache: Vec<alpm_group_t>,
     servers: Vec<String>,
-    // ops:db_operations,
+    // ops: db_operations,
 
-	/* bitfields for validity, local, loaded caches, etc. */
-	/* From _alpm_dbstatus_t */
-    status: alpm_dbstatus_t,
+    /* bitfields for validity, local, loaded caches, etc. */
+    /* From _alpm_dbstatus_t */
+    pub status: alpm_dbstatus_t,
     /* alpm_siglevel_t */
-    siglevel: siglevel,
+    pub siglevel: siglevel,
     /* alpm_db_usage_t */
-    usage: i32,
+    pub usage: alpm_db_usage_t,
 }
 
 /*
@@ -129,34 +129,31 @@ pub struct alpm_db_t {
 // #include "alpm.h"
 // #include "package.h"
 // #include "group.h"
+impl alpm_handle_t {
+    /// Register a sync database of packages. */
+    pub fn alpm_register_syncdb(
+        &mut self,
+        treename: &String,
+        siglevel: siglevel,
+    ) -> Option<alpm_db_t> {
+        /* ensure database name is unique */
+        println!("DEBUG 1");
+        if treename == "local" {
+            RET_ERR!(self, alpm_errno_t::ALPM_ERR_DB_NOT_NULL, None);
+        }
+        println!("DEBUG 2: {:?}", &self.dbs_sync);
+        match self.dbs_sync {
+            Some(ref dbs) => for d in dbs {
+                if treename == &d.treename {
+                    RET_ERR!(self, alpm_errno_t::ALPM_ERR_DB_NOT_NULL, None);
+                }
+            },
+            _ => {},
+        }
 
-// /// Register a sync database of packages. */
-// alpm_db_t SYMEXPORT *alpm_register_syncdb(alpm_handle_t *handle,
-// 		const char *treename, int siglevel)
-// {
-// 	alpm_list_t *i;
-//
-// 	/* Sanity checks */
-// 	CHECK_HANDLE(handle, return NULL);
-// 	ASSERT(treename != NULL && strlen(treename) != 0,
-// 			RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
-// 	ASSERT(!strchr(treename, '/'), RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
-// 	/* Do not register a database if a transaction is on-going */
-// 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, NULL));
-//
-// 	/* ensure database name is unique */
-// 	if(strcmp(treename, "local") == 0) {
-// 		RET_ERR(handle, ALPM_ERR_DB_NOT_NULL, NULL);
-// 	}
-// 	for(i = handle->dbs_sync; i; i = i->next) {
-// 		alpm_db_t *d = i->data;
-// 		if(strcmp(treename, d->treename) == 0) {
-// 			RET_ERR(handle, ALPM_ERR_DB_NOT_NULL, NULL);
-// 		}
-// 	}
-//
-// 	return _alpm_db_register_sync(handle, treename, siglevel);
-// }
+        Some(self._alpm_db_register_sync(&treename, siglevel))
+    }
+}
 
 impl alpm_db_t {
     /* Helper function for alpm_db_unregister{_all} */
@@ -271,16 +268,13 @@ impl alpm_db_t {
     }
 
     fn _alpm_db_get_groupcache(&self) -> &Vec<alpm_group_t> {
-        match &self.status {
-            &alpm_dbstatus_t::DB_STATUS_VALID => {
-                unimplemented!();
-                // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
-            }
+        if self.status.DB_STATUS_VALID {
+            unimplemented!();
+            // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
+        }
 
-            &alpm_dbstatus_t::DB_STATUS_GRPCACHE => {
-                self.load_grpcache();
-            }
-            _ => {}
+        if self.status.DB_STATUS_GRPCACHE {
+            self.load_grpcache();
         }
 
         return &self.grpcache;
@@ -357,23 +351,19 @@ impl alpm_db_t {
     }
 
     fn _alpm_db_get_pkgcache_hash(&self) -> Option<&alpm_pkghash_t> {
-        unimplemented!();
-        match self.status {
-            alpm_dbstatus_t::DB_STATUS_VALID => {
-                unimplemented!();
-                // _alpm_log(db.handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n",
-                // ALPM_ERR_DB_INVALID, __func__, alpm_strerror(ALPM_ERR_DB_INVALID));
-                // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_INVALID;
+        if self.status.DB_STATUS_VALID {
+            unimplemented!();
+            // _alpm_log(db.handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n",
+            // ALPM_ERR_DB_INVALID, __func__, alpm_strerror(ALPM_ERR_DB_INVALID));
+            // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_INVALID;
+            return None;
+        }
+
+        if self.status.DB_STATUS_PKGCACHE {
+            if self.load_pkgcache() != 0 {
+                /* handle->error set in local/sync-db-populate */
                 return None;
             }
-
-            alpm_dbstatus_t::DB_STATUS_PKGCACHE => {
-                if self.load_pkgcache() != 0 {
-                    /* handle->error set in local/sync-db-populate */
-                    return None;
-                }
-            }
-            _ => {}
         }
         return Some(&self.pkgcache);
     }
@@ -476,11 +466,13 @@ impl alpm_db_t {
     }
 
     /// Searches a database. */
-    pub fn alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
+    // pub fn alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
+    pub fn alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t<alpm_pkg_t> {
         return self._alpm_db_search(needles);
     }
 
-    pub fn _alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
+    // pub fn _alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
+    pub fn _alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t<alpm_pkg_t> {
         unimplemented!();
         // 	const alpm_list_t *i, *j, *k;
         // 	alpm_list_t *ret = NULL;
@@ -572,6 +564,10 @@ impl alpm_db_t {
         // return hash.list;
     }
 
+    /// Sets the usage bitmask for a repo
+    pub fn alpm_db_set_usage(&mut self, usage: alpm_db_usage_t) {
+        self.usage = usage.clone();
+    }
 }
 
 impl alpm_handle_t {
@@ -605,14 +601,6 @@ fn sanitize_url(url: &String) -> String {
     return newurl;
 }
 
-// /// Sets the usage bitmask for a repo */
-// int SYMEXPORT alpm_db_set_usage(alpm_db_t *db, int usage)
-// {
-// 	ASSERT(db != NULL, return -1);
-// 	db->usage = usage;
-// 	return 0;
-// }
-
 // /// Gets the usage bitmask for a repo */
 // int SYMEXPORT alpm_db_get_usage(alpm_db_t *db, int *usage)
 // {
@@ -622,21 +610,18 @@ fn sanitize_url(url: &String) -> String {
 // 	return 0;
 // }
 
-// alpm_db_t *_alpm_db_new(const char *treename, int is_local)
-// {
-// 	alpm_db_t *db;
-//
-// 	CALLOC(db, 1, sizeof(alpm_db_t), return NULL);
-// 	STRDUP(db->treename, treename, FREE(db); return NULL);
-// 	if(is_local) {
-// 		db->status |= DB_STATUS_LOCAL;
-// 	} else {
-// 		db->status &= ~DB_STATUS_LOCAL;
-// 	}
-// 	db->usage = ALPM_DB_USAGE_ALL;
-//
-// 	return db;
-// }
+pub fn _alpm_db_new(treename: &String, is_local: bool) -> alpm_db_t {
+    let mut db = alpm_db_t::default();
+    db.treename = treename.clone();
+    if is_local {
+        db.status.DB_STATUS_LOCAL = true;
+    } else {
+        db.status.DB_STATUS_LOCAL = false;
+    }
+    db.usage.ALPM_DB_USAGE_ALL = true;
+
+    return db;
+}
 
 // void _alpm_db_free(alpm_db_t *db)
 // {
@@ -652,38 +637,25 @@ fn sanitize_url(url: &String) -> String {
 // 	return;
 // }
 
-// const char *_alpm_db_path(alpm_db_t *db)
-// {
-// 	if(!db) {
-// 		return NULL;
-// 	}
-// 	if(!db->_path) {
-// 		const char *dbpath;
-// 		size_t pathsize;
-//
-// 		dbpath = db->handle->dbpath;
-// 		if(!dbpath) {
-// 			_alpm_log(db->handle, ALPM_LOG_ERROR, _("database path is undefined\n"));
-// 			RET_ERR(db->handle, ALPM_ERR_DB_OPEN, NULL);
-// 		}
-//
-// 		if(db->status & DB_STATUS_LOCAL) {
-// 			pathsize = strlen(dbpath) + strlen(db->treename) + 2;
-// 			CALLOC(db->_path, 1, pathsize, RET_ERR(db->handle, ALPM_ERR_MEMORY, NULL));
-// 			sprintf(db->_path, "%s%s/", dbpath, db->treename);
-// 		} else {
-// 			const char *dbext = db->handle->dbext;
-//
-// 			pathsize = strlen(dbpath) + 5 + strlen(db->treename) + strlen(dbext) + 1;
-// 			CALLOC(db->_path, 1, pathsize, RET_ERR(db->handle, ALPM_ERR_MEMORY, NULL));
-// 			/* all sync DBs now reside in the sync/ subdir of the dbpath */
-// 			sprintf(db->_path, "%ssync/%s%s", dbpath, db->treename, dbext);
-// 		}
-// 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "database path for tree %s set to %s\n",
-// 				db->treename, db->_path);
-// 	}
-// 	return db->_path;
-// }
+pub fn _alpm_db_path(db: &mut alpm_db_t, handle: &mut alpm_handle_t) -> Option<String> {
+    if db._path == "" {
+        let dbpath = handle.dbpath.clone();
+        if dbpath == "" {
+            eprintln!("database path is undefined");
+            RET_ERR!(handle, alpm_errno_t::ALPM_ERR_DB_OPEN, None);
+        }
+
+        if db.status.DB_STATUS_LOCAL {
+            db._path = format!("{}{}/", dbpath, db.treename);
+        } else {
+            /* all sync DBs now reside in the sync/ subdir of the dbpath */
+            db._path = format!("{}sync/{}{}", dbpath, db.treename, handle.dbext);
+        }
+        // _alpm_log(db->handle, ALPM_LOG_DEBUG, "database path for tree %s set to %s\n",
+        // db->treename, db->_path);
+    }
+    return Some(db._path.clone());
+}
 
 // int _alpm_db_cmp(const void *d1, const void *d2)
 // {
@@ -729,7 +701,6 @@ fn sanitize_url(url: &String) -> String {
 //
 // 	free_groupcache(db);
 // }
-
 
 // /* "duplicate" pkg then add it to pkgcache */
 // int _alpm_db_add_pkgincache(alpm_db_t *db, alpm_pkg_t *pkg)

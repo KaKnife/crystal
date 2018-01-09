@@ -66,7 +66,7 @@ use super::alpm::*;
 pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: i32, config: &config_t) -> i32 {
     let ret;
 
-    check_syncdbs(0, check_valid, config);
+    check_syncdbs(0, check_valid, config).unwrap();
 
     ret = config.handle.alpm_trans_init(flags);
     if ret == -1 {
@@ -106,13 +106,13 @@ pub fn trans_release(config: &config_t) -> bool {
     return true;
 }
 
-fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 {
-    let mut ret = 0;
+pub fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> Result<(), i32> {
+    let mut ret = Ok(());
 
     match (need_repos, &config.handle.dbs_sync, check_valid) {
         (0, _, _) | (_, &None, _) => {
             eprintln!("no usable package repositories configured.");
-            return 1;
+            return Err(1);
         }
         (_, _, 0) => {}
         (_, &Some(ref sync_dbs), _) => {
@@ -124,7 +124,7 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
                         db.treename,
                         config.handle.alpm_errno().alpm_strerror()
                     );
-                    ret = 1;
+                    ret = Err(1);
                 }
             }
         }
@@ -133,7 +133,7 @@ fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> i32 
     return ret;
 }
 
-fn sync_syncdbs(level: i32, syncs: Vec<alpm_db_t>) -> i32 {
+pub fn sync_syncdbs(level: i32, syncs: &Vec<alpm_db_t>) -> Result<(), i32> {
     unimplemented!();
     // 	alpm_list_t *i;
     // 	unsigned int success = 1;
@@ -274,7 +274,7 @@ fn rmrf(path: String) -> i32 {
 
 /* output a string, but wrap words properly with a specified indentation
  */
-fn indentprint(sstr: String, indent: usize, cols: usize) {
+fn indentprint(_sstr: String, _indent: usize, _cols: usize) {
     unimplemented!();
     // // 	wchar_t *wcstr;
     // // 	const wchar_t *p;
@@ -334,7 +334,7 @@ fn indentprint(sstr: String, indent: usize, cols: usize) {
 
 /* Replace all occurrences of 'needle' with 'replace' in 'str', returning
  * a new string (must be free'd) */
-fn strreplace(sstr: String, needle: String, replace: String) -> String {
+fn strreplace(_sstr: String, _needle: String, _replace: String) -> String {
     unimplemented!();
     // 	const char *p = NULL, *q = NULL;
     // 	char *newstr = NULL, *newp = NULL;
@@ -408,7 +408,7 @@ fn string_length(s: String) -> usize {
     // 	return len;
 }
 
-fn add_table_cell(row: &alpm_list_t, label: String, mode: i32) {
+fn add_table_cell<T>(row: &alpm_list_t<T>, label: String, mode: i32) {
     unimplemented!();
     // 	struct table_cell_t *cell = malloc(sizeof(struct table_cell_t));
     //
@@ -431,7 +431,7 @@ fn add_table_cell(row: &alpm_list_t, label: String, mode: i32) {
     // 	}
 }
 
-fn table_free(headers: alpm_list_t, rows: alpm_list_t) {
+fn table_free<T1, T2>(headers: alpm_list_t<T1>, rows: alpm_list_t<T2>) {
     unimplemented!();
     // 	alpm_list_t *i;
     //
@@ -448,7 +448,7 @@ fn table_free(headers: alpm_list_t, rows: alpm_list_t) {
 
 type off_t = i64;
 
-fn add_transaction_sizes_row(rows: alpm_list_t, label: String, size: off_t) {
+fn add_transaction_sizes_row<T>(rows: alpm_list_t<T>, label: String, size: off_t) {
     unimplemented!()
     // 	alpm_list_t *row = NULL;
     // 	char *str;
@@ -476,8 +476,8 @@ fn string_display(title: String, string: String, cols: usize, config: &config_t)
     print!("\n");
 }
 
-fn table_print_line(
-    line: alpm_list_t,
+fn table_print_line<T>(
+    line: alpm_list_t<T>,
     col_padding: i32,
     colcount: usize,
     widths: &usize,
@@ -1009,7 +1009,6 @@ fn pkg_get_size(pkg: &alpm_pkg_t, config: &config_t) -> off_t {
 }
 
 fn pkg_get_location(pkg: &alpm_pkg_t, config: &config_t) -> String {
-    unimplemented!();
     // alpm_list_t *servers;
     // char *string = NULL;
     // use alpm_pkgfrom_t::*;
@@ -1020,7 +1019,7 @@ fn pkg_get_location(pkg: &alpm_pkg_t, config: &config_t) -> String {
                 let pkgfile = pkg.alpm_pkg_get_filename();
                 // struct stat buf;
                 for item in config.handle.alpm_option_get_cachedirs() {
-                    let path = format!("{}{}", item, pkgfile);
+                    let _path = format!("{}{}", item, pkgfile);
                     unimplemented!();
                     // if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
                     // 		pm_asprintf(&string, "file://%s", path);
@@ -1030,11 +1029,12 @@ fn pkg_get_location(pkg: &alpm_pkg_t, config: &config_t) -> String {
             }
 
             let servers = pkg.alpm_pkg_get_db().alpm_db_get_servers();
-            // if(servers) {
-            // 	pm_asprintf(&string, "%s/%s", (char *)(servers->data),
-            // 			alpm_pkg_get_filename(pkg));
-            // 	return string;
-            // }
+            if !servers.is_empty() {
+                unimplemented!();
+                // pm_asprintf(&string, "%s/%s", (char *)(servers->data),
+                // 		alpm_pkg_get_filename(pkg));
+                // return string;
+            }
 
             /* fallthrough - for theoretical serverless repos */
             return pkg.alpm_pkg_get_filename();
@@ -1500,89 +1500,84 @@ pub fn print_packages(packages: &Vec<alpm_pkg_t>, print_format: &String, config:
 // 	}
 // 	return CMP(*p1, *p2);
 // }
-//
-// /* presents a prompt and gets a Y/N answer */
-// __attribute__((format(printf, 2, 0)))
-// static int question(short preset, const char *format, va_list args)
-// {
-// 	char response[32];
-// 	FILE *stream;
-// 	int fd_in = fileno(stdin);
-//
-// 	if(config->noconfirm) {
-// 		stream = stdout;
-// 	} else {
-// 		/* Use stderr so questions are always displayed when redirecting output */
-// 		stream = stderr;
-// 	}
-//
-// 	/* ensure all text makes it to the screen before we prompt the user */
-// 	fflush(stdout);
-// 	fflush(stderr);
-//
-// 	fputs(config->colstr.colon, stream);
-// 	vfprintf(stream, format, args);
-//
-// 	if(preset) {
-// 		fprintf(stream, " %s ", _("[Y/n]"));
-// 	} else {
-// 		fprintf(stream, " %s ", _("[y/N]"));
-// 	}
-//
-// 	fputs(config->colstr.nocolor, stream);
-// 	fflush(stream);
-//
-// 	if(config->noconfirm) {
-// 		fprintf(stream, "\n");
-// 		return preset;
-// 	}
-//
-// 	flush_term_input(fd_in);
-//
-// 	if(safe_fgets(response, sizeof(response), stdin)) {
-// 		size_t len = strtrim(response);
-// 		if(len == 0) {
-// 			return preset;
-// 		}
-//
-// 		/* if stdin is piped, response does not get printed out, and as a result
-// 		 * a \n is missing, resulting in broken output */
-// 		if(!isatty(fd_in)) {
-// 			fprintf(stream, "%s\n", response);
-// 		}
-//
-// 		if(mbscasecmp(response, _("Y")) == 0 || mbscasecmp(response, _("YES")) == 0) {
-// 			return 1;
-// 		} else if(mbscasecmp(response, _("N")) == 0 || mbscasecmp(response, _("NO")) == 0) {
-// 			return 0;
-// 		}
-// 	}
-// 	return 0;
-// }
-//
-// int yesno(const char *format, ...)
-// {
-// 	int ret;
-// 	va_list args;
-//
-// 	va_start(args, format);
-// 	ret = question(1, format, args);
-// 	va_end(args);
-//
-// 	return ret;
-// }
 
-// int noyes(const char *format, ...) -> i32
-// {
-// 	int ret;
-// 	va_list args;
-//
-// 	va_start(args, format);
-// 	ret = question(0, format, args);
-// 	va_end(args);
-//
-// 	return ret;
-// }
+/* presents a prompt and gets a Y/N answer */
+// __attribute__((format(printf, 2, 0)))
+fn question(preset: bool, format: String, config: &config_t) -> bool {
+    use std::io;
+    use std::io::Write;
+    let mut response = String::new();
+    // 	FILE *stream;
+    // 	int fd_in = fileno(stdin);
+    let stream_write = |s: &str| {
+        if config.noconfirm {
+            write!(io::stdout(), "{}", s);
+            io::stdout().flush().unwrap();
+        } else {
+            /* Use stderr so questions are always displayed when redirecting output */
+            write!(io::stderr(), "{}", s);
+            io::stderr().flush().unwrap();
+        }
+    };
+
+    // 	/* ensure all text makes it to the screen before we prompt the user */
+    io::stdout().flush().unwrap();
+    io::stderr().flush().unwrap();
+    //
+    // fputs(config->colstr.colon, stream);
+    stream_write(&format);
+
+    if preset {
+        stream_write("[Y/n]");
+    } else {
+        stream_write("[y/N]");
+    }
+    //
+    // 	fputs(config->colstr.nocolor, stream);
+    // 	fflush(stream);
+    //
+    if config.noconfirm {
+        stream_write("\n");
+        return preset;
+    }
+    io::stdin().read_line(&mut response).unwrap();
+    if response.len() == 0 {
+        preset
+    } else if response.to_lowercase() == "y" || response.to_lowercase() == "yes" {
+        true
+    } else {
+        false
+    }
+    // 	flush_term_input(fd_in);
+    //
+    // 	if(safe_fgets(response, sizeof(response), stdin)) {
+    // 		size_t len = strtrim(response);
+    // 		if(len == 0) {
+    // 			return preset;
+    // 		}
+    //
+    // 		/* if stdin is piped, response does not get printed out, and as a result
+    // 		 * a \n is missing, resulting in broken output */
+    // 		if(!isatty(fd_in)) {
+    // 			fprintf(stream, "%s\n", response);
+    // 		}
+    //
+    // 		if(mbscasecmp(response, _("Y")) == 0 || mbscasecmp(response, _("YES")) == 0) {
+    // 			return 1;
+    // 		} else if(mbscasecmp(response, _("N")) == 0 || mbscasecmp(response, _("NO")) == 0) {
+    // 			return 0;
+    // 		}
+    // 	}
+    // return 0;
+}
+
+pub fn yesno(format: String, config: &config_t) -> bool {
+    question(true, format, config)
+}
+
+pub fn noyes(format: String, config: &config_t) -> bool {
+    question(false, format, config)
+}
 
 // int colon_printf(const char *fmt, ...)
 // {

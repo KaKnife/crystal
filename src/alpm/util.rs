@@ -1227,26 +1227,41 @@
 //
 // 	return 0;
 // }
-//
-// /** Hash the given string to an unsigned long value.
-//  * This is the standard sdbm hashing algorithm.
-//  * @param str string to hash
-//  * @return the hash value of the given string
-//  */
-// unsigned long _alpm_hash_sdbm(const char *str)
-// {
-// 	unsigned long hash = 0;
-// 	int c;
-//
-// 	if(!str) {
-// 		return hash;
-// 	}
-// 	while((c = *str++)) {
-// 		hash = c + hash * 65599;
-// 	}
-//
-// 	return hash;
-// }
+#[derive(Default)]
+pub struct sdbm_hasher{
+    // /** Hash the given string to an unsigned long value.
+    //  * This is the standard sdbm hashing algorithm.
+    //  * @param str string to hash
+    //  * @return the hash value of the given string
+    //  */
+    // unsigned long _alpm_hash_sdbm(const char *str)
+    // {
+    // 	unsigned long hash = 0;
+    // 	int c;
+    //
+    // 	if(!str) {
+    // 		return hash;
+    // 	}
+    // 	while((c = *str++)) {
+    // 		hash = c + hash * 65599;
+    // 	}
+    //
+    // 	return hash;
+    // }
+    hash: u64,
+}
+ use std::hash::Hasher;
+impl Hasher for sdbm_hasher {
+    fn finish(&self) -> u64 {
+        self.hash
+    }
+    fn write(&mut self, bytes: &[u8]){
+        for byte in bytes {
+            self.hash = *byte as u64 + self.hash*65599;
+        }
+    }
+}
+
 //
 // /** Convert a string to a file offset.
 //  * This parses bare positive integers only.

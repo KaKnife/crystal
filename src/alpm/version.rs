@@ -32,10 +32,12 @@ use super::*;
 
 /**
  * Split EVR into epoch, version, and release components.
- * @param evr		[epoch:]version[-release] string
- * @retval *ep		pointer to epoch
- * @retval *vp		pointer to version
- * @retval *rp		pointer to release
+/// * `evr` - [epoch:]version[-release] string
+///
+/// returns `(ep,vp.rp)`
+/// * ep - reference to epoch
+/// * vp - reference to version
+/// * rp - reference to release
  */
 fn parseEVR(evr: String) -> (String, String, Option<String>) {
     let mut tmp: Vec<&str>;
@@ -94,30 +96,23 @@ pub fn rpmvercmp(a: &String, b: &String) -> i8 {
     return 0;
 }
 
-/** Compare two version strings and determine which one is 'newer'.
- * Returns a value comparable to the way strcmp works. Returns 1
- * if a is newer than b, 0 if a and b are the same version, or -1
- * if b is newer than a.
- *
- * Different epoch values for version strings will override any further
- * comparison. If no epoch is provided, 0 is assumed.
- *
- * Keep in mind that the pkgrel is only compared if it is available
- * on both versions handed to this function. For example, comparing
- * 1.5-1 and 1.5 will yield 0; comparing 1.5-1 and 1.5-2 will yield
- * -1 as expected. This is mainly for supporting versioned dependencies
- * that do not include the pkgrel.
- */
+/// Compare two version strings and determine which one is 'newer'.
+ /// Returns a value comparable to the way strcmp works. Returns 1
+ /// if a is newer than b, 0 if a and b are the same version, or -1
+ /// if b is newer than a.
+ ///
+ /// Different epoch values for version strings will override any further
+ /// comparison. If no epoch is provided, 0 is assumed.
+ ///
+ /// Keep in mind that the pkgrel is only compared if it is available
+ /// on both versions handed to this function. For example, comparing
+ /// 1.5-1 and 1.5 will yield 0; comparing 1.5-1 and 1.5-2 will yield
+ /// -1 as expected. This is mainly for supporting versioned dependencies
+ /// that do not include the pkgrel.
 pub fn alpm_pkg_vercmp(a: &String, b: &String) -> i8 {
     // char *full1, *full2;
     // const char *epoch1, *ver1, *rel1;
     // const char *epoch2, *ver2, *rel2;
-    let epoch1: String;
-    let epoch2: String;
-    let ver1: String;
-    let ver2: String;
-    let rel1: Option<String>;
-    let rel2: Option<String>;
     let mut ret;
 
     /* another quick shortcut- if full version specs are equal */

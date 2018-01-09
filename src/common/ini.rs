@@ -53,21 +53,31 @@ use super::*;
  * @note Parsing will immediately stop if the callback returns non-zero.
  */
 
-pub type ini_parser_fn = Fn(&String, i32, &String, &Option<String>, &Option<String>, &mut section_t) -> i32;
+pub type ini_parser_fn =
+	Fn(&String, i32, &String, &Option<String>, &Option<String>, &mut section_t, &mut config_t)
+		-> i32;
 
-pub fn parse_ini(file: &String, cb: &ini_parser_fn, data: &mut section_t) -> i32 {
+pub fn parse_ini(
+	file: &String,
+	cb: &ini_parser_fn,
+	data: &mut section_t,
+	config: &mut config_t,
+) -> i32 {
 	// char line[PATH_MAX], *section_name = NULL;
 	let mut section_name = String::new();
 	// FILE *fp = NULL;
 	let mut linenum = 0;
 	let mut ret = 0;
 	// int linenum = 0;
- // int ret = 0;
+	// int ret = 0;
 
-	let fp = BufReader::new(File::open(file).unwrap());
+	let fp = match File::open(file) {
+		Ok(f) => BufReader::new(f),
+		Err(e) => unimplemented!("{}:{}", e, file),
+	};
 	// if fp == NULL {
- // 	return cb(file, 0, NULL, NULL, NULL, data);
- // }
+	// 	return cb(file, 0, NULL, NULL, NULL, data);
+	// }
 
 	for linew in fp.lines() {
 		let line;
@@ -75,10 +85,10 @@ pub fn parse_ini(file: &String, cb: &ini_parser_fn, data: &mut section_t) -> i32
 			Ok(l) => line = l,
 			Err(_) => continue,
 		}
-		let key;
+		let key:String;
 		let value;
 		// size_t line_len;
-  // let line_len;
+		// let line_len;
 
 		linenum += 1;
 
@@ -97,7 +107,7 @@ pub fn parse_ini(file: &String, cb: &ini_parser_fn, data: &mut section_t) -> i32
 			name.trim_right_matches("]");
 			// name[line_len - 2] = '\0';
 
-			ret = cb(file, linenum, &name, &None, &None, data);
+			ret = cb(file, linenum, &name, &None, &None, data, config);
 			// free(section_name);
 			section_name = name;
 
@@ -112,13 +122,22 @@ pub fn parse_ini(file: &String, cb: &ini_parser_fn, data: &mut section_t) -> i32
 		/* directive */
 		/* strsep modifies the 'line' string: 'key \0 value' */
 		let keyvalue: Vec<&str> = line.split("=").collect();
-		key= String::from(keyvalue[0]);
-		value = String::from(keyvalue[1]);
-		// strsep(&value, "=");
-		key.trim();
-		value.trim();
+		key = String::from(keyvalue[0].trim());
+		value = if keyvalue.len() > 1 {
+			Some(String::from(keyvalue[1].trim()))
+		} else {
+			None
+		};
 
-		ret = cb(file, linenum, &section_name, &Some(key), &Some(value), data);
+		ret = cb(
+			file,
+			linenum,
+			&section_name,
+			&Some(key),
+			&value,
+			data,
+			config,
+		);
 		if ret != 0 {
 			// goto cleanup;
 			return ret;

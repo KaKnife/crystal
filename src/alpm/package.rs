@@ -829,11 +829,11 @@ impl alpm_pkg_t {
     // }
 }
 /// Find a package in a list by name.
-/// # Arguments
+///
 /// * `haystack` - a Vec of alpm_pkg_t
 /// * `needle` - the package name
-/// # Returns
-/// a pointer to the package if found or NULL
+///
+/// returns a pointer to the package if found or None
 pub fn alpm_pkg_find<'a>(haystack: &'a Vec<alpm_pkg_t>, needle: &String) -> Option<&'a alpm_pkg_t> {
     match haystack.binary_search_by_key(needle, |ref a| a.name.clone()) {
         Ok(i) => {
