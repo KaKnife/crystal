@@ -10,18 +10,21 @@ pub mod sync;
 pub mod query;
 pub mod deptest;
 pub mod package;
-pub use self::package::*;
-pub use self::deptest::*;
-pub use self::query::*;
-pub use self::sync::*;
-pub use self::upgrade::*;
-pub use self::alpm::*;
-pub use self::remove::*;
-pub use self::util::*;
-pub use self::database::*;
-pub use self::conf::*;
-pub use self::operations::*;
+use self::package::*;
+use self::deptest::*;
+use self::query::*;
+use self::sync::*;
+use self::upgrade::*;
+use self::alpm::*;
+use self::remove::*;
+use self::util::*;
+use self::database::*;
+use self::conf::*;
+use self::operations::*;
+
 pub use self::conf::config_t;
+pub use self::conf::section_t;
+
 use super::*;
 use super::common::*;
 // use pacman::conf::PKG_LOCALITY_FOREIGN;
@@ -76,8 +79,8 @@ use std;
 // #include "conf.h"
 // #include "sighandler.h"
 // /* list of targets specified on command line */
-//
-//
+
+
 // /* Used to sort the options in --help */
 // static int options_cmp(const void *p1, const void *p2)
 // {
