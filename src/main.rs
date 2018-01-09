@@ -11,6 +11,7 @@ pub use self::common::*;
 extern crate libc;
 extern crate getopts;
 extern crate glob;
+const PACKAGE_VERSION:&str = "0.0.1";
 fn main() {
     pacman::main();
 }

@@ -78,16 +78,11 @@ impl alpm_handle_t {
     pub fn alpm_option_get_root(&self) -> String {
         return self.root.clone();
     }
-}
 
-//
-// alpm_list_t SYMEXPORT *alpm_option_get_hookdirs(alpm_handle_t *handle)
-// {
-// 	CHECK_HANDLE(handle, return NULL);
-// 	return handle->hookdirs;
-// }
+    pub fn alpm_option_get_hookdirs(&self) -> Vec<String> {
+        self.hookdirs.clone()
+    }
 
-impl alpm_handle_t {
     pub fn alpm_option_get_dbpath(&self) -> &String {
         // unimplemented!();
         // CHECK_HANDLE(handle, return NULL);
@@ -98,24 +93,18 @@ impl alpm_handle_t {
         return self.cachedirs.clone();
     }
 
-    // const char SYMEXPORT *alpm_option_get_logfile(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	return handle->logfile;
-    // }
-    //
-    // const char SYMEXPORT *alpm_option_get_lockfile(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	return handle->lockfile;
-    // }
-    //
-    // const char SYMEXPORT *alpm_option_get_gpgdir(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	return handle->gpgdir;
-    // }
-    //
+    pub fn alpm_option_get_logfile(&self) -> String {
+        self.logfile.clone()
+    }
+
+    pub fn alpm_option_get_lockfile(&self) -> String {
+        self.lockfile.clone()
+    }
+
+    pub fn alpm_option_get_gpgdir(&self) -> String {
+        self.gpgdir.clone()
+    }
+
     // int SYMEXPORT alpm_option_get_usesyslog(alpm_handle_t *handle)
     // {
     // 	CHECK_HANDLE(handle, return -1);
@@ -513,19 +502,18 @@ impl alpm_handle_t {
     // 	return -1;
     // }
 
-    pub fn alpm_option_remove_assumeinstalled(&self, dep: &alpm_depend_t) {
+    pub fn alpm_option_remove_assumeinstalled(&self, dep: &alpm_depend_t) -> i32 {
         unimplemented!();
         // alpm_depend_t *vdata = NULL;
-        // CHECK_HANDLE(handle, return -1);
 
-        // 	self.assumeinstalled = alpm_list_remove(handle->assumeinstalled, dep,
+        // self.assumeinstalled = alpm_list_remove(handle->assumeinstalled, dep,
         // &assumeinstalled_cmp, (void **)&vdata);
-        // 	if(vdata != NULL) {
-        // 		alpm_dep_free(vdata);
-        // 		return 1;
-        // 	}
-        //
-        // 	return 0;
+        // if(vdata != NULL) {
+        // 	alpm_dep_free(vdata);
+        // 	return 1;
+        // }
+
+        // return 0;
     }
 
     pub fn alpm_option_set_arch(&mut self, arch: &String) {
@@ -599,7 +587,7 @@ impl alpm_handle_t {
     pub fn alpm_option_set_remote_file_siglevel(&mut self, level: siglevel) {
         // unimplemented!();
         // #ifdef HAVE_LIBGPGME
-        	self.remotefilesiglevel = level;
+        self.remotefilesiglevel = level;
         // #else
         // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
         // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);

@@ -80,7 +80,6 @@ use std;
 // #include "sighandler.h"
 // /* list of targets specified on command line */
 
-
 // /* Used to sort the options in --help */
 // static int options_cmp(const void *p1, const void *p2)
 // {
@@ -296,23 +295,15 @@ use std;
 // }
 // #endif
 
-/** Set user agent environment variable.
- */
-// static void setuseragent(void)
-// {
-// 	char agent[100];
-// 	struct utsname un;
-// 	int len;
-//
-// 	uname(&un);
-// 	len = snprintf(agent, 100, "pacman/%s (%s %s) libalpm/%s",
-// 			PACKAGE_VERSION, un.sysname, un.machine, alpm_version());
-// 	if(len >= 100) {
-// 		pm_printf(ALPM_LOG_WARNING, _("HTTP_USER_AGENT truncated\n"));
-// 	}
-//
-// 	setenv("HTTP_USER_AGENT", agent, 0);
-// }
+/// Set user agent environment variable.
+fn setuseragent() {
+    let agent = format!("crystal/{} ({} {})", PACKAGE_VERSION, "linux", "x86_64");
+    // 	if(len >= 100) {
+    // 		pm_printf(ALPM_LOG_WARNING, _("HTTP_USER_AGENT truncated\n"));
+    // 	}
+    //
+    env::set_var("HTTP_USER_AGENT", agent);
+}
 
 // Free the resources.
 // *param ret the return value
@@ -377,7 +368,7 @@ pub fn main() {
     // #endif
 
     /* set user agent for downloading */
-    // setuseragent();
+    setuseragent();
 
     /* init config data */
     config = config_t::new();
@@ -497,24 +488,26 @@ pub fn main() {
     }
 
     if config.verbose > 0 {
-        // 	alpm_list_t *j;
         println!("Root      : {}", config.handle.alpm_option_get_root());
         println!("Conf File : {}", config.configfile);
         println!("DB Path   : {}", config.handle.alpm_option_get_dbpath());
-        // 	print!("Cache Dirs: ");
-        // 	for(j = alpm_option_get_cachedirs(config.handle); j; j = alpm_list_next(j)) {
-        // 		printf("%s  ", (const char *)j->data);
-        // 	}
-        // 	printf("\n");
-        // 	printf("Hook Dirs : ");
-        // 	for(j = alpm_option_get_hookdirs(config.handle); j; j = alpm_list_next(j)) {
-        // 		printf("%s  ", (const char *)j->data);
-        // 	}
-        // 	printf("\n");
-        // 	printf("Lock File : %s\n", alpm_option_get_lockfile(config.handle));
-        // 	printf("Log File  : %s\n", alpm_option_get_logfile(config.handle));
-        // 	printf("GPG Dir   : %s\n", alpm_option_get_gpgdir(config.handle));
-        // 	list_display("Targets   :", pm_targets, 0);
+        print!("Cache Dirs: ");
+        for dir in config.handle.alpm_option_get_cachedirs() {
+            print!("{}  ", dir);
+        }
+        println!();
+        print!("Hook Dirs : ");
+        for dir in config.handle.alpm_option_get_hookdirs() {
+            print!("{}  ", dir);
+        }
+        println!();
+        println!("Lock File : {}", config.handle.alpm_option_get_lockfile());
+        println!("Log File  : {}", config.handle.alpm_option_get_logfile());
+        println!("GPG Dir   : {}", config.handle.alpm_option_get_gpgdir());
+        print!("Targets   :");
+        for target in pm_targets {
+            print!("{}  ", target);
+        }
     }
 
     // /* Log command line */
