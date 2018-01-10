@@ -27,7 +27,7 @@ use super::alpm::*;
  *
  * @return 0 on success, 1 on failure
  */
-fn change_install_reason(targets: Vec<String>, config: &super::conf::config_t) -> i32 {
+fn change_install_reason(targets: Vec<String>, config: &mut config_t) -> i32 {
     // 	alpm_list_t *i;
     let db_local; // 	alpm_db_t *db_local;
     let mut ret = 0;
@@ -281,7 +281,7 @@ fn check_db_sync(config: &mut config_t) -> i32 {
     check_db_missing_deps(config, &mut syncpkglist)
 }
 
-pub fn pacman_database(targets: Vec<String>, config: &mut config_t) -> Result<(), i32> {
+pub fn pacman_database(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), i32> {
     let mut ret = 0;
 
     if config.op_q_check != 0 {

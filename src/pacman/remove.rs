@@ -28,20 +28,22 @@ fn fnmatch_cmp(pattern: &String, string: &String) -> std::cmp::Ordering {
 fn remove_target(target: String, config: &mut config_t) -> i32 {
     match config.handle.db_local.alpm_db_get_pkg(&target) {
         Some(pkg) => {
-            if alpm_remove_pkg(&mut config.handle.pm_errno, &mut config.handle.trans, &pkg) == -1 {
-                let err = config.handle.alpm_errno();
-                use self::alpm_errno_t::*;
-                match err {
-                    ALPM_ERR_TRANS_DUP_TARGET => {
-                        /* just skip duplicate targets */
-                        println!("skipping target: {}", target);
-                        return 0;
-                    }
-                    _ => {
-                        eprintln!("'{}': {}\n", target, err.alpm_strerror());
-                        return -1;
+            match alpm_remove_pkg(&mut config.handle.trans, &pkg) {
+                Err(err) => {
+                    use self::alpm_errno_t::*;
+                    match err {
+                        ALPM_ERR_TRANS_DUP_TARGET => {
+                            /* just skip duplicate targets */
+                            println!("skipping target: {}", target);
+                            return 0;
+                        }
+                        _ => {
+                            eprintln!("'{}': {}\n", target, err.alpm_strerror());
+                            return -1;
+                        }
                     }
                 }
+                Ok(_) => {}
             }
             config.explicit_removes.push(pkg);
             return 0;
@@ -55,15 +57,16 @@ fn remove_target(target: String, config: &mut config_t) -> i32 {
     match grp {
         Some(grp) => {
             for pkg in &grp.packages {
-                if alpm_remove_pkg(&mut config.handle.pm_errno, &mut config.handle.trans, &pkg)
-                    == -1
-                {
-                    eprintln!(
-                        "'{}': {}",
-                        target,
-                        config.handle.alpm_errno().alpm_strerror()
-                    );
-                    return -1;
+                match alpm_remove_pkg(&mut config.handle.trans, &pkg) {
+                    Err(e) => {
+                        eprintln!(
+                            "'{}': {}",
+                            target,
+                            e.alpm_strerror()
+                        );
+                        return -1;
+                    }
+                    Ok(_) => {}
                 }
                 let newpkg = pkg.clone();
 
@@ -82,7 +85,7 @@ fn remove_target(target: String, config: &mut config_t) -> i32 {
 /// returns Ok on success, Err(1) on failure.
 ///
 /// * `targets` - a Vec of packages (as strings) to remove from the system
-pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> Result<(), i32> {
+pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), i32> {
     unimplemented!();
     let mut retval = 0;
     // let data;
@@ -94,7 +97,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> Result<(), 
     }
 
     /* Step 0: create a new transaction */
-    if trans_init(&config.flags, 0, config) == -1 {
+    if trans_init(&config.flags.clone(), 0, config) == -1 {
         return Err(1);
     }
 

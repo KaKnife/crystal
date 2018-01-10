@@ -215,18 +215,18 @@ impl alpm_handle_t {
     // 	return 0;
     // }
 
-    pub fn alpm_option_add_hookdir(&mut self, hookdir: &String) -> i32 {
+    pub fn alpm_option_add_hookdir(&mut self, hookdir: &String) -> Result<i32> {
         // 	char *newhookdir;
         let newhookdir = match std::fs::canonicalize(hookdir) {
             Err(_) => {
-                RET_ERR!(self, ALPM_ERR_MEMORY, -1);
+                return Err(ALPM_ERR_MEMORY);
             }
             Ok(h) => h,
         };
         self.hookdirs
             .push(newhookdir.into_os_string().into_string().unwrap());
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "option 'hookdir' = %s\n", newhookdir);
-        return 0;
+        return Ok(0);
     }
 
     // int SYMEXPORT alpm_option_set_hookdirs(alpm_handle_t *handle, alpm_list_t *hookdirs)
@@ -265,7 +265,7 @@ impl alpm_handle_t {
     // 	return 0;
     // }
 
-    pub fn alpm_option_add_cachedir(&mut self, cachedir: &String) -> i32 {
+    pub fn alpm_option_add_cachedir(&mut self, cachedir: &String) -> Result<i32> {
         // 	char *newcachedir;
         //
         /* don't stat the cachedir yet, as it may not even be needed. we can
@@ -273,24 +273,21 @@ impl alpm_handle_t {
         //
         let newcachedir = match std::fs::canonicalize(cachedir) {
             Err(_) => {
-                RET_ERR!(self, ALPM_ERR_MEMORY, -1);
+                return Err(ALPM_ERR_MEMORY);
             }
             Ok(n) => n.into_os_string(),
         };
         self.cachedirs.push(newcachedir.into_string().unwrap());
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "option 'cachedir' = %s\n", newcachedir);
-        return 0;
+        return Ok(0);
     }
 
-    pub fn alpm_option_set_cachedirs(&mut self, cachedirs: &Vec<String>) -> i32 {
+    pub fn alpm_option_set_cachedirs(&mut self, cachedirs: &Vec<String>) -> Result<i32> {
         // 	alpm_list_t *i;
         for dir in cachedirs {
-            let ret = self.alpm_option_add_cachedir(&dir);
-            if ret != 0 {
-                return ret;
-            }
+            self.alpm_option_add_cachedir(&dir)?;
         }
-        return 0;
+        return Ok(0);
     }
 
     // int SYMEXPORT alpm_option_remove_cachedir(alpm_handle_t *handle, const char *cachedir)
@@ -312,33 +309,27 @@ impl alpm_handle_t {
     // 	}
     // 	return 0;
     // }
-    //
-    pub fn alpm_option_set_logfile(&mut self, logfile: &String) -> i32 {
-        // let oldlogfile = self.logfile.clone();
-
+    
+    pub fn alpm_option_set_logfile(&mut self, logfile: &String) -> Result<i32> {
         if logfile == "" {
-            self.pm_errno = ALPM_ERR_WRONG_ARGS;
-            return -1;
+            return Err(ALPM_ERR_WRONG_ARGS);
         }
 
         self.logfile = logfile.clone();
 
-        /* free the old logfile path string, and close the stream so logaction
+        /* close the stream so logaction
          * will reopen a new stream on the new logfile */
-        // if(oldlogfile) {
-        // 	FREE(oldlogfile);
-        // }
         // if handle.logstream {
         // 	fclose(handle->logstream);
         // 	handle.logstream = NULL;
         // }
         // _alpm_log(handle, ALPM_LOG_DEBUG, "option 'logfile' = %s\n", handle->logfile);
-        return 0;
+        return Ok(0);
     }
 
-    pub fn alpm_option_set_gpgdir(&mut self, gpgdir: &String) -> Result<(), i32> {
+    pub fn alpm_option_set_gpgdir(&mut self, gpgdir: &String) -> Result<()> {
         match _alpm_set_directory_option(gpgdir, &mut self.gpgdir, false) {
-            Err(err) => RET_ERR!(self, err, Err(-1)),
+            Err(err) => return Err(err),
             Ok(_) => Ok(()),
         }
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "option 'gpgdir' = %s\n", handle->gpgdir);
@@ -520,12 +511,12 @@ impl alpm_handle_t {
         self.arch = arch.clone();
     }
 
-    pub fn alpm_option_set_deltaratio(&mut self, ratio: f64) -> i32 {
+    pub fn alpm_option_set_deltaratio(&mut self, ratio: f64) -> Result<()> {
         if ratio < 0.0 || ratio > 2.0 {
-            RET_ERR!(self, ALPM_ERR_WRONG_ARGS, -1);
+            return Err(ALPM_ERR_WRONG_ARGS);
         }
         self.deltaratio = ratio;
-        return 0;
+        Ok(())
     }
 
     pub fn alpm_get_localdb(&self) -> &alpm_db_t {
@@ -562,17 +553,18 @@ impl alpm_handle_t {
         return self.siglevel;
     }
 
-    pub fn alpm_option_set_local_file_siglevel(&mut self, level: siglevel) -> i32 {
+    pub fn alpm_option_set_local_file_siglevel(&mut self, level: siglevel) -> Result<i32> {
         // CHECK_HANDLE(handle, return -1);
         if cfg!(HAVE_LIBGPGME) {
             self.localfilesiglevel = level;
         } else if
         /*level != 0 &&*/
         level.ALPM_SIG_USE_DEFAULT {
-            RET_ERR!(self, ALPM_ERR_WRONG_ARGS, -1);
+            // RET_ERR!(self, ALPM_ERR_WRONG_ARGS, -1);
+            return Err(ALPM_ERR_WRONG_ARGS);
         }
 
-        return 0;
+        return Ok(0);
     }
 
     pub fn alpm_option_get_local_file_siglevel(&self) -> siglevel {
@@ -744,7 +736,7 @@ pub fn _alpm_set_directory_option(
     value: &String,
     storage: &mut String,
     must_exist: bool,
-) -> Result<(), alpm_errno_t> {
+) -> Result<()> {
     let mut path = value.clone();
 
     if must_exist {
@@ -847,7 +839,7 @@ pub struct alpm_handle_t {
                                   // 	                                       upgrade operations */
     //
     // 	/* error code */
-    pub pm_errno: alpm_errno_t,
+    // pub pm_errno: alpm_errno_t,
 
     /* lock file descriptor */
     lockfd: Option<File>,

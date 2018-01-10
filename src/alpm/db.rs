@@ -70,7 +70,7 @@ pub struct alpm_dbstatus_t {
 //     unregister: Fn(&alpm_db_t),
 // }
 
-/* Database */
+/// Database
 #[derive(Debug, Default, Clone)]
 pub struct alpm_db_t {
     // handle: alpm_handle_t,
@@ -81,11 +81,24 @@ pub struct alpm_db_t {
     grpcache: Vec<alpm_group_t>,
     pub servers: Vec<String>,
     // ops: db_operations,
+    pub ops_type: db_ops_type, //I created this to deturmine if it is local or other stuff
 
     /* bitfields for validity, local, loaded caches, etc. */
     pub status: alpm_dbstatus_t,
     pub siglevel: siglevel,
     pub usage: alpm_db_usage_t,
+}
+
+#[derive(Debug, Clone)]
+pub enum db_ops_type {
+    unknown,
+    local,
+    sync,
+}
+impl Default for db_ops_type {
+    fn default() -> Self {
+        db_ops_type::unknown
+    }
 }
 
 /*
@@ -128,6 +141,13 @@ pub struct alpm_db_t {
 // #include "group.h"
 
 impl alpm_db_t {
+    fn validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
+        match self.ops_type {
+            db_ops_type::local => self.local_db_validate(handle),
+            db_ops_type::sync => self.sync_db_validate(handle),
+            db_ops_type::unknown => unimplemented!(),
+        }
+    }
     /* Helper function for alpm_db_unregister{_all} */
     // fn _alpm_db_unregister(&self)
     // {
@@ -396,9 +416,8 @@ impl alpm_db_t {
     // }
 
     /// Check the validity of a database.
-    pub fn alpm_db_get_valid(&self) -> bool {
-        unimplemented!();
-        // return db.validate(db);
+    pub fn alpm_db_get_valid(&mut self, handle: &mut alpm_handle_t) -> Result<bool> {
+        self.validate(handle)
     }
 
     /// Get a package entry from a package database. */
@@ -541,13 +560,13 @@ impl alpm_db_t {
         self.usage = usage.clone();
     }
 
-    pub fn _alpm_db_path(&mut self, handle: &mut alpm_handle_t) -> Result<String, alpm_errno_t> {
+    pub fn _alpm_db_path(&mut self, handle: &alpm_handle_t) -> Result<String> {
         if self._path == "" {
             let dbpath = handle.dbpath.clone();
             if dbpath == "" {
                 eprintln!("database path is undefined");
                 use self::alpm_errno_t::ALPM_ERR_DB_OPEN;
-                RET_ERR!(handle, ALPM_ERR_DB_OPEN, Err(ALPM_ERR_DB_OPEN));
+                return Err(ALPM_ERR_DB_OPEN);
             }
 
             if self.status.DB_STATUS_LOCAL {
@@ -598,6 +617,19 @@ impl alpm_db_t {
         // 	FREELIST(db->grpcache);
         self.status.DB_STATUS_GRPCACHE = false;
     }
+
+    pub fn _alpm_db_new(treename: &String, is_local: bool) -> Self {
+        let mut db = Self::default();
+        db.treename = treename.clone();
+        if is_local {
+            db.status.DB_STATUS_LOCAL = true;
+        } else {
+            db.status.DB_STATUS_LOCAL = false;
+        }
+        db.usage.ALPM_DB_USAGE_ALL = true;
+
+        return db;
+    }
 }
 
 impl alpm_handle_t {
@@ -627,21 +659,21 @@ impl alpm_handle_t {
         &mut self,
         treename: &String,
         siglevel: siglevel,
-    ) -> Option<alpm_db_t> {
+    ) -> Result<alpm_db_t> {
         /* ensure database name is unique */
         if treename == "local" {
-            RET_ERR!(self, alpm_errno_t::ALPM_ERR_DB_NOT_NULL, None);
+            return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
         }
         match self.dbs_sync {
             Some(ref dbs) => for d in dbs {
                 if treename == &d.treename {
-                    RET_ERR!(self, alpm_errno_t::ALPM_ERR_DB_NOT_NULL, None);
+                    return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
                 }
             },
             _ => {}
         }
 
-        Some(self._alpm_db_register_sync(&treename, siglevel))
+        Ok(self._alpm_db_register_sync(&treename, siglevel))
     }
 }
 
@@ -661,19 +693,6 @@ fn sanitize_url(url: &String) -> String {
 // 	*usage = db->usage;
 // 	return 0;
 // }
-
-pub fn _alpm_db_new(treename: &String, is_local: bool) -> alpm_db_t {
-    let mut db = alpm_db_t::default();
-    db.treename = treename.clone();
-    if is_local {
-        db.status.DB_STATUS_LOCAL = true;
-    } else {
-        db.status.DB_STATUS_LOCAL = false;
-    }
-    db.usage.ALPM_DB_USAGE_ALL = true;
-
-    return db;
-}
 
 // void _alpm_db_free(alpm_db_t *db)
 // {

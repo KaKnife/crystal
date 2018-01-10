@@ -389,7 +389,7 @@ use super::*;
 // 	return ret;
 // }
 
-pub fn pacman_query(targets: Vec<String>, config: &mut config_t) -> Result<(), i32>
+pub fn pacman_query(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), i32>
 {
 unimplemented!();
 // 	int ret = 0;

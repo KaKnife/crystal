@@ -323,7 +323,11 @@ fn sync_search(syncs: &Vec<alpm_db_t>, targets: &Vec<String>) -> bool {
     return found == 0;
 }
 
-fn sync_group(level: i32, syncs: &Vec<alpm_db_t>, targets: Vec<String>) -> Result<(), i32> {
+fn sync_group(
+    level: i32,
+    syncs: &Vec<alpm_db_t>,
+    targets: Vec<String>,
+) -> std::result::Result<(), i32> {
     unimplemented!();
     // 	alpm_list_t *i, *j, *k, *s = NULL;
     // 	int ret = 0;
@@ -609,13 +613,13 @@ fn process_targname<T>(dblist: Vec<T>, targname: &String, error: i32, config: &c
     let pkg: Option<alpm_pkg_t> = config.handle.alpm_find_dbs_satisfier(&dblist, targname);
 
     /* skip ignored packages when user says no */
-    match config.handle.alpm_errno() {
-        alpm_errno_t::ALPM_ERR_PKG_IGNORED => {
-            // pm_printf(ALPM_LOG_WARNING, _("skipping target: %s\n"), targname);
-            return 0;
-        }
-        _ => {}
-    }
+    // match config.handle.alpm_errno() {
+    //     alpm_errno_t::ALPM_ERR_PKG_IGNORED => {
+    //         // pm_printf(ALPM_LOG_WARNING, _("skipping target: %s\n"), targname);
+    //         return 0;
+    //     }
+    //     _ => {}
+    // }
 
     match pkg {
         Some(pkg) => return process_pkg(&pkg),
@@ -678,11 +682,11 @@ fn process_target(target: &String, error: i32) -> i32 {
     // 	return ret;
 }
 
-fn sync_trans(targets: &Vec<String>, config: &config_t) -> Result<(), i32> {
+fn sync_trans(targets: &Vec<String>, config: &mut config_t) -> std::result::Result<(), i32> {
     let mut retval = 0;
 
     /* Step 1: create a new transaction... */
-    if trans_init(&config.flags, 1, config) == -1 {
+    if trans_init(&config.flags.clone(), 1, config) == -1 {
         return Err(1);
     }
 
@@ -700,10 +704,13 @@ fn sync_trans(targets: &Vec<String>, config: &config_t) -> Result<(), i32> {
             // 			alpm_logaction(config->handle, PACMAN_CALLER_PREFIX,
             // 					"starting full system upgrade\n");
         }
-        if alpm_sync_sysupgrade(&config.handle, config.op_s_upgrade >= 2) == -1 {
-            eprintln!("{}", config.handle.alpm_errno().alpm_strerror());
-            trans_release(&config);
-            return Err(1);
+        match alpm_sync_sysupgrade(&config.handle, config.op_s_upgrade >= 2) {
+            Err(e) => {
+                eprintln!("{}", e.alpm_strerror());
+                trans_release(&config);
+                return Err(1);
+            }
+            Ok(_) => {}
         }
     }
 
@@ -731,7 +738,7 @@ fn print_broken_dep(miss: &alpm_depmissing_t) {
     // 	free(depstring);
 }
 
-pub fn sync_prepare_execute() -> Result<(), i32> {
+pub fn sync_prepare_execute() -> std::result::Result<(), i32> {
     unimplemented!();
     // 	alpm_list_t *i, *packages, *data = NULL;
     // 	int retval = 0;
@@ -865,7 +872,7 @@ pub fn sync_prepare_execute() -> Result<(), i32> {
     // 	return retval;
 }
 
-pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> Result<(), i32> {
+pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), i32> {
     // 	alpm_list_t *sync_dbs = NULL;
     let mut sync_dbs: Vec<alpm_db_t>;
 

@@ -1550,13 +1550,21 @@ impl Hasher for sdbm_hasher {
 //
 // #define ASSERT(cond, action) do { if(!(cond)) { action; } } while(0)
 
-macro_rules! RET_ERR {
-	($handle:expr, $err:expr, $ret:expr) => {{
-		// _alpm_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, alpm_strerror(err));
-		 	($handle).pm_errno = $err;
-		 	return $ret;
-	}}
-}
+// macro_rules! RET_ERR {
+// 	($handle:expr, $err:expr, $ret:expr) => {{
+// 		// _alpm_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, alpm_strerror(err));
+// 		 	($handle).pm_errno = $err;
+// 		 	return $ret;
+// 	}}
+// }
+
+// macro_rules! RET_ERR {
+// 	($handle:expr, $err:expr, $ret:expr) => {{
+// 		// _alpm_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, alpm_strerror(err));
+// 		 	return Err($err);
+// 	}}
+// }
+
 
 // #define RET_ERR_VOID(handle, err) do { \
 // 	_alpm_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, alpm_strerror(err)); \

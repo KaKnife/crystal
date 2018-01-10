@@ -468,9 +468,11 @@ pub fn main() {
     // }
 
     /* parse the config file */
-    ret = parseconfig(&config.configfile.clone(), &mut config);
-    if ret != 0 {
-        cleanup(ret);
+    match parseconfig(&config.configfile.clone(), &mut config) {
+        Err(ret) => {
+            cleanup(1);
+        }
+        Ok(_) => {}
     }
 
     /* noask is meant to be non-interactive */

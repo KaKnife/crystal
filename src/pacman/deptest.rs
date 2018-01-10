@@ -19,7 +19,7 @@ use super::*;
 //  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //  */
 
-pub fn pacman_deptest(targets: Vec<String>, config: &mut config_t) -> Result<(), i32>
+pub fn pacman_deptest(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), i32>
 {
 	unimplemented!();
 // 	alpm_list_t *i;

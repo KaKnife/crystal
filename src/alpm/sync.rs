@@ -201,7 +201,7 @@ use super::*;
 // }
 
 /** Search for packages to upgrade and add them to the transaction. */
-pub fn alpm_sync_sysupgrade(handle: &alpm_handle_t, enable_downgrade:bool) -> i32
+pub fn alpm_sync_sysupgrade(handle: &alpm_handle_t, enable_downgrade:bool) -> Result<i32>
 {
 	unimplemented!();
 // 	alpm_list_t *i, *j;

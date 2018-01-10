@@ -19,11 +19,11 @@ use super::*;
  *  along with this program.  If not, see <http=>//www.gnu.org/licenses/>.
  */
 
-impl alpm_handle_t {
-    pub fn alpm_errno(&self) -> alpm_errno_t {
-        self.pm_errno
-    }
-}
+// impl alpm_handle_t {
+//     pub fn alpm_errno(&self) -> alpm_errno_t {
+//         self.pm_errno
+//     }
+// }
 
 impl alpm_errno_t {
     pub fn alpm_strerror(&self) -> String {

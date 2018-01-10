@@ -334,7 +334,7 @@ impl config_t {
     }
 
     /// Parse command-line arguments for each operation.
-    pub fn parseargs(&mut self, argv: Vec<String>) -> Result<Vec<String>, ()> {
+    pub fn parseargs(&mut self, argv: Vec<String>) -> std::result::Result<Vec<String>, ()> {
         let mut opts = getopts::Options::new();
         {
             opts.optflag("D", "--database", "");
@@ -1504,7 +1504,7 @@ fn _parse_options(
     // 	return 0;
 }
 
-fn _add_mirror(db: &alpm_db_t, value: &String) -> i32 {
+fn _add_mirror(db: &alpm_db_t, value: &String) -> Result<i32> {
     unimplemented!();
     // 	const char *dbname = alpm_db_get_name(db);
     // 	/* let's attempt a replacement for the current repo */
@@ -1535,7 +1535,7 @@ fn _add_mirror(db: &alpm_db_t, value: &String) -> i32 {
     // 	}
     //
     // 	free(server);
-    return 0;
+    // return 0;
 }
 
 fn register_repo(
@@ -1546,15 +1546,15 @@ fn register_repo(
     repo.siglevel = merge_siglevel(config_siglevel, repo.siglevel, repo.siglevel_mask);
 
     let mut db = match config_handle.alpm_register_syncdb(&repo.name, repo.siglevel) {
-        None => {
+        Err(e) => {
             eprintln!(
                 "could not register '{}' database ({})",
                 repo.name,
-                config_handle.alpm_errno().alpm_strerror()
+                e.alpm_strerror()
             );
             return 1;
         }
-        Some(db) => db,
+        Ok(db) => db,
     };
 
     // 	pm_printf(ALPM_LOG_DEBUG,
@@ -1568,14 +1568,17 @@ fn register_repo(
 
     for value in &repo.servers {
         // char *value = i->data;
-        if _add_mirror(&db, &value) != 0 {
-            eprintln!(
-                "could not add mirror '{}' to database '{}' ({})",
-                value,
-                repo.name,
-                config_handle.alpm_errno().alpm_strerror()
-            );
-            return 1;
+        match _add_mirror(&db, &value) {
+            Err(e) => {
+                eprintln!(
+                    "could not add mirror '{}' to database '{}' ({})",
+                    value,
+                    repo.name,
+                    e.alpm_strerror()
+                );
+                return 1;
+            }
+            Ok(_) => {}
         }
     }
 
@@ -1597,7 +1600,7 @@ fn register_repo(
  * of our paths to live under the rootdir that was specified. Safe to call
  * multiple times (will only do anything the first time).
  */
-fn setup_libalpm(config: &mut config_t) -> i32 {
+fn setup_libalpm(config: &mut config_t) -> Result<i32> {
     let mut ret = 0;
     // 	alpm_errno_t err;
     // 	alpm_handle_t *handle;
@@ -1640,7 +1643,7 @@ fn setup_libalpm(config: &mut config_t) -> i32 {
                 }
                 _ => {}
             }
-            return -1;
+            return Err(e);
         }
     };
 
@@ -1662,15 +1665,17 @@ fn setup_libalpm(config: &mut config_t) -> i32 {
     if config.logfile == "" {
         config.logfile = String::from(LOGFILE)
     };
-    ret = config.handle.alpm_option_set_logfile(&config.logfile);
-    if ret != 0 {
-        eprintln!(
-            "problem setting logfile '{}' ({})",
-            config.logfile,
-            config.handle.alpm_errno().alpm_strerror()
-        );
-        return ret;
-    }
+    match config.handle.alpm_option_set_logfile(&config.logfile) {
+        Err(e) => {
+            eprintln!(
+                "problem setting logfile '{}' ({})",
+                config.logfile,
+                e.alpm_strerror()
+            );
+            return Err(e);
+        }
+        _ => {}
+    };
 
     /* Set GnuPG's home directory. This is not relative to rootdir, even if
      * rootdir is defined. Reasoning: gpgdir contains configuration data. */
@@ -1682,9 +1687,9 @@ fn setup_libalpm(config: &mut config_t) -> i32 {
             eprintln!(
                 "problem setting gpgdir '{}' ({})\n",
                 config.gpgdir,
-                config.handle.alpm_errno().alpm_strerror()
+                ret.alpm_strerror()
             );
-            return ret;
+            return Err(ret);
         }
         _ => {}
     }
@@ -1692,28 +1697,29 @@ fn setup_libalpm(config: &mut config_t) -> i32 {
     /* Set user hook directory. This is not relative to rootdir, even if
      * rootdir is defined. Reasoning: hookdir contains configuration data. */
     if config.hookdirs.is_empty() {
-        ret = config
+        match config
             .handle
-            .alpm_option_add_hookdir(&String::from(HOOKDIR));
-        if ret != 0 {
-            eprintln!(
-                "problem adding hookdir '{}' ({})\n",
-                HOOKDIR,
-                config.handle.alpm_errno().alpm_strerror()
-            );
-            return ret;
+            .alpm_option_add_hookdir(&String::from(HOOKDIR))
+        {
+            Err(e) => {
+                eprintln!(
+                    "problem adding hookdir '{}' ({})\n",
+                    HOOKDIR,
+                    e.alpm_strerror()
+                );
+                return Err(e);
+            }
+            Ok(_) => {}
         }
     } else {
         /* add hook directories 1-by-1 to avoid overwriting the system directory */
         for data in &config.hookdirs {
-            ret = config.handle.alpm_option_add_hookdir(data);
-            if ret != 0 {
-                eprintln!(
-                    "problem adding hookdir '{}' ({})",
-                    data,
-                    config.handle.alpm_errno().alpm_strerror()
-                );
-                return ret;
+            match config.handle.alpm_option_add_hookdir(data) {
+                Err(e) => {
+                    eprintln!("problem adding hookdir '{}' ({})", data, e.alpm_strerror());
+                    return Err(e);
+                }
+                Ok(_) => {}
             }
         }
     }
@@ -1803,7 +1809,7 @@ fn setup_libalpm(config: &mut config_t) -> i32 {
         config.handle.alpm_option_add_assumeinstalled(&dep);
     }
 
-    return 0;
+    Ok(0)
 }
 
 /// Allows parsing in advance of an entire config section before we start
@@ -1820,7 +1826,7 @@ fn process_usage(
     level: &mut alpm_db_usage_t,
     file: &String,
     linenum: i32,
-) -> Result<(), ()> {
+) -> std::result::Result<(), ()> {
     // 	alpm_list_t *i;
     // let level = *usage;
     let mut ret = Ok(());
@@ -2071,7 +2077,7 @@ fn _parse_directive(
 ///
 /// - `file` - path to the config file
 /// - `returns` - 0 on success, non-zero on error
-pub fn parseconfig(file: &String, config: &mut config_t) -> i32 {
+pub fn parseconfig(file: &String, config: &mut config_t) -> Result<i32> {
     // unimplemented!();
     let mut ret;
     // struct section_t section;
@@ -2080,17 +2086,15 @@ pub fn parseconfig(file: &String, config: &mut config_t) -> i32 {
     // pm_printf(ALPM_LOG_DEBUG, "config: attempting to read file %s\n", file);
     ret = parse_ini(file, &_parse_directive, &mut section, config);
     if ret != 0 {
-        return ret;
+        return Ok(ret);
     }
     // pm_printf(ALPM_LOG_DEBUG, "config: finished parsing %s\n", file);
-    ret = setup_libalpm(config);
-    if ret != 0 {
-        return ret;
-    }
+    setup_libalpm(config)?;
+
     // alpm_list_free_inner(config.repos, (alpm_list_fn_free) config_repo_free);
     // alpm_list_free(config.repos);
     // config.repos = NULL;
-    return ret;
+    return Ok(ret);
 }
 
 // /* vim: set noet: */

@@ -56,42 +56,29 @@ use super::*;
  * @return 0 on success, -1 on error
  */
 pub fn alpm_remove_pkg(
-    pm_errno: &mut alpm_errno_t,
     trans: &mut alpm_trans_t,
     pkg: &alpm_pkg_t,
-) -> i32 {
+) -> Result<i32> {
     // const char *pkgname;
     // alpm_trans_t *trans;
     // alpm_pkg_t *copy;
-
-    /* Sanity checks */
-    // CHECK_HANDLE(handle, return -1);
-    // ASSERT(pkg != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-    // ASSERT(pkg->origin == ALPM_PKG_FROM_LOCALDB,
-    // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-    // ASSERT(handle == pkg->handle, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-    // let trans = &mut handle.trans;
-    // ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-    // ASSERT(trans->state == STATE_INITIALIZED,
-    // 		RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
 
     let pkgname = &pkg.name;
 
     if alpm_pkg_find(&trans.remove, &pkgname).is_some() {
         // unimplemented!();
         // RET_ERR!(handle, alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET, -1);
-        *pm_errno = alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET;
-        return -1;
+        return Err(alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET)
     }
 
     // _alpm_log(handle, ALPM_LOG_DEBUG, "adding package %s to the transaction remove list\n",
     // 		pkgname);
     let copy = match pkg._alpm_pkg_dup() {
         Ok(c) => c,
-        _ => return -1,
+        Err(e) => return Err(e),
     };
     trans.remove.push(copy);
-    return 0;
+    return Ok(0);
 }
 
 // /**

@@ -45,20 +45,18 @@ use std::fs;
 // #include "filelist.h"
 
 impl alpm_db_t {
-	fn sync_db_validate(&mut self, handle: &mut alpm_handle_t) -> i32 {
+	pub fn sync_db_validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
 		if self.status.DB_STATUS_VALID || self.status.DB_STATUS_MISSING {
-			return 0;
+			return Ok(true);
 		}
 		if self.status.DB_STATUS_INVALID {
-			handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_INVALID_SIG;
-			return -1;
+			return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
 		}
 
 		let dbpath = match self._alpm_db_path(handle) {
 			Ok(d) => d,
-			Err(_e) => {
-				/* pm_errno set in _alpm_db_path() */
-				return -1;
+			Err(e) => {
+				return Err(e);
 			}
 		};
 		/* we can skip any validation if the database doesn't exist */
@@ -75,7 +73,7 @@ impl alpm_db_t {
 					// EVENT!(handle, &alpm_event_t::database_missing(event));
 					self.status.DB_STATUS_VALID = true;
 					self.status.DB_STATUS_INVALID = false;
-					return 0;
+					return Ok(true);
 				}
 				_ => {}
 			},
@@ -119,15 +117,14 @@ impl alpm_db_t {
 			if ret != 0 {
 				self.status.DB_STATUS_VALID = false;
 				self.status.DB_STATUS_INVALID = true;
-				handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_INVALID_SIG;
-				return 1;
+				return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
 			}
 		}
 
 		/* valid: */
 		self.status.DB_STATUS_VALID = true;
 		self.status.DB_STATUS_INVALID = false;
-		return 0;
+		return Ok(true);
 	}
 }
 
@@ -166,7 +163,11 @@ impl alpm_db_t {
  * @return 0 on success, -1 on error (pm_errno is set accordingly), 1 if up to
  * to date
  */
-pub fn alpm_db_update(mut force: bool, db: &mut alpm_db_t, handle: &mut alpm_handle_t) -> i8 {
+pub fn alpm_db_update(
+	mut force: bool,
+	db: &mut alpm_db_t,
+	handle: &mut alpm_handle_t,
+) -> Result<i8> {
 	let syncpath;
 	let mut updated = false;
 	let mut ret = -1;
@@ -174,12 +175,12 @@ pub fn alpm_db_update(mut force: bool, db: &mut alpm_db_t, handle: &mut alpm_han
 	let siglevel;
 
 	if !db.usage.ALPM_DB_USAGE_SYNC {
-		return 0;
+		return Ok(0);
 	}
 
 	syncpath = match handle.get_sync_dir() {
-		Err(_e) => {
-			return -1;
+		Err(e) => {
+			return Err(e);
 		}
 		Ok(s) => s,
 	};
@@ -197,7 +198,7 @@ pub fn alpm_db_update(mut force: bool, db: &mut alpm_db_t, handle: &mut alpm_han
 	/* attempt to grab a lock */
 	if handle._alpm_handle_lock().is_err() {
 		// umask(oldmask);
-		RET_ERR!(handle, alpm_errno_t::ALPM_ERR_HANDLE_LOCK, -1);
+		return Err(alpm_errno_t::ALPM_ERR_HANDLE_LOCK);
 	}
 
 	let dbext = handle.dbext.clone();
@@ -275,7 +276,7 @@ pub fn alpm_db_update(mut force: bool, db: &mut alpm_db_t, handle: &mut alpm_han
 		db.status.DB_STATUS_MISSING = false;
 
 		/* if the download failed skip validation to preserve the download error */
-		if ret != -1 && db.sync_db_validate(handle) != 0 {
+		if ret != -1 && db.sync_db_validate(handle).is_err() {
 			/* pm_errno should be set */
 			ret = -1;
 		}
@@ -286,12 +287,17 @@ pub fn alpm_db_update(mut force: bool, db: &mut alpm_db_t, handle: &mut alpm_han
 		// _alpm_log(handle, ALPM_LOG_DEBUG, "failed to sync db: %s\n",
 		// 		alpm_strerror(handle->pm_errno));
 	} else {
-		handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+		// handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
 	}
 
 	handle._alpm_handle_unlock().unwrap();
 	// umask(oldmask);
-	return ret as i8;
+	if ret == 1 || ret == 0 {
+		Ok(ret as i8)
+	} else {
+		unimplemented!();
+	}
+	// return ret as i8;
 }
 
 // /* Forward decl so I don't reorganize the whole file right now */
@@ -738,7 +744,8 @@ impl alpm_handle_t {
 		// 	}
 		// #endif
 
-		let mut db = _alpm_db_new(treename, false);
+		let mut db = alpm_db_t::_alpm_db_new(treename, false);
+		db.ops_type = db_ops_type::sync;
 		// db->ops = &sync_db_ops;
 		// db.handle = handle;
 		db.siglevel = level;
@@ -749,17 +756,13 @@ impl alpm_handle_t {
 		return db;
 	}
 
-	pub fn get_sync_dir(&mut self) -> Result<String, alpm_errno_t> {
+	pub fn get_sync_dir(&mut self) -> Result<String> {
 		let syncpath = format!("{}{}", self.dbpath, "sync/");
 		match std::fs::metadata(&syncpath) {
 			Err(_e) => {
 				debug!("database dir '{}' does not exist, creating it", syncpath);
 				if fs::create_dir_all(&syncpath).is_err() {
-					RET_ERR!(
-						self,
-						alpm_errno_t::ALPM_ERR_SYSTEM,
-						Err(alpm_errno_t::ALPM_ERR_SYSTEM)
-					);
+					return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
 				}
 			}
 			Ok(m) => {
@@ -768,11 +771,7 @@ impl alpm_handle_t {
 					if std::fs::remove_file(&syncpath).is_err()
 						|| fs::create_dir_all(&syncpath).is_err()
 					{
-						RET_ERR!(
-							self,
-							alpm_errno_t::ALPM_ERR_SYSTEM,
-							Err(alpm_errno_t::ALPM_ERR_SYSTEM)
-						);
+						return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
 					}
 				}
 			}

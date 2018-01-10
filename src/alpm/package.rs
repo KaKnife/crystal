@@ -651,7 +651,7 @@ impl alpm_pkg_t {
     /// * `pkg` - the package to duplicate
     /// * `new_ptr` - location to store duplicated package pointer
     /// * returns 0 on success, -1 on fatal error, 1 on non-fatal error
-    pub fn _alpm_pkg_dup(&self) -> Result<alpm_pkg_t, i32> {
+    pub fn _alpm_pkg_dup(&self) -> Result<alpm_pkg_t> {
         unimplemented!();
         // 	alpm_pkg_t *newpkg;
         // 	alpm_list_t *i;

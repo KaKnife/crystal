@@ -63,7 +63,7 @@ use super::alpm::*;
 // 	CELL_FREE = (1 << 3)
 // };
 
-pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: i32, config: &config_t) -> i32 {
+pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: i32, config: &mut config_t) -> i32 {
     let ret;
 
     check_syncdbs(0, check_valid, config).unwrap();
@@ -77,54 +77,65 @@ pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: i32, config: &con
 }
 
 fn trans_init_error(config: &config_t) {
-    let err = config.handle.alpm_errno();
-    eprintln!("failed to init transaction ({})", err.alpm_strerror());
-    match err {
-        alpm_errno_t::ALPM_ERR_HANDLE_LOCK => {
-            unimplemented!();
-            // const char *lockfile = alpm_option_get_lockfile(config.handle);
-            // let lockfile = alpm_option_get_lockfile(config.handle);
-            // eprintln!("could not lock database: {}", strerror(errno));
-            // if(access(lockfile, F_OK) == 0) {
-            // 	fprintf(stderr, _("  if you're sure a package manager is not already\n"
-            // 				"  running, you can remove %s\n"), lockfile);
-            // }
-        }
-        _ => {}
-    }
+    unimplemented!();
+    // let err = config.handle.alpm_errno();
+    // eprintln!("failed to init transaction ({})", err.alpm_strerror());
+    // match err {
+    //     alpm_errno_t::ALPM_ERR_HANDLE_LOCK => {
+    //         unimplemented!();
+    //         // const char *lockfile = alpm_option_get_lockfile(config.handle);
+    //         // let lockfile = alpm_option_get_lockfile(config.handle);
+    //         // eprintln!("could not lock database: {}", strerror(errno));
+    //         // if(access(lockfile, F_OK) == 0) {
+    //         // 	fprintf(stderr, _("  if you're sure a package manager is not already\n"
+    //         // 				"  running, you can remove %s\n"), lockfile);
+    //         // }
+    //     }
+    //     _ => {}
+    // }
 }
 
 pub fn trans_release(config: &config_t) -> bool {
-    if config.handle.alpm_trans_release() == -1 {
-        eprintln!(
-            "failed to release transaction: {}",
-            config.handle.alpm_errno().alpm_strerror()
-        );
-        return false;
+    match config.handle.alpm_trans_release() {
+        Err(e) => {
+            eprintln!(
+                "failed to release transaction: {}",
+                e.alpm_strerror()
+            );
+            return false;
+        }
+        Ok(_) => {}
     }
 
     return true;
 }
 
-pub fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> Result<(), i32> {
+pub fn check_syncdbs(
+    need_repos: usize,
+    check_valid: i32,
+    config: &mut config_t,
+) -> std::result::Result<(), i32> {
     let mut ret = Ok(());
 
-    match (need_repos, &config.handle.dbs_sync, check_valid) {
-        (0, _, _) | (_, &None, _) => {
+    match (need_repos, config.handle.dbs_sync.clone(), check_valid) {
+        (0, _, _) | (_, None, _) => {
             eprintln!("no usable package repositories configured.");
             return Err(1);
         }
         (_, _, 0) => {}
-        (_, &Some(ref sync_dbs), _) => {
+        (_, Some(ref mut sync_dbs), _) => {
             /* ensure all known dbs are valid */
-            for db in sync_dbs {
-                if !db.alpm_db_get_valid() {
-                    eprintln!(
-                        "database '{}' is not valid ({})",
-                        db.treename,
-                        config.handle.alpm_errno().alpm_strerror()
-                    );
-                    ret = Err(1);
+            for mut db in sync_dbs {
+                match db.alpm_db_get_valid(&mut config.handle) {
+                    Err(e) => {
+                        eprintln!(
+                            "database '{}' is not valid ({})",
+                            db.treename,
+                            e.alpm_strerror()
+                        );
+                        ret = Err(1);
+                    }
+                    Ok(_) => {}
                 }
             }
         }
@@ -133,19 +144,27 @@ pub fn check_syncdbs(need_repos: usize, check_valid: i32, config: &config_t) -> 
     return ret;
 }
 
-pub fn sync_syncdbs(level: i32, syncs: &mut Vec<alpm_db_t>, handle: &mut alpm_handle_t) -> Result<(), i32> {
+pub fn sync_syncdbs(
+    level: i32,
+    syncs: &mut Vec<alpm_db_t>,
+    handle: &mut alpm_handle_t,
+) -> std::result::Result<(), i32> {
     let mut success = Ok(());
     for mut db in syncs {
         let ret = alpm_db_update(level >= 2, &mut db, handle);
-        if ret < 0 {
-            eprintln!(
-                "failed to update {} ({})",
-                db.alpm_db_get_name(),
-                handle.alpm_errno().alpm_strerror()
-            );
-            success = Err(1);
-        } else if ret == 1 {
-            println!(" {} is up to date", db.alpm_db_get_name());
+        match ret {
+            Err(e) => {
+                eprintln!(
+                    "failed to update {} ({})",
+                    db.alpm_db_get_name(),
+                    e.alpm_strerror()
+                );
+                success = Err(1);
+            }
+            Ok(1) => {
+                println!(" {} is up to date", db.alpm_db_get_name());
+            }
+            _=>{}
         }
     }
 

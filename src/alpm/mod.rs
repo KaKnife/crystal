@@ -47,6 +47,8 @@ pub use self::be_sync::alpm_db_update;
 
 const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
 
+pub type Result<T> = std::result::Result<T,alpm_errno_t>;
+
 // /*
 //  * alpm.h
 //  *
@@ -101,6 +103,12 @@ const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
 impl Default for alpm_errno_t {
     fn default() -> Self {
         alpm_errno_t::ALPM_ERR_OK
+    }
+}
+use std::fmt;
+impl fmt::Display for alpm_errno_t {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}",self.alpm_strerror())
     }
 }
 
@@ -1749,7 +1757,7 @@ pub struct alpm_caps {
  /// * `root` the root path for all filesystem operations
  /// * `dbpath` the absolute path to the libalpm database
  /// * return - a context handle on success, or error
-pub fn alpm_initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t, alpm_errno_t> {
+pub fn alpm_initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
     let myerr = alpm_errno_t::default();
     let lf = "db.lck";
     let hookdir;
@@ -1770,9 +1778,7 @@ pub fn alpm_initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t, 
 
     myhandle.lockfile = format!("{}{}", myhandle.dbpath, lf);
 
-    if myhandle._alpm_db_register_local().is_none() {
-        return Err(myhandle.pm_errno);
-    }
+    myhandle._alpm_db_register_local()?;
 
     // #ifdef ENABLE_NLS
     // 	bindtextdomain("libalpm", LOCALEDIR);

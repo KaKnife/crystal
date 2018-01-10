@@ -53,7 +53,7 @@ pub struct archive_entry {}
 
 impl alpm_handle_t {
     /// Add a package to the transaction.
-    pub fn alpm_add_pkg(&mut self, pkg: &alpm_pkg_t) -> i32 {
+    pub fn alpm_add_pkg(&mut self, pkg: &alpm_pkg_t) -> Result<i32> {
         unimplemented!();
         // 	const char *pkgname, *pkgver;
         // 	alpm_trans_t *trans;
@@ -68,7 +68,7 @@ impl alpm_handle_t {
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "adding package '%s'\n", pkgname);
 
         if alpm_pkg_find(&trans.add, &pkgname).is_some() {
-            RET_ERR!(self, alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET, -1);
+            return Err(alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET)
         }
 
         let local = self.db_local._alpm_db_get_pkgfromcache(pkgname);
@@ -100,7 +100,7 @@ impl alpm_handle_t {
         // 						pkgname, pkgver);
         trans.add.push(pkg.clone());
         //
-        return 0;
+        return Ok(0);
     }
 
     pub fn perform_extraction(

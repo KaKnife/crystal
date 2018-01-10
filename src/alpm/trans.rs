@@ -306,7 +306,7 @@ impl alpm_handle_t {
     // }
     //
     /** Release a transaction. */
-    pub fn alpm_trans_release(&self) -> i32 {
+    pub fn alpm_trans_release(&self) -> Result<i32> {
         unimplemented!();
         // 	alpm_trans_t *trans;
         //

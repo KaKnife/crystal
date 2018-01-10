@@ -1018,7 +1018,7 @@ impl alpm_pkg_t {
 }
 
 impl alpm_db_t {
-    pub fn local_db_validate(&mut self, handle: &mut alpm_handle_t) -> i32 {
+    pub fn local_db_validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
         // let mut db = self;
         let dbpath;
         let dbdir;
@@ -1027,16 +1027,17 @@ impl alpm_db_t {
         let mut dbverfile;
 
         if self.status.DB_STATUS_VALID {
-            return 0;
+            return Ok(true);
         }
         if self.status.DB_STATUS_INVALID {
-            return -1;
+            unimplemented!();
+            // return -1;
         }
 
         dbpath = match self._alpm_db_path(handle) {
             Ok(d) => d,
             Err(e) => {
-                RET_ERR!(handle, e, -1);
+                return Err(e);
             }
         };
 
@@ -1046,21 +1047,23 @@ impl alpm_db_t {
                 match e.kind() {
                     std::io::ErrorKind::NotFound => {
                         // /* local database dir doesn't exist yet - create it */
-                        if self.local_db_create(&dbpath, handle) == 0 {
-                            self.status.DB_STATUS_VALID = true;
-                            self.status.DB_STATUS_INVALID = false;
-                            self.status.DB_STATUS_EXISTS = true;
-                            self.status.DB_STATUS_MISSING = false;
-                            return 0;
-                        } else {
-                            self.status.DB_STATUS_EXISTS = false;
-                            self.status.DB_STATUS_MISSING = true;
-                            /* pm_errno is set by local_db_create */
-                            return -1;
+                        match self.local_db_create(&dbpath) {
+                            Ok(_) => {
+                                self.status.DB_STATUS_VALID = true;
+                                self.status.DB_STATUS_INVALID = false;
+                                self.status.DB_STATUS_EXISTS = true;
+                                self.status.DB_STATUS_MISSING = false;
+                                return Ok(true);
+                            }
+                            Err(e) => {
+                                self.status.DB_STATUS_EXISTS = false;
+                                self.status.DB_STATUS_MISSING = true;
+                                return Err(e);
+                            }
                         }
                     }
                     _ => {
-                        RET_ERR!(handle, alpm_errno_t::ALPM_ERR_DB_OPEN, -1);
+                        return Err(alpm_errno_t::ALPM_ERR_DB_OPEN);
                     }
                 }
             }
@@ -1082,8 +1085,8 @@ impl alpm_db_t {
                             } else {
                                 self.status.DB_STATUS_VALID = false;
                                 self.status.DB_STATUS_INVALID = true;
-                                handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
-                                return -1;
+                                // handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
+                                return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
                             }
                         }
                         Err(_e) => panic!(),
@@ -1093,13 +1096,14 @@ impl alpm_db_t {
                 if self.local_db_add_version(&dbpath).is_err() {
                     self.status.DB_STATUS_VALID = false;
                     self.status.DB_STATUS_INVALID = true;
-                    handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
-                    return -1;
+                    // handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
+                    return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
+                    // return -1;
                 }
 
                 self.status.DB_STATUS_VALID = true;
                 self.status.DB_STATUS_INVALID = false;
-                return 0;
+                return Ok(true);
             }
             Ok(f) => f,
         };
@@ -1113,8 +1117,8 @@ impl alpm_db_t {
             Err(_) => {
                 self.status.DB_STATUS_VALID = false;
                 self.status.DB_STATUS_INVALID = true;
-                handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
-                return -1;
+                // handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
+                return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
             }
             Ok(v) => v,
         };
@@ -1122,30 +1126,31 @@ impl alpm_db_t {
         if version != ALPM_LOCAL_DB_VERSION {
             self.status.DB_STATUS_VALID = false;
             self.status.DB_STATUS_INVALID = true;
-            handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
-            return -1;
+            // handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
+            return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
         }
 
         // version_latest:
         self.status.DB_STATUS_VALID = true;
         self.status.DB_STATUS_INVALID = false;
-        return 0;
+        return Ok(true);
     }
 
-    fn local_db_create(&mut self, dbpath: &String, handle: &mut alpm_handle_t) -> i32 {
+    fn local_db_create(&mut self, dbpath: &String) -> Result<i32> {
         // if (std::fs::create_dir(dbpath, 0755) != 0) {
         match std::fs::create_dir(dbpath) {
             Err(e) => {
                 eprintln!("could not create directory {}: {}", dbpath, e);
-                RET_ERR!(handle, alpm_errno_t::ALPM_ERR_DB_CREATE, -1);
+                return Err(alpm_errno_t::ALPM_ERR_DB_CREATE);
             }
             _ => {}
         }
         if self.local_db_add_version(dbpath).is_err() {
-            return 1;
+            // return 1;
+            unimplemented!();
         }
 
-        return 0;
+        return Ok(0);
     }
 
     fn local_db_add_version(&self, dbpath: &String) -> std::io::Result<usize> {
@@ -1162,26 +1167,23 @@ impl alpm_db_t {
 }
 
 impl alpm_handle_t {
-    pub fn _alpm_db_register_local(&mut self) -> Option<&alpm_db_t> {
+    pub fn _alpm_db_register_local(&mut self) -> Result<&alpm_db_t> {
         let mut db;
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "registering local database\n");
 
-        db = _alpm_db_new(&String::from("local"), true);
+        db = alpm_db_t::_alpm_db_new(&String::from("local"), true);
         // 	if(db == NULL) {
         // 		handle->pm_errno = ALPM_ERR_DB_CREATE;
         // 		return NULL;
         // 	}
         // db.ops = &local_db_ops;
+        db.ops_type = db_ops_type::local;
         // db->handle = handle;
         db.usage.ALPM_DB_USAGE_ALL = true;
 
-        if db.local_db_validate(self) != 0 {
-            /* pm_errno set in local_db_validate() */
-            // _alpm_db_free(db);
-            return None;
-        }
+        db.local_db_validate(self)?;
 
         self.db_local = db;
-        return Some(&self.db_local);
+        return Ok(&self.db_local);
     }
 }

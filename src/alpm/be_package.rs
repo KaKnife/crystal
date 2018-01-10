@@ -733,7 +733,7 @@ impl alpm_handle_t {
         full: i32,
         level: &siglevel,
         pkg: &alpm_pkg_t,
-    ) -> i32 {
+    ) -> Result<i32> {
         unimplemented!();
         // 	int validation = 0;
         // 	char *sigpath;

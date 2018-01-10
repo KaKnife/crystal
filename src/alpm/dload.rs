@@ -674,7 +674,7 @@ impl dload_payload {
 
 impl alpm_handle_t {
     /** Fetch a remote pkg. */
-    pub fn alpm_fetch_pkgurl(&self, url: &String) -> String {
+    pub fn alpm_fetch_pkgurl(&self, url: &String) -> Result<String> {
         unimplemented!();
         // 	char *filepath;
         // 	const char *cachedir, *final_pkg_url = NULL;
