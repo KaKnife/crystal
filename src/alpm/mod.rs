@@ -388,8 +388,8 @@ impl Default for alpm_sigvalidity_t {
 /// Dependency
 #[derive(Debug, Clone, Default)]
 pub struct alpm_depend_t {
-    name: String,
-    version: String,
+    pub name: String,
+    pub version: String,
     desc: String,
     name_hash: u64,
     depmod: alpm_depmod_t,

@@ -100,11 +100,11 @@ pub fn parse_ini(
 		}
 
 		if line.starts_with('[') && line.ends_with(']') {
-			let name;
+			let mut name;
 			/* new config section, skip the '[' */
 			name = line;
-			name.trim_left_matches("[");
-			name.trim_right_matches("]");
+			name = String::from(name.trim_left_matches('['));
+			name = String::from(name.trim_right_matches("]"));
 			// name[line_len - 2] = '\0';
 
 			ret = cb(file, linenum, &name, &None, &None, data, config);

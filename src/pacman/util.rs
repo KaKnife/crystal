@@ -66,7 +66,10 @@ use super::alpm::*;
 pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: i32, config: &mut config_t) -> i32 {
     let ret;
 
-    check_syncdbs(0, check_valid, config).unwrap();
+    match check_syncdbs(0, check_valid, config) {
+        Ok(_) => {}
+        Err(e) => panic!("{}", e),
+    }
 
     ret = config.handle.alpm_trans_init(flags);
     if ret == -1 {
@@ -98,10 +101,7 @@ fn trans_init_error(config: &config_t) {
 pub fn trans_release(config: &config_t) -> bool {
     match config.handle.alpm_trans_release() {
         Err(e) => {
-            eprintln!(
-                "failed to release transaction: {}",
-                e.alpm_strerror()
-            );
+            eprintln!("failed to release transaction: {}", e.alpm_strerror());
             return false;
         }
         Ok(_) => {}
@@ -164,7 +164,7 @@ pub fn sync_syncdbs(
             Ok(1) => {
                 println!(" {} is up to date", db.alpm_db_get_name());
             }
-            _=>{}
+            _ => {}
         }
     }
 

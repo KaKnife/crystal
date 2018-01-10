@@ -309,7 +309,7 @@ impl alpm_handle_t {
     // 	}
     // 	return 0;
     // }
-    
+
     pub fn alpm_option_set_logfile(&mut self, logfile: &String) -> Result<i32> {
         if logfile == "" {
             return Err(ALPM_ERR_WRONG_ARGS);
@@ -421,7 +421,7 @@ impl alpm_handle_t {
     // 	return _alpm_option_strlist_add(handle, &(handle->ignoregroup), grp);
     // }
 
-    pub fn alpm_option_set_ignoregroups(&mut self, ignoregrps: &Vec<alpm_group_t>) {
+    pub fn alpm_option_set_ignoregroups(&mut self, ignoregrps: &Vec<String>) {
         self.ignoregroup = ignoregrps.clone();
     }
 
@@ -820,7 +820,7 @@ pub struct alpm_handle_t {
     pub noupgrade: Vec<String>, /* List of packages NOT to be upgraded */
     pub noextract: Vec<String>, /* List of files NOT to extract */
     pub ignorepkg: Vec<String>, /* List of packages to ignore */
-    pub ignoregroup: Vec<alpm_group_t>, /* List of groups to ignore */
+    pub ignoregroup: Vec<String>, /* List of groups to ignore */
     ///List of virtual packages used to satisfy dependencies
     pub assumeinstalled: Vec<alpm_depend_t>,
     //

@@ -155,7 +155,7 @@ impl alpm_db_t {
     // 		return;
     // 	}
     //
-    // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "unregistering database '%s'\n", db->treename);
+    // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "unregistering database '{}'\n", db->treename);
     // 	_alpm_db_free(db);
     // }
 
@@ -175,21 +175,21 @@ impl alpm_db_t {
     /// db database pointer
     /// url url of the server
     /// return - 0 on success, -1 on error (pm_errno is set accordingly)
-    fn alpm_db_add_server(&mut self, url: String) {
+    pub fn alpm_db_add_server(&mut self, url: &String) -> Result<()> {
         let newurl;
 
         /* Sanity checks */
-        // ASSERT(db != NULL, return -1);
-        // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
-        // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
+        if url.len() == 0 {
+            return Err(alpm_errno_t::ALPM_ERR_WRONG_ARGS);
+        }
 
         newurl = sanitize_url(&url);
-        // if(!newurl) {
-        // 	return -1;
-        // }
+        debug!(
+            "adding new server URL to database '{}': {}\n",
+            self.treename, newurl
+        );
         self.servers.push(newurl);
-        // _alpm_log(db->handle, ALPM_LOG_DEBUG, "adding new server URL to database '%s': %s\n",
-        // 		db->treename, newurl);
+        Ok(())
     }
 
     /// Remove a download server from a database.
@@ -218,17 +218,17 @@ impl alpm_db_t {
         };
 
         self.servers.remove(index);
-        return 0;
         //
         // if(vdata) {
-        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "removed server URL from database '%s': %s\n",
-        // 			db->treename, newurl);
+        // 	debug!("removed server URL from database '{}': {}",
+        // 			db.treename, newurl);
         // 	free(vdata);
         // 	ret = 0;
         // }
         //
         // free(newurl);
         // return ret;
+        return 0;
     }
 
     /// Get a group entry from a package database. */
@@ -280,8 +280,8 @@ impl alpm_db_t {
         // if(db == NULL) {
         // 	return -1;
         // }
-        // _alpm_log(db->handle, ALPM_LOG_DEBUG, "loading group cache for repository '%s'\n",
-        // 		db->treename);
+        // debug!("loading group cache for repository '{}'",
+        // 		db.treename);
         //
         // for pkg in _alpm_db_get_pkgcache(&self) {
         //     // const alpm_list_t *i;
@@ -345,8 +345,12 @@ impl alpm_db_t {
     fn _alpm_db_get_pkgcache_hash(&self) -> Option<&alpm_pkghash_t> {
         if self.status.DB_STATUS_VALID {
             unimplemented!();
-            // _alpm_log(db.handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n",
-            // ALPM_ERR_DB_INVALID, __func__, alpm_strerror(ALPM_ERR_DB_INVALID));
+            // debug!(
+            //     "returning error {} from {} : {}\n",
+            //     ALPM_ERR_DB_INVALID,
+            //     __func__,
+            //     alpm_errno_t::ALPM_ERR_DB_INVALID
+            // );
             // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_INVALID;
             return None;
         }
@@ -366,15 +370,16 @@ impl alpm_db_t {
         unimplemented!();
         // _alpm_db_free_pkgcache(db);
 
-        // _alpm_log(db->handle, ALPM_LOG_DEBUG, "loading package cache for repository '%s'\n",
-        // 		db->treename);
+        // debug!("loading package cache for repository '{}'", self.treename);
         // if(db->ops->populate(db) == -1) {
-        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
-        // 			"failed to load package cache for repository '%s'\n", db->treename);
+        // debug!(
+        //     "failed to load package cache for repository '{}'",
+        //     db.treename
+        // );
         // 	return -1;
         // }
         //
-        // db->status |= DB_STATUS_PKGCACHE;
+        // db.status.DB_STATUS_PKGCACHE=true;
         // return 0;
     }
 
@@ -484,7 +489,7 @@ impl alpm_db_t {
         // 		}
         // 		ret = NULL;
         // 		targ = i->data;
-        // 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "searching for target '%s'\n", targ);
+        // 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "searching for target '{}'\n", targ);
         //
         // 		if(regcomp(&reg, targ, REG_EXTENDED | REG_NOSUB | REG_ICASE | REG_NEWLINE) != 0) {
         // 			RET_ERR(db->handle, ALPM_ERR_INVALID_REGEX, NULL);
@@ -528,7 +533,7 @@ impl alpm_db_t {
         //
         // 			if(matched != NULL) {
         // 				_alpm_log(db->handle, ALPM_LOG_DEBUG,
-        // 						"search target '%s' matched '%s' on package '%s'\n",
+        // 						"search target '{}' matched '{}' on package '{}'\n",
         // 						targ, matched, name);
         // 				ret = alpm_list_add(ret, pkg);
         // 			}
@@ -575,7 +580,7 @@ impl alpm_db_t {
                 /* all sync DBs now reside in the sync/ subdir of the dbpath */
                 self._path = format!("{}/sync/{}{}", dbpath, self.treename, handle.dbext);
             }
-            // _alpm_log(db->handle, ALPM_LOG_DEBUG, "database path for tree %s set to %s\n",
+            // _alpm_log(db->handle, ALPM_LOG_DEBUG, "database path for tree {} set to {}\n",
             // db->treename, db->_path);
         }
         return Ok(self._path.clone());
@@ -588,7 +593,7 @@ impl alpm_db_t {
         self.pkgcache = alpm_pkghash_t::default();
         //
         // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
-        // 			"freeing package cache for repository '%s'\n", db->treename);
+        // 			"freeing package cache for repository '{}'\n", db->treename);
         //
         // 	if(db->pkgcache) {
         // 		alpm_list_free_inner(db->pkgcache->list,
@@ -608,7 +613,7 @@ impl alpm_db_t {
         // 	}
         //
         // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
-        // 			"freeing group cache for repository '%s'\n", db->treename);
+        // 			"freeing group cache for repository '{}'\n", db->treename);
         //
         // 	for(lg = db->grpcache; lg; lg = lg->next) {
         // 		_alpm_group_free(lg->data);
@@ -732,7 +737,7 @@ fn sanitize_url(url: &String) -> String {
 // 		return -1;
 // 	}
 //
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "adding entry '%s' in '%s' cache\n",
+// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "adding entry '{}' in '{}' cache\n",
 // 						newpkg->name, db->treename);
 // 	if(newpkg->origin == ALPM_PKG_FROM_FILE) {
 // 		free(newpkg->origin_data.file);
@@ -756,13 +761,13 @@ fn sanitize_url(url: &String) -> String {
 // 		return -1;
 // 	}
 //
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "removing entry '%s' from '%s' cache\n",
+// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "removing entry '{}' from '{}' cache\n",
 // 						pkg->name, db->treename);
 //
 // 	db->pkgcache = _alpm_pkghash_remove(db->pkgcache, pkg, &data);
 // 	if(data == NULL) {
 // 		/* package not found */
-// 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "cannot remove entry '%s' from '%s' cache: not found\n",
+// 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "cannot remove entry '{}' from '{}' cache: not found\n",
 // 							pkg->name, db->treename);
 // 		return -1;
 // 	}
