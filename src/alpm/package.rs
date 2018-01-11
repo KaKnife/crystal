@@ -111,7 +111,7 @@ pub struct alpm_pkg_t {
     // alpm_list_t *deltas;
     // alpm_list_t *delta_path;
     // alpm_list_t *removes; /* in transaction targets only */
-    // alpm_pkg_t *oldpkg; /* in transaction targets only */
+    // pub oldpkg: Option<alpm_pkg_t>, /* in transaction targets only */
 
     // pub ops: pkg_operations,
 
@@ -124,7 +124,7 @@ pub struct alpm_pkg_t {
     pub file: String,
     // } origin_data;
     origin: alpm_pkgfrom_t,
-    // 	alpm_pkgreason_t reason;
+    pub reason: alpm_pkgreason_t,
     // 	int scriptlet;
     //
     // 	/* Bitfield from alpm_dbinfrq_t */
@@ -485,9 +485,8 @@ impl alpm_pkg_t {
     // 	return pkg->ops->get_backup(pkg);
     // }
 
-    pub fn alpm_pkg_get_db(&self)->&alpm_db_t
-    {
-    	return &self.db;
+    pub fn alpm_pkg_get_db(&self) -> &alpm_db_t {
+        return &self.db;
     }
 
     // /** Open a package changelog for reading. */
@@ -815,8 +814,8 @@ impl alpm_pkg_t {
     // }
     //
     /* Is spkg an upgrade for localpkg? */
-    fn _alpm_pkg_compare_versions(spkg: &alpm_pkg_t, localpkg: &alpm_pkg_t) -> i8 {
-        alpm_pkg_vercmp(&spkg.version, &localpkg.version)
+    pub fn _alpm_pkg_compare_versions(&self, localpkg: &alpm_pkg_t) -> i8 {
+        alpm_pkg_vercmp(&self.version, &localpkg.version)
     }
 
     // /* Helper function for comparing packages

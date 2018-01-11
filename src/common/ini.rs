@@ -70,7 +70,6 @@ pub fn parse_ini(
 	let mut ret = 0;
 	// int linenum = 0;
 	// int ret = 0;
-
 	let fp = match File::open(file) {
 		Ok(f) => BufReader::new(f),
 		Err(e) => unimplemented!("{}:{}", e, file),
@@ -85,7 +84,7 @@ pub fn parse_ini(
 			Ok(l) => line = l,
 			Err(_) => continue,
 		}
-		let key:String;
+		let key: String;
 		let value;
 		// size_t line_len;
 		// let line_len;
@@ -122,13 +121,13 @@ pub fn parse_ini(
 		/* directive */
 		/* strsep modifies the 'line' string: 'key \0 value' */
 		let keyvalue: Vec<&str> = line.split("=").collect();
+
 		key = String::from(keyvalue[0].trim());
 		value = if keyvalue.len() > 1 {
 			Some(String::from(keyvalue[1].trim()))
 		} else {
 			None
 		};
-
 		ret = cb(
 			file,
 			linenum,

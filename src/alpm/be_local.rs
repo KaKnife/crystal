@@ -1019,7 +1019,6 @@ impl alpm_pkg_t {
 
 impl alpm_db_t {
     pub fn local_db_validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
-        // let mut db = self;
         let dbpath;
         let dbdir;
         let dbverpath;
@@ -1030,7 +1029,7 @@ impl alpm_db_t {
             return Ok(true);
         }
         if self.status.DB_STATUS_INVALID {
-            unimplemented!();
+            return Ok(false);
             // return -1;
         }
 
@@ -1046,7 +1045,7 @@ impl alpm_db_t {
             Err(e) => {
                 match e.kind() {
                     std::io::ErrorKind::NotFound => {
-                        // /* local database dir doesn't exist yet - create it */
+                        /* local database dir doesn't exist yet - create it */
                         match self.local_db_create(&dbpath) {
                             Ok(_) => {
                                 self.status.DB_STATUS_VALID = true;
@@ -1075,7 +1074,7 @@ impl alpm_db_t {
 
         dbverfile = match std::fs::File::open(&dbverpath) {
             Err(_e) => {
-                // 		/* create dbverfile if local database is empty - otherwise version error */
+                /* create dbverfile if local database is empty - otherwise version error */
                 for ent in dbdir {
                     match ent {
                         Ok(ent) => {
@@ -1085,7 +1084,6 @@ impl alpm_db_t {
                             } else {
                                 self.status.DB_STATUS_VALID = false;
                                 self.status.DB_STATUS_INVALID = true;
-                                // handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
                                 return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
                             }
                         }
@@ -1096,9 +1094,7 @@ impl alpm_db_t {
                 if self.local_db_add_version(&dbpath).is_err() {
                     self.status.DB_STATUS_VALID = false;
                     self.status.DB_STATUS_INVALID = true;
-                    // handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
                     return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
-                    // return -1;
                 }
 
                 self.status.DB_STATUS_VALID = true;
@@ -1108,7 +1104,6 @@ impl alpm_db_t {
             Ok(f) => f,
         };
 
-        // t = fscanf(dbverfile, "%zu", &version);
         use std::io::Read;
         let mut dbverfilestr = String::new();
         dbverfile.read_to_string(&mut dbverfilestr).unwrap();
@@ -1117,7 +1112,6 @@ impl alpm_db_t {
             Err(_) => {
                 self.status.DB_STATUS_VALID = false;
                 self.status.DB_STATUS_INVALID = true;
-                // handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
                 return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
             }
             Ok(v) => v,
@@ -1126,11 +1120,9 @@ impl alpm_db_t {
         if version != ALPM_LOCAL_DB_VERSION {
             self.status.DB_STATUS_VALID = false;
             self.status.DB_STATUS_INVALID = true;
-            // handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_VERSION;
             return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
         }
 
-        // version_latest:
         self.status.DB_STATUS_VALID = true;
         self.status.DB_STATUS_INVALID = false;
         return Ok(true);

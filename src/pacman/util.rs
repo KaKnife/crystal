@@ -63,39 +63,38 @@ use super::alpm::*;
 // 	CELL_FREE = (1 << 3)
 // };
 
-pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: i32, config: &mut config_t) -> i32 {
-    let ret;
-
+pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: bool, config: &mut config_t) -> i32 {
     match check_syncdbs(0, check_valid, config) {
         Ok(_) => {}
-        Err(e) => panic!("{}", e),
+        Err(e) => panic!(),
     }
 
-    ret = config.handle.alpm_trans_init(flags);
-    if ret == -1 {
-        trans_init_error(config);
-        return -1;
+    match config.handle.alpm_trans_init(flags) {
+        Err(e) => {
+            trans_init_error(e);
+            return -1;
+        }
+        Ok(()) => {}
     }
+
     return 0;
 }
 
-fn trans_init_error(config: &config_t) {
-    unimplemented!();
-    // let err = config.handle.alpm_errno();
-    // eprintln!("failed to init transaction ({})", err.alpm_strerror());
-    // match err {
-    //     alpm_errno_t::ALPM_ERR_HANDLE_LOCK => {
-    //         unimplemented!();
-    //         // const char *lockfile = alpm_option_get_lockfile(config.handle);
-    //         // let lockfile = alpm_option_get_lockfile(config.handle);
-    //         // eprintln!("could not lock database: {}", strerror(errno));
-    //         // if(access(lockfile, F_OK) == 0) {
-    //         // 	fprintf(stderr, _("  if you're sure a package manager is not already\n"
-    //         // 				"  running, you can remove %s\n"), lockfile);
-    //         // }
-    //     }
-    //     _ => {}
-    // }
+fn trans_init_error(err: alpm_errno_t) {
+    eprintln!("failed to init transaction ({})", err.alpm_strerror());
+    match err {
+        alpm_errno_t::ALPM_ERR_HANDLE_LOCK => {
+            unimplemented!();
+            // const char *lockfile = alpm_option_get_lockfile(config.handle);
+            // let lockfile = alpm_option_get_lockfile(config.handle);
+            // eprintln!("could not lock database: {}", strerror(errno));
+            // if(access(lockfile, F_OK) == 0) {
+            // 	fprintf(stderr, _("  if you're sure a package manager is not already\n"
+            // 				"  running, you can remove %s\n"), lockfile);
+            // }
+        }
+        _ => {}
+    }
 }
 
 pub fn trans_release(config: &config_t) -> bool {
@@ -112,18 +111,17 @@ pub fn trans_release(config: &config_t) -> bool {
 
 pub fn check_syncdbs(
     need_repos: usize,
-    check_valid: i32,
+    check_valid: bool,
     config: &mut config_t,
-) -> std::result::Result<(), i32> {
+) -> std::result::Result<(), ()> {
     let mut ret = Ok(());
 
-    match (need_repos, config.handle.dbs_sync.clone(), check_valid) {
-        (0, _, _) | (_, None, _) => {
+    match (config.handle.dbs_sync.clone(), check_valid) {
+        (None, _) if need_repos != 0 => {
             eprintln!("no usable package repositories configured.");
-            return Err(1);
+            return Err(());
         }
-        (_, _, 0) => {}
-        (_, Some(ref mut sync_dbs), _) => {
+        (Some(ref mut sync_dbs), true) => {
             /* ensure all known dbs are valid */
             for mut db in sync_dbs {
                 match db.alpm_db_get_valid(&mut config.handle) {
@@ -133,12 +131,13 @@ pub fn check_syncdbs(
                             db.treename,
                             e.alpm_strerror()
                         );
-                        ret = Err(1);
+                        ret = Err(());
                     }
                     Ok(_) => {}
                 }
             }
         }
+        _ => {}
     }
 
     return ret;
@@ -148,7 +147,7 @@ pub fn sync_syncdbs(
     level: i32,
     syncs: &mut Vec<alpm_db_t>,
     handle: &mut alpm_handle_t,
-) -> std::result::Result<(), i32> {
+) -> std::result::Result<(), ()> {
     let mut success = Ok(());
     for mut db in syncs {
         let ret = alpm_db_update(level >= 2, &mut db, handle);
@@ -159,7 +158,7 @@ pub fn sync_syncdbs(
                     db.alpm_db_get_name(),
                     e.alpm_strerror()
                 );
-                success = Err(1);
+                success = Err(());
             }
             Ok(1) => {
                 println!(" {} is up to date", db.alpm_db_get_name());
@@ -173,7 +172,7 @@ pub fn sync_syncdbs(
     }
     return success;
 }
-//
+
 // /* discard unhandled input on the terminal's input buffer */
 // static int flush_term_input(int fd)
 // {

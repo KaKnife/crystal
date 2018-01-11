@@ -311,12 +311,9 @@ fn sync_cleancache(level: i32) -> i32 {
 
 /* search the sync dbs for a matching package */
 fn sync_search(syncs: &Vec<alpm_db_t>, targets: &Vec<String>) -> bool {
-    // alpm_list_t *i;
-    // int found = 0;
     let mut found = 0;
 
     for db in syncs {
-        // alpm_db_t *db = i->data;
         found += !dump_pkg_search(db, targets, 1);
     }
 
@@ -327,7 +324,7 @@ fn sync_group(
     level: i32,
     syncs: &Vec<alpm_db_t>,
     targets: Vec<String>,
-) -> std::result::Result<(), i32> {
+) -> std::result::Result<(), ()> {
     unimplemented!();
     // 	alpm_list_t *i, *j, *k, *s = NULL;
     // 	int ret = 0;
@@ -682,19 +679,19 @@ fn process_target(target: &String, error: i32) -> i32 {
     // 	return ret;
 }
 
-fn sync_trans(targets: &Vec<String>, config: &mut config_t) -> std::result::Result<(), i32> {
+fn sync_trans(targets: &Vec<String>, config: &mut config_t) -> std::result::Result<(), ()> {
     let mut retval = 0;
 
     /* Step 1: create a new transaction... */
-    if trans_init(&config.flags.clone(), 1, config) == -1 {
-        return Err(1);
+    if trans_init(&config.flags.clone(), true, config) == -1 {
+        return Err(());
     }
 
     /* process targets */
     for targ in targets {
         if process_target(targ, retval) == 1 {
             trans_release(config);
-            return Err(1);
+            return Err(());
         }
     }
 
@@ -708,7 +705,7 @@ fn sync_trans(targets: &Vec<String>, config: &mut config_t) -> std::result::Resu
             Err(e) => {
                 eprintln!("{}", e.alpm_strerror());
                 trans_release(&config);
-                return Err(1);
+                return Err(());
             }
             Ok(_) => {}
         }
@@ -738,7 +735,7 @@ fn print_broken_dep(miss: &alpm_depmissing_t) {
     // 	free(depstring);
 }
 
-pub fn sync_prepare_execute() -> std::result::Result<(), i32> {
+pub fn sync_prepare_execute() -> std::result::Result<(), ()> {
     unimplemented!();
     // 	alpm_list_t *i, *packages, *data = NULL;
     // 	int retval = 0;
@@ -872,7 +869,7 @@ pub fn sync_prepare_execute() -> std::result::Result<(), i32> {
     // 	return retval;
 }
 
-pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), i32> {
+pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), ()> {
     // 	alpm_list_t *sync_dbs = NULL;
     let mut sync_dbs: Vec<alpm_db_t>;
 
@@ -880,8 +877,8 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::
     if config.op_s_clean != 0 {
         let mut ret = 0;
 
-        if trans_init(&alpm::alpm_transflag_t::default(), 0, config) == -1 {
-            return Err(1);
+        if trans_init(&alpm::alpm_transflag_t::default(), false, config) == -1 {
+            return Err(());
         }
 
         ret += sync_cleancache(config.op_s_clean as i32);
@@ -891,10 +888,10 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::
             ret += 1;
         }
 
-        return Err(ret + 1);
+        return Err(());
     }
 
-    check_syncdbs(1, 0, config)?;
+    check_syncdbs(1, true, config)?;
 
     sync_dbs = match config.handle.alpm_get_syncdbs().clone() {
         Some(s) => s,
@@ -909,15 +906,16 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::
         //     PACMAN_CALLER_PREFIX,
         //     "synchronizing package lists\n",
         // );
+
         sync_syncdbs(config.op_s_sync as i32, &mut sync_dbs, &mut config.handle)?;
     }
 
-    check_syncdbs(1, 1, config)?;
+    check_syncdbs(1, true, config)?;
 
     /* search for a package */
     if config.op_s_search != 0 {
         return if sync_search(&sync_dbs, &targets) {
-            Err(1)
+            Err(())
         } else {
             Ok(())
         };
@@ -949,7 +947,7 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::
             /* don't proceed here unless we have an operation that doesn't require a
              * target list */
             error!("no targets specified (use -h for help)");
-            return Err(1);
+            return Err(());
         }
     }
 

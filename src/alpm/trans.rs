@@ -99,29 +99,23 @@ pub struct alpm_trans_t {
 // #include "hook.h"
 
 impl alpm_handle_t {
-    /** Initialize the transaction. */
-    pub fn alpm_trans_init(&self, flags: &alpm_transflag_t) -> i32 {
-        unimplemented!();
-        // 	alpm_trans_t *trans;
-        //
-        // 	/* Sanity checks */
-        // 	CHECK_HANDLE(handle, return -1);
-        // 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
-        //
-        // 	/* lock db */
-        // 	if(!(flags & ALPM_TRANS_FLAG_NOLOCK)) {
-        // 		if(_alpm_handle_lock(handle)) {
-        // 			RET_ERR(handle, ALPM_ERR_HANDLE_LOCK, -1);
-        // 		}
-        // 	}
-        //
-        // 	CALLOC(trans, 1, sizeof(alpm_trans_t), RET_ERR(handle, ALPM_ERR_MEMORY, -1));
-        // 	trans->flags = flags;
-        // 	trans->state = STATE_INITIALIZED;
-        //
-        // 	handle->trans = trans;
-        //
-        // 	return 0;
+    /// Initialize the transaction.
+    pub fn alpm_trans_init(&mut self, flags: &alpm_transflag_t) -> Result<()> {
+        let mut trans: alpm_trans_t = alpm_trans_t::default();
+
+        /* lock db */
+        if !flags.NOLOCK {
+            if self._alpm_handle_lock().is_err() {
+                return Err(alpm_errno_t::ALPM_ERR_HANDLE_LOCK);
+            }
+        }
+
+        trans.flags = flags.clone();
+        trans.state = alpm_transstate_t::STATE_INITIALIZED;
+
+        self.trans = trans;
+
+        Ok(())
     }
 
     // static alpm_list_t *check_arch(alpm_handle_t *handle, alpm_list_t *pkgs)

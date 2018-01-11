@@ -744,31 +744,31 @@ use super::*;
 //
 // 	return retval;
 // }
-//
-// /** Run ldconfig in a chroot.
-//  * @param handle the context handle
-//  * @return 0 on success, 1 on error
-//  */
-// int _alpm_ldconfig(alpm_handle_t *handle)
-// {
-// 	char line[PATH_MAX];
-//
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "running ldconfig\n");
-//
-// 	snprintf(line, PATH_MAX, "%setc/ld.so.conf", handle->root);
-// 	if(access(line, F_OK) == 0) {
-// 		snprintf(line, PATH_MAX, "%s%s", handle->root, LDCONFIG);
-// 		if(access(line, X_OK) == 0) {
-// 			char arg0[32];
-// 			char *argv[] = { arg0, NULL };
-// 			strcpy(arg0, "ldconfig");
-// 			return _alpm_run_chroot(handle, LDCONFIG, argv, NULL, NULL);
-// 		}
-// 	}
-//
-// 	return 0;
-// }
-//
+
+impl alpm_handle_t {
+    /// Run ldconfig in a chroot. Returns 0 on success, 1 on error
+    pub fn _alpm_ldconfig(&self) -> i32 {
+        use std::fs::metadata;
+        let mut line: String;
+
+        debug!("running ldconfig");
+
+        line = format!("{}etc/ld.so.conf", self.root);
+        if metadata(line).is_ok() {
+            unimplemented!();
+            // // unimplemented due to lack of global var LDCONFIG
+            // line = format!("{}{}", self.root, LDCONFIG);
+            // if metadata(line).is_ok() {
+            //     let arg0: &str = "ldconfig";
+            //     let argv: [&str; 1] = [arg0];
+            //     return _alpm_run_chroot(self, LDCONFIG, argv, NULL, NULL);
+            // }
+        }
+
+        return 0;
+    }
+}
+
 // /** Helper function for comparing strings using the alpm "compare func"
 //  * signature.
 //  * @param s1 first string to be compared
@@ -1564,7 +1564,6 @@ impl Hasher for sdbm_hasher {
 // 		 	return Err($err);
 // 	}}
 // }
-
 
 // #define RET_ERR_VOID(handle, err) do { \
 // 	_alpm_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, alpm_strerror(err)); \

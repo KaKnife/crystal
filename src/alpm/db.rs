@@ -549,7 +549,7 @@ impl alpm_db_t {
         // 	return ret;
     }
 
-    fn _alpm_db_get_pkgcache(&self) -> Vec<alpm_pkg_t> {
+    pub fn _alpm_db_get_pkgcache(&self) -> Vec<alpm_pkg_t> {
         unimplemented!();
         // let hash = self._alpm_db_get_pkgcache_hash();
         //

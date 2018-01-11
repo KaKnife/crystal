@@ -32,25 +32,26 @@ use super::common::*;
 
 use std;
 
-// /*
-//  *  pacman.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNUu8 General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
+/*
+ *  pacman.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNUu8 General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 /* special handling of package version for GIT */
 // #if defined(GIT_VERSION)
 // #undef PACKAGE_VERSION
@@ -305,8 +306,9 @@ fn setuseragent() {
     env::set_var("HTTP_USER_AGENT", agent);
 }
 
-// Free the resources.
-// *param ret the return value
+/// Free the resources.
+///
+/// * `ret` the return value
 fn cleanup(ret: i32) {
     //TODO:implement this
     // remove_soft_interrupt_handler();
@@ -358,9 +360,10 @@ fn cleanup(ret: i32) {
 /// Main function.
 pub fn main() {
     let argv: Vec<String> = env::args().collect();
-    let mut ret = 0;
-    let mut config;
-    let myuid = unsafe { libc::getuid() }; //uid_t myuid = getuid();
+    let mut ret: i32 = 0;
+    let mut config: config_t;
+    let myuid: u32 = unsafe { libc::getuid() }; //uid_t myuid = getuid();
+    let pm_targets: Vec<String>;
 
     /* i18n init */
     // #if defined(ENABLE_NLS)
@@ -394,7 +397,6 @@ pub fn main() {
      */
 
     /* parse the command line */
-    let mut pm_targets;
     match config.parseargs(argv) {
         Ok(targets) => pm_targets = targets,
         Err(()) => {
@@ -470,7 +472,7 @@ pub fn main() {
     /* parse the config file */
     match parseconfig(&config.configfile.clone(), &mut config) {
         Err(ret) => {
-            cleanup(1);
+            cleanup(ret as i32);
         }
         Ok(_) => {}
     }
@@ -530,7 +532,7 @@ pub fn main() {
             _ => {}
         },
         &Some(PM_OP_UPGRADE) => match pacman_upgrade(pm_targets, &mut config) {
-            Err(e) => (ret = e),
+            Err(e) => (ret = 1),
             _ => {}
         },
         &Some(PM_OP_QUERY) => match pacman_query(pm_targets, &mut config) {
@@ -538,7 +540,7 @@ pub fn main() {
             _ => {}
         },
         &Some(PM_OP_SYNC) => match pacman_sync(pm_targets, &mut config) {
-            Err(e) => (ret = e),
+            Err(e) => (ret = 1),
             _ => {}
         },
         &Some(PM_OP_DEPTEST) => match pacman_deptest(pm_targets, &mut config) {
@@ -556,8 +558,4 @@ pub fn main() {
     }
     //
     cleanup(ret);
-    // /* not reached */
-    return;
 }
-
-/* vim: set noet: */

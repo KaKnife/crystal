@@ -97,7 +97,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> std::result
     }
 
     /* Step 0: create a new transaction */
-    if trans_init(&config.flags.clone(), 0, config) == -1 {
+    if trans_init(&config.flags.clone(), false, config) == -1 {
         return Err(1);
     }
 

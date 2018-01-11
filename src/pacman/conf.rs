@@ -932,8 +932,8 @@ impl config_t {
         if opts.opt_present("search") {
             self.op_s_search = 1;
         }
-        if opts.opt_present("sysupgrade") {
-            self.op_s_upgrade = opts.opt_count("sysupgrade") as u8;
+        if opts.opt_present("u") | opts.opt_present("sysupgrade") {
+            self.op_s_upgrade = (opts.opt_count("sysupgrade") + opts.opt_count("u")) as u8;
         }
         if opts.opt_present("downloadonly") {
             self.op_s_downloadonly = 1;
@@ -1985,7 +1985,7 @@ fn process_include(
 
             section.depth += 1;
 
-            // 	/* Ignore include failures... assume non-critical */
+            /* Ignore include failures... assume non-critical */
             globret = glob::glob(&value);
             // match globret {
             //     GLOB_NOSPACE => eprintln!(

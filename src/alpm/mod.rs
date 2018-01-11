@@ -47,7 +47,7 @@ pub use self::be_sync::alpm_db_update;
 
 const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
 
-pub type Result<T> = std::result::Result<T,alpm_errno_t>;
+pub type Result<T> = std::result::Result<T, alpm_errno_t>;
 
 // /*
 //  * alpm.h
@@ -108,7 +108,7 @@ impl Default for alpm_errno_t {
 use std::fmt;
 impl fmt::Display for alpm_errno_t {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}",self.alpm_strerror())
+        write!(f, "{}", self.alpm_strerror())
     }
 }
 
@@ -208,8 +208,15 @@ type alpm_time_t = i64;
 /// Package install reasons.
 #[derive(Debug, Clone)]
 pub enum alpm_pkgreason_t {
-    /** Explicitly requested by the user. */ ALPM_PKG_REASON_EXPLICIT = 0,
-    /** Installed as a dependency for another package. */ ALPM_PKG_REASON_DEPEND = 1,
+    /// Explicitly requested by the user.
+    ALPM_PKG_REASON_EXPLICIT = 0,
+    /// Installed as a dependency for another package.
+    ALPM_PKG_REASON_DEPEND = 1,
+}
+impl Default for alpm_pkgreason_t {
+    fn default() -> Self {
+        alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT
+    }
 }
 
 impl Default for alpm_pkgfrom_t {
@@ -1751,12 +1758,12 @@ pub struct alpm_caps {
 //  */
 
 /// Initializes the library.
- /// Creates handle, connects to database and creates lockfile.
- /// This must be called before any other functions are called.
+/// Creates handle, connects to database and creates lockfile.
+/// This must be called before any other functions are called.
 
- /// * `root` the root path for all filesystem operations
- /// * `dbpath` the absolute path to the libalpm database
- /// * return - a context handle on success, or error
+/// * `root` the root path for all filesystem operations
+/// * `dbpath` the absolute path to the libalpm database
+/// * return - a context handle on success, or error
 pub fn alpm_initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
     let myerr = alpm_errno_t::default();
     let lf = "db.lck";
