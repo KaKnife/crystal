@@ -171,8 +171,8 @@ pub enum operations {
 /// clean method
 #[derive(Debug, Default)]
 pub struct clean_method {
-	PM_CLEAN_KEEPINST:bool,
-	PM_CLEAN_KEEPCUR:bool
+    PM_CLEAN_KEEPINST: bool,
+    PM_CLEAN_KEEPCUR: bool,
 }
 
 /** package locality */
@@ -1324,12 +1324,17 @@ pub fn merge_siglevel(base: siglevel, over: siglevel, mask: siglevel) -> sigleve
     };
 }
 
-pub fn process_cleanmethods(values: Vec<String>, file: &String, linenum: i32, config: &mut config_t) -> i32 {
+pub fn process_cleanmethods(
+    values: Vec<String>,
+    file: &String,
+    linenum: i32,
+    config: &mut config_t,
+) -> i32 {
     for value in values {
         if value == "KeepInstalled" {
-            config.cleanmethod.PM_CLEAN_KEEPINST=true;
-        } else if value== "KeepCurrent" {
-            config.cleanmethod.PM_CLEAN_KEEPCUR=true;
+            config.cleanmethod.PM_CLEAN_KEEPINST = true;
+        } else if value == "KeepCurrent" {
+            config.cleanmethod.PM_CLEAN_KEEPCUR = true;
         } else {
             error!(
                 "config file {}, line {}: invalid value for '{}' : '{}'\n",

@@ -45,87 +45,87 @@ use std::fs;
 // #include "filelist.h"
 
 impl alpm_db_t {
-	pub fn sync_db_validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
-		if self.status.DB_STATUS_VALID || self.status.DB_STATUS_MISSING {
-			return Ok(true);
-		}
-		if self.status.DB_STATUS_INVALID {
-			return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
-		}
+    pub fn sync_db_validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
+        if self.status.DB_STATUS_VALID || self.status.DB_STATUS_MISSING {
+            return Ok(true);
+        }
+        if self.status.DB_STATUS_INVALID {
+            return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
+        }
 
-		let dbpath = match self._alpm_db_path(handle) {
-			Ok(d) => d,
-			Err(e) => {
-				return Err(e);
-			}
-		};
-		/* we can skip any validation if the database doesn't exist */
-		match std::fs::metadata(&dbpath) {
-			Err(e) => match e.kind() {
-				std::io::ErrorKind::NotFound => {
-					// unimplemented!("DB NOT Found: {}", dbpath);
-					// let event = alpm_event_database_missing_t {
-					// 	etype: alpm_event_type_t::ALPM_EVENT_DATABASE_MISSING,
-					// 	dbname: self.treename.clone(),
-					// };
-					self.status.DB_STATUS_EXISTS = false;
-					self.status.DB_STATUS_MISSING = true;
-					// EVENT!(handle, &alpm_event_t::database_missing(event));
-					self.status.DB_STATUS_VALID = true;
-					self.status.DB_STATUS_INVALID = false;
-					return Ok(true);
-				}
-				_ => {}
-			},
-			_ => {}
-		}
+        let dbpath = match self._alpm_db_path(handle) {
+            Ok(d) => d,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+        /* we can skip any validation if the database doesn't exist */
+        match std::fs::metadata(&dbpath) {
+            Err(e) => match e.kind() {
+                std::io::ErrorKind::NotFound => {
+                    // unimplemented!("DB NOT Found: {}", dbpath);
+                    // let event = alpm_event_database_missing_t {
+                    // 	etype: alpm_event_type_t::ALPM_EVENT_DATABASE_MISSING,
+                    // 	dbname: self.treename.clone(),
+                    // };
+                    self.status.DB_STATUS_EXISTS = false;
+                    self.status.DB_STATUS_MISSING = true;
+                    // EVENT!(handle, &alpm_event_t::database_missing(event));
+                    self.status.DB_STATUS_VALID = true;
+                    self.status.DB_STATUS_INVALID = false;
+                    return Ok(true);
+                }
+                _ => {}
+            },
+            _ => {}
+        }
 
-		self.status.DB_STATUS_EXISTS = true;
-		self.status.DB_STATUS_MISSING = false;
+        self.status.DB_STATUS_EXISTS = true;
+        self.status.DB_STATUS_MISSING = false;
 
-		/* this takes into account the default verification level if UNKNOWN
-		 * was assigned to this db */
-		let siglevel = self.alpm_db_get_siglevel();
+        /* this takes into account the default verification level if UNKNOWN
+         * was assigned to this db */
+        let siglevel = self.alpm_db_get_siglevel();
 
-		if siglevel.ALPM_SIG_DATABASE {
-			let mut ret = 0;
-			let mut retry = 1;
-			while retry != 0 {
-				retry = 0;
-				let siglist = alpm_siglist_t::default();
-				ret = _alpm_check_pgp_helper(
-					handle,
-					&dbpath,
-					None,
-					siglevel.ALPM_SIG_DATABASE_OPTIONAL,
-					siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
-					siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
-					&siglist,
-				);
-				if ret != 0 {
-					retry = _alpm_process_siglist(
-						&handle,
-						&self.treename,
-						&siglist,
-						siglevel.ALPM_SIG_DATABASE_OPTIONAL,
-						siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
-						siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
-					);
-				}
-			}
+        if siglevel.ALPM_SIG_DATABASE {
+            let mut ret = 0;
+            let mut retry = 1;
+            while retry != 0 {
+                retry = 0;
+                let siglist = alpm_siglist_t::default();
+                ret = _alpm_check_pgp_helper(
+                    handle,
+                    &dbpath,
+                    None,
+                    siglevel.ALPM_SIG_DATABASE_OPTIONAL,
+                    siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
+                    siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
+                    &siglist,
+                );
+                if ret != 0 {
+                    retry = _alpm_process_siglist(
+                        &handle,
+                        &self.treename,
+                        &siglist,
+                        siglevel.ALPM_SIG_DATABASE_OPTIONAL,
+                        siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
+                        siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
+                    );
+                }
+            }
 
-			if ret != 0 {
-				self.status.DB_STATUS_VALID = false;
-				self.status.DB_STATUS_INVALID = true;
-				return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
-			}
-		}
+            if ret != 0 {
+                self.status.DB_STATUS_VALID = false;
+                self.status.DB_STATUS_INVALID = true;
+                return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
+            }
+        }
 
-		/* valid: */
-		self.status.DB_STATUS_VALID = true;
-		self.status.DB_STATUS_INVALID = false;
-		return Ok(true);
-	}
+        /* valid: */
+        self.status.DB_STATUS_VALID = true;
+        self.status.DB_STATUS_INVALID = false;
+        return Ok(true);
+    }
 }
 
 /** Update a package database
@@ -164,140 +164,140 @@ impl alpm_db_t {
  * to date
  */
 pub fn alpm_db_update(
-	mut force: bool,
-	db: &mut alpm_db_t,
-	handle: &mut alpm_handle_t,
+    mut force: bool,
+    db: &mut alpm_db_t,
+    handle: &mut alpm_handle_t,
 ) -> Result<i8> {
-	let syncpath;
-	let mut updated = false;
-	let mut ret = -1;
-	// 	mode_t oldmask;
-	let siglevel;
+    let syncpath;
+    let mut updated = false;
+    let mut ret = -1;
+    // 	mode_t oldmask;
+    let siglevel;
 
-	if !db.usage.ALPM_DB_USAGE_SYNC {
-		return Ok(0);
-	}
+    if !db.usage.ALPM_DB_USAGE_SYNC {
+        return Ok(0);
+    }
 
-	syncpath = match handle.get_sync_dir() {
-		Err(e) => {
-			return Err(e);
-		}
-		Ok(s) => s,
-	};
+    syncpath = match handle.get_sync_dir() {
+        Err(e) => {
+            return Err(e);
+        }
+        Ok(s) => s,
+    };
 
-	/* force update of invalid databases to fix potential mismatched database/signature */
-	if db.status.DB_STATUS_INVALID {
-		force = true;
-	}
+    /* force update of invalid databases to fix potential mismatched database/signature */
+    if db.status.DB_STATUS_INVALID {
+        force = true;
+    }
 
-	/* make sure we have a sane umask */
-	// 	oldmask = umask(0022);
+    /* make sure we have a sane umask */
+    // 	oldmask = umask(0022);
 
-	siglevel = db.alpm_db_get_siglevel();
+    siglevel = db.alpm_db_get_siglevel();
 
-	/* attempt to grab a lock */
-	if handle._alpm_handle_lock().is_err() {
-		// umask(oldmask);
-		return Err(alpm_errno_t::ALPM_ERR_HANDLE_LOCK);
-	}
+    /* attempt to grab a lock */
+    if handle._alpm_handle_lock().is_err() {
+        // umask(oldmask);
+        return Err(alpm_errno_t::ALPM_ERR_HANDLE_LOCK);
+    }
 
-	let dbext = handle.dbext.clone();
+    let dbext = handle.dbext.clone();
 
-	for server in db.servers.clone() {
-		let mut final_db_url = String::new();
-		let mut payload = dload_payload::default();
-		let mut sig_ret = 0;
+    for server in db.servers.clone() {
+        let mut final_db_url = String::new();
+        let mut payload = dload_payload::default();
+        let mut sig_ret = 0;
 
-		/* set hard upper limit of 25MiB */
-		payload.max_size = 25 * 1024 * 1024;
+        /* set hard upper limit of 25MiB */
+        payload.max_size = 25 * 1024 * 1024;
 
-		/* print server + filename into a buffer */
-		payload.fileurl = format!("{}/{}{}", server, db.treename, dbext);
-		payload.force = force;
-		payload.unlink_on_fail = 1;
+        /* print server + filename into a buffer */
+        payload.fileurl = format!("{}/{}{}", server, db.treename, dbext);
+        payload.force = force;
+        payload.unlink_on_fail = 1;
 
-		ret = payload._alpm_download(&syncpath, None, Some(&final_db_url));
-		payload._alpm_dload_payload_reset();
-		updated = updated || ret == 0;
+        ret = payload._alpm_download(&syncpath, None, Some(&final_db_url));
+        payload._alpm_dload_payload_reset();
+        updated = updated || ret == 0;
 
-		if ret != -1 && updated && siglevel.ALPM_SIG_DATABASE {
-			/* an existing sig file is no good at this point */
-			{
-				let dbpath = &db._alpm_db_path(handle).ok();
-				let sigpath = match handle._alpm_sigpath(dbpath) {
-					Some(s) => s,
-					None => {
-						ret = -1;
-						break;
-					}
-				};
-				fs::remove_file(sigpath).unwrap();
-			}
+        if ret != -1 && updated && siglevel.ALPM_SIG_DATABASE {
+            /* an existing sig file is no good at this point */
+            {
+                let dbpath = &db._alpm_db_path(handle).ok();
+                let sigpath = match handle._alpm_sigpath(dbpath) {
+                    Some(s) => s,
+                    None => {
+                        ret = -1;
+                        break;
+                    }
+                };
+                fs::remove_file(sigpath).unwrap();
+            }
 
-			/* check if the final URL from internal downloader looks reasonable */
-			if final_db_url != "" {
-				if final_db_url.len() < 3 || !final_db_url.ends_with(&dbext) {
-					final_db_url = String::new();
-				}
-			}
+            /* check if the final URL from internal downloader looks reasonable */
+            if final_db_url != "" {
+                if final_db_url.len() < 3 || !final_db_url.ends_with(&dbext) {
+                    final_db_url = String::new();
+                }
+            }
 
-			/* if we downloaded a DB, we want the .sig from the same server */
-			if final_db_url != "" {
-				payload.fileurl = format!("{}.sig", final_db_url);
-			} else {
-				payload.fileurl = format!("{}/{}{}.sig", server, db.treename, dbext);
-			}
+            /* if we downloaded a DB, we want the .sig from the same server */
+            if final_db_url != "" {
+                payload.fileurl = format!("{}.sig", final_db_url);
+            } else {
+                payload.fileurl = format!("{}/{}{}.sig", server, db.treename, dbext);
+            }
 
-			payload.force = true;
-			payload.errors_ok = siglevel.ALPM_SIG_DATABASE_OPTIONAL;
+            payload.force = true;
+            payload.errors_ok = siglevel.ALPM_SIG_DATABASE_OPTIONAL;
 
-			/* set hard upper limit of 16KiB */
-			payload.max_size = 16 * 1024;
+            /* set hard upper limit of 16KiB */
+            payload.max_size = 16 * 1024;
 
-			sig_ret = payload._alpm_download(&syncpath, None, None);
-			/* errors_ok suppresses error messages, but not the return code */
-			sig_ret = if payload.errors_ok { 0 } else { sig_ret };
-			payload._alpm_dload_payload_reset();
-		}
+            sig_ret = payload._alpm_download(&syncpath, None, None);
+            /* errors_ok suppresses error messages, but not the return code */
+            sig_ret = if payload.errors_ok { 0 } else { sig_ret };
+            payload._alpm_dload_payload_reset();
+        }
 
-		if ret != -1 && sig_ret != -1 {
-			break;
-		}
-	}
+        if ret != -1 && sig_ret != -1 {
+            break;
+        }
+    }
 
-	if updated {
-		/* Cache needs to be rebuilt */
-		db._alpm_db_free_pkgcache();
+    if updated {
+        /* Cache needs to be rebuilt */
+        db._alpm_db_free_pkgcache();
 
-		/* clear all status flags regarding validity/existence */
-		db.status.DB_STATUS_VALID = false;
-		db.status.DB_STATUS_INVALID = false;
-		db.status.DB_STATUS_EXISTS = false;
-		db.status.DB_STATUS_MISSING = false;
+        /* clear all status flags regarding validity/existence */
+        db.status.DB_STATUS_VALID = false;
+        db.status.DB_STATUS_INVALID = false;
+        db.status.DB_STATUS_EXISTS = false;
+        db.status.DB_STATUS_MISSING = false;
 
-		/* if the download failed skip validation to preserve the download error */
-		if ret != -1 && db.sync_db_validate(handle).is_err() {
-			/* pm_errno should be set */
-			ret = -1;
-		}
-	}
+        /* if the download failed skip validation to preserve the download error */
+        if ret != -1 && db.sync_db_validate(handle).is_err() {
+            /* pm_errno should be set */
+            ret = -1;
+        }
+    }
 
-	if ret == -1 {
-		/* pm_errno was set by the download code */
-		// _alpm_log(handle, ALPM_LOG_DEBUG, "failed to sync db: %s\n",
-		// 		alpm_strerror(handle->pm_errno));
-	} else {
-		// handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
-	}
+    if ret == -1 {
+        /* pm_errno was set by the download code */
+        // _alpm_log(handle, ALPM_LOG_DEBUG, "failed to sync db: %s\n",
+        // 		alpm_strerror(handle->pm_errno));
+    } else {
+        // handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+    }
 
-	handle._alpm_handle_unlock().unwrap();
-	// umask(oldmask);
-	if ret == 1 || ret == 0 {
-		Ok(ret as i8)
-	} else {
-		unimplemented!();
-	}
-	// return ret as i8;
+    handle._alpm_handle_unlock().unwrap();
+    // umask(oldmask);
+    if ret == 1 || ret == 0 {
+        Ok(ret as i8)
+    } else {
+        unimplemented!();
+    }
+    // return ret as i8;
 }
 
 // /* Forward decl so I don't reorganize the whole file right now */
@@ -735,48 +735,48 @@ pub fn alpm_db_update(
 // 	.unregister       = _alpm_db_unregister,
 // };
 impl alpm_handle_t {
-	pub fn _alpm_db_register_sync(&mut self, treename: &String, level: siglevel) -> alpm_db_t {
-		// 	_alpm_log(handle, ALPM_LOG_DEBUG, "registering sync database '%s'\n", treename);
+    pub fn _alpm_db_register_sync(&mut self, treename: &String, level: siglevel) -> alpm_db_t {
+        // 	_alpm_log(handle, ALPM_LOG_DEBUG, "registering sync database '%s'\n", treename);
 
-		// #ifndef HAVE_LIBGPGME
-		// 	if(level != ALPM_SIG_USE_DEFAULT) {
-		// 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
-		// 	}
-		// #endif
+        // #ifndef HAVE_LIBGPGME
+        // 	if(level != ALPM_SIG_USE_DEFAULT) {
+        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
+        // 	}
+        // #endif
 
-		let mut db = alpm_db_t::_alpm_db_new(treename, false);
-		db.ops_type = db_ops_type::sync;
-		// db->ops = &sync_db_ops;
-		// db.handle = handle;
-		db.siglevel = level;
+        let mut db = alpm_db_t::_alpm_db_new(treename, false);
+        db.ops_type = db_ops_type::sync;
+        // db->ops = &sync_db_ops;
+        // db.handle = handle;
+        db.siglevel = level;
 
-		db.sync_db_validate(self);
+        db.sync_db_validate(self);
 
-		// handle.dbs_sync.push(db);
-		return db;
-	}
+        // handle.dbs_sync.push(db);
+        return db;
+    }
 
-	pub fn get_sync_dir(&mut self) -> Result<String> {
-		let syncpath = format!("{}{}", self.dbpath, "sync/");
-		match std::fs::metadata(&syncpath) {
-			Err(_e) => {
-				debug!("database dir '{}' does not exist, creating it", syncpath);
-				if fs::create_dir_all(&syncpath).is_err() {
-					return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
-				}
-			}
-			Ok(m) => {
-				if !m.is_dir() {
-					warn!("removing invalid file: {}", syncpath);
-					if std::fs::remove_file(&syncpath).is_err()
-						|| fs::create_dir_all(&syncpath).is_err()
-					{
-						return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
-					}
-				}
-			}
-		}
+    pub fn get_sync_dir(&mut self) -> Result<String> {
+        let syncpath = format!("{}{}", self.dbpath, "sync/");
+        match std::fs::metadata(&syncpath) {
+            Err(_e) => {
+                debug!("database dir '{}' does not exist, creating it", syncpath);
+                if fs::create_dir_all(&syncpath).is_err() {
+                    return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                }
+            }
+            Ok(m) => {
+                if !m.is_dir() {
+                    warn!("removing invalid file: {}", syncpath);
+                    if std::fs::remove_file(&syncpath).is_err()
+                        || fs::create_dir_all(&syncpath).is_err()
+                    {
+                        return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                    }
+                }
+            }
+        }
 
-		return Ok(syncpath);
-	}
+        return Ok(syncpath);
+    }
 }

@@ -55,10 +55,7 @@ use super::*;
  *
  * @return 0 on success, -1 on error
  */
-pub fn alpm_remove_pkg(
-    trans: &mut alpm_trans_t,
-    pkg: &alpm_pkg_t,
-) -> Result<i32> {
+pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32> {
     // const char *pkgname;
     // alpm_trans_t *trans;
     // alpm_pkg_t *copy;
@@ -68,7 +65,7 @@ pub fn alpm_remove_pkg(
     if alpm_pkg_find(&trans.remove, &pkgname).is_some() {
         // unimplemented!();
         // RET_ERR!(handle, alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET, -1);
-        return Err(alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET)
+        return Err(alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET);
     }
 
     // _alpm_log(handle, ALPM_LOG_DEBUG, "adding package %s to the transaction remove list\n",

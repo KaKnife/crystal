@@ -100,7 +100,7 @@ pub fn pacman_upgrade(
                 retval = Err(());
                 continue;
             }
-            Ok(_)=>{}
+            Ok(_) => {}
         }
         config.explicit_adds.push(pkg);
     }
@@ -111,7 +111,6 @@ pub fn pacman_upgrade(
 
     /* now that targets are resolved, we can hand it all off to the sync code */
     sync_prepare_execute()
-
 }
 
 /* vim: set noet: */

@@ -728,23 +728,23 @@ use super::*;
 // #endif /* HAVE_LIBGPGME */
 
 impl alpm_handle_t {
-	/**
-	 * Form a signature path given a file path.
-	 * Caller must free the result.
-	 * @param handle the context handle
-	 * @param path the full path to a file
-	 * @return the path with '.sig' appended, NULL on errors
-	 */
-	pub fn _alpm_sigpath(&self, path: &Option<String>) -> Option<String> {
-		// 	char *sigpath;
-		// 	size_t len;
-		//
-		match path {
-			&None => None,
-			&Some(ref path) => Some(format!("{}.sig", path)),
-		}
-		// 	return sigpath;
-	}
+    /**
+     * Form a signature path given a file path.
+     * Caller must free the result.
+     * @param handle the context handle
+     * @param path the full path to a file
+     * @return the path with '.sig' appended, NULL on errors
+     */
+    pub fn _alpm_sigpath(&self, path: &Option<String>) -> Option<String> {
+        // 	char *sigpath;
+        // 	size_t len;
+        //
+        match path {
+            &None => None,
+            &Some(ref path) => Some(format!("{}.sig", path)),
+        }
+        // 	return sigpath;
+    }
 }
 
 // /**
@@ -762,82 +762,82 @@ impl alpm_handle_t {
 //  * @return 0 on success, -1 on error (consult pm_errno or sigdata)
 //  */
 pub fn _alpm_check_pgp_helper(
-	handle: &alpm_handle_t,
-	path: &String,
-	base64_sig: Option<&String>,
-	optional: bool,
-	marginal: bool,
-	unknown: bool,
-	sigdata: &alpm_siglist_t,
+    handle: &alpm_handle_t,
+    path: &String,
+    base64_sig: Option<&String>,
+    optional: bool,
+    marginal: bool,
+    unknown: bool,
+    sigdata: &alpm_siglist_t,
 ) -> i32 {
-	unimplemented!();
-	// 	alpm_siglist_t *siglist;
-	// 	int ret;
-	//
-	// 	CALLOC(siglist, 1, sizeof(alpm_siglist_t),
-	// 			RET_ERR(handle, ALPM_ERR_MEMORY, -1));
-	//
-	// 	ret = _alpm_gpgme_checksig(handle, path, base64_sig, siglist);
-	// 	if(ret && handle->pm_errno == ALPM_ERR_SIG_MISSING) {
-	// 		if(optional) {
-	// 			_alpm_log(handle, ALPM_LOG_DEBUG, "missing optional signature\n");
-	// 			handle->pm_errno = ALPM_ERR_OK;
-	// 			ret = 0;
-	// 		} else {
-	// 			_alpm_log(handle, ALPM_LOG_DEBUG, "missing required signature\n");
-	// 			/* ret will already be -1 */
-	// 		}
-	// 	} else if(ret) {
-	// 		_alpm_log(handle, ALPM_LOG_DEBUG, "signature check failed\n");
-	// 		/* ret will already be -1 */
-	// 	} else {
-	// 		size_t num;
-	// 		for(num = 0; !ret && num < siglist->count; num++) {
-	// 			switch(siglist->results[num].status) {
-	// 				case ALPM_SIGSTATUS_VALID:
-	// 				case ALPM_SIGSTATUS_KEY_EXPIRED:
-	// 					_alpm_log(handle, ALPM_LOG_DEBUG, "signature is valid\n");
-	// 					switch(siglist->results[num].validity) {
-	// 						case ALPM_SIGVALIDITY_FULL:
-	// 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature is fully trusted\n");
-	// 							break;
-	// 						case ALPM_SIGVALIDITY_MARGINAL:
-	// 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature is marginal trust\n");
-	// 							if(!marginal) {
-	// 								ret = -1;
-	// 							}
-	// 							break;
-	// 						case ALPM_SIGVALIDITY_UNKNOWN:
-	// 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature is unknown trust\n");
-	// 							if(!unknown) {
-	// 								ret = -1;
-	// 							}
-	// 							break;
-	// 						case ALPM_SIGVALIDITY_NEVER:
-	// 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature should never be trusted\n");
-	// 							ret = -1;
-	// 							break;
-	// 					}
-	// 					break;
-	// 				case ALPM_SIGSTATUS_SIG_EXPIRED:
-	// 				case ALPM_SIGSTATUS_KEY_UNKNOWN:
-	// 				case ALPM_SIGSTATUS_KEY_DISABLED:
-	// 				case ALPM_SIGSTATUS_INVALID:
-	// 					_alpm_log(handle, ALPM_LOG_DEBUG, "signature is not valid\n");
-	// 					ret = -1;
-	// 					break;
-	// 			}
-	// 		}
-	// 	}
-	//
-	// 	if(sigdata) {
-	// 		*sigdata = siglist;
-	// 	} else {
-	// 		alpm_siglist_cleanup(siglist);
-	// 		free(siglist);
-	// 	}
-	//
-	// 	return ret;
+    unimplemented!();
+    // 	alpm_siglist_t *siglist;
+    // 	int ret;
+    //
+    // 	CALLOC(siglist, 1, sizeof(alpm_siglist_t),
+    // 			RET_ERR(handle, ALPM_ERR_MEMORY, -1));
+    //
+    // 	ret = _alpm_gpgme_checksig(handle, path, base64_sig, siglist);
+    // 	if(ret && handle->pm_errno == ALPM_ERR_SIG_MISSING) {
+    // 		if(optional) {
+    // 			_alpm_log(handle, ALPM_LOG_DEBUG, "missing optional signature\n");
+    // 			handle->pm_errno = ALPM_ERR_OK;
+    // 			ret = 0;
+    // 		} else {
+    // 			_alpm_log(handle, ALPM_LOG_DEBUG, "missing required signature\n");
+    // 			/* ret will already be -1 */
+    // 		}
+    // 	} else if(ret) {
+    // 		_alpm_log(handle, ALPM_LOG_DEBUG, "signature check failed\n");
+    // 		/* ret will already be -1 */
+    // 	} else {
+    // 		size_t num;
+    // 		for(num = 0; !ret && num < siglist->count; num++) {
+    // 			switch(siglist->results[num].status) {
+    // 				case ALPM_SIGSTATUS_VALID:
+    // 				case ALPM_SIGSTATUS_KEY_EXPIRED:
+    // 					_alpm_log(handle, ALPM_LOG_DEBUG, "signature is valid\n");
+    // 					switch(siglist->results[num].validity) {
+    // 						case ALPM_SIGVALIDITY_FULL:
+    // 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature is fully trusted\n");
+    // 							break;
+    // 						case ALPM_SIGVALIDITY_MARGINAL:
+    // 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature is marginal trust\n");
+    // 							if(!marginal) {
+    // 								ret = -1;
+    // 							}
+    // 							break;
+    // 						case ALPM_SIGVALIDITY_UNKNOWN:
+    // 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature is unknown trust\n");
+    // 							if(!unknown) {
+    // 								ret = -1;
+    // 							}
+    // 							break;
+    // 						case ALPM_SIGVALIDITY_NEVER:
+    // 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature should never be trusted\n");
+    // 							ret = -1;
+    // 							break;
+    // 					}
+    // 					break;
+    // 				case ALPM_SIGSTATUS_SIG_EXPIRED:
+    // 				case ALPM_SIGSTATUS_KEY_UNKNOWN:
+    // 				case ALPM_SIGSTATUS_KEY_DISABLED:
+    // 				case ALPM_SIGSTATUS_INVALID:
+    // 					_alpm_log(handle, ALPM_LOG_DEBUG, "signature is not valid\n");
+    // 					ret = -1;
+    // 					break;
+    // 			}
+    // 		}
+    // 	}
+    //
+    // 	if(sigdata) {
+    // 		*sigdata = siglist;
+    // 	} else {
+    // 		alpm_siglist_cleanup(siglist);
+    // 		free(siglist);
+    // 	}
+    //
+    // 	return ret;
 }
 
 // /**
@@ -855,85 +855,85 @@ pub fn _alpm_check_pgp_helper(
 //  * validation process
 //  */
 pub fn _alpm_process_siglist(
-	handle: &alpm_handle_t,
-	identifier: &String,
-	siglist: &alpm_siglist_t,
-	optional: bool,
-	marginal: bool,
-	unknown: bool,
+    handle: &alpm_handle_t,
+    identifier: &String,
+    siglist: &alpm_siglist_t,
+    optional: bool,
+    marginal: bool,
+    unknown: bool,
 ) -> i32 {
-	unimplemented!();
-	// 	size_t i;
-	// 	int retry = 0;
-	//
-	// 	if(!optional && siglist->count == 0) {
-	// 		_alpm_log(handle, ALPM_LOG_ERROR,
-	// 				_("%s: missing required signature\n"), identifier);
-	// 	}
-	//
-	// 	for(i = 0; i < siglist->count; i++) {
-	// 		alpm_sigresult_t *result = siglist->results + i;
-	// 		const char *name = result->key.uid ? result->key.uid : result->key.fingerprint;
-	// 		switch(result->status) {
-	// 			case ALPM_SIGSTATUS_VALID:
-	// 			case ALPM_SIGSTATUS_KEY_EXPIRED:
-	// 				switch(result->validity) {
-	// 					case ALPM_SIGVALIDITY_FULL:
-	// 						break;
-	// 					case ALPM_SIGVALIDITY_MARGINAL:
-	// 						if(!marginal) {
-	// 							_alpm_log(handle, ALPM_LOG_ERROR,
-	// 									_("%s: signature from \"%s\" is marginal trust\n"),
-	// 									identifier, name);
-	// 							/* QUESTION(handle, ALPM_QUESTION_EDIT_KEY_TRUST, &result->key, NULL, NULL, &answer); */
-	// 						}
-	// 						break;
-	// 					case ALPM_SIGVALIDITY_UNKNOWN:
-	// 						if(!unknown) {
-	// 							_alpm_log(handle, ALPM_LOG_ERROR,
-	// 									_("%s: signature from \"%s\" is unknown trust\n"),
-	// 									identifier, name);
-	// 							/* QUESTION(handle, ALPM_QUESTION_EDIT_KEY_TRUST, &result->key, NULL, NULL, &answer); */
-	// 						}
-	// 						break;
-	// 					case ALPM_SIGVALIDITY_NEVER:
-	// 						_alpm_log(handle, ALPM_LOG_ERROR,
-	// 								_("%s: signature from \"%s\" should never be trusted\n"),
-	// 								identifier, name);
-	// 						break;
-	// 				}
-	// 				break;
-	// 			case ALPM_SIGSTATUS_KEY_UNKNOWN:
-	// 				/* ensure this key is still actually unknown; we may have imported it
-	// 				 * on an earlier call to this function. */
-	// 				if(_alpm_key_in_keychain(handle, result->key.fingerprint) == 1) {
-	// 					break;
-	// 				}
-	// 				_alpm_log(handle, ALPM_LOG_ERROR,
-	// 						_("%s: key \"%s\" is unknown\n"), identifier, name);
-	//
-	// 				if(_alpm_key_import(handle, result->key.fingerprint) == 0) {
-	// 					retry = 1;
-	// 				}
-	//
-	// 				break;
-	// 			case ALPM_SIGSTATUS_KEY_DISABLED:
-	// 				_alpm_log(handle, ALPM_LOG_ERROR,
-	// 						_("%s: key \"%s\" is disabled\n"), identifier, name);
-	// 				break;
-	// 			case ALPM_SIGSTATUS_SIG_EXPIRED:
-	// 				_alpm_log(handle, ALPM_LOG_ERROR,
-	// 						_("%s: signature from \"%s\" is expired\n"), identifier, name);
-	// 				break;
-	// 			case ALPM_SIGSTATUS_INVALID:
-	// 				_alpm_log(handle, ALPM_LOG_ERROR,
-	// 						_("%s: signature from \"%s\" is invalid\n"),
-	// 						identifier, name);
-	// 				break;
-	// 		}
-	// 	}
-	//
-	// 	return retry;
+    unimplemented!();
+    // 	size_t i;
+    // 	int retry = 0;
+    //
+    // 	if(!optional && siglist->count == 0) {
+    // 		_alpm_log(handle, ALPM_LOG_ERROR,
+    // 				_("%s: missing required signature\n"), identifier);
+    // 	}
+    //
+    // 	for(i = 0; i < siglist->count; i++) {
+    // 		alpm_sigresult_t *result = siglist->results + i;
+    // 		const char *name = result->key.uid ? result->key.uid : result->key.fingerprint;
+    // 		switch(result->status) {
+    // 			case ALPM_SIGSTATUS_VALID:
+    // 			case ALPM_SIGSTATUS_KEY_EXPIRED:
+    // 				switch(result->validity) {
+    // 					case ALPM_SIGVALIDITY_FULL:
+    // 						break;
+    // 					case ALPM_SIGVALIDITY_MARGINAL:
+    // 						if(!marginal) {
+    // 							_alpm_log(handle, ALPM_LOG_ERROR,
+    // 									_("%s: signature from \"%s\" is marginal trust\n"),
+    // 									identifier, name);
+    // 							/* QUESTION(handle, ALPM_QUESTION_EDIT_KEY_TRUST, &result->key, NULL, NULL, &answer); */
+    // 						}
+    // 						break;
+    // 					case ALPM_SIGVALIDITY_UNKNOWN:
+    // 						if(!unknown) {
+    // 							_alpm_log(handle, ALPM_LOG_ERROR,
+    // 									_("%s: signature from \"%s\" is unknown trust\n"),
+    // 									identifier, name);
+    // 							/* QUESTION(handle, ALPM_QUESTION_EDIT_KEY_TRUST, &result->key, NULL, NULL, &answer); */
+    // 						}
+    // 						break;
+    // 					case ALPM_SIGVALIDITY_NEVER:
+    // 						_alpm_log(handle, ALPM_LOG_ERROR,
+    // 								_("%s: signature from \"%s\" should never be trusted\n"),
+    // 								identifier, name);
+    // 						break;
+    // 				}
+    // 				break;
+    // 			case ALPM_SIGSTATUS_KEY_UNKNOWN:
+    // 				/* ensure this key is still actually unknown; we may have imported it
+    // 				 * on an earlier call to this function. */
+    // 				if(_alpm_key_in_keychain(handle, result->key.fingerprint) == 1) {
+    // 					break;
+    // 				}
+    // 				_alpm_log(handle, ALPM_LOG_ERROR,
+    // 						_("%s: key \"%s\" is unknown\n"), identifier, name);
+    //
+    // 				if(_alpm_key_import(handle, result->key.fingerprint) == 0) {
+    // 					retry = 1;
+    // 				}
+    //
+    // 				break;
+    // 			case ALPM_SIGSTATUS_KEY_DISABLED:
+    // 				_alpm_log(handle, ALPM_LOG_ERROR,
+    // 						_("%s: key \"%s\" is disabled\n"), identifier, name);
+    // 				break;
+    // 			case ALPM_SIGSTATUS_SIG_EXPIRED:
+    // 				_alpm_log(handle, ALPM_LOG_ERROR,
+    // 						_("%s: signature from \"%s\" is expired\n"), identifier, name);
+    // 				break;
+    // 			case ALPM_SIGSTATUS_INVALID:
+    // 				_alpm_log(handle, ALPM_LOG_ERROR,
+    // 						_("%s: signature from \"%s\" is invalid\n"),
+    // 						identifier, name);
+    // 				break;
+    // 		}
+    // 	}
+    //
+    // 	return retry;
 }
 
 // /**

@@ -65,7 +65,7 @@ pub struct dload_payload {
     // off_t prevprogress;
     pub force: bool,         //was int
     pub allow_resume: i32,   //bool?
-    pub errors_ok: bool,      //was int
+    pub errors_ok: bool,     //was int
     pub unlink_on_fail: i32, //bool?
     pub trust_remote_name: i32, //bool?
 
@@ -752,8 +752,6 @@ impl alpm_handle_t {
         //
         // 	return filepath;
     }
-
-
 }
 
 // void _alpm_dload_payload_reset_for_retry(struct dload_payload *payload)

@@ -287,23 +287,23 @@ fn find_dep_satisfier<'a>(
  * @param depstring package or provision name, versioned or not
  * @return a alpm_pkg_t* satisfying depstring
  */
-pub fn alpm_find_satisfier<'a>(pkgs: &'a Vec<alpm_pkg_t>, depstring: &String) -> Option<&'a alpm_pkg_t>
-{
+pub fn alpm_find_satisfier<'a>(
+    pkgs: &'a Vec<alpm_pkg_t>,
+    depstring: &String,
+) -> Option<&'a alpm_pkg_t> {
     // alpm_depend_t *dep = alpm_dep_from_string(depstring);
-	let dep = &alpm_dep_from_string(depstring);
-	// if(!dep) {
-	// 	return NULL;
-	// }
-	let pkg = find_dep_satisfier(pkgs, dep);
-	return pkg;
+    let dep = &alpm_dep_from_string(depstring);
+    // if(!dep) {
+    // 	return NULL;
+    // }
+    let pkg = find_dep_satisfier(pkgs, dep);
+    return pkg;
 }
 
 impl alpm_handle_t {
     fn no_dep_version(&self) -> bool {
         self.trans.flags.NODEPVERSION
     }
-
-
 
     /* Checks dependencies and returns missing ones in a list.
      * Dependencies can include versions with depmod operators.

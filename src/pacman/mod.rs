@@ -532,7 +532,7 @@ pub fn main() {
             _ => {}
         },
         &Some(PM_OP_UPGRADE) => match pacman_upgrade(pm_targets, &mut config) {
-            Err(e) => (ret = 1),
+            Err(_) => (ret = 1),
             _ => {}
         },
         &Some(PM_OP_QUERY) => match pacman_query(pm_targets, &mut config) {
@@ -540,7 +540,7 @@ pub fn main() {
             _ => {}
         },
         &Some(PM_OP_SYNC) => match pacman_sync(pm_targets, &mut config) {
-            Err(e) => (ret = 1),
+            Err(_) => (ret = 1),
             _ => {}
         },
         &Some(PM_OP_DEPTEST) => match pacman_deptest(pm_targets, &mut config) {

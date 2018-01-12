@@ -59,11 +59,7 @@ fn remove_target(target: String, config: &mut config_t) -> i32 {
             for pkg in &grp.packages {
                 match alpm_remove_pkg(&mut config.handle.trans, &pkg) {
                     Err(e) => {
-                        eprintln!(
-                            "'{}': {}",
-                            target,
-                            e.alpm_strerror()
-                        );
+                        eprintln!("'{}': {}", target, e.alpm_strerror());
                         return -1;
                     }
                     Ok(_) => {}

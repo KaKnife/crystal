@@ -6,15 +6,15 @@ pub mod pacman;
 pub mod common;
 pub mod alpm;
 pub use self::common::*;
-#[macro_use]
-extern crate log;
 extern crate env_logger;
-extern crate libc;
 extern crate getopts;
 extern crate glob;
-const PACKAGE_VERSION:&str = "0.0.1";
+extern crate libc;
+#[macro_use]
+extern crate log;
+const PACKAGE_VERSION: &str = "0.0.1";
 fn main() {
-    std::env::set_var("RUST_LOG","debug");
+    std::env::set_var("RUST_LOG", "debug");
     env_logger::init().unwrap();
     pacman::main();
 }

@@ -37,7 +37,7 @@ pub struct alpm_pkghash_t {
     /** data held by the hash table */
     // alpm_list_t **hash_table;
     /** head node of the hash table data in normal list format */
-     // list:alpm_list_t,
+    // list:alpm_list_t,
     /** number of buckets in hash table */
     // unsigned int buckets;
     /// number of entries in hash table */
