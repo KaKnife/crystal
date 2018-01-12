@@ -115,30 +115,48 @@ pub fn check_syncdbs(
     config: &mut config_t,
 ) -> std::result::Result<(), ()> {
     let mut ret = Ok(());
-
-    match (config.handle.dbs_sync.clone(), check_valid) {
-        (None, _) if need_repos != 0 => {
-            eprintln!("no usable package repositories configured.");
-            return Err(());
-        }
-        (Some(ref mut sync_dbs), true) => {
-            /* ensure all known dbs are valid */
-            for mut db in sync_dbs {
-                match db.alpm_db_get_valid(&mut config.handle) {
-                    Err(e) => {
-                        eprintln!(
-                            "database '{}' is not valid ({})",
-                            db.treename,
-                            e.alpm_strerror()
-                        );
-                        ret = Err(());
-                    }
-                    Ok(_) => {}
+    if config.handle.dbs_sync.len() == 0 && need_repos != 0 {
+        eprintln!("no usable package repositories configured.");
+        return Err(());
+    }
+    if check_valid {
+        for mut db in config.handle.dbs_sync.clone() {
+            match db.alpm_db_get_valid(&mut config.handle) {
+                Err(e) => {
+                    eprintln!(
+                        "database '{}' is not valid ({})",
+                        db.treename,
+                        e.alpm_strerror()
+                    );
+                    ret = Err(());
                 }
+                Ok(_) => {}
             }
         }
-        _ => {}
     }
+    // match (config.handle.dbs_sync.clone(), check_valid) {
+    //     (None, _) if need_repos != 0 => {
+    //         eprintln!("no usable package repositories configured.");
+    //         return Err(());
+    //     }
+    //     (Some(ref mut sync_dbs), true) => {
+    //         /* ensure all known dbs are valid */
+    //         for mut db in sync_dbs {
+    //             match db.alpm_db_get_valid(&mut config.handle) {
+    //                 Err(e) => {
+    //                     eprintln!(
+    //                         "database '{}' is not valid ({})",
+    //                         db.treename,
+    //                         e.alpm_strerror()
+    //                     );
+    //                     ret = Err(());
+    //                 }
+    //                 Ok(_) => {}
+    //             }
+    //         }
+    //     }
+    //     _ => {}
+    // }
 
     return ret;
 }

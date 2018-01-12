@@ -281,27 +281,29 @@ fn find_dep_satisfier<'a>(
 // 	return newtargs;
 // }
 
+/** Find a package satisfying a specified dependency.
+ * The dependency can include versions with depmod operators.
+ * @param pkgs an alpm_list_t* of alpm_pkg_t where the satisfier will be searched
+ * @param depstring package or provision name, versioned or not
+ * @return a alpm_pkg_t* satisfying depstring
+ */
+pub fn alpm_find_satisfier<'a>(pkgs: &'a Vec<alpm_pkg_t>, depstring: &String) -> Option<&'a alpm_pkg_t>
+{
+    // alpm_depend_t *dep = alpm_dep_from_string(depstring);
+	let dep = &alpm_dep_from_string(depstring);
+	// if(!dep) {
+	// 	return NULL;
+	// }
+	let pkg = find_dep_satisfier(pkgs, dep);
+	return pkg;
+}
+
 impl alpm_handle_t {
     fn no_dep_version(&self) -> bool {
         self.trans.flags.NODEPVERSION
     }
 
-    // /** Find a package satisfying a specified dependency.
-    //  * The dependency can include versions with depmod operators.
-    //  * @param pkgs an alpm_list_t* of alpm_pkg_t where the satisfier will be searched
-    //  * @param depstring package or provision name, versioned or not
-    //  * @return a alpm_pkg_t* satisfying depstring
-    //  */
-    // alpm_pkg_t SYMEXPORT *alpm_find_satisfier(alpm_list_t *pkgs, const char *depstring)
-    // {
-    // 	alpm_depend_t *dep = alpm_dep_from_string(depstring);
-    // 	if(!dep) {
-    // 		return NULL;
-    // 	}
-    // 	alpm_pkg_t *pkg = find_dep_satisfier(pkgs, dep);
-    // 	alpm_dep_free(dep);
-    // 	return pkg;
-    // }
+
 
     /* Checks dependencies and returns missing ones in a list.
      * Dependencies can include versions with depmod operators.

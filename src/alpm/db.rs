@@ -322,7 +322,7 @@ impl alpm_db_t {
     }
 
     /// Get the group cache of a package database. */
-    fn alpm_db_get_groupcache(&mut self) -> &Vec<alpm_group_t> {
+    pub fn alpm_db_get_groupcache(&mut self) -> &Vec<alpm_group_t> {
         // ASSERT(db != NULL, return NULL);
         // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
 
@@ -635,6 +635,12 @@ impl alpm_db_t {
 
         return db;
     }
+
+    /// Gets the usage bitmask for a repo */
+    pub fn alpm_db_get_usage(&self, usage: &mut alpm_db_usage_t)
+    {
+    	*usage = self.usage;
+    }
 }
 
 impl alpm_handle_t {
@@ -669,13 +675,10 @@ impl alpm_handle_t {
         if treename == "local" {
             return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
         }
-        match self.dbs_sync {
-            Some(ref dbs) => for d in dbs {
-                if treename == &d.treename {
-                    return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
-                }
-            },
-            _ => {}
+        for d in &self.dbs_sync {
+            if treename == &d.treename {
+                return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
+            }
         }
 
         Ok(self._alpm_db_register_sync(&treename, siglevel))
@@ -690,14 +693,7 @@ fn sanitize_url(url: &String) -> String {
     return newurl;
 }
 
-// /// Gets the usage bitmask for a repo */
-// int SYMEXPORT alpm_db_get_usage(alpm_db_t *db, int *usage)
-// {
-// 	ASSERT(db != NULL, return -1);
-// 	ASSERT(usage != NULL, return -1);
-// 	*usage = db->usage;
-// 	return 0;
-// }
+
 
 // void _alpm_db_free(alpm_db_t *db)
 // {
@@ -720,7 +716,6 @@ fn sanitize_url(url: &String) -> String {
 // 	return strcmp(db1->treename, db2->treename);
 // }
 
-//
 
 // /* "duplicate" pkg then add it to pkgcache */
 // int _alpm_db_add_pkgincache(alpm_db_t *db, alpm_pkg_t *pkg)

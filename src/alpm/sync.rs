@@ -222,7 +222,7 @@ pub fn alpm_sync_sysupgrade(handle: &alpm_handle_t, enable_downgrade: bool) -> R
 		}
 
 		/* Search for replacers then literal (if no replacer) in each sync database. */
-		for sdb in handle.dbs_sync.clone().unwrap() {
+		for sdb in &handle.dbs_sync {
 			// alpm_db_t *sdb = j.data;
 			// alpm_list_t *replacers;
 
@@ -259,46 +259,45 @@ pub fn alpm_sync_sysupgrade(handle: &alpm_handle_t, enable_downgrade: bool) -> R
  * @param name the name of the group
  * @return the list of alpm_pkg_t * (caller is responsible for alpm_list_free)
  */
-// alpm_list_t SYMEXPORT *alpm_find_group_pkgs(alpm_list_t *dbs,
-// 		const char *name)
-// {
-// 	alpm_list_t *i, *j, *pkgs = NULL, *ignorelist = NULL;
-//
-// 	for(i = dbs; i; i = i.next) {
-// 		alpm_db_t *db = i.data;
-// 		alpm_group_t *grp = alpm_db_get_group(db, name);
-//
-// 		if(!grp) {
-// 			continue;
-// 		}
-//
-// 		for(j = grp.packages; j; j = j.next) {
-// 			alpm_pkg_t *pkg = j.data;
-//
-// 			if(alpm_pkg_find(ignorelist, pkg.name)) {
-// 				continue;
-// 			}
-// 			if(alpm_pkg_should_ignore(db.handle, pkg)) {
-// 				alpm_question_install_ignorepkg_t question = {
-// 					.type = ALPM_QUESTION_INSTALL_IGNOREPKG,
-// 					.install = 0,
-// 					.pkg = pkg
-// 				};
-// 				ignorelist = alpm_list_add(ignorelist, pkg);
-// 				QUESTION(db.handle, &question);
-// 				if(!question.install) {
-// 					continue;
-// 				}
-// 			}
-// 			if(!alpm_pkg_find(pkgs, pkg.name)) {
-// 				pkgs = alpm_list_add(pkgs, pkg);
-// 			}
-// 		}
-// 	}
-// 	alpm_list_free(ignorelist);
-// 	return pkgs;
-// }
-//
+pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<alpm_pkg_t> {
+	unimplemented!();
+	// 	alpm_list_t *i, *j, *pkgs = NULL, *ignorelist = NULL;
+	//
+	// 	for(i = dbs; i; i = i.next) {
+	// 		alpm_db_t *db = i.data;
+	// 		alpm_group_t *grp = alpm_db_get_group(db, name);
+	//
+	// 		if(!grp) {
+	// 			continue;
+	// 		}
+	//
+	// 		for(j = grp.packages; j; j = j.next) {
+	// 			alpm_pkg_t *pkg = j.data;
+	//
+	// 			if(alpm_pkg_find(ignorelist, pkg.name)) {
+	// 				continue;
+	// 			}
+	// 			if(alpm_pkg_should_ignore(db.handle, pkg)) {
+	// 				alpm_question_install_ignorepkg_t question = {
+	// 					.type = ALPM_QUESTION_INSTALL_IGNOREPKG,
+	// 					.install = 0,
+	// 					.pkg = pkg
+	// 				};
+	// 				ignorelist = alpm_list_add(ignorelist, pkg);
+	// 				QUESTION(db.handle, &question);
+	// 				if(!question.install) {
+	// 					continue;
+	// 				}
+	// 			}
+	// 			if(!alpm_pkg_find(pkgs, pkg.name)) {
+	// 				pkgs = alpm_list_add(pkgs, pkg);
+	// 			}
+	// 		}
+	// 	}
+	// 	alpm_list_free(ignorelist);
+	// 	return pkgs;
+}
+
 // /** Compute the size of the files that will be downloaded to install a
 //  * package.
 //  * @param newpkg the new package to upgrade to

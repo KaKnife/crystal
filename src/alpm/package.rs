@@ -388,20 +388,16 @@ impl alpm_pkg_t {
         // return self.ops.get_isize(pkg);
     }
 
-    // alpm_pkgreason_t SYMEXPORT alpm_pkg_get_reason(&self)
-    // {
-    // 	ASSERT(pkg != NULL, return -1);
-    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
-    // 	return pkg->ops->get_reason(pkg);
-    // }
-    //
-    // int SYMEXPORT alpm_pkg_get_validation(&self)
-    // {
-    // 	ASSERT(pkg != NULL, return -1);
-    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
-    // 	return pkg->ops->get_validation(pkg);
-    // }
-    //
+    pub fn alpm_pkg_get_reason(&self) -> alpm_pkgreason_t {
+        unimplemented!();
+        //return pkg.ops.get_reason(pkg);
+    }
+
+    pub fn alpm_pkg_get_validation(&self) -> i32 {
+        unimplemented!();
+        // return pkg->ops->get_validation(pkg);
+    }
+
     // alpm_list_t SYMEXPORT *alpm_pkg_get_licenses(&self)
     // {
     // 	ASSERT(pkg != NULL, return NULL);

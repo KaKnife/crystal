@@ -1615,14 +1615,10 @@ fn register_repo(
         }
     }
 
-    if config_handle.dbs_sync.is_none() {
-        config_handle.dbs_sync = Some(Vec::new());
-    }
-
-    match &mut config_handle.dbs_sync {
-        &mut Some(ref mut dbs_sync) => dbs_sync.push(db),
-        &mut None => panic!(),
-    }
+    // if config_handle.dbs_sync.len() == 0 {
+    //     config_handle.dbs_sync = Vec::new();
+    // }
+    config_handle.dbs_sync.push(db);
 
     return 0;
 }

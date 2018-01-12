@@ -44,6 +44,7 @@ pub use self::handle::alpm_handle_t;
 pub use self::db::alpm_db_t;
 pub use self::deps::alpm_dep_from_string;
 pub use self::be_sync::alpm_db_update;
+pub use self::deps::alpm_find_satisfier;
 
 const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
 

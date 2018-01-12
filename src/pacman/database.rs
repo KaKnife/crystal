@@ -254,14 +254,20 @@ fn check_db_local(config: &conf::config_t) -> i32 {
 fn check_db_sync(config: &mut config_t) -> i32 {
     let mut syncpkglist = Vec::new();
 
-    match config.handle.dbs_sync {
-        Some(ref mut dblist) => for mut db in dblist {
-            let mut pkglist: Vec<alpm_pkg_t>;
-            pkglist = db.alpm_db_get_pkgcache();
-            syncpkglist.append(&mut pkglist);
-        },
-        _ => unimplemented!(),
-    };
+    for mut db in &config.handle.dbs_sync {
+        let mut pkglist: Vec<alpm_pkg_t>;
+        pkglist = db.alpm_db_get_pkgcache();
+        syncpkglist.append(&mut pkglist);
+    }
+
+    // match config.handle.dbs_sync {
+    //     Some(ref mut dblist) => for mut db in dblist {
+    //         let mut pkglist: Vec<alpm_pkg_t>;
+    //         pkglist = db.alpm_db_get_pkgcache();
+    //         syncpkglist.append(&mut pkglist);
+    //     },
+    //     _ => unimplemented!(),
+    // };
 
     check_db_missing_deps(config, &mut syncpkglist)
 }

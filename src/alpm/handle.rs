@@ -523,7 +523,11 @@ impl alpm_handle_t {
         return &self.db_local;
     }
 
-    pub fn alpm_get_syncdbs(&self) -> &Option<Vec<alpm_db_t>> {
+    pub fn alpm_get_localdb_mut(&mut self) -> &mut alpm_db_t {
+        return &mut self.db_local;
+    }
+
+    pub fn alpm_get_syncdbs(&self) -> &Vec<alpm_db_t> {
         return &self.dbs_sync;
     }
 
@@ -782,8 +786,8 @@ pub fn _alpm_set_directory_option(
 #[derive(Default, Debug)]
 pub struct alpm_handle_t {
     // 	/* internal usage */
-    pub db_local: alpm_db_t,              //// local db pointer */
-    pub dbs_sync: Option<Vec<alpm_db_t>>, /* List of (alpm_db_t *) */
+    pub db_local: alpm_db_t,      //// local db pointer */
+    pub dbs_sync: Vec<alpm_db_t>, /* List of (alpm_db_t *) */
     // 	FILE *logstream;        /* log file stream pointer */
     pub trans: alpm_trans_t,
     //
@@ -817,9 +821,9 @@ pub struct alpm_handle_t {
     pub overwrite_files: Vec<String>, /* Paths that may be overwritten */
     //
     // 	/* package lists */
-    pub noupgrade: Vec<String>, /* List of packages NOT to be upgraded */
-    pub noextract: Vec<String>, /* List of files NOT to extract */
-    pub ignorepkg: Vec<String>, /* List of packages to ignore */
+    pub noupgrade: Vec<String>,   /* List of packages NOT to be upgraded */
+    pub noextract: Vec<String>,   /* List of files NOT to extract */
+    pub ignorepkg: Vec<String>,   /* List of packages to ignore */
     pub ignoregroup: Vec<String>, /* List of groups to ignore */
     ///List of virtual packages used to satisfy dependencies
     pub assumeinstalled: Vec<alpm_depend_t>,

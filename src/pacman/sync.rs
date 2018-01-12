@@ -893,10 +893,7 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::
 
     check_syncdbs(1, true, config)?;
 
-    sync_dbs = match config.handle.alpm_get_syncdbs().clone() {
-        Some(s) => s,
-        None => unimplemented!(),
-    };
+    sync_dbs = config.handle.alpm_get_syncdbs().clone();
 
     if config.op_s_sync != 0 {
         /* grab a fresh package list */
