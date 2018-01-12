@@ -1,4 +1,4 @@
-use pacman::alpm::*;
+// use pacman::alpm::*;
 // use pacman::cleanup;
 // use getopts;
 use super::*;
@@ -134,7 +134,7 @@ pub struct config_t {
     /* When downloading, display the amount downloaded, rate, ETA, and percent
      * downloaded of the total download list */
     pub totaldownload: u8,
-    pub cleanmethod: u8,
+    pub cleanmethod: clean_method,
     pub holdpkg: Vec<String>,
     pub ignorepkg: Vec<String>,
     pub ignoregrp: Vec<String>,
@@ -168,12 +168,13 @@ pub enum operations {
     PM_OP_FILES,
 }
 
-// /* clean method */
-// enum {
-// 	PM_CLEAN_KEEPINST = 1,
-// 	PM_CLEAN_KEEPCUR = (1 << 1)
-// };
-//
+/// clean method
+#[derive(Debug, Default)]
+pub struct clean_method {
+	PM_CLEAN_KEEPINST:bool,
+	PM_CLEAN_KEEPCUR:bool
+}
+
 /** package locality */
 
 pub static PKG_LOCALITY_UNSET: u8 = 0;
@@ -1323,23 +1324,21 @@ pub fn merge_siglevel(base: siglevel, over: siglevel, mask: siglevel) -> sigleve
     };
 }
 
-pub fn process_cleanmethods(values: Vec<String>, file: &String, linenum: i32) -> i32 {
-    unimplemented!();
-    // 	alpm_list_t *i;
-    // 	for(i = values; i; i = alpm_list_next(i)) {
-    // 		const char *value = i.data;
-    // 		if(strcmp(value, "KeepInstalled") == 0) {
-    // 			config.cleanmethod |= PM_CLEAN_KEEPINST;
-    // 		} else if(strcmp(value, "KeepCurrent") == 0) {
-    // 			config.cleanmethod |= PM_CLEAN_KEEPCUR;
-    // 		} else {
-    // 			pm_printf(ALPM_LOG_ERROR,
-    // 					_("config file {}, line {}: invalid value for '{}' : '{}'\n"),
-    // 					file, linenum, "CleanMethod", value);
-    // 			return 1;
-    // 		}
-    // 	}
-    // 	return 0;
+pub fn process_cleanmethods(values: Vec<String>, file: &String, linenum: i32, config: &mut config_t) -> i32 {
+    for value in values {
+        if value == "KeepInstalled" {
+            config.cleanmethod.PM_CLEAN_KEEPINST=true;
+        } else if value== "KeepCurrent" {
+            config.cleanmethod.PM_CLEAN_KEEPCUR=true;
+        } else {
+            error!(
+                "config file {}, line {}: invalid value for '{}' : '{}'\n",
+                file, linenum, "CleanMethod", value
+            );
+            return 1;
+        }
+    }
+    return 0;
 }
 
 /// Add repeating options such as NoExtract, NoUpgrade, etc to libalpm
@@ -1476,7 +1475,7 @@ fn _parse_options(
                 unimplemented!();
                 let mut methods = Vec::new();
                 setrepeatingoption(value, "CleanMethod", &mut methods);
-                if process_cleanmethods(methods, file, linenum) != 0 {
+                if process_cleanmethods(methods, file, linenum, config) != 0 {
                     return 1;
                 }
             } else if key == "SigLevel" {
@@ -1530,7 +1529,7 @@ fn _parse_options(
 }
 
 fn _add_mirror(db: &mut alpm_db_t, value: &String, arch: &String) -> Result<()> {
-    let dbname = db.alpm_db_get_name();
+    let dbname = db.alpm_db_get_name().clone();
     /* let's attempt a replacement for the current repo */
     let temp = value.replace("$repo", &dbname);
     /* let's attempt a replacement for the arch */
@@ -1630,13 +1629,9 @@ fn register_repo(
  * multiple times (will only do anything the first time).
  */
 fn setup_libalpm(config: &mut config_t) -> Result<i32> {
-    let mut ret = 0;
-    // 	alpm_errno_t err;
-    // 	alpm_handle_t *handle;
     let handle;
-    // 	alpm_list_t *i;
 
-    // 	debug!( "setup_libalpm called\n");
+    debug!("setup_libalpm called\n");
 
     /* Configure root path first. If it is set and dbpath/logfile were not
      * set, then set those as well to reside under the root. */
@@ -1757,9 +1752,9 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
     if config.cachedirs.is_empty() {
         config
             .handle
-            .alpm_option_add_cachedir(&String::from(CACHEDIR));
+            .alpm_option_add_cachedir(&String::from(CACHEDIR))?;
     } else {
-        config.handle.alpm_option_set_cachedirs(&config.cachedirs);
+        config.handle.alpm_option_set_cachedirs(&config.cachedirs)?;
     }
 
     config
@@ -1783,7 +1778,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
 
     config
         .handle
-        .alpm_option_set_local_file_siglevel(config.localfilesiglevel);
+        .alpm_option_set_local_file_siglevel(config.localfilesiglevel)?;
     config
         .handle
         .alpm_option_set_remote_file_siglevel(config.remotefilesiglevel);
@@ -1809,7 +1804,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
     config
         .handle
         .alpm_option_set_usesyslog(config.usesyslog as i32);
-    config.handle.alpm_option_set_deltaratio(config.deltaratio);
+    config.handle.alpm_option_set_deltaratio(config.deltaratio)?;
     config.handle.alpm_option_set_ignorepkgs(&config.ignorepkg);
     config
         .handle
@@ -1841,17 +1836,14 @@ pub struct section_t {
 
 fn process_usage(
     values: &Vec<String>,
-    level: &mut alpm_db_usage_t,
+    usage: &mut alpm_db_usage_t,
     file: &String,
     linenum: i32,
 ) -> std::result::Result<(), ()> {
-    // 	alpm_list_t *i;
-    // let level = *usage;
+    let mut level = *usage;
     let mut ret = Ok(());
 
     for key in values {
-        // char *key = i.data;
-
         if key == "Sync" {
             level.ALPM_DB_USAGE_SYNC = true;
         } else if key == "Search" {
@@ -1863,15 +1855,16 @@ fn process_usage(
         } else if key == "All" {
             level.ALPM_DB_USAGE_ALL = true;
         } else {
-            // pm_printf(ALPM_LOG_ERROR,
-            // 		_("config file {}, line {}: '{}' option '{}' not recognized\n"),
-            // 		file, linenum, "Usage", key);
+            error!(
+                "config file {}, line {}: '{}' option '{}' not recognized",
+                file, linenum, "Usage", key
+            );
             ret = Err(());
         }
     }
-
-    // *usage = level;
-
+    if ret.is_ok() {
+        *usage = level;
+    }
     ret
 }
 
@@ -2089,21 +2082,16 @@ fn _parse_directive(
 /// - `file` - path to the config file
 /// - `returns` - 0 on success, non-zero on error
 pub fn parseconfig(file: &String, config: &mut config_t) -> Result<i32> {
-    // unimplemented!();
-    let mut ret;
-    // struct section_t section;
+    let ret;
     let mut section = section_t::default();
-    // memset(&section, 0, sizeof(struct section_t));
     debug!("config: attempting to read file {}", file);
     ret = parse_ini(file, &_parse_directive, &mut section, config);
     if ret != 0 {
+        unimplemented!();
+        //should be error
         return Ok(ret);
     }
     debug!("config: finished parsing {}", file);
     setup_libalpm(config)?;
-
-    // alpm_list_free_inner(config.repos, (alpm_list_fn_free) config_repo_free);
-    // alpm_list_free(config.repos);
-    // config.repos = NULL;
     return Ok(ret);
 }

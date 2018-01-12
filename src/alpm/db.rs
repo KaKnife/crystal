@@ -44,7 +44,7 @@ use super::*;
 // 		INFRQ_SCRIPTLET | INFRQ_DSIZE,
 // 	INFRQ_ERROR = (1 << 30)
 // } alpm_dbinfrq_t;
-//
+
 /// Database status. Bitflags. */
 #[derive(Debug, Clone, Default)]
 pub struct alpm_dbstatus_t {
@@ -148,26 +148,26 @@ impl alpm_db_t {
             db_ops_type::unknown => unimplemented!(),
         }
     }
-    /* Helper function for alpm_db_unregister{_all} */
-    // fn _alpm_db_unregister(&self)
-    // {
-    // 	if(db == NULL) {
-    // 		return;
-    // 	}
-    //
-    // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "unregistering database '{}'\n", db->treename);
-    // 	_alpm_db_free(db);
-    // }
 
-    /// Get the serverlist of a database. */
+    // /// Helper function for alpm_db_unregister{_all}
+    fn _alpm_db_unregister(&self) {
+        unimplemented!();
+        // {
+        // 	if(db == NULL) {
+        // 		return;
+        // 	}
+        //
+        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "unregistering database '{}'\n", db->treename);
+        // 	_alpm_db_free(db);
+    }
+
+    /// Get the serverlist of a database.
     pub fn alpm_db_get_servers(&self) -> &Vec<String> {
         &self.servers
     }
 
-    /// Set the serverlist of a database. */
+    /// Set the serverlist of a database.
     fn alpm_db_set_servers(&mut self, servers: Vec<String>) {
-        // ASSERT(db != NULL, return -1);
-        // FREELIST(db->servers);
         self.servers = servers;
     }
 
@@ -232,27 +232,22 @@ impl alpm_db_t {
     }
 
     /// Get a group entry from a package database. */
-    pub fn alpm_db_get_group(&self, name: &String) -> Option<alpm_group_t> {
-        // ASSERT(db != NULL, return NULL);
-        // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
-        // ASSERT(name != NULL && strlen(name) != 0,
-        // RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, NULL));
+    pub fn alpm_db_get_group(&self, name: &String) -> Option<&alpm_group_t> {
+        // if name.len() ==0{
+        //     return Err(alpm_errno_t::ALPM_ERR_WRONG_ARGS);
+        // }
 
         return self._alpm_db_get_groupfromcache(name);
     }
 
-    fn _alpm_db_get_groupfromcache(&self, target: &String) -> Option<alpm_group_t> {
-        // alpm_list_t *i;
-
+    fn _alpm_db_get_groupfromcache(&self, target: &String) -> Option<&alpm_group_t> {
         if target.len() == 0 {
             return None;
         }
 
         for info in self._alpm_db_get_groupcache() {
-            // alpm_group_t *info = i->data;
-
             if info.name == *target {
-                return Some(info.clone());
+                return Some(info);
             }
         }
 
@@ -447,8 +442,8 @@ impl alpm_db_t {
     }
 
     /// Get the name of a package database. */
-    pub fn alpm_db_get_name(&self) -> String {
-        return self.treename.clone();
+    pub fn alpm_db_get_name(&self) -> &String {
+        return &self.treename;
     }
 
     /// Get the signature verification level for a database. */
@@ -562,12 +557,12 @@ impl alpm_db_t {
 
     /// Sets the usage bitmask for a repo
     pub fn alpm_db_set_usage(&mut self, usage: alpm_db_usage_t) {
-        self.usage = usage.clone();
+        self.usage = usage;
     }
 
     pub fn _alpm_db_path(&mut self, handle: &alpm_handle_t) -> Result<String> {
         if self._path == "" {
-            let dbpath = handle.dbpath.clone();
+            let dbpath = &handle.dbpath;
             if dbpath == "" {
                 eprintln!("database path is undefined");
                 use self::alpm_errno_t::ALPM_ERR_DB_OPEN;
@@ -580,8 +575,10 @@ impl alpm_db_t {
                 /* all sync DBs now reside in the sync/ subdir of the dbpath */
                 self._path = format!("{}/sync/{}{}", dbpath, self.treename, handle.dbext);
             }
-            // _alpm_log(db->handle, ALPM_LOG_DEBUG, "database path for tree {} set to {}\n",
-            // db->treename, db->_path);
+            debug!(
+                "database path for tree {} set to {}\n",
+                self.treename, self._path
+            );
         }
         return Ok(self._path.clone());
     }
@@ -637,9 +634,8 @@ impl alpm_db_t {
     }
 
     /// Gets the usage bitmask for a repo */
-    pub fn alpm_db_get_usage(&self, usage: &mut alpm_db_usage_t)
-    {
-    	*usage = self.usage;
+    pub fn alpm_db_get_usage(&self, usage: &mut alpm_db_usage_t) {
+        *usage = self.usage;
     }
 }
 
@@ -693,8 +689,6 @@ fn sanitize_url(url: &String) -> String {
     return newurl;
 }
 
-
-
 // void _alpm_db_free(alpm_db_t *db)
 // {
 // 	ASSERT(db != NULL, return);
@@ -715,7 +709,6 @@ fn sanitize_url(url: &String) -> String {
 // 	const alpm_db_t *db2 = d2;
 // 	return strcmp(db1->treename, db2->treename);
 // }
-
 
 // /* "duplicate" pkg then add it to pkgcache */
 // int _alpm_db_add_pkgincache(alpm_db_t *db, alpm_pkg_t *pkg)

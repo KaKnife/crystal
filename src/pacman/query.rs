@@ -387,7 +387,7 @@ fn query_group(targets: &Vec<String>, config: &mut config_t) -> i32 {
     } else {
         for grpname in targets {
             match db_local.alpm_db_get_group(grpname) {
-                Some(grp) => for ref data in grp.packages {
+                Some(grp) => for ref data in &grp.packages {
                     if filter(data) == 0 {
                         continue;
                     }
