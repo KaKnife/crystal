@@ -10,6 +10,8 @@ pub mod sync;
 pub mod query;
 pub mod deptest;
 pub mod package;
+pub mod check;
+use self::check::*;
 use self::package::*;
 use self::deptest::*;
 use self::query::*;

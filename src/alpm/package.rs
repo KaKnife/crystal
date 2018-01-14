@@ -340,27 +340,30 @@ impl alpm_pkg_t {
         return self.origin.clone();
     }
 
-    // pub fn alpm_pkg_get_desc(&self) -> String {
-    //     return self.ops.get_desc(self);
-    // }
+    pub fn alpm_pkg_get_desc(&self) -> String {
+        unimplemented!();
+        // return self.ops.get_desc(self);
+    }
 
-    // pub fn alpm_pkg_get_url(&self) -> String {
-    //     return self.ops.get_url(self);
-    // }
+    pub fn alpm_pkg_get_url(&self) -> String {
+        unimplemented!();
+        // return self.ops.get_url(self);
+    }
 
-    // pub fn alpm_pkg_get_builddate(&self) -> alpm_time_t {
-    //     return pkg->ops->get_builddate(pkg);
-    // }
+    pub fn alpm_pkg_get_builddate(&self) -> alpm_time_t {
+        unimplemented!();
+        // return pkg->ops->get_builddate(pkg);
+    }
 
-    // alpm_time_t SYMEXPORT alpm_pkg_get_installdate(&self)
-    // {
-    // 	return pkg->ops->get_installdate(pkg);
-    // }
+    pub fn alpm_pkg_get_installdate(&self) -> alpm_time_t {
+        unimplemented!();
+        // return pkg->ops->get_installdate(pkg);
+    }
 
-    // const char SYMEXPORT *alpm_pkg_get_packager(&self)
-    // {
-    // 	return pkg->ops->get_packager(pkg);
-    // }
+    pub fn alpm_pkg_get_packager(&self) -> String {
+        unimplemented!();
+        // 	return pkg->ops->get_packager(pkg);
+    }
 
     pub fn alpm_pkg_get_md5sum(&self) -> String {
         return self.md5sum.clone();
@@ -858,36 +861,38 @@ pub fn alpm_pkg_find<'a>(haystack: &'a Vec<alpm_pkg_t>, needle: &String) -> Opti
         }
         Err(_) => return None,
     }
-
-    // /** Test if a package should be ignored.
-    //  *
-    //  * Checks if the package is ignored via IgnorePkg, or if the package is
-    //  * in a group ignored via IgnoreGroup.
-    //  *
-    //  * @param handle the context handle
-    //  * @param pkg the package to test
-    //  *
-    //  * @return 1 if the package should be ignored, 0 otherwise
-    //  */
-    // int SYMEXPORT alpm_pkg_should_ignore(alpm_handle_t *handle, alpm_pkg_t *pkg)
-    // {
-    // 	alpm_list_t *groups = NULL;
-    //
-    // 	/* first see if the package is ignored */
-    // 	if(alpm_list_find(handle->ignorepkg, pkg->name, _alpm_fnmatch)) {
-    // 		return 1;
-    // 	}
-    //
-    // 	/* next see if the package is in a group that is ignored */
-    // 	for(groups = alpm_pkg_get_groups(pkg); groups; groups = groups->next) {
-    // 		char *grp = groups->data;
-    // 		if(alpm_list_find(handle->ignoregroup, grp, _alpm_fnmatch)) {
-    // 			return 1;
-    // 		}
-    // 	}
-    //
-    // 	return 0;
-    // }
-    //
-    // /* vim: set noet: */
 }
+
+impl alpm_handle_t {
+    /** Test if a package should be ignored.
+     *
+     * Checks if the package is ignored via IgnorePkg, or if the package is
+     * in a group ignored via IgnoreGroup.
+     *
+     * @param handle the context handle
+     * @param pkg the package to test
+     *
+     * @return 1 if the package should be ignored, 0 otherwise
+     */
+    pub fn alpm_pkg_should_ignore(&self, pkg: &alpm_pkg_t) -> bool {
+        unimplemented!();
+        // 	alpm_list_t *groups = NULL;
+        //
+        // 	/* first see if the package is ignored */
+        // if alpm_list_find(self.ignorepkg, pkg.name, _alpm_fnmatch) {
+        //     return true;
+        // }
+        //
+        // /* next see if the package is in a group that is ignored */
+        // for grp in pkg.alpm_pkg_get_groups() {
+        //     // char *grp = groups->data;
+        //     if alpm_list_find(self.ignoregroup, grp, _alpm_fnmatch) {
+        //         return true;
+        //     }
+        // }
+        //
+        // return false;
+    }
+}
+//
+// /* vim: set noet: */

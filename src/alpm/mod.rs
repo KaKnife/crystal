@@ -237,7 +237,7 @@ pub enum alpm_pkgfrom_t {
 }
 
 /// Method used to validate a package.
-enum alpm_pkgvalidation_t {
+pub enum alpm_pkgvalidation_t {
     ALPM_PKG_VALIDATION_UNKNOWN = 0,
     ALPM_PKG_VALIDATION_NONE = (1 << 0),
     ALPM_PKG_VALIDATION_MD5SUM = (1 << 1),

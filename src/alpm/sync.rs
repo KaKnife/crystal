@@ -48,82 +48,83 @@ use super::*;
 // #include "remove.h"
 // #include "diskspace.h"
 // #include "signing.h"
-//
-// /** Check for new version of pkg in sync repos
-//  * (only the first occurrence is considered in sync)
-//  */
-// alpm_pkg_t SYMEXPORT *alpm_sync_newversion(alpm_pkg_t *pkg, alpm_list_t *dbs_sync)
-// {
-// 	alpm_list_t *i;
-// 	alpm_pkg_t *spkg = NULL;
-//
-// 	ASSERT(pkg != NULL, return NULL);
-// 	pkg->handle->pm_errno = ALPM_ERR_OK;
-//
-// 	for(i = dbs_sync; !spkg && i; i = i->next) {
-// 		alpm_db_t *db = i->data;
-// 		if(!(db->usage & ALPM_DB_USAGE_SEARCH)) {
-// 			continue;
-// 		}
-//
-// 		spkg = _alpm_db_get_pkgfromcache(db, pkg->name);
-// 	}
-//
-// 	if(spkg == NULL) {
-// 		_alpm_log(pkg->handle, ALPM_LOG_DEBUG, "'{}' not found in sync db => no upgrade\n",
-// 				pkg->name);
-// 		return NULL;
-// 	}
-//
-// 	/* compare versions and see if spkg is an upgrade */
-// 	if(_alpm_pkg_compare_versions(spkg, pkg) > 0) {
-// 		_alpm_log(pkg->handle, ALPM_LOG_DEBUG, "new version of '{}' found ({} => {})\n",
-// 					pkg->name, pkg->version, spkg->version);
-// 		return spkg;
-// 	}
-// 	/* spkg is not an upgrade */
-// 	return NULL;
-// }
-//
-// static int check_literal(alpm_handle_t *handle, alpm_pkg_t *lpkg,
-// 		alpm_pkg_t *spkg, int enable_downgrade)
-// {
-// 	/* 1. literal was found in sdb */
-// 	int cmp = _alpm_pkg_compare_versions(spkg, lpkg);
-// 	if(cmp > 0) {
-// 		debug!("new version of '{}' found ({} => {})\n",
-// 				lpkg->name, lpkg->version, spkg->version);
-// 		/* check IgnorePkg/IgnoreGroup */
-// 		if(alpm_pkg_should_ignore(handle, spkg)
-// 				|| alpm_pkg_should_ignore(handle, lpkg)) {
-// 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package upgrade ({} => {})\n"),
-// 					lpkg->name, lpkg->version, spkg->version);
-// 		} else {
-// 			debug!("adding package {}-{} to the transaction targets\n",
-// 					spkg->name, spkg->version);
-// 			return 1;
-// 		}
-// 	} else if(cmp < 0) {
-// 		if(enable_downgrade) {
-// 			/* check IgnorePkg/IgnoreGroup */
-// 			if(alpm_pkg_should_ignore(handle, spkg)
-// 					|| alpm_pkg_should_ignore(handle, lpkg)) {
-// 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package downgrade ({} => {})\n"),
-// 						lpkg->name, lpkg->version, spkg->version);
-// 			} else {
-// 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: downgrading from version {} to version {}\n"),
-// 						lpkg->name, lpkg->version, spkg->version);
-// 				return 1;
-// 			}
-// 		} else {
-// 			alpm_db_t *sdb = alpm_pkg_get_db(spkg);
-// 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: local ({}) is newer than {} ({})\n"),
-// 					lpkg->name, lpkg->version, sdb->treename, spkg->version);
-// 		}
-// 	}
-// 	return 0;
-// }
-//
+
+impl alpm_pkg_t {
+    /** Check for new version of pkg in sync repos
+     * (only the first occurrence is considered in sync)
+     */
+    pub fn alpm_sync_newversion(&self, dbs_sync: &Vec<alpm_db_t>) -> Option<alpm_pkg_t> {
+        unimplemented!();
+        // 	alpm_list_t *i;
+        // 	alpm_pkg_t *spkg = NULL;
+        //
+        // 	ASSERT(pkg != NULL, return NULL);
+        // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+        //
+        // 	for(i = dbs_sync; !spkg && i; i = i->next) {
+        // 		alpm_db_t *db = i->data;
+        // 		if(!(db->usage & ALPM_DB_USAGE_SEARCH)) {
+        // 			continue;
+        // 		}
+        //
+        // 		spkg = _alpm_db_get_pkgfromcache(db, pkg->name);
+        // 	}
+        //
+        // 	if(spkg == NULL) {
+        // 		_alpm_log(pkg->handle, ALPM_LOG_DEBUG, "'{}' not found in sync db => no upgrade\n",
+        // 				pkg->name);
+        // 		return NULL;
+        // 	}
+        //
+        // 	/* compare versions and see if spkg is an upgrade */
+        // 	if(_alpm_pkg_compare_versions(spkg, pkg) > 0) {
+        // 		_alpm_log(pkg->handle, ALPM_LOG_DEBUG, "new version of '{}' found ({} => {})\n",
+        // 					pkg->name, pkg->version, spkg->version);
+        // 		return spkg;
+        // 	}
+        // 	/* spkg is not an upgrade */
+        // 	return NULL;
+        // }
+        //
+        // static int check_literal(alpm_handle_t *handle, alpm_pkg_t *lpkg,
+        // 		alpm_pkg_t *spkg, int enable_downgrade)
+        // {
+        // 	/* 1. literal was found in sdb */
+        // 	int cmp = _alpm_pkg_compare_versions(spkg, lpkg);
+        // 	if(cmp > 0) {
+        // 		debug!("new version of '{}' found ({} => {})\n",
+        // 				lpkg->name, lpkg->version, spkg->version);
+        // 		/* check IgnorePkg/IgnoreGroup */
+        // 		if(alpm_pkg_should_ignore(handle, spkg)
+        // 				|| alpm_pkg_should_ignore(handle, lpkg)) {
+        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package upgrade ({} => {})\n"),
+        // 					lpkg->name, lpkg->version, spkg->version);
+        // 		} else {
+        // 			debug!("adding package {}-{} to the transaction targets\n",
+        // 					spkg->name, spkg->version);
+        // 			return 1;
+        // 		}
+        // 	} else if(cmp < 0) {
+        // 		if(enable_downgrade) {
+        // 			/* check IgnorePkg/IgnoreGroup */
+        // 			if(alpm_pkg_should_ignore(handle, spkg)
+        // 					|| alpm_pkg_should_ignore(handle, lpkg)) {
+        // 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package downgrade ({} => {})\n"),
+        // 						lpkg->name, lpkg->version, spkg->version);
+        // 			} else {
+        // 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: downgrading from version {} to version {}\n"),
+        // 						lpkg->name, lpkg->version, spkg->version);
+        // 				return 1;
+        // 			}
+        // 		} else {
+        // 			alpm_db_t *sdb = alpm_pkg_get_db(spkg);
+        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: local ({}) is newer than {} ({})\n"),
+        // 					lpkg->name, lpkg->version, sdb->treename, spkg->version);
+        // 		}
+        // 	}
+        // 	return 0;
+    }
+}
 // static alpm_list_t *check_replacers(alpm_handle_t *handle, alpm_pkg_t *lpkg,
 // 		alpm_db_t *sdb)
 // {
