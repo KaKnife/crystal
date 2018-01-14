@@ -25,10 +25,10 @@ fn fnmatch_cmp(pattern: &String, string: &String) -> std::cmp::Ordering {
     // return fnmatch(pattern, string, 0);
 }
 
-fn remove_target(target: String, config: &mut config_t) -> i32 {
-    match config.handle.db_local.alpm_db_get_pkg(&target) {
+fn remove_target(target: String, config: &mut config_t, handle:&mut alpm_handle_t) -> i32 {
+    match handle.db_local.alpm_db_get_pkg(&target) {
         Some(pkg) => {
-            match alpm_remove_pkg(&mut config.handle.trans, &pkg) {
+            match alpm_remove_pkg(&mut handle.trans, &pkg) {
                 Err(err) => {
                     use self::alpm_errno_t::*;
                     match err {
@@ -52,12 +52,12 @@ fn remove_target(target: String, config: &mut config_t) -> i32 {
     }
 
     /* fallback to group */
-    let grp = config.handle.db_local.alpm_db_get_group(&target);
+    let grp = handle.db_local.alpm_db_get_group(&target);
 
     match grp {
         Some(grp) => {
             for pkg in &grp.packages {
-                match alpm_remove_pkg(&mut config.handle.trans, &pkg) {
+                match alpm_remove_pkg(&mut handle.trans, &pkg) {
                     Err(e) => {
                         eprintln!("'{}': {}", target, e.alpm_strerror());
                         return -1;
@@ -81,7 +81,7 @@ fn remove_target(target: String, config: &mut config_t) -> i32 {
 /// returns Ok on success, Err(1) on failure.
 ///
 /// * `targets` - a Vec of packages (as strings) to remove from the system
-pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), i32> {
+pub fn pacman_remove(targets: Vec<String>, config: &mut config_t, handle:&mut alpm_handle_t) -> std::result::Result<(), i32> {
     unimplemented!();
     let mut retval = 0;
     // let data;
@@ -93,7 +93,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> std::result
     }
 
     /* Step 0: create a new transaction */
-    if trans_init(&config.flags.clone(), false, config) == -1 {
+    if trans_init(&config.flags.clone(), false, handle) == -1 {
         return Err(1);
     }
 
@@ -102,13 +102,13 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> std::result
         if target.starts_with("local/") {
             target = String::from(target.split_at(6).1);
         }
-        if remove_target(target, config) == -1 {
+        if remove_target(target, config, handle) == -1 {
             retval = 1;
         }
     }
 
     if retval == 1 {
-        if !trans_release(config) {
+        if !trans_release(handle) {
             retval = 1;
         }
         return Err(retval);
@@ -138,7 +138,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> std::result
 
     /* Search for holdpkg in target list */
     let mut holdpkg = 0;
-    for pkg in &config.handle.trans.remove {
+    for pkg in &handle.trans.remove {
         if config
             .holdpkg
             .binary_search_by(|other| fnmatch_cmp(&pkg.name, other))
@@ -152,25 +152,25 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut config_t) -> std::result
     // && (noyes("HoldPkg was found in target list. Do you want to continue?") == 0)
     {
         retval = 1;
-        if !trans_release(config) {
+        if !trans_release(handle) {
             retval = 1;
         }
         return Err(retval);
     }
 
     /* Step 3: actually perform the removal */
-    let pkglist = &config.handle.trans.remove;
+    let pkglist = &handle.trans.remove;
     if pkglist.is_empty() {
         println!(" there is nothing to do");
-        if !trans_release(config) {
+        if !trans_release(handle) {
             retval = 1;
         }
         return Err(retval);
     }
 
     if config.print {
-        print_packages(&pkglist, &config.print_format, config);
-        if !trans_release(config) {
+        print_packages(&pkglist, &config.print_format, config,handle);
+        if !trans_release(handle) {
             retval = 1;
         }
         return Err(retval);

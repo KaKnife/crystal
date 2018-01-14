@@ -63,13 +63,17 @@ use super::alpm::*;
 // 	CELL_FREE = (1 << 3)
 // };
 
-pub fn trans_init(flags: &alpm::alpm_transflag_t, check_valid: bool, config: &mut config_t) -> i32 {
-    match check_syncdbs(0, check_valid, config) {
+pub fn trans_init(
+    flags: &alpm::alpm_transflag_t,
+    check_valid: bool,
+    handle: &mut alpm_handle_t,
+) -> i32 {
+    match check_syncdbs(0, check_valid, handle) {
         Ok(_) => {}
         Err(e) => panic!(),
     }
 
-    match config.handle.alpm_trans_init(flags) {
+    match handle.alpm_trans_init(flags) {
         Err(e) => {
             trans_init_error(e);
             return -1;
@@ -97,8 +101,8 @@ fn trans_init_error(err: alpm_errno_t) {
     }
 }
 
-pub fn trans_release(config: &config_t) -> bool {
-    match config.handle.alpm_trans_release() {
+pub fn trans_release(handle: &alpm_handle_t) -> bool {
+    match handle.alpm_trans_release() {
         Err(e) => {
             eprintln!("failed to release transaction: {}", e.alpm_strerror());
             return false;
@@ -112,16 +116,16 @@ pub fn trans_release(config: &config_t) -> bool {
 pub fn check_syncdbs(
     need_repos: usize,
     check_valid: bool,
-    config: &mut config_t,
+    handle: &mut alpm_handle_t,
 ) -> std::result::Result<(), ()> {
     let mut ret = Ok(());
-    if config.handle.dbs_sync.len() == 0 && need_repos != 0 {
+    if handle.dbs_sync.len() == 0 && need_repos != 0 {
         eprintln!("no usable package repositories configured.");
         return Err(());
     }
     if check_valid {
-        for mut db in config.handle.dbs_sync.clone() {
-            match db.alpm_db_get_valid(&mut config.handle) {
+        for mut db in handle.dbs_sync.clone() {
+            match db.alpm_db_get_valid(handle) {
                 Err(e) => {
                     eprintln!(
                         "database '{}' is not valid ({})",
@@ -134,30 +138,6 @@ pub fn check_syncdbs(
             }
         }
     }
-    // match (config.handle.dbs_sync.clone(), check_valid) {
-    //     (None, _) if need_repos != 0 => {
-    //         eprintln!("no usable package repositories configured.");
-    //         return Err(());
-    //     }
-    //     (Some(ref mut sync_dbs), true) => {
-    //         /* ensure all known dbs are valid */
-    //         for mut db in sync_dbs {
-    //             match db.alpm_db_get_valid(&mut config.handle) {
-    //                 Err(e) => {
-    //                     eprintln!(
-    //                         "database '{}' is not valid ({})",
-    //                         db.treename,
-    //                         e.alpm_strerror()
-    //                     );
-    //                     ret = Err(());
-    //                 }
-    //                 Ok(_) => {}
-    //             }
-    //         }
-    //     }
-    //     _ => {}
-    // }
-
     return ret;
 }
 
@@ -497,10 +477,9 @@ fn add_transaction_sizes_row<T>(rows: alpm_list_t<T>, label: String, size: off_t
 }
 
 fn string_display(title: String, string: String, cols: usize, config: &config_t) {
-    unimplemented!();
-    // if(title) {
-    print!("{}{}{} ", config.colstr.title, title, config.colstr.nocolor);
-    // }
+    if title != "" {
+        print!("{}{}{} ", config.colstr.title, title, config.colstr.nocolor);
+    }
     if string == "" {
         print!("None");
     } else {
@@ -1042,7 +1021,7 @@ fn pkg_get_size(pkg: &alpm_pkg_t, config: &config_t) -> off_t {
     }
 }
 
-fn pkg_get_location(pkg: &alpm_pkg_t, config: &config_t) -> String {
+fn pkg_get_location(pkg: &alpm_pkg_t, handle: &alpm_handle_t) -> String {
     // alpm_list_t *servers;
     // char *string = NULL;
     // use alpm_pkgfrom_t::*;
@@ -1052,7 +1031,7 @@ fn pkg_get_location(pkg: &alpm_pkg_t, config: &config_t) -> String {
                 /* file is already in the package cache */
                 let pkgfile = pkg.alpm_pkg_get_filename();
                 // struct stat buf;
-                for item in config.handle.alpm_option_get_cachedirs() {
+                for item in handle.alpm_option_get_cachedirs() {
                     let _path = format!("{}{}", item, pkgfile);
                     unimplemented!();
                     // if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
@@ -1062,13 +1041,13 @@ fn pkg_get_location(pkg: &alpm_pkg_t, config: &config_t) -> String {
                 }
             }
 
-            let servers = pkg.alpm_pkg_get_db().alpm_db_get_servers();
-            if !servers.is_empty() {
-                unimplemented!();
-                // pm_asprintf(&string, "%s/%s", (char *)(servers->data),
-                // 		alpm_pkg_get_filename(pkg));
-                // return string;
-            }
+            // let servers = pkg.alpm_pkg_get_db().alpm_db_get_servers();
+            // if !servers.is_empty() {
+            //     unimplemented!();
+            //     // pm_asprintf(&string, "%s/%s", (char *)(servers->data),
+            //     // 		alpm_pkg_get_filename(pkg));
+            //     // return string;
+            // }
 
             /* fallthrough - for theoretical serverless repos */
             return pkg.alpm_pkg_get_filename();
@@ -1138,10 +1117,15 @@ fn pkg_get_location(pkg: &alpm_pkg_t, config: &config_t) -> String {
 // }
 
 // pub fn print_packages(packages: &Vec<alpm_pkg_t>, config: &config_t)
-pub fn print_packages(packages: &Vec<alpm_pkg_t>, print_format: &String, config: &config_t) {
+pub fn print_packages(
+    packages: &Vec<alpm_pkg_t>,
+    print_format: &String,
+    config: &config_t,
+    handle: &alpm_handle_t,
+) {
     for pkg in packages {
         if print_format == "" {
-            println!("{}", pkg_get_location(&pkg, config));
+            println!("{}", pkg_get_location(&pkg, handle));
             continue;
         }
         let string = &print_format;
@@ -1150,9 +1134,9 @@ pub fn print_packages(packages: &Vec<alpm_pkg_t>, print_format: &String, config:
         /* %v : pkgver */
         string.replace("%v", &pkg.version);
         /* %l : location */
-        string.replace("%l", &pkg_get_location(&pkg, config));
+        string.replace("%l", &pkg_get_location(&pkg, handle));
         /* %r : repo */
-        string.replace("%r", &pkg.db.treename);
+        // string.replace("%r", &pkg.db.treename);
         /* %s : size */
         if string.contains("%s") {
             // 	char *size;

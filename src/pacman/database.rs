@@ -24,7 +24,11 @@ use super::alpm::*;
 ///
 /// * `targets` - a list of packages (as strings) to modify
 /// * return - 0 on success, 1 on failure
-fn change_install_reason(targets: Vec<String>, config: &mut config_t) -> i32 {
+fn change_install_reason(
+    targets: Vec<String>,
+    config: &mut config_t,
+    handle: &mut alpm_handle_t,
+) -> i32 {
     let db_local: &alpm_db_t;
     let mut ret: i32 = 0;
     let reason: alpm_pkgreason_t;
@@ -41,16 +45,16 @@ fn change_install_reason(targets: Vec<String>, config: &mut config_t) -> i32 {
         /* --asexplicit */
         reason = alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT;
     } else {
-        eprintln!("no install reason specified (use -h for help)\n");
+        eprintln!("no install reason specified (use -h for help)");
         return 1;
     }
 
     /* Lock database */
-    if trans_init(&alpm_transflag_t::default(), false, config) == -1 {
+    if trans_init(&alpm_transflag_t::default(), false, handle) == -1 {
         return 1;
     }
 
-    db_local = config.handle.alpm_get_localdb();
+    db_local = handle.alpm_get_localdb();
     for pkgname in targets {
         match db_local.alpm_db_get_pkg(&pkgname) {
             None => {
@@ -88,16 +92,20 @@ fn change_install_reason(targets: Vec<String>, config: &mut config_t) -> i32 {
     }
 
     /* Unlock database */
-    if !trans_release(config) {
+    if !trans_release(handle) {
         return 1;
     }
     return ret;
 }
 
-fn check_db_missing_deps(config: &conf::config_t, pkglist: &mut Vec<alpm_pkg_t>) -> i32 {
+fn check_db_missing_deps(
+    config: &conf::config_t,
+    pkglist: &mut Vec<alpm_pkg_t>,
+    handle: &mut alpm_handle_t,
+) -> i32 {
     let mut ret: i32 = 0;
     /* check dependencies */
-    for miss in config.handle.alpm_checkdeps(None, None, pkglist, 0) {
+    for miss in handle.alpm_checkdeps(None, None, pkglist, 0) {
         let depstring: String = miss.depend.alpm_dep_compute_string();
         eprintln!("missing '{}' dependency for '{}'", depstring, miss.target);
         ret += 1;
@@ -105,14 +113,14 @@ fn check_db_missing_deps(config: &conf::config_t, pkglist: &mut Vec<alpm_pkg_t>)
     return ret;
 }
 
-fn check_db_local_files(config: &conf::config_t) -> i32 {
+fn check_db_local_files(config: &conf::config_t, handle: &mut alpm_handle_t) -> i32 {
     use std::fs;
     let dbpath: &String;
     let mut ret: i32 = 0;
     let dbdir: fs::ReadDir;
     let mut path: String;
 
-    dbpath = config.handle.alpm_option_get_dbpath();
+    dbpath = handle.alpm_option_get_dbpath();
     path = format!("{}local", dbpath);
     dbdir = match fs::read_dir(path) {
         Ok(d) => d,
@@ -150,10 +158,14 @@ fn check_db_local_files(config: &conf::config_t) -> i32 {
     return ret;
 }
 
-fn check_db_local_package_conflicts(pkglist: &Vec<alpm_pkg_t>, config: &conf::config_t) -> i32 {
+fn check_db_local_package_conflicts(
+    pkglist: &Vec<alpm_pkg_t>,
+    config: &conf::config_t,
+    handle: &mut alpm_handle_t,
+) -> i32 {
     let mut ret: i32 = 0;
     /* check conflicts */
-    let data = config.handle.alpm_checkconflicts(&pkglist);
+    let data = handle.alpm_checkconflicts(&pkglist);
     for conflict in data {
         eprintln!(
             "'{}' conflicts with '{}'",
@@ -227,22 +239,22 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<alpm_pkg_t>) -> i32 {
 /// Check 'local' package database for consistency
 ///
 /// * return - 0 on success, >=1 on failure
-fn check_db_local(config: &conf::config_t) -> i32 {
+fn check_db_local(config: &mut config_t, handle: &mut alpm_handle_t) -> i32 {
     let mut ret: i32 = 0;
-    let db: &alpm_db_t;
     let mut pkglist: Vec<alpm_pkg_t>;
-    // // alpm_db_t *db = NULL;
-    // // alpm_list_t *pkglist;
+    let handle_clone = &handle.clone();
 
-    ret = check_db_local_files(&config);
+    ret = check_db_local_files(&config, handle);
     if ret != 0 {
         return ret;
     }
-
-    db = config.handle.alpm_get_localdb();
-    pkglist = db.alpm_db_get_pkgcache();
-    ret += check_db_missing_deps(config, &mut pkglist);
-    ret += check_db_local_package_conflicts(&pkglist, config);
+    {
+        let db: &mut alpm_db_t;
+        db = handle.alpm_get_localdb_mut();
+        pkglist = db.alpm_db_get_pkgcache().unwrap().clone();
+    }
+    ret += check_db_missing_deps(config, &mut pkglist,handle);
+    ret += check_db_local_package_conflicts(&pkglist, config,handle);
     ret += check_db_local_filelist_conflicts(&pkglist);
 
     ret
@@ -251,12 +263,13 @@ fn check_db_local(config: &conf::config_t) -> i32 {
 /// Check 'sync' package databases for consistency
 ///
 /// * return - 0 on success, >=1 on failure
-fn check_db_sync(config: &mut config_t) -> i32 {
+fn check_db_sync(config: &mut config_t, handle: &mut alpm_handle_t) -> i32 {
     let mut syncpkglist = Vec::new();
+    let handle_clone = &handle.clone();
 
-    for mut db in &config.handle.dbs_sync {
+    for mut db in &mut handle.dbs_sync {
         let mut pkglist: Vec<alpm_pkg_t>;
-        pkglist = db.alpm_db_get_pkgcache();
+        pkglist = db.alpm_db_get_pkgcache().unwrap().clone();
         syncpkglist.append(&mut pkglist);
     }
 
@@ -269,20 +282,21 @@ fn check_db_sync(config: &mut config_t) -> i32 {
     //     _ => unimplemented!(),
     // };
 
-    check_db_missing_deps(config, &mut syncpkglist)
+    check_db_missing_deps(config, &mut syncpkglist, handle)
 }
 
 pub fn pacman_database(
     targets: Vec<String>,
     config: &mut config_t,
+    handle: &mut alpm_handle_t,
 ) -> std::result::Result<(), i32> {
     let mut ret: i32 = 0;
 
     if config.op_q_check != 0 {
         if config.op_q_check == 1 {
-            ret = check_db_local(&config);
+            ret = check_db_local(config, handle);
         } else {
-            ret = check_db_sync(config);
+            ret = check_db_sync(config, handle);
         }
 
         if ret == 0 && !config.quiet {
@@ -291,7 +305,7 @@ pub fn pacman_database(
     }
 
     if config.flags.ALLDEPS && config.flags.ALLEXPLICIT {
-        ret = change_install_reason(targets, config);
+        ret = change_install_reason(targets, config, handle);
     }
 
     if ret != 0 {

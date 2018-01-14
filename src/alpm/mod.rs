@@ -17,24 +17,26 @@ mod sync;
 mod pkghash;
 mod be_sync;
 mod signing;
+mod alpm_list;
+use self::alpm_list::*;
 use self::signing::*;
-use self::be_sync::*;
+// use self::be_sync::*;
 use self::pkghash::*;
-use self::sync::*;
+// use self::sync::*;
 use self::util::*;
 use self::dload::*;
-use self::add::*;
-use self::be_package::*;
-use self::remove::*;
-use self::error::*;
-use self::conflict::*;
-use self::be_local::*;
+// use self::add::*;
+// use self::be_package::*;
+// use self::remove::*;
+// use self::error::*;
+// use self::conflict::*;
+// use self::be_local::*;
 use self::version::*;
 use self::trans::*;
 use self::package::*;
 use self::handle::*;
 use self::db::*;
-use self::deps::*;
+// use self::deps::*;
 
 pub use self::sync::alpm_sync_sysupgrade;
 pub use self::remove::alpm_remove_pkg;
@@ -1784,7 +1786,7 @@ pub fn alpm_initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> 
     /* set default database extension */
     myhandle.dbext = String::from(".db");
 
-    myhandle.lockfile = format!("{}{}", myhandle.dbpath, lf);
+    myhandle.lockfile = format!("{}{}", myhandle.alpm_option_get_dbpath(), lf);
 
     myhandle._alpm_db_register_local()?;
 

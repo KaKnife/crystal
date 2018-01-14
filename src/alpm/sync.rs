@@ -201,16 +201,18 @@ use super::*;
 // }
 
 /// Search for packages to upgrade and add them to the transaction.
-pub fn alpm_sync_sysupgrade(handle: &alpm_handle_t, enable_downgrade: bool) -> Result<i32> {
+pub fn alpm_sync_sysupgrade(handle: &mut alpm_handle_t, enable_downgrade: bool) -> Result<i32> {
     let trans = &handle.trans;
+    let handle_clone = &handle.clone();
+
     //
     // 	CHECK_HANDLE(handle, return -1);
     // 	trans = handle->trans;
     // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
     // 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
     //
-    debug!("checking for package upgrades\n");
-    for lpkg in handle.db_local._alpm_db_get_pkgcache() {
+    debug!("checking for package upgrades");
+    for lpkg in handle.db_local._alpm_db_get_pkgcache().unwrap() {
         if alpm_pkg_find(&trans.remove, &lpkg.name).is_some() {
             debug!("{} is marked for removal -- skipping", lpkg.name);
             continue;

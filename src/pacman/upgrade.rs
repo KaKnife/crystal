@@ -38,6 +38,7 @@ use super::*;
 pub fn pacman_upgrade(
     mut targets: Vec<String>,
     config: &mut config_t,
+    handle: &mut alpm_handle_t,
 ) -> std::result::Result<(), ()> {
     let mut retval = Ok(());
     let mut file_is_remote: Vec<bool>;
@@ -50,7 +51,7 @@ pub fn pacman_upgrade(
 
     for target in &mut targets {
         if target.contains("://") {
-            match config.handle.alpm_fetch_pkgurl(&target) {
+            match handle.alpm_fetch_pkgurl(&target) {
                 Err(e) => {
                     eprintln!("'{}': {}\n", target, e);
                     retval = Err(());
@@ -71,7 +72,7 @@ pub fn pacman_upgrade(
     }
 
     /* Step 1: create a new transaction */
-    if trans_init(&config.flags.clone(), true, config) == -1 {
+    if trans_init(&config.flags.clone(), true,  handle) == -1 {
         return Err(());
     }
 
@@ -82,11 +83,11 @@ pub fn pacman_upgrade(
         let siglevel;
 
         if file_is_remote[n] {
-            siglevel = config.handle.alpm_option_get_remote_file_siglevel();
+            siglevel = handle.alpm_option_get_remote_file_siglevel();
         } else {
-            siglevel = config.handle.alpm_option_get_local_file_siglevel();
+            siglevel = handle.alpm_option_get_local_file_siglevel();
         }
-        match config.handle.alpm_pkg_load(targ, 1, &siglevel, &pkg) {
+        match handle.alpm_pkg_load(targ, 1, &siglevel, &pkg) {
             Err(e) => {
                 eprintln!("'{}': {}", targ, e);
                 retval = Err(());
@@ -94,7 +95,7 @@ pub fn pacman_upgrade(
             }
             Ok(_) => {}
         }
-        match config.handle.alpm_add_pkg(&mut pkg) {
+        match handle.alpm_add_pkg(&mut pkg) {
             Err(e) => {
                 eprintln!("'{}': {}", targ, e);
                 retval = Err(());

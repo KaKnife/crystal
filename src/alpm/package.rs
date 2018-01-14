@@ -120,15 +120,15 @@ pub struct alpm_pkg_t {
     // /* origin == PKG_FROM_FILE, use pkg->origin_data.file
     //  * origin == PKG_FROM_*DB, use pkg->origin_data.db */
     // union {
-    pub db: alpm_db_t,
+    // pub db: alpm_db_t,
     pub file: String,
     // } origin_data;
-    origin: alpm_pkgfrom_t,
+    pub origin: alpm_pkgfrom_t,
     pub reason: alpm_pkgreason_t,
     // 	int scriptlet;
     //
     // 	/* Bitfield from alpm_dbinfrq_t */
-    // 	int infolevel;
+    pub infolevel: i32,
     // 	/* Bitfield from alpm_pkgvalidation_t */
     // 	int validation;
 }
@@ -388,8 +388,15 @@ impl alpm_pkg_t {
         // return self.ops.get_isize(pkg);
     }
 
-    pub fn alpm_pkg_get_reason(&self) -> alpm_pkgreason_t {
-        unimplemented!();
+    fn get_reason(&self) -> &alpm_pkgreason_t {
+        match self.origin {
+            alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_reason(),
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn alpm_pkg_get_reason(&self) -> &alpm_pkgreason_t {
+        self.get_reason()
         //return pkg.ops.get_reason(pkg);
     }
 
@@ -481,9 +488,10 @@ impl alpm_pkg_t {
     // 	return pkg->ops->get_backup(pkg);
     // }
 
-    pub fn alpm_pkg_get_db(&self) -> &alpm_db_t {
-        return &self.db;
-    }
+    // pub fn alpm_pkg_get_db(&self) -> &alpm_db_t {
+    //     unimplemented!();
+    //     // return &self.db;
+    // }
 
     // /** Open a package changelog for reading. */
     // void SYMEXPORT *alpm_pkg_changelog_open(&self)
@@ -568,48 +576,48 @@ impl alpm_pkg_t {
     // 		}
     // 	}
     // }
-    //
-    // static alpm_list_t *compute_requiredby(&self, int optional)
-    // {
-    // 	const alpm_list_t *i;
-    // 	alpm_list_t *reqs = NULL;
-    // 	alpm_db_t *db;
-    //
-    // 	ASSERT(pkg != NULL, return NULL);
-    // 	pkg->handle->pm_errno = ALPM_ERR_OK;
-    //
-    // 	if(pkg->origin == ALPM_PKG_FROM_FILE) {
-    // 		/* The sane option; search locally for things that require this. */
-    // 		find_requiredby(pkg, pkg->handle->db_local, &reqs, optional);
-    // 	} else {
-    // 		/* We have a DB package. if it is a local package, then we should
-    // 		 * only search the local DB; else search all known sync databases. */
-    // 		db = pkg->origin_data.db;
-    // 		if(db->status & DB_STATUS_LOCAL) {
-    // 			find_requiredby(pkg, db, &reqs, optional);
-    // 		} else {
-    // 			for(i = pkg->handle->dbs_sync; i; i = i->next) {
-    // 				db = i->data;
-    // 				find_requiredby(pkg, db, &reqs, optional);
-    // 			}
-    // 			reqs = alpm_list_msort(reqs, alpm_list_count(reqs), _alpm_str_cmp);
-    // 		}
-    // 	}
-    // 	return reqs;
-    // }
-    //
-    // /** Compute the packages requiring a given package. */
-    // alpm_list_t SYMEXPORT *alpm_pkg_compute_requiredby(&self)
-    // {
-    // 	return compute_requiredby(pkg, 0);
-    // }
-    //
-    // /** Compute the packages optionally requiring a given package. */
-    // alpm_list_t SYMEXPORT *alpm_pkg_compute_optionalfor(alpm_pkg_t *pkg)
-    // {
-    // 	return compute_requiredby(pkg, 1);
-    // }
-    //
+
+    pub fn compute_requiredby(&self, optional: i8) -> Vec<String> {
+        unimplemented!();
+        // // 	const alpm_list_t *i;
+        // // 	alpm_list_t *reqs = NULL;
+        // // 	alpm_db_t *db;
+        // let db;
+        // let reqs;
+        // //
+        // // 	ASSERT(pkg != NULL, return NULL);
+        // // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+        //
+        // 	if self.origin == ALPM_PKG_FROM_FILE {
+        // 		/* The sane option; search locally for things that require this. */
+        // 		find_requiredby(pkg, pkg.handle.db_local, &reqs, optional);
+        // 	} else {
+        // 		/* We have a DB package. if it is a local package, then we should
+        // 		 * only search the local DB; else search all known sync databases. */
+        // 		db = self.origin_data.db;
+        // 		if(db->status & DB_STATUS_LOCAL) {
+        // 			find_requiredby(pkg, db, &reqs, optional);
+        // 		} else {
+        // 			for(i = pkg->handle->dbs_sync; i; i = i->next) {
+        // 				db = i->data;
+        // 				find_requiredby(pkg, db, &reqs, optional);
+        // 			}
+        // 			reqs = alpm_list_msort(reqs, alpm_list_count(reqs), _alpm_str_cmp);
+        // 		}
+        // 	}
+        // 	return reqs;
+    }
+
+    /** Compute the packages requiring a given package. */
+    pub fn alpm_pkg_compute_requiredby(&self) -> Vec<String> {
+        self.compute_requiredby(0)
+    }
+
+    /** Compute the packages optionally requiring a given package. */
+    pub fn alpm_pkg_compute_optionalfor(&self) -> Vec<String> {
+        self.compute_requiredby(1)
+    }
+
     //
     // /** @} */
     //
@@ -813,16 +821,30 @@ impl alpm_pkg_t {
     pub fn _alpm_pkg_compare_versions(&self, localpkg: &alpm_pkg_t) -> i8 {
         alpm_pkg_vercmp(&self.version, &localpkg.version)
     }
-
-    // /* Helper function for comparing packages
-    //  */
-    // int _alpm_pkg_cmp(const void *p1, const void *p2)
-    // {
-    // 	const alpm_pkg_t *pkg1 = p1;
-    // 	const alpm_pkg_t *pkg2 = p2;
-    // 	return strcmp(pkg1->name, pkg2->name);
-    // }
 }
+use std::cmp;
+impl cmp::Ord for alpm_pkg_t {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+impl PartialOrd for alpm_pkg_t {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for alpm_pkg_t {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+impl Eq for alpm_pkg_t {}
+/// Helper function for comparing packages
+pub fn _alpm_pkg_cmp(pkg1: &alpm_pkg_t, pkg2: &alpm_pkg_t) -> std::cmp::Ordering {
+    pkg1.name.cmp(&pkg2.name)
+}
+
 /// Find a package in a list by name.
 ///
 /// * `haystack` - a Vec of alpm_pkg_t

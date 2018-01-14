@@ -5,7 +5,7 @@ use std;
 // use std::error::Error;
 use std::fs::File;
 // use std::io::Result;
-use std::ffi::OsString;
+// use std::ffi::OsString;
 use self::alpm_errno_t::*;
 /*
  *  handle.c
@@ -749,7 +749,9 @@ pub fn _alpm_set_directory_option(
             _ => return Err(ALPM_ERR_NOT_A_DIR),
         }
         match std::fs::canonicalize(&path) {
-            Ok(p) => *storage = p.into_os_string().into_string().unwrap(),
+            Ok(p) => {
+                *storage = p.into_os_string().into_string().unwrap();
+            }
             Err(_) => return Err(ALPM_ERR_NOT_A_DIR),
         }
     } else {
@@ -811,7 +813,7 @@ pub struct alpm_handle_t {
     // 	alpm_cb_progress progresscb;
     //
     // 	/* filesystem paths */
-    pub root: String,                 /* Root path, default '/' */
+    pub root: String, /* Root path, default '/' */
     pub dbpath: String,               /* Base path to pacman's DBs */
     pub logfile: String,              /* Name of the log file */
     pub lockfile: String,             /* Name of the lock file */
@@ -851,4 +853,58 @@ pub struct alpm_handle_t {
     // 	/* for delta parsing efficiency */
     // 	int delta_regex_compiled;
     // 	regex_t delta_regex;
+}
+
+impl Clone for alpm_handle_t {
+    fn clone(&self)->Self{
+        alpm_handle_t{
+            db_local: self.db_local.clone(),
+            dbs_sync: self.dbs_sync.clone(),
+            // 	FILE *logstream;
+            trans: self.trans.clone(),
+            // 	CURL *curl;             /* reusable curl_easy handle */
+            disable_dl_timeout: self.disable_dl_timeout,
+            // #endif
+            //
+            // #ifdef HAVE_LIBGPGME
+            // 	alpm_list_t *known_keys;  /* keys verified to be in our keychain */
+            // #endif
+            //
+            // 	/* callback functions */
+            // 	alpm_cb_log logcb;          /* Log callback function */
+            // 	alpm_cb_download dlcb;      /* Download callback function */
+            // 	alpm_cb_totaldl totaldlcb;  /* Total download callback function */
+            // fetchcb: alpm_cb_fetch, /* Download file callback function */
+            // 	alpm_cb_event eventcb;
+            // 	alpm_cb_question questioncb;
+            // 	alpm_cb_progress progresscb;
+            //
+            // 	/* filesystem paths */
+            root: self.root.clone(),
+            dbpath: self.dbpath.clone(),
+            logfile: self.logfile.clone(),
+            lockfile: self.lockfile.clone(),
+            gpgdir: self.gpgdir.clone(),
+            cachedirs: self.cachedirs.clone(),
+            hookdirs: self.hookdirs.clone(),
+            overwrite_files: self.overwrite_files.clone(),
+            noupgrade:self.noupgrade.clone(),
+            noextract: self.noextract.clone(),
+            ignorepkg: self.ignorepkg.clone(),
+            ignoregroup: self.ignoregroup.clone(),
+            assumeinstalled: self.assumeinstalled.clone(),
+            arch: self.arch.clone(),
+            deltaratio: self.deltaratio,
+            usesyslog: self.usesyslog,
+            checkspace: self.checkspace,
+            dbext: self.dbext.clone(),
+            siglevel: self.siglevel,
+            localfilesiglevel: self.localfilesiglevel,
+            remotefilesiglevel: self.remotefilesiglevel,
+            // pub pm_errno: alpm_errno_t,
+            lockfd: None,
+            // 	int delta_regex_compiled;
+            // 	regex_t delta_regex;
+        }
+    }
 }

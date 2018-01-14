@@ -19,13 +19,14 @@ use super::*;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-pub fn pacman_deptest(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), i32> {
+pub fn pacman_deptest(targets: Vec<String>, config: &mut config_t, handle:&mut alpm_handle_t) -> std::result::Result<(), i32> {
     let mut deps: Vec<String> = Vec::new();
-    let localdb = config.handle.alpm_get_localdb();
+    let handle_clone = &handle.clone();
+    let localdb = handle.alpm_get_localdb_mut();
 
     for target in targets {
         // unimplemented!();
-        if alpm_find_satisfier(&localdb.alpm_db_get_pkgcache(), &target).is_none() {
+        if alpm_find_satisfier(&localdb.alpm_db_get_pkgcache().unwrap(), &target).is_none() {
             deps.push(target);
         }
     }

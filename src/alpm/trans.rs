@@ -37,7 +37,7 @@ pub enum alpm_transstate_t {
     STATE_INTERRUPTED,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 /* Transaction */
 pub struct alpm_trans_t {
     /* bitfield of alpm_transflag_t flags */

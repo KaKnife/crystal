@@ -134,11 +134,11 @@ fn sync_cleandb(dbpath: String) -> i32 {
     // 	return ret;
 }
 
-fn sync_cleandb_all(config: &config_t) -> i32 {
+fn sync_cleandb_all(config: &config_t, handle:&mut alpm_handle_t) -> i32 {
     let mut syncdbpath; // = String::new();
     let mut ret = 0;
 
-    let dbpath = config.handle.alpm_option_get_dbpath();
+    let dbpath = handle.alpm_option_get_dbpath();
     println!("Database directory: {}", dbpath);
     if !yesno(
         String::from("Do you want to remove unused repositories?"),
@@ -310,11 +310,11 @@ fn sync_cleancache(level: i32) -> i32 {
 }
 
 /* search the sync dbs for a matching package */
-fn sync_search(syncs: &Vec<alpm_db_t>, targets: &Vec<String>) -> bool {
+fn sync_search(syncs: &mut Vec<alpm_db_t>, targets: &Vec<String>, config: &config_t, handle:&mut alpm_handle_t) -> bool {
     let mut found = 0;
 
     for db in syncs {
-        found += !dump_pkg_search(db, targets, 1);
+        found += !dump_pkg_search(db, targets, 1, &config.colstr, handle, config.quiet);
     }
 
     return found == 0;
@@ -606,8 +606,8 @@ fn process_group<T>(dbs: Vec<T>, group: &String, error: i32) -> i32 {
     // 	return ret;
 }
 
-fn process_targname<T>(dblist: Vec<T>, targname: &String, error: i32, config: &config_t) -> i32 {
-    let pkg: Option<alpm_pkg_t> = config.handle.alpm_find_dbs_satisfier(&dblist, targname);
+fn process_targname<T>(dblist: Vec<T>, targname: &String, error: i32, handle:&mut alpm_handle_t) -> i32 {
+    let pkg: Option<alpm_pkg_t> = handle.alpm_find_dbs_satisfier(&dblist, targname);
 
     /* skip ignored packages when user says no */
     // match config.handle.alpm_errno() {
@@ -679,18 +679,18 @@ fn process_target(target: &String, error: i32) -> i32 {
     // 	return ret;
 }
 
-fn sync_trans(targets: &Vec<String>, config: &mut config_t) -> std::result::Result<(), ()> {
+fn sync_trans(targets: &Vec<String>, config: &mut config_t, handle:&mut alpm_handle_t) -> std::result::Result<(), ()> {
     let mut retval = 0;
 
     /* Step 1: create a new transaction... */
-    if trans_init(&config.flags.clone(), true, config) == -1 {
+    if trans_init(&config.flags.clone(), true, handle) == -1 {
         return Err(());
     }
 
     /* process targets */
     for targ in targets {
         if process_target(targ, retval) == 1 {
-            trans_release(config);
+            trans_release(handle);
             return Err(());
         }
     }
@@ -701,10 +701,10 @@ fn sync_trans(targets: &Vec<String>, config: &mut config_t) -> std::result::Resu
             // 			alpm_logaction(config->handle, PACMAN_CALLER_PREFIX,
             // 					"starting full system upgrade\n");
         }
-        match alpm_sync_sysupgrade(&config.handle, config.op_s_upgrade >= 2) {
+        match alpm_sync_sysupgrade(handle, config.op_s_upgrade >= 2) {
             Err(e) => {
                 eprintln!("{}", e.alpm_strerror());
-                trans_release(&config);
+                trans_release(handle);
                 return Err(());
             }
             Ok(_) => {}
@@ -869,7 +869,7 @@ pub fn sync_prepare_execute() -> std::result::Result<(), ()> {
     // 	return retval;
 }
 
-pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), ()> {
+pub fn pacman_sync(targets: Vec<String>, config: &mut config_t, handle: &mut alpm_handle_t) -> std::result::Result<(), ()> {
     // 	alpm_list_t *sync_dbs = NULL;
     let mut sync_dbs: Vec<alpm_db_t>;
 
@@ -877,23 +877,23 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::
     if config.op_s_clean != 0 {
         let mut ret = 0;
 
-        if trans_init(&alpm::alpm_transflag_t::default(), false, config) == -1 {
+        if trans_init(&alpm::alpm_transflag_t::default(), false, handle) == -1 {
             return Err(());
         }
 
         ret += sync_cleancache(config.op_s_clean as i32);
-        ret += sync_cleandb_all(config);
+        ret += sync_cleandb_all(config, handle);
 
-        if !trans_release(config) {
+        if !trans_release(handle) {
             ret += 1;
         }
 
         return Err(());
     }
 
-    check_syncdbs(1, true, config)?;
+    check_syncdbs(1, true, handle)?;
 
-    sync_dbs = config.handle.alpm_get_syncdbs().clone();
+    sync_dbs = handle.alpm_get_syncdbs().clone();
 
     if config.op_s_sync != 0 {
         /* grab a fresh package list */
@@ -904,14 +904,14 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::
         //     "synchronizing package lists\n",
         // );
 
-        sync_syncdbs(config.op_s_sync as i32, &mut sync_dbs, &mut config.handle)?;
+        sync_syncdbs(config.op_s_sync as i32, &mut sync_dbs, handle)?;
     }
 
-    check_syncdbs(1, true, config)?;
+    check_syncdbs(1, true,  handle)?;
 
     /* search for a package */
     if config.op_s_search != 0 {
-        return if sync_search(&sync_dbs, &targets) {
+        return if sync_search(&mut sync_dbs, &targets, config, handle) {
             Err(())
         } else {
             Ok(())
@@ -948,5 +948,5 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t) -> std::result::
         }
     }
 
-    sync_trans(&targets, config)
+    sync_trans(&targets, config, handle)
 }

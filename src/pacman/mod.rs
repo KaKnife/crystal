@@ -362,6 +362,7 @@ pub fn main() {
     let argv: Vec<String> = env::args().collect();
     let mut ret: i32 = 0;
     let mut config: config_t;
+    let mut handle: alpm_handle_t;
     let myuid: u32 = unsafe { libc::getuid() }; //uid_t myuid = getuid();
     let pm_targets: Vec<String>;
 
@@ -470,12 +471,13 @@ pub fn main() {
     // }
 
     /* parse the config file */
-    match parseconfig(&config.configfile.clone(), &mut config) {
+    handle = match parseconfig(&config.configfile.clone(), &mut config) {
         Err(ret) => {
             cleanup(ret as i32);
+            return;
         }
-        Ok(_) => {}
-    }
+        Ok(h) => h
+    };
 
     /* noask is meant to be non-interactive */
     if config.noask {
@@ -492,22 +494,22 @@ pub fn main() {
     }
 
     if config.verbose > 0 {
-        println!("Root      : {}", config.handle.alpm_option_get_root());
+        println!("Root      : {}", handle.alpm_option_get_root());
         println!("Conf File : {}", config.configfile);
-        println!("DB Path   : {}", config.handle.alpm_option_get_dbpath());
+        println!("DB Path   : {}", handle.alpm_option_get_dbpath());
         print!("Cache Dirs: ");
-        for dir in config.handle.alpm_option_get_cachedirs() {
+        for dir in handle.alpm_option_get_cachedirs() {
             print!("{}  ", dir);
         }
         println!();
         print!("Hook Dirs : ");
-        for dir in config.handle.alpm_option_get_hookdirs() {
+        for dir in handle.alpm_option_get_hookdirs() {
             print!("{}  ", dir);
         }
         println!();
-        println!("Lock File : {}", config.handle.alpm_option_get_lockfile());
-        println!("Log File  : {}", config.handle.alpm_option_get_logfile());
-        println!("GPG Dir   : {}", config.handle.alpm_option_get_gpgdir());
+        println!("Lock File : {}", handle.alpm_option_get_lockfile());
+        println!("Log File  : {}", handle.alpm_option_get_logfile());
+        println!("GPG Dir   : {}", handle.alpm_option_get_gpgdir());
         print!("Targets   :");
         for target in &pm_targets {
             print!("{}  ", target);
@@ -523,27 +525,27 @@ pub fn main() {
     /* start the requested operation */
     // unimplemented!("Done with parsing");
     match &config.op {
-        &Some(PM_OP_DATABASE) => match pacman_database(pm_targets, &mut config) {
+        &Some(PM_OP_DATABASE) => match pacman_database(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(PM_OP_REMOVE) => match pacman_remove(pm_targets, &mut config) {
+        &Some(PM_OP_REMOVE) => match pacman_remove(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(PM_OP_UPGRADE) => match pacman_upgrade(pm_targets, &mut config) {
+        &Some(PM_OP_UPGRADE) => match pacman_upgrade(pm_targets, &mut config,&mut handle) {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(PM_OP_QUERY) => match pacman_query(pm_targets, &mut config) {
+        &Some(PM_OP_QUERY) => match pacman_query(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(PM_OP_SYNC) => match pacman_sync(pm_targets, &mut config) {
+        &Some(PM_OP_SYNC) => match pacman_sync(pm_targets, &mut config, &mut handle) {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(PM_OP_DEPTEST) => match pacman_deptest(pm_targets, &mut config) {
+        &Some(PM_OP_DEPTEST) => match pacman_deptest(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },

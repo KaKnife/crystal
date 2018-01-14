@@ -32,18 +32,17 @@ use super::*;
 // #include "pkghash.h"
 // #include "signing.h"
 //
-// /* Database entries */
-// typedef enum _alpm_dbinfrq_t {
-// 	INFRQ_BASE = (1 << 0),
-// 	INFRQ_DESC = (1 << 1),
-// 	INFRQ_FILES = (1 << 2),
-// 	INFRQ_SCRIPTLET = (1 << 3),
-// 	INFRQ_DSIZE = (1 << 4),
-// 	/* ALL should be info stored in the package or database */
-// 	INFRQ_ALL = INFRQ_BASE | INFRQ_DESC | INFRQ_FILES |
-// 		INFRQ_SCRIPTLET | INFRQ_DSIZE,
-// 	INFRQ_ERROR = (1 << 30)
-// } alpm_dbinfrq_t;
+/* Database entries */
+// pub enum alpm_dbinfrq_t {
+pub const INFRQ_BASE: i32 = (1 << 0);
+pub const INFRQ_DESC: i32 = (1 << 1);
+pub const INFRQ_FILES: i32 = (1 << 2);
+pub const INFRQ_SCRIPTLET: i32 = (1 << 3);
+pub const INFRQ_DSIZE: i32 = (1 << 4);
+/* ALL should be info stored in the package or database */
+pub const INFRQ_ALL: i32 = INFRQ_BASE | INFRQ_DESC | INFRQ_FILES | INFRQ_SCRIPTLET | INFRQ_DSIZE;
+pub const INFRQ_ERROR: i32 = (1 << 30);
+// }
 
 /// Database status. Bitflags. */
 #[derive(Debug, Clone, Default)]
@@ -76,8 +75,8 @@ pub struct alpm_db_t {
     // handle: alpm_handle_t,
     pub treename: String,
     /// do not access directly, use _alpm_db_path(db) for lazy access
-    _path: String,
-    pkgcache: alpm_pkghash_t,
+    pub _path: String,
+    pub pkgcache: alpm_pkghash_t,
     grpcache: Vec<alpm_group_t>,
     pub servers: Vec<String>,
     // ops: db_operations,
@@ -157,7 +156,7 @@ impl alpm_db_t {
         // 		return;
         // 	}
         //
-        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "unregistering database '{}'\n", db->treename);
+        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "unregistering database '{}'", db->treename);
         // 	_alpm_db_free(db);
     }
 
@@ -185,7 +184,7 @@ impl alpm_db_t {
 
         newurl = sanitize_url(&url);
         debug!(
-            "adding new server URL to database '{}': {}\n",
+            "adding new server URL to database '{}': {}",
             self.treename, newurl
         );
         self.servers.push(newurl);
@@ -324,58 +323,63 @@ impl alpm_db_t {
         return self._alpm_db_get_groupcache();
     }
 
-    pub fn _alpm_db_get_pkgfromcache(&self, target: &String) -> Option<alpm_pkg_t> {
+    pub fn _alpm_db_get_pkgfromcache(&mut self, target: &String) -> Option<alpm_pkg_t> {
         let pkgcache = self._alpm_db_get_pkgcache_hash();
         match pkgcache {
-            None => {
+            Err(_) => {
                 return None;
             }
 
-            Some(pkgcache) => {
-                return Some(pkgcache._alpm_pkghash_find(target));
+            Ok(pkgcache) => {
+                return Some(pkgcache._alpm_pkghash_find(&target));
             }
         }
     }
 
-    fn _alpm_db_get_pkgcache_hash(&self) -> Option<&alpm_pkghash_t> {
-        if self.status.DB_STATUS_VALID {
-            unimplemented!();
+    fn _alpm_db_get_pkgcache_hash(&mut self) -> Result<&alpm_pkghash_t> {
+        if !self.status.DB_STATUS_VALID {
             // debug!(
             //     "returning error {} from {} : {}\n",
             //     ALPM_ERR_DB_INVALID,
             //     __func__,
             //     alpm_errno_t::ALPM_ERR_DB_INVALID
             // );
-            // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_DB_INVALID;
-            return None;
+            return Err(alpm_errno_t::ALPM_ERR_DB_INVALID);
+            // return None;
         }
 
-        if self.status.DB_STATUS_PKGCACHE {
+        if !self.status.DB_STATUS_PKGCACHE {
             if self.load_pkgcache() != 0 {
                 /* handle->error set in local/sync-db-populate */
-                return None;
+                unimplemented!();
+                // return None;
             }
         }
-        return Some(&self.pkgcache);
+        return Ok(&self.pkgcache);
     }
 
     /// Returns a new package cache from db.
     /// It frees the cache if it already exists.
-    pub fn load_pkgcache(&self) -> i32 {
-        unimplemented!();
+    pub fn load_pkgcache(&mut self) -> i32 {
         // _alpm_db_free_pkgcache(db);
 
-        // debug!("loading package cache for repository '{}'", self.treename);
-        // if(db->ops->populate(db) == -1) {
-        // debug!(
-        //     "failed to load package cache for repository '{}'",
-        //     db.treename
-        // );
-        // 	return -1;
-        // }
-        //
-        // db.status.DB_STATUS_PKGCACHE=true;
-        // return 0;
+        debug!("loading package cache for repository '{}'", self.treename);
+        if self.populate().is_err() {
+            debug!(
+                "failed to load package cache for repository '{}'",
+                self.treename
+            );
+            return -1;
+        }
+        self.status.DB_STATUS_PKGCACHE = true;
+        return 0;
+    }
+
+    pub fn populate(&mut self) -> Result<()> {
+        match self.ops_type {
+            db_ops_type::local => self.local_db_populate(),
+            _ => unimplemented!(),
+        }
     }
 
     /* Unregister a package database. */
@@ -437,7 +441,7 @@ impl alpm_db_t {
     }
 
     /// Get the package cache of a package database. */
-    pub fn alpm_db_get_pkgcache(&self) -> Vec<alpm_pkg_t> {
+    pub fn alpm_db_get_pkgcache(&mut self) -> Result<&Vec<alpm_pkg_t>> {
         return self._alpm_db_get_pkgcache();
     }
 
@@ -458,12 +462,12 @@ impl alpm_db_t {
 
     /// Searches a database. */
     // pub fn alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
-    pub fn alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t<alpm_pkg_t> {
+    pub fn alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<alpm_pkg_t> {
         return self._alpm_db_search(needles);
     }
 
     // pub fn _alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
-    pub fn _alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t<alpm_pkg_t> {
+    pub fn _alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<alpm_pkg_t> {
         unimplemented!();
         // 	const alpm_list_t *i, *j, *k;
         // 	alpm_list_t *ret = NULL;
@@ -544,15 +548,11 @@ impl alpm_db_t {
         // 	return ret;
     }
 
-    pub fn _alpm_db_get_pkgcache(&self) -> Vec<alpm_pkg_t> {
-        unimplemented!();
-        // let hash = self._alpm_db_get_pkgcache_hash();
-        //
-        // if hash.is_none() {
-        // 	return None;
-        // }
-        //
-        // return hash.list;
+    pub fn _alpm_db_get_pkgcache(&mut self) -> Result<&Vec<alpm_pkg_t>> {
+        match self._alpm_db_get_pkgcache_hash() {
+            Err(e) => Err(e),
+            Ok(hash) => Ok(&hash.list),
+        }
     }
 
     /// Sets the usage bitmask for a repo
@@ -560,9 +560,16 @@ impl alpm_db_t {
         self.usage = usage;
     }
 
-    pub fn _alpm_db_path(&mut self, handle: &alpm_handle_t) -> Result<String> {
+    pub fn _alpm_db_path(&mut self) -> Result<String> {
         if self._path == "" {
-            let dbpath = &handle.dbpath;
+            panic!("no db path");
+        }
+        return Ok(self._path.clone());
+    }
+
+    pub fn create_path(&mut self, dbpath: &String, dbext: &String) -> Result<()> {
+        if self._path == "" {
+            // let dbpath = &handle.dbpathhandle;
             if dbpath == "" {
                 eprintln!("database path is undefined");
                 use self::alpm_errno_t::ALPM_ERR_DB_OPEN;
@@ -570,17 +577,17 @@ impl alpm_db_t {
             }
 
             if self.status.DB_STATUS_LOCAL {
-                self._path = format!("{}{}/", dbpath, self.treename);
+                self._path = format!("{}/{}/", dbpath, self.treename);
             } else {
                 /* all sync DBs now reside in the sync/ subdir of the dbpath */
-                self._path = format!("{}/sync/{}{}", dbpath, self.treename, handle.dbext);
+                self._path = format!("{}/sync/{}{}", dbpath, self.treename, dbext);
             }
             debug!(
-                "database path for tree {} set to {}\n",
+                "database path for tree {} set to {}",
                 self.treename, self._path
             );
         }
-        return Ok(self._path.clone());
+        Ok(())
     }
 
     pub fn _alpm_db_free_pkgcache(&mut self) {
@@ -610,7 +617,7 @@ impl alpm_db_t {
         // 	}
         //
         // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
-        // 			"freeing group cache for repository '{}'\n", db->treename);
+        // 			"freeing group cache for repository '{}'", db->treename);
         //
         // 	for(lg = db->grpcache; lg; lg = lg->next) {
         // 		_alpm_group_free(lg->data);
@@ -725,7 +732,7 @@ fn sanitize_url(url: &String) -> String {
 // 		return -1;
 // 	}
 //
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "adding entry '{}' in '{}' cache\n",
+// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "adding entry '{}' in '{}' cache",
 // 						newpkg->name, db->treename);
 // 	if(newpkg->origin == ALPM_PKG_FROM_FILE) {
 // 		free(newpkg->origin_data.file);
@@ -749,13 +756,13 @@ fn sanitize_url(url: &String) -> String {
 // 		return -1;
 // 	}
 //
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "removing entry '{}' from '{}' cache\n",
+// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "removing entry '{}' from '{}' cache",
 // 						pkg->name, db->treename);
 //
 // 	db->pkgcache = _alpm_pkghash_remove(db->pkgcache, pkg, &data);
 // 	if(data == NULL) {
 // 		/* package not found */
-// 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "cannot remove entry '{}' from '{}' cache: not found\n",
+// 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "cannot remove entry '{}' from '{}' cache: not found",
 // 							pkg->name, db->treename);
 // 		return -1;
 // 	}

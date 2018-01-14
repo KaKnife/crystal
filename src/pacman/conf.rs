@@ -5,7 +5,7 @@ use super::*;
 #[cfg(target_os = "linux")]
 const CONFFILE: &str = "/etc/pacman.conf";
 const ROOTDIR: &str = "/";
-const DBPATH: &str = "/var/lib/crystal/";
+const DBPATH: &str = "/var/lib/pacman/";
 const LOGFILE: &str = "/var/log/crystal.log";
 const CACHEDIR: &str = "/var/cache/pacman/pkg/";
 const GPGDIR: &str = "/etc/pacman.d/gnupg/";
@@ -145,8 +145,7 @@ pub struct config_t {
     pub xfercommand: String,
 
     /* our connection to libalpm */
-    pub handle: alpm_handle_t,
-
+    // pub handle: alpm_handle_t,
     pub explicit_adds: Vec<alpm_pkg_t>,
     pub explicit_removes: Vec<alpm_pkg_t>,
 
@@ -601,8 +600,7 @@ impl config_t {
                         1 => self.logmask.ALPM_LOG_DEBUG = true,
                         _ => {
                             unimplemented!();
-                            // pm_printf(ALPM_LOG_ERROR, _("'{}' is not a valid debug level\n"),
-                            // optarg);
+                            error!("'{}' is not a valid debug level", d);
                             return 1;
                         }
                     }
@@ -1337,7 +1335,7 @@ pub fn process_cleanmethods(
             config.cleanmethod.PM_CLEAN_KEEPCUR = true;
         } else {
             error!(
-                "config file {}, line {}: invalid value for '{}' : '{}'\n",
+                "config file {}, line {}: invalid value for '{}' : '{}'",
                 file, linenum, "CleanMethod", value
             );
             return 1;
@@ -1359,7 +1357,7 @@ fn setrepeatingoption(ptr: &String, _option: &str, list: &mut Vec<String>) {
     let vals = ptr.split_whitespace();
     for val in vals {
         list.push(String::from(val));
-        // debug!( "config: {}: {}\n", option, val);
+        // debug!( "config: {}: {}", option, val);
         // val = strtok_r(NULL, " ", &saveptr);
     }
 }
@@ -1405,7 +1403,7 @@ fn _parse_options(
                 config.disable_dl_timeout = 1;
             } else {
                 warn!(
-                    "config file {}, line {}: directive '{}' in section '{}' not recognized.\n",
+                    "config file {}, line {}: directive '{}' in section '{}' not recognized.",
                     file, linenum, key, "options"
                 );
             }
@@ -1455,27 +1453,27 @@ fn _parse_options(
                 /* don't overwrite a path specified on the command line */
                 if config.dbpath == "" {
                     config.dbpath = value.clone();
-                    debug!("config: dbpath: {}\n", value);
+                    debug!("config: dbpath: {}", value);
                 }
             } else if key == "RootDir" {
                 /* don't overwrite a path specified on the command line */
                 if config.rootdir == "" {
                     config.rootdir = value.clone();
-                    debug!("config: rootdir: {}\n", value);
+                    debug!("config: rootdir: {}", value);
                 }
             } else if key == "GPGDir" {
                 if config.gpgdir == "" {
                     config.gpgdir = value.clone();
-                    debug!("config: gpgdir: {}\n", value);
+                    debug!("config: gpgdir: {}", value);
                 }
             } else if key == "LogFile" {
                 if config.logfile == "" {
                     config.logfile = value.clone();
-                    debug!("config: logfile: {}\n", value);
+                    debug!("config: logfile: {}", value);
                 }
             } else if key == "XferCommand" {
                 config.xfercommand = value.clone();
-                debug!("config: xfercommand: {}\n", value);
+                debug!("config: xfercommand: {}", value);
             } else if key == "CleanMethod" {
                 unimplemented!();
                 let mut methods = Vec::new();
@@ -1556,7 +1554,7 @@ fn _add_mirror(db: &mut alpm_db_t, value: &String, arch: &String) -> Result<()> 
     match db.alpm_db_add_server(&server) {
         Err(e) => {
             error!(
-                "could not add server URL to database '{}': {} ({})\n",
+                "could not add server URL to database '{}': {} ({})",
                 dbname, server, e
             );
             return Err(e);
@@ -1633,10 +1631,10 @@ fn register_repo(
  * of our paths to live under the rootdir that was specified. Safe to call
  * multiple times (will only do anything the first time).
  */
-fn setup_libalpm(config: &mut config_t) -> Result<i32> {
-    let handle;
+fn setup_libalpm(config: &mut config_t) -> Result<alpm_handle_t> {
+    let mut handle;
 
-    debug!("setup_libalpm called\n");
+    debug!("setup_libalpm called");
 
     /* Configure root path first. If it is set and dbpath/logfile were not
      * set, then set those as well to reside under the root. */
@@ -1662,7 +1660,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
         Ok(h) => h,
         Err(e) => {
             eprintln!(
-                "failed to initialize alpm library\n({}: {})",
+                "failed to initialize alpm library({}: {})",
                 e.alpm_strerror(),
                 config.dbpath
             );
@@ -1676,7 +1674,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
         }
     };
 
-    config.handle = handle;
+    // config.handle = handle;
 
     // alpm_option_set_logcb(handle, cb_log);
     // alpm_option_set_dlcb(handle, cb_dl_progress);
@@ -1686,7 +1684,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
 
     match config.op {
         Some(operations::PM_OP_FILES) => {
-            config.handle.alpm_option_set_dbext(&String::from(".files"));
+            handle.alpm_option_set_dbext(&String::from(".files"));
         }
         _ => {}
     }
@@ -1694,7 +1692,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
     if config.logfile == "" {
         config.logfile = String::from(LOGFILE)
     };
-    match config.handle.alpm_option_set_logfile(&config.logfile) {
+    match handle.alpm_option_set_logfile(&config.logfile) {
         Err(e) => {
             eprintln!(
                 "problem setting logfile '{}' ({})",
@@ -1711,10 +1709,10 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
     if config.gpgdir == "" {
         config.gpgdir = String::from(GPGDIR);
     }
-    match config.handle.alpm_option_set_gpgdir(&config.gpgdir) {
+    match handle.alpm_option_set_gpgdir(&config.gpgdir) {
         Err(ret) => {
             eprintln!(
-                "problem setting gpgdir '{}' ({})\n",
+                "problem setting gpgdir '{}' ({})",
                 config.gpgdir,
                 ret.alpm_strerror()
             );
@@ -1726,13 +1724,10 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
     /* Set user hook directory. This is not relative to rootdir, even if
      * rootdir is defined. Reasoning: hookdir contains configuration data. */
     if config.hookdirs.is_empty() {
-        match config
-            .handle
-            .alpm_option_add_hookdir(&String::from(HOOKDIR))
-        {
+        match handle.alpm_option_add_hookdir(&String::from(HOOKDIR)) {
             Err(e) => {
                 eprintln!(
-                    "problem adding hookdir '{}' ({})\n",
+                    "problem adding hookdir '{}' ({})",
                     HOOKDIR,
                     e.alpm_strerror()
                 );
@@ -1743,7 +1738,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
     } else {
         /* add hook directories 1-by-1 to avoid overwriting the system directory */
         for data in &config.hookdirs {
-            match config.handle.alpm_option_add_hookdir(data) {
+            match handle.alpm_option_add_hookdir(data) {
                 Err(e) => {
                     eprintln!("problem adding hookdir '{}' ({})", data, e.alpm_strerror());
                     return Err(e);
@@ -1755,20 +1750,14 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
 
     // 	/* add a default cachedir if one wasn't specified */
     if config.cachedirs.is_empty() {
-        config
-            .handle
-            .alpm_option_add_cachedir(&String::from(CACHEDIR))?;
+        handle.alpm_option_add_cachedir(&String::from(CACHEDIR))?;
     } else {
-        config.handle.alpm_option_set_cachedirs(&config.cachedirs)?;
+        handle.alpm_option_set_cachedirs(&config.cachedirs)?;
     }
 
-    config
-        .handle
-        .alpm_option_set_overwrite_files(&config.overwrite_files);
+    handle.alpm_option_set_overwrite_files(&config.overwrite_files);
 
-    config
-        .handle
-        .alpm_option_set_default_siglevel(&config.siglevel);
+    handle.alpm_option_set_default_siglevel(&config.siglevel);
 
     config.localfilesiglevel = merge_siglevel(
         config.siglevel,
@@ -1781,15 +1770,12 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
         config.remotefilesiglevel_mask,
     );
 
-    config
-        .handle
-        .alpm_option_set_local_file_siglevel(config.localfilesiglevel)?;
-    config
-        .handle
-        .alpm_option_set_remote_file_siglevel(config.remotefilesiglevel);
+    handle.alpm_option_set_local_file_siglevel(config.localfilesiglevel)?;
+
+    handle.alpm_option_set_remote_file_siglevel(config.remotefilesiglevel);
 
     for mut data in &mut config.repos {
-        register_repo(&mut data, &mut config.handle, config.siglevel, &config.arch);
+        register_repo(&mut data, &mut handle, config.siglevel, &config.arch);
     }
 
     // if config.xfercommand!="" {
@@ -1802,32 +1788,27 @@ fn setup_libalpm(config: &mut config_t) -> Result<i32> {
     //     alpm_option_set_totaldlcb(handle, cb_dl_total);
     // }
 
-    config.handle.alpm_option_set_arch(&config.arch);
-    config
-        .handle
-        .alpm_option_set_checkspace(config.checkspace as i32);
-    config
-        .handle
-        .alpm_option_set_usesyslog(config.usesyslog as i32);
-    config.handle.alpm_option_set_deltaratio(config.deltaratio)?;
-    config.handle.alpm_option_set_ignorepkgs(&config.ignorepkg);
-    config
-        .handle
-        .alpm_option_set_ignoregroups(&config.ignoregrp);
-    config.handle.alpm_option_set_noupgrades(&config.noupgrade);
-    config.handle.alpm_option_set_noextracts(&config.noextract);
+    handle.alpm_option_set_arch(&config.arch);
 
-    config
-        .handle
-        .alpm_option_set_disable_dl_timeout(config.disable_dl_timeout as u16);
+    handle.alpm_option_set_checkspace(config.checkspace as i32);
+
+    handle.alpm_option_set_usesyslog(config.usesyslog as i32);
+    handle.alpm_option_set_deltaratio(config.deltaratio)?;
+    handle.alpm_option_set_ignorepkgs(&config.ignorepkg);
+
+    handle.alpm_option_set_ignoregroups(&config.ignoregrp);
+    handle.alpm_option_set_noupgrades(&config.noupgrade);
+    handle.alpm_option_set_noextracts(&config.noextract);
+
+    handle.alpm_option_set_disable_dl_timeout(config.disable_dl_timeout as u16);
 
     for entry in &config.assumeinstalled {
         let dep = alpm_dep_from_string(&entry);
         debug!("parsed assume installed: {} {}", dep.name, dep.version,);
-        config.handle.alpm_option_add_assumeinstalled(&dep);
+        handle.alpm_option_add_assumeinstalled(&dep);
     }
 
-    Ok(0)
+    Ok(handle)
 }
 
 /// Allows parsing in advance of an entire config section before we start
@@ -2086,17 +2067,18 @@ fn _parse_directive(
 ///
 /// - `file` - path to the config file
 /// - `returns` - 0 on success, non-zero on error
-pub fn parseconfig(file: &String, config: &mut config_t) -> Result<i32> {
+pub fn parseconfig(file: &String, config: &mut config_t) -> Result<alpm_handle_t> {
     let ret;
+    let handle;
     let mut section = section_t::default();
     debug!("config: attempting to read file {}", file);
     ret = parse_ini(file, &_parse_directive, &mut section, config);
     if ret != 0 {
         unimplemented!();
         //should be error
-        return Ok(ret);
+        // return Ok(ret);
     }
     debug!("config: finished parsing {}", file);
-    setup_libalpm(config)?;
-    return Ok(ret);
+    handle = setup_libalpm(config)?;
+    return Ok(handle);
 }

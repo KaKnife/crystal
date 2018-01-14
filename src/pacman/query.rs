@@ -231,15 +231,23 @@ use super::*;
 // }
 
 /// search the local database for a matching package
-fn query_search(targets: &Vec<String>, config: &config_t) -> i32 {
-    let db_local: &alpm_db_t = config.handle.alpm_get_localdb();
-    return dump_pkg_search(db_local, targets, 0);
+fn query_search(targets: &Vec<String>, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+    let tem_handle = &handle.clone();
+    let db_local: &mut alpm_db_t = handle.alpm_get_localdb_mut();
+    return dump_pkg_search(
+        db_local,
+        targets,
+        0,
+        &config.colstr,
+        tem_handle,
+        config.quiet,
+    );
 }
 
-fn pkg_get_locality(pkg: &alpm_pkg_t, config: &config_t) -> u8 {
+fn pkg_get_locality(pkg: &alpm_pkg_t, handle: &alpm_handle_t) -> u8 {
     let pkgname = &pkg.alpm_pkg_get_name();
     // alpm_list_t *j;
-    let sync_dbs = config.handle.alpm_get_syncdbs()
+    let sync_dbs = handle.alpm_get_syncdbs()
     // {
     //     &Some(ref s) => s,
     //     &None => panic!(),
@@ -254,45 +262,43 @@ fn pkg_get_locality(pkg: &alpm_pkg_t, config: &config_t) -> u8 {
     return PKG_LOCALITY_FOREIGN;
 }
 
-// static int is_unrequired(alpm_pkg_t *pkg, unsigned short level)
-// {
-// 	alpm_list_t *requiredby = alpm_pkg_compute_requiredby(pkg);
-// 	if(requiredby == NULL) {
-// 		if(level == 1) {
-// 			requiredby = alpm_pkg_compute_optionalfor(pkg);
-// 		}
-// 		if(requiredby == NULL) {
-// 			return 1;
-// 		}
-// 	}
-// 	FREELIST(requiredby);
-// 	return 0;
-// }
+fn is_unrequired(pkg: &alpm_pkg_t, level: u8) -> bool {
+    let mut requiredby = pkg.alpm_pkg_compute_requiredby();
+    if requiredby.is_empty() {
+        if level == 1 {
+            requiredby = pkg.alpm_pkg_compute_optionalfor();
+        }
+        if requiredby.is_empty() {
+            return true;
+        }
+    }
+    return false;
+}
 
-fn filter(pkg: &alpm_pkg_t, config: &config_t) -> i32 {
+fn filter(pkg: &alpm_pkg_t, config: &config_t, handle: &alpm_handle_t) -> i32 {
+    match pkg.alpm_pkg_get_reason() {
+        /* check if this package was installed as a dependency */
+        &alpm_pkgreason_t::ALPM_PKG_REASON_DEPEND if config.op_q_explicit != 0 => return 0,
+        /* check if this package was explicitly installed */
+        &alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT if config.op_q_deps != 0 => return 0,
+        _ => {}
+    }
+    /* check if this pkg is or isn't in a sync DB */
+    if config.op_q_locality != 0 && config.op_q_locality != pkg_get_locality(pkg, handle) {
+        return 0;
+    }
+    /* check if this pkg is unrequired */
+    if config.op_q_unrequired != 0 && !is_unrequired(pkg, config.op_q_unrequired) {
+        return 0;
+    }
+    /* check if this pkg is outdated */
     unimplemented!();
-
-    // match pkg.alpm_pkg_get_reason() {
-    //     /* check if this package was installed as a dependency */
-    //     ALPM_PKG_REASON_DEPEND if config.op_q_explicit != 0 => return 0,
-    //     /* check if this package was explicitly installed */
-    //     ALPM_PKG_REASON_EXPLICIT if config.op_q_deps != 0 => return 0,
-    // }
-    // /* check if this pkg is or isn't in a sync DB */
-    // if config.op_q_locality != 0 && config.op_q_locality != pkg_get_locality(pkg) {
-    //     return 0;
-    // }
-    // /* check if this pkg is unrequired */
-    // if config.op_q_unrequired != 0 && !is_unrequired(pkg, config.op_q_unrequired) {
-    //     return 0;
-    // }
-    // /* check if this pkg is outdated */
     // if config.op_q_upgrade != 0
-    //     && (alpm_sync_newversion(pkg, alpm_get_syncdbs(config.handle)) == NULL)
+    //     && (alpm_sync_newversion(pkg, config.handle.alpm_get_syncdbs()) == NULL)
     // {
     //     return 0;
     // }
-    // return 1;
+    return 1;
 }
 
 fn display(pkg: &alpm_pkg_t) -> i32 {
@@ -343,42 +349,18 @@ fn display(pkg: &alpm_pkg_t) -> i32 {
     // 	return ret;
 }
 
-fn query_group(targets: &Vec<String>, config: &mut config_t) -> i32 {
+fn query_group(targets: &Vec<String>, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
     let mut ret = 0;
+    let handle_clone = &handle.clone();
+    let db_local: &mut alpm_db_t = handle.alpm_get_localdb_mut();
+
     let op_q_explicit = config.op_q_explicit;
     let op_q_deps = config.op_q_deps;
-    let db_local: &mut alpm_db_t = config.handle.alpm_get_localdb_mut();
-
-    let filter = |pkg: &alpm_pkg_t| -> i32 {
-        match pkg.alpm_pkg_get_reason() {
-            /* check if this package was installed as a dependency */
-            alpm_pkgreason_t::ALPM_PKG_REASON_DEPEND if op_q_explicit != 0 => return 0,
-            /* check if this package was explicitly installed */
-            alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT if op_q_deps != 0 => return 0,
-            _ => {}
-        }
-        unimplemented!();
-        // /* check if this pkg is or isn't in a sync DB */
-        // if config.op_q_locality != 0 && config.op_q_locality != pkg_get_locality(pkg) {
-        //     return 0;
-        // }
-        // /* check if this pkg is unrequired */
-        // if config.op_q_unrequired != 0 && !is_unrequired(pkg, config.op_q_unrequired) {
-        //     return 0;
-        // }
-        // /* check if this pkg is outdated */
-        // if config.op_q_upgrade != 0
-        //     && (alpm_sync_newversion(pkg, alpm_get_syncdbs(config.handle)) == NULL)
-        // {
-        //     return 0;
-        // }
-        // return 1;
-    };
 
     if targets.is_empty() {
         for grp in db_local.alpm_db_get_groupcache() {
             for pkg in &grp.packages {
-                if filter(pkg) == 0 {
+                if filter(pkg, config, handle_clone) == 0 {
                     continue;
                 }
                 println!("{} {}", grp.name, pkg.alpm_pkg_get_name());
@@ -388,7 +370,7 @@ fn query_group(targets: &Vec<String>, config: &mut config_t) -> i32 {
         for grpname in targets {
             match db_local.alpm_db_get_group(grpname) {
                 Some(grp) => for ref data in &grp.packages {
-                    if filter(data) == 0 {
+                    if filter(data, config, handle_clone) == 0 {
                         continue;
                     }
                     if !config.quiet {
@@ -407,21 +389,28 @@ fn query_group(targets: &Vec<String>, config: &mut config_t) -> i32 {
     return ret;
 }
 
-pub fn pacman_query(targets: Vec<String>, config: &mut config_t) -> std::result::Result<(), i32> {
+pub fn pacman_query(
+    targets: Vec<String>,
+    config: &mut config_t,
+    handle: &mut alpm_handle_t,
+) -> std::result::Result<(), i32> {
     // 	int ret = 0;
     let mut ret = Ok(());
+    let mut handle_clone = &handle.clone();
     // 	int match = 0;
     let mut is_match = false;
     // 	alpm_list_t *i;
     // 	alpm_pkg_t *pkg = NULL;
     // 	alpm_db_t *db_local;
     let mut db_local;
+    // let op_q_explicit = config.op_q_explicit;
+    // let op_q_deps = config.op_q_deps;
 
     /* First: operations that do not require targets */
 
     /* search for a package */
     if config.op_q_search != 0 {
-        match query_search(&targets, config) {
+        match query_search(&targets, config, handle) {
             0 => return Ok(()),
             e => return Err(e),
         };
@@ -429,8 +418,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut config_t) -> std::result:
 
     /* looking for groups */
     if config.group != 0 {
-        unimplemented!();
-        match query_group(&targets, config) {
+        match query_group(&targets, config, handle) {
             0 => return Ok(()),
             e => return Err(e),
         };
@@ -442,33 +430,35 @@ pub fn pacman_query(targets: Vec<String>, config: &mut config_t) -> std::result:
         // 			return 1;
         // 		}
     }
-
-    db_local = config.handle.alpm_get_localdb();
+    // let handle_clone = &handle.clone();
+    db_local = handle.alpm_get_localdb_mut();
 
     /* operations on all packages in the local DB
      * valid: no-op (plain -Q), list, info, check
      * invalid: isfile, owns */
     if targets.is_empty() {
-        unimplemented!();
-        // 		if(config.op_q_isfile || config.op_q_owns) {
-        // 			pm_printf(ALPM_LOG_ERROR, _("no targets specified (use -h for help)\n"));
-        // 			return 1;
-        // 		}
-        //
-        // 		for(i = alpm_db_get_pkgcache(db_local); i; i = alpm_list_next(i)) {
-        // 			pkg = i.data;
-        // 			if(filter(pkg)) {
-        // 				int value = display(pkg);
-        // 				if(value != 0) {
-        // 					ret = 1;
-        // 				}
-        // 				match = 1;
-        // 			}
-        // 		}
-        // 		if(!match) {
-        // 			ret = 1;
-        // 		}
-        // 		return ret;
+        if config.op_q_isfile != 0 || config.op_q_owns != 0 {
+            error!("no targets specified (use -h for help)");
+            return Err(1);
+        }
+
+        match db_local.alpm_db_get_pkgcache() {
+            Ok(d) => for pkg in d {
+                if filter(&pkg, config, handle_clone) != 0 {
+                    let value = display(&pkg);
+                    if value != 0 {
+                        ret = Err(1);
+                    }
+                    is_match = true;
+                }
+            },
+            Err(e) => unimplemented!("{}", e),
+        }
+
+        if !is_match {
+            ret = Err(1);
+        }
+        return ret;
     }
 
     /* Second: operations that require target(s) */

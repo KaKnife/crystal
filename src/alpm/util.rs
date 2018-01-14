@@ -1169,66 +1169,71 @@ impl alpm_handle_t {
 // 		return ret;
 // 	}
 // }
-//
-// /** Parse a full package specifier.
-//  * @param target package specifier to parse, such as: "pacman-4.0.1-2",
-//  * "pacman-4.01-2/", or "pacman-4.0.1-2/desc"
-//  * @param name to hold package name
-//  * @param version to hold package version
-//  * @param name_hash to hold package name hash
-//  * @return 0 on success, -1 on error
-//  */
-// int _alpm_splitname(const char *target, char **name, char **version,
-// 		unsigned long *name_hash)
-// {
-// 	/* the format of a db entry is as follows:
-// 	 *    package-version-rel/
-// 	 *    package-version-rel/desc (we ignore the filename portion)
-// 	 * package name can contain hyphens, so parse from the back- go back
-// 	 * two hyphens and we have split the version from the name.
-// 	 */
-// 	const char *pkgver, *end;
-//
-// 	if(target == NULL) {
-// 		return -1;
-// 	}
-//
-// 	/* remove anything trailing a '/' */
-// 	end = strchr(target, '/');
-// 	if(!end) {
-// 		end = target + strlen(target);
-// 	}
-//
-// 	/* do the magic parsing- find the beginning of the version string
-// 	 * by doing two iterations of same loop to lop off two hyphens */
-// 	for(pkgver = end - 1; *pkgver && *pkgver != '-'; pkgver--);
-// 	for(pkgver = pkgver - 1; *pkgver && *pkgver != '-'; pkgver--);
-// 	if(*pkgver != '-' || pkgver == target) {
-// 		return -1;
-// 	}
-//
-// 	/* copy into fields and return */
-// 	if(version) {
-// 		if(*version) {
-// 			FREE(*version);
-// 		}
-// 		/* version actually points to the dash, so need to increment 1 and account
-// 		 * for potential end character */
-// 		STRNDUP(*version, pkgver + 1, end - pkgver - 1, return -1);
-// 	}
-//
-// 	if(name) {
-// 		if(*name) {
-// 			FREE(*name);
-// 		}
-// 		STRNDUP(*name, target, pkgver - target, return -1);
-// 		if(name_hash) {
-// 			*name_hash = _alpm_hash_sdbm(*name);
-// 		}
-// 	}
-//
-// 	return 0;
-// }
+
+/** Parse a full package specifier.
+ * @param target package specifier to parse, such as: "pacman-4.0.1-2",
+ * "pacman-4.01-2/", or "pacman-4.0.1-2/desc"
+ * @param name to hold package name
+ * @param version to hold package version
+ * @param name_hash to hold package name hash
+ * @return 0 on success, -1 on error
+ */
+pub fn _alpm_splitname(target: &String) -> std::result::Result<(String, String, u64), ()> {
+    /* the format of a db entry is as follows:
+     *    package-version-rel/
+     *    package-version-rel/desc (we ignore the filename portion)
+     * package name can contain hyphens, so parse from the back- go back
+     * two hyphens and we have split the version from the name.
+     */
+    // 	const char *pkgver, *end;
+
+    if target == "" {
+        return Err(());
+    }
+    /* remove anything trailing a '/' */
+    let tmp = String::from(target.split('/').collect::<Vec<&str>>()[0]);
+    // 	end = strchr(target, '/');
+    // 	if(!end) {
+    // 		end = target + strlen(target);
+    // 	}
+
+    /* do the magic parsing- find the beginning of the version string
+     * by doing two iterations of same loop to lop off two hyphens */
+    // 	for(pkgver = end - 1; *pkgver && *pkgver != '-'; pkgver--);
+    // 	for(pkgver = pkgver - 1; *pkgver && *pkgver != '-'; pkgver--);
+    // 	if(*pkgver != '-' || pkgver == target) {
+    // 		return -1;
+    // 	}
+    let temp2: Vec<&str> = tmp.split('-').collect();
+    let len = temp2.len();
+    if len < 3 {
+        return Err(());
+    }
+
+    /* copy into fields and return */
+    let mut name = String::from(temp2[0]);
+
+    for i in 1..len - 2 {
+        name += temp2[i];
+    }
+    let version = String::from(temp2[len - 2]) + temp2[len - 1];
+
+    // 	if(name) {
+    // 		if(*name) {
+    // 			FREE(*name);
+    // 		}
+    // 		STRNDUP(*name, target, pkgver - target, return -1);
+    // 		if(name_hash) {
+    // 			*name_hash = _alpm_hash_sdbm(*name);
+    // 		}
+    // 	}
+    use std::hash::Hash;
+    let mut hasher = sdbm_hasher::default();
+    name.hash(&mut hasher);
+    let name_hash = hasher.finish();
+    return Ok((name, version, name_hash));
+}
+
 #[derive(Default)]
 pub struct sdbm_hasher {
     // /** Hash the given string to an unsigned long value.
@@ -1250,16 +1255,16 @@ pub struct sdbm_hasher {
     //
     // 	return hash;
     // }
-    hash: u64,
+    hash: std::num::Wrapping<u64>,
 }
 use std::hash::Hasher;
 impl Hasher for sdbm_hasher {
     fn finish(&self) -> u64 {
-        self.hash
+        self.hash.0
     }
     fn write(&mut self, bytes: &[u8]) {
         for byte in bytes {
-            self.hash = *byte as u64 + self.hash * 65599;
+            self.hash = std::num::Wrapping(*byte as u64) + self.hash * std::num::Wrapping(65599);
         }
     }
 }

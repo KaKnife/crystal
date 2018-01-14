@@ -53,7 +53,7 @@ impl alpm_db_t {
             return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
         }
 
-        let dbpath = match self._alpm_db_path(handle) {
+        let dbpath = match self._alpm_db_path() {
             Ok(d) => d,
             Err(e) => {
                 return Err(e);
@@ -223,7 +223,7 @@ pub fn alpm_db_update(
         if ret != -1 && updated && siglevel.ALPM_SIG_DATABASE {
             /* an existing sig file is no good at this point */
             {
-                let dbpath = &db._alpm_db_path(handle).ok();
+                let dbpath = &db._alpm_db_path().ok();
                 let sigpath = match handle._alpm_sigpath(dbpath) {
                     Some(s) => s,
                     None => {
@@ -749,7 +749,7 @@ impl alpm_handle_t {
         // db->ops = &sync_db_ops;
         // db.handle = handle;
         db.siglevel = level;
-
+        db.create_path(&self.dbpath, &self.dbext);
         db.sync_db_validate(self);
 
         // handle.dbs_sync.push(db);

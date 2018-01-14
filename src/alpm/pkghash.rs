@@ -34,16 +34,16 @@ use super::*;
  */
 #[derive(Debug, Default, Clone)]
 pub struct alpm_pkghash_t {
-    /** data held by the hash table */
-    // alpm_list_t **hash_table;
-    /** head node of the hash table data in normal list format */
-    // list:alpm_list_t,
-    /** number of buckets in hash table */
-    // unsigned int buckets;
-    /// number of entries in hash table */
-    // unsigned int entries;
-    /// max number of entries before a resize is needed */
-    limit: i32,
+    /// data held by the hash table
+    pub hash_table: Vec<alpm_pkg_t>,
+    /// head node of the hash table data in normal list format
+    pub list: alpm_list_t<alpm_pkg_t>,
+    ///number of buckets in hash table
+    pub buckets: usize,
+    /// number of entries in hash table
+    pub entries: usize,
+    /// max number of entries before a resize is needed
+    pub limit: usize,
 }
 
 // typedef struct __alpm_pkghash_t alpm_pkghash_t;
@@ -88,65 +88,57 @@ pub struct alpm_pkghash_t {
 //  * more than an order of magnitude greater than the number of packages
 //  * in any Linux distribution, and well under UINT_MAX.
 //  */
-// static const unsigned int prime_list[] =
-// {
-// 	11u, 13u, 17u, 19u, 23u, 29u, 31u, 37u, 41u, 43u, 47u,
-// 	53u, 59u, 61u, 67u, 71u, 73u, 79u, 83u, 89u, 97u, 103u,
-// 	109u, 113u, 127u, 137u, 139u, 149u, 157u, 167u, 179u, 193u,
-// 	199u, 211u, 227u, 241u, 257u, 277u, 293u, 313u, 337u, 359u,
-// 	383u, 409u, 439u, 467u, 503u, 541u, 577u, 619u, 661u, 709u,
-// 	761u, 823u, 887u, 953u, 1031u, 1109u, 1193u, 1289u, 1381u,
-// 	1493u, 1613u, 1741u, 1879u, 2029u, 2179u, 2357u, 2549u,
-// 	2753u, 2971u, 3209u, 3469u, 3739u, 4027u, 4349u, 4703u,
-// 	5087u, 5503u, 5953u, 6427u, 6949u, 7517u, 8123u, 8783u,
-// 	9497u, 10273u, 11113u, 12011u, 12983u, 14033u, 15173u,
-// 	16411u, 17749u, 19183u, 20753u, 22447u, 24281u, 26267u,
-// 	28411u, 30727u, 33223u, 35933u, 38873u, 42043u, 45481u,
-// 	49201u, 53201u, 57557u, 62233u, 67307u, 72817u, 78779u,
-// 	85229u, 92203u, 99733u, 107897u, 116731u, 126271u, 136607u,
-// 	147793u, 159871u, 172933u, 187091u, 202409u, 218971u, 236897u,
-// 	256279u, 277261u, 299951u, 324503u, 351061u, 379787u, 410857u,
-// 	444487u, 480881u, 520241u, 562841u, 608903u, 658753u, 712697u,
-// 	771049u, 834181u, 902483u, 976369u
-// };
+const prime_list: [usize; 145] = [
+    11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 103, 109,
+    113, 127, 137, 139, 149, 157, 167, 179, 193, 199, 211, 227, 241, 257, 277, 293, 313, 337, 359,
+    383, 409, 439, 467, 503, 541, 577, 619, 661, 709, 761, 823, 887, 953, 1031, 1109, 1193, 1289,
+    1381, 1493, 1613, 1741, 1879, 2029, 2179, 2357, 2549, 2753, 2971, 3209, 3469, 3739, 4027, 4349,
+    4703, 5087, 5503, 5953, 6427, 6949, 7517, 8123, 8783, 9497, 10273, 11113, 12011, 12983, 14033,
+    15173, 16411, 17749, 19183, 20753, 22447, 24281, 26267, 28411, 30727, 33223, 35933, 38873,
+    42043, 45481, 49201, 53201, 57557, 62233, 67307, 72817, 78779, 85229, 92203, 99733, 107897,
+    116731, 126271, 136607, 147793, 159871, 172933, 187091, 202409, 218971, 236897, 256279, 277261,
+    299951, 324503, 351061, 379787, 410857, 444487, 480881, 520241, 562841, 608903, 658753, 712697,
+    771049, 834181, 902483, 976369,
+];
 //
 // /* How far forward do we look when linear probing for a spot? */
 // static const unsigned int stride = 1;
 // /* What is the maximum load percentage of our hash table? */
-// static const double max_hash_load = 0.68;
+const max_hash_load: f32 = 0.68;
 // /* Initial load percentage given a certain size */
 // static const double initial_hash_load = 0.58;
 //
-// /* Allocate a hash table with space for at least "size" elements */
-// alpm_pkghash_t *_alpm_pkghash_create(unsigned int size)
-// {
-// 	alpm_pkghash_t *hash = NULL;
-// 	unsigned int i, loopsize;
-//
-// 	CALLOC(hash, 1, sizeof(alpm_pkghash_t), return NULL);
-// 	size = size / initial_hash_load + 1;
-//
-// 	loopsize = ARRAYSIZE(prime_list);
-// 	for(i = 0; i < loopsize; i++) {
-// 		if(prime_list[i] > size) {
-// 			hash->buckets = prime_list[i];
-// 			hash->limit = hash->buckets * max_hash_load;
-// 			break;
-// 		}
-// 	}
-//
-// 	if(hash->buckets < size) {
-// 		errno = ERANGE;
-// 		free(hash);
-// 		return NULL;
-// 	}
-//
-// 	CALLOC(hash->hash_table, hash->buckets, sizeof(alpm_list_t *), \
-// 				free(hash); return NULL);
-//
-// 	return hash;
-// }
-//
+/* Allocate a hash table with space for at least "size" elements */
+pub fn _alpm_pkghash_create() -> alpm_pkghash_t {
+    // unimplemented!();
+    // 	alpm_pkghash_t *hash = NULL;
+    let hash = alpm_pkghash_t::default();
+    // 	unsigned int i, loopsize;
+    //
+    // 	CALLOC(hash, 1, sizeof(alpm_pkghash_t), return NULL);
+    // 	size = size / initial_hash_load + 1;
+    //
+    // let loopsize = prime_list.len();
+    // 	for i in 0 .. loopsize {
+    // 		if prime_list[i] > size {
+    // 			hash.buckets = prime_list[i];
+    // 			hash.limit = (hash.buckets as f32 * max_hash_load) as i32;
+    // 			break;
+    // 		}
+    // 	}
+    //
+    // 	if(hash->buckets < size) {
+    // 		errno = ERANGE;
+    // 		free(hash);
+    // 		return NULL;
+    // 	}
+    //
+    // 	CALLOC(hash->hash_table, hash->buckets, sizeof(alpm_list_t *), \
+    // 				free(hash); return NULL);
+    //
+    return hash;
+}
+
 // static unsigned int get_hash_position(unsigned long name_hash,
 // 		alpm_pkghash_t *hash)
 // {
@@ -165,95 +157,7 @@ pub struct alpm_pkghash_t {
 // 	return position;
 // }
 //
-// /* Expand the hash table size to the next increment and rebin the entries */
-// static alpm_pkghash_t *rehash(alpm_pkghash_t *oldhash)
-// {
-// 	alpm_pkghash_t *newhash;
-// 	unsigned int newsize, i;
-//
-// 	/* Hash tables will need resized in two cases:
-// 	 *  - adding packages to the local database
-// 	 *  - poor estimation of the number of packages in sync database
-// 	 *
-// 	 * For small hash tables sizes (<500) the increase in size is by a
-// 	 * minimum of a factor of 2 for optimal rehash efficiency.  For
-// 	 * larger database sizes, this increase is reduced to avoid excess
-// 	 * memory allocation as both scenarios requiring a rehash should not
-// 	 * require a table size increase that large. */
-// 	if(oldhash->buckets < 500) {
-// 		newsize = oldhash->buckets * 2;
-// 	} else if(oldhash->buckets < 2000) {
-// 		newsize = oldhash->buckets * 3 / 2;
-// 	} else if(oldhash->buckets < 5000) {
-// 		newsize = oldhash->buckets * 4 / 3;
-// 	} else {
-// 		newsize = oldhash->buckets + 1;
-// 	}
-//
-// 	newhash = _alpm_pkghash_create(newsize);
-// 	if(newhash == NULL) {
-// 		/* creation of newhash failed, stick with old one... */
-// 		return oldhash;
-// 	}
-//
-// 	newhash->list = oldhash->list;
-// 	oldhash->list = NULL;
-//
-// 	for(i = 0; i < oldhash->buckets; i++) {
-// 		if(oldhash->hash_table[i] != NULL) {
-// 			alpm_pkg_t *package = oldhash->hash_table[i]->data;
-// 			unsigned int position = get_hash_position(package->name_hash, newhash);
-//
-// 			newhash->hash_table[position] = oldhash->hash_table[i];
-// 			oldhash->hash_table[i] = NULL;
-// 		}
-// 	}
-//
-// 	newhash->entries = oldhash->entries;
-//
-// 	_alpm_pkghash_free(oldhash);
-//
-// 	return newhash;
-// }
-//
-// static alpm_pkghash_t *pkghash_add_pkg(alpm_pkghash_t *hash, alpm_pkg_t *pkg,
-// 		int sorted)
-// {
-// 	alpm_list_t *ptr;
-// 	unsigned int position;
-//
-// 	if(pkg == NULL || hash == NULL) {
-// 		return hash;
-// 	}
-//
-// 	if(hash->entries >= hash->limit) {
-// 		hash = rehash(hash);
-// 	}
-//
-// 	position = get_hash_position(pkg->name_hash, hash);
-//
-// 	MALLOC(ptr, sizeof(alpm_list_t), return hash);
-//
-// 	ptr->data = pkg;
-// 	ptr->prev = ptr;
-// 	ptr->next = NULL;
-//
-// 	hash->hash_table[position] = ptr;
-// 	if(!sorted) {
-// 		hash->list = alpm_list_join(hash->list, ptr);
-// 	} else {
-// 		hash->list = alpm_list_mmerge(hash->list, ptr, _alpm_pkg_cmp);
-// 	}
-//
-// 	hash->entries += 1;
-// 	return hash;
-// }
-//
-// alpm_pkghash_t *_alpm_pkghash_add(alpm_pkghash_t *hash, alpm_pkg_t *pkg)
-// {
-// 	return pkghash_add_pkg(hash, pkg, 0);
-// }
-//
+
 // alpm_pkghash_t *_alpm_pkghash_add_sorted(alpm_pkghash_t *hash, alpm_pkg_t *pkg)
 // {
 // 	return pkghash_add_pkg(hash, pkg, 1);
@@ -376,6 +280,61 @@ pub struct alpm_pkghash_t {
 // }
 //
 impl alpm_pkghash_t {
+    /* Expand the hash table size to the next increment and rebin the entries */
+    fn rehash(&mut self) {
+        unimplemented!();
+        // 	alpm_pkghash_t *newhash;
+        // 	unsigned int newsize, i;
+        //
+        // 	/* Hash tables will need resized in two cases:
+        // 	 *  - adding packages to the local database
+        // 	 *  - poor estimation of the number of packages in sync database
+        // 	 *
+        // 	 * For small hash tables sizes (<500) the increase in size is by a
+        // 	 * minimum of a factor of 2 for optimal rehash efficiency.  For
+        // 	 * larger database sizes, this increase is reduced to avoid excess
+        // 	 * memory allocation as both scenarios requiring a rehash should not
+        // 	 * require a table size increase that large. */
+        // 	if(oldhash->buckets < 500) {
+        // 		newsize = oldhash->buckets * 2;
+        // 	} else if(oldhash->buckets < 2000) {
+        // 		newsize = oldhash->buckets * 3 / 2;
+        // 	} else if(oldhash->buckets < 5000) {
+        // 		newsize = oldhash->buckets * 4 / 3;
+        // 	} else {
+        // 		newsize = oldhash->buckets + 1;
+        // 	}
+        //
+        // 	newhash = _alpm_pkghash_create(newsize);
+        // 	if(newhash == NULL) {
+        // 		/* creation of newhash failed, stick with old one... */
+        // 		return oldhash;
+        // 	}
+        //
+        // 	newhash->list = oldhash->list;
+        // 	oldhash->list = NULL;
+        //
+        // 	for(i = 0; i < oldhash->buckets; i++) {
+        // 		if(oldhash->hash_table[i] != NULL) {
+        // 			alpm_pkg_t *package = oldhash->hash_table[i]->data;
+        // 			unsigned int position = get_hash_position(package->name_hash, newhash);
+        //
+        // 			newhash->hash_table[position] = oldhash->hash_table[i];
+        // 			oldhash->hash_table[i] = NULL;
+        // 		}
+        // 	}
+        //
+        // 	newhash->entries = oldhash->entries;
+        //
+        // 	_alpm_pkghash_free(oldhash);
+        //
+        // 	return newhash;
+    }
+
+    pub fn _alpm_pkghash_add(&mut self, pkg: alpm_pkg_t) {
+        self.pkghash_add_pkg(pkg, 0);
+    }
+
     pub fn _alpm_pkghash_find(&self, name: &String) -> alpm_pkg_t {
         unimplemented!();
         // 	alpm_list_t *lp;
@@ -404,5 +363,37 @@ impl alpm_pkghash_t {
         // 	}
         //
         // 	return NULL;
+    }
+
+    fn pkghash_add_pkg(&mut self, pkg: alpm_pkg_t, sorted: i32) {
+        // let position;
+        // 	alpm_list_t *ptr;
+        // 	unsigned int position;
+        //
+        // 	if(pkg == NULL || hash == NULL) {
+        // 		return hash;
+        // 	}
+        //
+        // if self.entries >= self.limit {
+        //     self.rehash();
+        // }
+
+        // position = get_hash_position(pkg.name_hash, hash);
+
+        // 	MALLOC(ptr, sizeof(alpm_list_t), return hash);
+
+        // 	ptr->data = pkg;
+        // 	ptr->prev = ptr;
+        // 	ptr->next = NULL;
+
+        self.list.push(pkg);
+        // 	if(!sorted) {
+        // 		hash->list = alpm_list_join(hash->list, ptr);
+        // 	} else {
+        // 		hash->list = alpm_list_mmerge(hash->list, ptr, _alpm_pkg_cmp);
+        // 	}
+
+        self.entries += 1;
+        // return hash;
     }
 }

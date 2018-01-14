@@ -283,10 +283,10 @@ use super::*;
 //
 // 	size = humanize_size(alpm_pkg_get_size(pkg), '\0', 2, &label);
 // 	if(from == ALPM_PKG_FROM_SYNCDB) {
-// 		printf("%s%s%s %.2f %s\n", config->colstr.title, titles[T_DOWNLOAD_SIZE],
+// 		printf("{}{}{} %.2f {}\n", config->colstr.title, titles[T_DOWNLOAD_SIZE],
 // 			config->colstr.nocolor, size, label);
 // 	} else if(from == ALPM_PKG_FROM_FILE) {
-// 		printf("%s%s%s %.2f %s\n", config->colstr.title, titles[T_COMPRESSED_SIZE],
+// 		printf("{}{}{} %.2f {}\n", config->colstr.title, titles[T_COMPRESSED_SIZE],
 // 			config->colstr.nocolor, size, label);
 // 	} else {
 // 		/* autodetect size for "Installed Size" */
@@ -294,7 +294,7 @@ use super::*;
 // 	}
 //
 // 	size = humanize_size(alpm_pkg_get_isize(pkg), label[0], 2, &label);
-// 	printf("%s%s%s %.2f %s\n", config->colstr.title, titles[T_INSTALLED_SIZE],
+// 	printf("{}{}{} %.2f {}\n", config->colstr.title, titles[T_INSTALLED_SIZE],
 // 			config->colstr.nocolor, size, label);
 //
 // 	string_display(titles[T_PACKAGER], alpm_pkg_get_packager(pkg), cols);
@@ -366,7 +366,7 @@ use super::*;
 // 	char path[PATH_MAX];
 // 	const char *ret;
 //
-// 	snprintf(path, PATH_MAX, "%s%s", root, backup->name);
+// 	snprintf(path, PATH_MAX, "{}{}", root, backup->name);
 //
 // 	/* if we find the file, calculate checksums, otherwise it is missing */
 // 	if(access(path, R_OK) == 0) {
@@ -374,7 +374,7 @@ use super::*;
 //
 // 		if(md5sum == NULL) {
 // 			pm_printf(ALPM_LOG_ERROR,
-// 					_("could not calculate checksums for %s\n"), path);
+// 					_("could not calculate checksums for {}\n"), path);
 // 			return NULL;
 // 		}
 //
@@ -406,7 +406,7 @@ use super::*;
 // {
 // 	alpm_list_t *i;
 // 	const char *root = alpm_option_get_root(config->handle);
-// 	printf("%s%s\n%s", config->colstr.title, titles[T_BACKUP_FILES],
+// 	printf("{}{}\n{}", config->colstr.title, titles[T_BACKUP_FILES],
 // 				 config->colstr.nocolor);
 // 	if(alpm_pkg_get_backup(pkg)) {
 // 		/* package has backup files, so print them */
@@ -417,7 +417,7 @@ use super::*;
 // 				continue;
 // 			}
 // 			value = get_backup_file_status(root, backup);
-// 			printf("%s\t%s%s\n", value, root, backup->name);
+// 			printf("{}\t{}{}\n", value, root, backup->name);
 // 		}
 // 	} else {
 // 		/* package had no backup files */
@@ -443,9 +443,9 @@ use super::*;
 // 		 * Quiet  : '<root><filepath>\n'
 // 		 */
 // 		if(!quiet) {
-// 			printf("%s%s%s ", config->colstr.title, pkgname, config->colstr.nocolor);
+// 			printf("{}{}{} ", config->colstr.title, pkgname, config->colstr.nocolor);
 // 		}
-// 		printf("%s%s\n", root, file->name);
+// 		printf("{}{}\n", root, file->name);
 // 	}
 //
 // 	fflush(stdout);
@@ -458,11 +458,11 @@ use super::*;
 // 	void *fp = NULL;
 //
 // 	if((fp = alpm_pkg_changelog_open(pkg)) == NULL) {
-// 		pm_printf(ALPM_LOG_ERROR, _("no changelog available for '%s'.\n"),
+// 		pm_printf(ALPM_LOG_ERROR, _("no changelog available for '{}'.\n"),
 // 				alpm_pkg_get_name(pkg));
 // 		return;
 // 	} else {
-// 		fprintf(stdout, _("Changelog for %s:\n"), alpm_pkg_get_name(pkg));
+// 		fprintf(stdout, _("Changelog for {}:\n"), alpm_pkg_get_name(pkg));
 // 		/* allocate a buffer to get the changelog back in chunks */
 // 		char buf[CLBUF_SIZE];
 // 		size_t ret = 0;
@@ -487,9 +487,9 @@ use super::*;
 // 		const char *lpkgver = alpm_pkg_get_version(lpkg);
 // 		const colstr_t *colstr = &config->colstr;
 // 		if(strcmp(lpkgver, pkgver) == 0) {
-// 			printf(" %s[%s]%s", colstr->meta, _("installed"), colstr->nocolor);
+// 			printf(" {}[{}]{}", colstr->meta, _("installed"), colstr->nocolor);
 // 		} else {
-// 			printf(" %s[%s: %s]%s", colstr->meta, _("installed"),
+// 			printf(" {}[{}: {}]{}", colstr->meta, _("installed"),
 // 					lpkgver, colstr->nocolor);
 // 		}
 // 	}
@@ -501,71 +501,91 @@ use super::*;
  * @param targets the targets we're searching for
  * @param show_status show if the package is also in the local db
  */
-pub fn dump_pkg_search(db: &alpm_db_t, targets: &Vec<String>, show_status: i32) -> i32 {
-    unimplemented!();
-    // 	int freelist = 0;
-    // 	alpm_db_t *db_local;
-    // 	alpm_list_t *i, *searchlist;
-    // 	unsigned short cols;
-    // 	const colstr_t *colstr = &config->colstr;
-    //
-    // 	if(show_status) {
-    // 		db_local = alpm_get_localdb(config->handle);
-    // 	}
-    //
-    // 	/* if we have a targets list, search for packages matching it */
-    // 	if(targets) {
-    // 		searchlist = alpm_db_search(db, targets);
-    // 		freelist = 1;
-    // 	} else {
-    // 		searchlist = alpm_db_get_pkgcache(db);
-    // 		freelist = 0;
-    // 	}
-    // 	if(searchlist == NULL) {
-    // 		return 1;
-    // 	}
-    //
-    // 	cols = getcols();
-    // 	for(i = searchlist; i; i = alpm_list_next(i)) {
-    // 		alpm_list_t *grp;
-    // 		alpm_pkg_t *pkg = i->data;
-    //
-    // 		if(config->quiet) {
-    // 			fputs(alpm_pkg_get_name(pkg), stdout);
-    // 		} else {
-    // 			printf("%s%s/%s%s %s%s%s", colstr->repo, alpm_db_get_name(db),
-    // 					colstr->title, alpm_pkg_get_name(pkg),
-    // 					colstr->version, alpm_pkg_get_version(pkg), colstr->nocolor);
-    //
-    // 			if((grp = alpm_pkg_get_groups(pkg)) != NULL) {
-    // 				alpm_list_t *k;
-    // 				printf(" %s(", colstr->groups);
-    // 				for(k = grp; k; k = alpm_list_next(k)) {
-    // 					const char *group = k->data;
-    // 					fputs(group, stdout);
-    // 					if(alpm_list_next(k)) {
-    // 						/* only print a spacer if there are more groups */
-    // 						putchar(' ');
-    // 					}
-    // 				}
-    // 				printf(")%s", colstr->nocolor);
-    // 			}
-    //
-    // 			if(show_status) {
-    // 				print_installed(db_local, pkg);
-    // 			}
-    //
-    // 			/* we need a newline and initial indent first */
-    // 			fputs("\n    ", stdout);
-    // 			indentprint(alpm_pkg_get_desc(pkg), 4, cols);
-    // 		}
-    // 		fputc('\n', stdout);
-    // 	}
-    //
-    // 	/* we only want to free if the list was a search list */
-    // 	if(freelist) {
-    // 		alpm_list_free(searchlist);
-    // 	}
-    //
-    // 	return 0;
+pub fn dump_pkg_search(
+	db: &mut alpm_db_t,
+	targets: &Vec<String>,
+	show_status: i32,
+	colstr: &colstr_t,
+	handle: &alpm_handle_t,
+	quiet: bool,
+) -> i32 {
+	unimplemented!();
+	// 	int freelist = 0;
+	// 	alpm_db_t *db_local;
+	let db_local;
+	// 	alpm_list_t *i, *searchlist;
+	let searchlist;
+	let mut freelist = 0;
+	// 	unsigned short cols;
+	// 	const colstr_t *colstr = &config->colstr;
+	// let colstr = &config.colstr;
+	//
+	if show_status != 0 {
+		db_local = handle.alpm_get_localdb();
+	}
+
+	/* if we have a targets list, search for packages matching it */
+	if !targets.is_empty() {
+		searchlist = db.alpm_db_search(targets).clone();
+		freelist = 1;
+	} else {
+		searchlist = db.alpm_db_get_pkgcache().unwrap().clone();
+		freelist = 0;
+	}
+	if searchlist.is_empty() {
+		return 1;
+	}
+
+	// cols = getcols();
+	for pkg in searchlist {
+		// let grp;
+		// 		alpm_list_t *grp;
+		// 		alpm_pkg_t *pkg = i->data;
+		//
+		if quiet {
+			print!("{}", pkg.alpm_pkg_get_name())
+		// 			fputs(alpm_pkg_get_name(pkg), stdout);
+		} else {
+			print!(
+				"{}{}/{}{} {}{}{}",
+				colstr.repo,
+				db.alpm_db_get_name(),
+				colstr.title,
+				pkg.alpm_pkg_get_name(),
+				colstr.version,
+				pkg.alpm_pkg_get_version(),
+				colstr.nocolor
+			);
+			// grp = pkg.alpm_pkg_get_groups();
+			// if grp.is_some() {
+			// 	// 				alpm_list_t *k;
+			// 	// 				printf(" {}(", colstr->groups);
+			// 	for group in grp {
+			// 		// 					const char *group = k->data;
+			// 		// 					fputs(group, stdout);
+			// 		// 					if(alpm_list_next(k)) {
+			// 		// 						/* only print a spacer if there are more groups */
+			// 		// 						putchar(' ');
+			// 		// 					}
+			// 	}
+			// 	// print!("){}", colstr->nocolor);
+			// }
+			//
+			// 			if(show_status) {
+			// 				print_installed(db_local, pkg);
+			// 			}
+			//
+			// 			/* we need a newline and initial indent first */
+			// 			fputs("\n    ", stdout);
+			// 			indentprint(alpm_pkg_get_desc(pkg), 4, cols);
+		}
+		// print!("\n");
+	}
+
+	// /* we only want to free if the list was a search list */
+	// if (freelist != 0) {
+	// 	alpm_list_free(searchlist);
+	// }
+
+	return 0;
 }
