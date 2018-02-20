@@ -37,7 +37,7 @@ use super::*;
 // #include "conf.h"
 // #include "util.h"
 
-// #define LOCAL_PREFIX "local/"
+const LOCAL_PREFIX: &str = "local/";
 
 // /* check if filename exists in PATH */
 // static int search_path(char **filename, struct stat *bufptr)
@@ -81,7 +81,7 @@ use super::*;
 // 	return -1;
 // }
 
-fn print_query_fileowner(filename: &String, info: &alpm_pkg_t, config: &config_t) {
+fn print_query_fileowner(filename: &String, info: &pkg_t, config: &config_t) {
     if !config.quiet {
         let colstr = &config.colstr;
         println!(
@@ -249,7 +249,7 @@ fn query_search(targets: &Vec<String>, config: &config_t, handle: &mut alpm_hand
     );
 }
 
-fn pkg_get_locality(pkg: &alpm_pkg_t, handle: &alpm_handle_t) -> u8 {
+fn pkg_get_locality(pkg: &pkg_t, handle: &alpm_handle_t) -> u8 {
     let pkgname = &pkg.alpm_pkg_get_name();
     // alpm_list_t *j;
     let sync_dbs = handle.alpm_get_syncdbs()
@@ -267,11 +267,11 @@ fn pkg_get_locality(pkg: &alpm_pkg_t, handle: &alpm_handle_t) -> u8 {
     return PKG_LOCALITY_FOREIGN;
 }
 
-fn is_unrequired(pkg: &alpm_pkg_t, level: u8) -> bool {
-    let mut requiredby = pkg.alpm_pkg_compute_requiredby();
+fn is_unrequired(pkg: &pkg_t, level: u8, db_local: &mut alpm_db_t, dbs_sync: &mut Vec<alpm_db_t>) -> bool {
+    let mut requiredby = pkg.alpm_pkg_compute_requiredby(db_local, dbs_sync);
     if requiredby.is_empty() {
         if level == 1 {
-            requiredby = pkg.alpm_pkg_compute_optionalfor();
+            requiredby = pkg.alpm_pkg_compute_optionalfor(db_local, dbs_sync);
         }
         if requiredby.is_empty() {
             return true;
@@ -280,8 +280,8 @@ fn is_unrequired(pkg: &alpm_pkg_t, level: u8) -> bool {
     return false;
 }
 
-fn filter(pkg: &alpm_pkg_t, config: &config_t, handle: &alpm_handle_t) -> i32 {
-    match pkg.alpm_pkg_get_reason() {
+fn filter(pkg: &mut pkg_t, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+    match pkg.alpm_pkg_get_reason(handle.alpm_get_localdb_mut()) {
         /* check if this package was installed as a dependency */
         &alpm_pkgreason_t::ALPM_PKG_REASON_DEPEND if config.op_q_explicit != 0 => return 0,
         /* check if this package was explicitly installed */
@@ -293,7 +293,7 @@ fn filter(pkg: &alpm_pkg_t, config: &config_t, handle: &alpm_handle_t) -> i32 {
         return 0;
     }
     /* check if this pkg is unrequired */
-    if config.op_q_unrequired != 0 && !is_unrequired(pkg, config.op_q_unrequired) {
+    if config.op_q_unrequired != 0 && !is_unrequired(pkg, config.op_q_unrequired, &mut handle.db_local, &mut handle.dbs_sync) {
         return 0;
     }
     /* check if this pkg is outdated */
@@ -306,14 +306,14 @@ fn filter(pkg: &alpm_pkg_t, config: &config_t, handle: &alpm_handle_t) -> i32 {
     return 1;
 }
 
-fn display(pkg: &alpm_pkg_t, config: &config_t, handle: &alpm_handle_t) -> i32 {
+fn display(pkg: &mut pkg_t, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
     let mut ret = 0;
 
     if config.op_q_info != 0 {
         if config.op_q_isfile != 0 {
-            dump_pkg_full(pkg, false);
+            dump_pkg_full(pkg, false, config, &mut handle.db_local, &mut handle.dbs_sync);
         } else {
-            dump_pkg_full(pkg, config.op_q_info > 1);
+            dump_pkg_full(pkg, config.op_q_info > 1, config, &mut handle.db_local, &mut handle.dbs_sync);
         }
     }
     if config.op_q_list != 0 {
@@ -368,15 +368,15 @@ fn display(pkg: &alpm_pkg_t, config: &config_t, handle: &alpm_handle_t) -> i32 {
 
 fn query_group(targets: &Vec<String>, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
     let mut ret = 0;
-    let handle_clone = &handle.clone();
+    let handle_clone = &mut handle.clone();
     let db_local: &mut alpm_db_t = handle.alpm_get_localdb_mut();
 
     let op_q_explicit = config.op_q_explicit;
     let op_q_deps = config.op_q_deps;
 
     if targets.is_empty() {
-        for grp in db_local.alpm_db_get_groupcache() {
-            for pkg in &grp.packages {
+        for grp in db_local.alpm_db_get_groupcache_mut() {
+            for pkg in &mut grp.packages {
                 if filter(pkg, config, handle_clone) == 0 {
                     continue;
                 }
@@ -385,8 +385,8 @@ fn query_group(targets: &Vec<String>, config: &config_t, handle: &mut alpm_handl
         }
     } else {
         for grpname in targets {
-            match db_local.alpm_db_get_group(grpname) {
-                Some(grp) => for ref data in &grp.packages {
+            match db_local.alpm_db_get_group_mut(grpname) {
+                Some(grp) => for ref mut data in &mut grp.packages {
                     if filter(data, config, handle_clone) == 0 {
                         continue;
                     }
@@ -413,11 +413,12 @@ pub fn pacman_query(
 ) -> std::result::Result<(), i32> {
     // 	int ret = 0;
     let mut ret = Ok(());
-    let mut handle_clone = &handle.clone();
+    let mut handle_clone = &mut handle.clone();
     // 	int match = 0;
     let mut is_match = false;
     // 	alpm_list_t *i;
-    // 	alpm_pkg_t *pkg = NULL;
+    // 	pkg_t *pkg = NULL;
+    let mut pkg;
     // 	alpm_db_t *db_local;
     let mut db_local;
     // let op_q_explicit = config.op_q_explicit;
@@ -458,10 +459,10 @@ pub fn pacman_query(
             return Err(1);
         }
 
-        match db_local.alpm_db_get_pkgcache() {
-            Ok(d) => for pkg in d {
-                if filter(&pkg, config, handle_clone) != 0 {
-                    let value = display(&pkg, config, handle_clone);
+        match db_local.alpm_db_get_pkgcache_mut() {
+            Ok(d) => for mut pkg in d {
+                if filter(pkg, config, handle_clone) != 0 {
+                    let value = display(&mut pkg, config, handle_clone);
                     if value != 0 {
                         ret = Err(1);
                     }
@@ -498,31 +499,33 @@ pub fn pacman_query(
         // 		if(strncmp(strname, LOCAL_PREFIX, strlen(LOCAL_PREFIX)) == 0) {
         // 			strname += strlen(LOCAL_PREFIX);
         // 		}
-        //
-        // 		if(config.op_q_isfile) {
-        // 			alpm_pkg_load(config.handle, strname, 1, 0, &pkg);
-        //
-        // 			if(pkg == NULL) {
-        // 				pm_printf(ALPM_LOG_ERROR,
-        // 						_("could not load package '{}': {}\n"), strname,
-        // 						alpm_strerror(alpm_errno(config.handle)));
-        // 			}
-        // 		} else {
-        // 			pkg = alpm_db_get_pkg(db_local, strname);
-        // 			if(pkg == NULL) {
-        // 				pkg = alpm_find_satisfier(alpm_db_get_pkgcache(db_local), strname);
-        // 			}
-        //
-        // 			if(pkg == NULL) {
-        // 				pm_printf(ALPM_LOG_ERROR,
-        // 						_("package '{}' was not found\n"), strname);
-        // 				if(!config.op_q_isfile && access(strname, R_OK) == 0) {
-        // 					pm_printf(ALPM_LOG_WARNING,
-        // 							_("'{}' is a file, you might want to use {}.\n"),
-        // 							strname, "-p/--file");
-        // 				}
-        // 			}
-        // 		}
+        strname = String::from(strname.trim_left_matches(LOCAL_PREFIX));
+        if config.op_q_isfile != 0 {
+            // 			alpm_pkg_load(config.handle, strname, 1, 0, &pkg);
+            //
+            // 			if(pkg == NULL) {
+            // 				pm_printf(ALPM_LOG_ERROR,
+            // 						_("could not load package '{}': {}\n"), strname,
+            // 						alpm_strerror(alpm_errno(config.handle)));
+            // 			}
+        } else {
+            pkg = db_local.alpm_db_get_pkg(&strname).clone();
+            if pkg.is_none() {
+                // pkg = alpm_find_satisfier(db_local.alpm_db_get_pkgcache().unwrap(), &strname);
+            }
+            // 			if(pkg == NULL) {
+            // 			}
+            //
+            // 			if(pkg == NULL) {
+            // 				pm_printf(ALPM_LOG_ERROR,
+            // 						_("package '{}' was not found\n"), strname);
+            // 				if(!config.op_q_isfile && access(strname, R_OK) == 0) {
+            // 					pm_printf(ALPM_LOG_WARNING,
+            // 							_("'{}' is a file, you might want to use {}.\n"),
+            // 							strname, "-p/--file");
+            // 				}
+            // 			}
+        }
         //
         // 		if(pkg == NULL) {
         // 			ret = 1;

@@ -727,25 +727,7 @@ use super::*;
 // }
 // #endif /* HAVE_LIBGPGME */
 
-impl alpm_handle_t {
-    /**
-     * Form a signature path given a file path.
-     * Caller must free the result.
-     * @param handle the context handle
-     * @param path the full path to a file
-     * @return the path with '.sig' appended, NULL on errors
-     */
-    pub fn _alpm_sigpath(&self, path: &Option<String>) -> Option<String> {
-        // 	char *sigpath;
-        // 	size_t len;
-        //
-        match path {
-            &None => None,
-            &Some(ref path) => Some(format!("{}.sig", path)),
-        }
-        // 	return sigpath;
-    }
-}
+
 
 // /**
 //  * Helper for checking the PGP signature for the given file path.
@@ -942,7 +924,7 @@ pub fn _alpm_process_siglist(
 //  * @param siglist a pointer to storage for signature results
 //  * @return a int value : 0 (valid), 1 (invalid), -1 (an error occurred)
 //  */
-// int SYMEXPORT alpm_pkg_check_pgp_signature(alpm_pkg_t *pkg,
+// int SYMEXPORT alpm_pkg_check_pgp_signature(pkg_t *pkg,
 // 		alpm_siglist_t *siglist)
 // {
 // 	ASSERT(pkg != NULL, return -1);

@@ -197,30 +197,30 @@ use super::*;
 // 	}
 // 	return ret;
 // }
-//
+
 // /** Trim trailing newlines from a string (if any exist).
 //  * @param str a single line of text
 //  * @param len size of str, if known, else 0
 //  * @return the length of the trimmed string
 //  */
-// size_t _alpm_strip_newline(char *str, size_t len)
+// size_t _alpm_strip_newline(st: &str, size_t len)
 // {
-// 	if(*str == '\0') {
+// 	if(*st == '\0') {
 // 		return 0;
 // 	}
 // 	if(len == 0) {
-// 		len = strlen(str);
+// 		len = strlen(st);
 // 	}
-// 	while(len > 0 && str[len - 1] == '\n') {
+// 	while(len > 0 && st[len - 1] == '\n') {
 // 		len--;
 // 	}
-// 	str[len] = '\0';
+// 	st[len] = '\0';
 //
 // 	return len;
 // }
-//
-// /* Compression functions */
-//
+
+/* Compression functions */
+
 // /** Open an archive for reading and perform the necessary boilerplate.
 //  * This takes care of creating the libarchive 'archive' struct, setting up
 //  * compression and format options, opening a file descriptor, setting up the
@@ -745,29 +745,7 @@ use super::*;
 // 	return retval;
 // }
 
-impl alpm_handle_t {
-    /// Run ldconfig in a chroot. Returns 0 on success, 1 on error
-    pub fn _alpm_ldconfig(&self) -> i32 {
-        use std::fs::metadata;
-        let mut line: String;
 
-        debug!("running ldconfig");
-
-        line = format!("{}etc/ld.so.conf", self.root);
-        if metadata(line).is_ok() {
-            unimplemented!();
-            // // unimplemented due to lack of global var LDCONFIG
-            // line = format!("{}{}", self.root, LDCONFIG);
-            // if metadata(line).is_ok() {
-            //     let arg0: &str = "ldconfig";
-            //     let argv: [&str; 1] = [arg0];
-            //     return _alpm_run_chroot(self, LDCONFIG, argv, NULL, NULL);
-            // }
-        }
-
-        return 0;
-    }
-}
 
 // /** Helper function for comparing strings using the alpm "compare func"
 //  * signature.
@@ -1214,9 +1192,10 @@ pub fn _alpm_splitname(target: &String) -> std::result::Result<(String, String, 
     let mut name = String::from(temp2[0]);
 
     for i in 1..len - 2 {
+        name += "-";
         name += temp2[i];
     }
-    let version = String::from(temp2[len - 2]) + temp2[len - 1];
+    let version = String::from(temp2[len - 2]) + "-" + temp2[len - 1];
 
     // 	if(name) {
     // 		if(*name) {
@@ -1269,64 +1248,34 @@ impl Hasher for sdbm_hasher {
     }
 }
 
-//
-// /** Convert a string to a file offset.
-//  * This parses bare positive integers only.
-//  * @param line string to convert
-//  * @return off_t on success, -1 on error
-//  */
-// off_t _alpm_strtoofft(const char *line)
-// {
-// 	char *end;
-// 	unsigned long long result;
-// 	errno = 0;
-//
-// 	/* we are trying to parse bare numbers only, no leading anything */
-// 	if(!isdigit((unsigned char)line[0])) {
-// 		return (off_t)-1;
-// 	}
-// 	result = strtoull(line, &end, 10);
-// 	if(result == 0 && end == line) {
-// 		/* line was not a number */
-// 		return (off_t)-1;
-// 	} else if(result == ULLONG_MAX && errno == ERANGE) {
-// 		/* line does not fit in unsigned long long */
-// 		return (off_t)-1;
-// 	} else if(*end) {
-// 		/* line began with a number but has junk left over at the end */
-// 		return (off_t)-1;
-// 	}
-//
-// 	return (off_t)result;
-// }
-//
-// /** Parses a date into an alpm_time_t struct.
-//  * @param line date to parse
-//  * @return time struct on success, 0 on error
-//  */
-// alpm_time_t _alpm_parsedate(const char *line)
-// {
-// 	char *end;
-// 	long long result;
-// 	errno = 0;
-//
-// 	result = strtoll(line, &end, 10);
-// 	if(result == 0 && end == line) {
-// 		/* line was not a number */
-// 		errno = EINVAL;
-// 		return 0;
-// 	} else if(errno == ERANGE) {
-// 		/* line does not fit in long long */
-// 		return 0;
-// 	} else if(*end) {
-// 		/* line began with a number but has junk left over at the end */
-// 		errno = EINVAL;
-// 		return 0;
-// 	}
-//
-// 	return (alpm_time_t)result;
-// }
-//
+
+/** Convert a string to a file offset.
+ * This parses bare positive integers only.
+ * @param line string to convert
+ * @return off_t on success, -1 on error
+ */
+pub fn _alpm_strtoofft(line: &String) -> i64
+{
+	/* we are trying to parse bare numbers only, no leading anything */
+	if line.chars().collect::<Vec<char>>()[0].is_numeric() {
+		return -1;
+	}
+	match i64::from_str_radix(line, 10){
+        Ok(r) => r,
+        Err(_)=> -1,
+    }
+}
+
+/// Parses a date into an alpm_time_t struct.
+/// @param line date to parse
+/// @return time struct on success, 0 on error
+pub fn _alpm_parsedate(line: &str) -> alpm_time_t {
+    match i64::from_str_radix(line, 10) {
+        Ok(r) => r,
+        Err(_) => 0,
+    }
+}
+
 // /** Wrapper around access() which takes a dir and file argument
 //  * separately and generates an appropriate error message.
 //  * If dir is NULL file will be treated as the whole path.
@@ -1520,7 +1469,7 @@ impl Hasher for sdbm_hasher {
 //
 // #include "alpm_list.h"
 // #include "alpm.h"
-// #include "package.h" /* alpm_pkg_t */
+// #include "package.h" /* pkg_t */
 // #include "handle.h" /* alpm_handle_t */
 // #include "util-common.h"
 //

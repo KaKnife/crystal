@@ -27,7 +27,7 @@ use super::*;
 // #include "alpm_list.h"
 
 /**
- * @brief A hash table for holding alpm_pkg_t objects.
+ * @brief A hash table for holding pkg_t objects.
  *
  * A combination of a hash table and a list, allowing for fast look-up
  * by package name but also iteration over the packages.
@@ -35,9 +35,9 @@ use super::*;
 #[derive(Debug, Default, Clone)]
 pub struct alpm_pkghash_t {
     /// data held by the hash table
-    pub hash_table: Vec<alpm_pkg_t>,
+    pub hash_table: Vec<pkg_t>,
     /// head node of the hash table data in normal list format
-    pub list: alpm_list_t<alpm_pkg_t>,
+    pub list: alpm_list_t<pkg_t>,
     ///number of buckets in hash table
     pub buckets: usize,
     /// number of entries in hash table
@@ -50,13 +50,13 @@ pub struct alpm_pkghash_t {
 //
 // alpm_pkghash_t *_alpm_pkghash_create(unsigned int size);
 //
-// alpm_pkghash_t *_alpm_pkghash_add(alpm_pkghash_t *hash, alpm_pkg_t *pkg);
-// alpm_pkghash_t *_alpm_pkghash_add_sorted(alpm_pkghash_t *hash, alpm_pkg_t *pkg);
-// alpm_pkghash_t *_alpm_pkghash_remove(alpm_pkghash_t *hash, alpm_pkg_t *pkg, alpm_pkg_t **data);
+// alpm_pkghash_t *_alpm_pkghash_add(alpm_pkghash_t *hash, pkg_t *pkg);
+// alpm_pkghash_t *_alpm_pkghash_add_sorted(alpm_pkghash_t *hash, pkg_t *pkg);
+// alpm_pkghash_t *_alpm_pkghash_remove(alpm_pkghash_t *hash, pkg_t *pkg, pkg_t **data);
 //
 // void _alpm_pkghash_free(alpm_pkghash_t *hash);
 //
-// alpm_pkg_t *_alpm_pkghash_find(alpm_pkghash_t *hash, const char *name);
+// pkg_t *_alpm_pkghash_find(alpm_pkghash_t *hash, const char *name);
 //
 // /*
 //  *  pkghash.c
@@ -158,7 +158,7 @@ pub fn _alpm_pkghash_create() -> alpm_pkghash_t {
 // }
 //
 
-// alpm_pkghash_t *_alpm_pkghash_add_sorted(alpm_pkghash_t *hash, alpm_pkg_t *pkg)
+// alpm_pkghash_t *_alpm_pkghash_add_sorted(alpm_pkghash_t *hash, pkg_t *pkg)
 // {
 // 	return pkghash_add_pkg(hash, pkg, 1);
 // }
@@ -175,7 +175,7 @@ pub fn _alpm_pkghash_create() -> alpm_pkghash_t {
 // 	 * 'start' we can stop this madness. */
 // 	while(end != start) {
 // 		alpm_list_t *i = hash->hash_table[end];
-// 		alpm_pkg_t *info = i->data;
+// 		pkg_t *info = i->data;
 // 		unsigned int new_position = get_hash_position(info->name_hash, hash);
 //
 // 		if(new_position == start) {
@@ -201,8 +201,8 @@ pub fn _alpm_pkghash_create() -> alpm_pkghash_t {
 //  *
 //  * @return the resultant hash
 //  */
-// alpm_pkghash_t *_alpm_pkghash_remove(alpm_pkghash_t *hash, alpm_pkg_t *pkg,
-// 		alpm_pkg_t **data)
+// alpm_pkghash_t *_alpm_pkghash_remove(alpm_pkghash_t *hash, pkg_t *pkg,
+// 		pkg_t **data)
 // {
 // 	alpm_list_t *i;
 // 	unsigned int position;
@@ -217,7 +217,7 @@ pub fn _alpm_pkghash_create() -> alpm_pkghash_t {
 //
 // 	position = pkg->name_hash % hash->buckets;
 // 	while((i = hash->hash_table[position]) != NULL) {
-// 		alpm_pkg_t *info = i->data;
+// 		pkg_t *info = i->data;
 //
 // 		if(info->name_hash == pkg->name_hash &&
 // 					strcmp(info->name, pkg->name) == 0) {
@@ -316,7 +316,7 @@ impl alpm_pkghash_t {
         //
         // 	for(i = 0; i < oldhash->buckets; i++) {
         // 		if(oldhash->hash_table[i] != NULL) {
-        // 			alpm_pkg_t *package = oldhash->hash_table[i]->data;
+        // 			pkg_t *package = oldhash->hash_table[i]->data;
         // 			unsigned int position = get_hash_position(package->name_hash, newhash);
         //
         // 			newhash->hash_table[position] = oldhash->hash_table[i];
@@ -331,11 +331,11 @@ impl alpm_pkghash_t {
         // 	return newhash;
     }
 
-    pub fn _alpm_pkghash_add(&mut self, pkg: alpm_pkg_t) {
+    pub fn _alpm_pkghash_add(&mut self, pkg: pkg_t) {
         self.pkghash_add_pkg(pkg, 0);
     }
 
-    pub fn _alpm_pkghash_find(&self, name: &String) -> alpm_pkg_t {
+    pub fn _alpm_pkghash_find(&self, name: &String) -> pkg_t {
         unimplemented!();
         // 	alpm_list_t *lp;
         // 	unsigned long name_hash;
@@ -350,7 +350,7 @@ impl alpm_pkghash_t {
         // 	position = name_hash % hash->buckets;
         //
         // 	while((lp = hash->hash_table[position]) != NULL) {
-        // 		alpm_pkg_t *info = lp->data;
+        // 		pkg_t *info = lp->data;
         //
         // 		if(info->name_hash == name_hash && strcmp(info->name, name) == 0) {
         // 			return info;
@@ -365,7 +365,7 @@ impl alpm_pkghash_t {
         // 	return NULL;
     }
 
-    fn pkghash_add_pkg(&mut self, pkg: alpm_pkg_t, sorted: i32) {
+    fn pkghash_add_pkg(&mut self, pkg: pkg_t, sorted: i32) {
         // let position;
         // 	alpm_list_t *ptr;
         // 	unsigned int position;

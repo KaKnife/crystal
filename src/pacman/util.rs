@@ -216,34 +216,9 @@ pub fn sync_syncdbs(
 // 	return width;
 // }
 
-fn getcols() -> u16 {
-    unimplemented!();
-    // 	const char *e;
-    // 	int c = -1;
-    //
-    // 	if(cached_columns >= 0) {
-    // 		return cached_columns;
-    // 	}
-    //
-    // 	e = getenv("COLUMNS");
-    // 	if(e && *e) {
-    // 		char *p = NULL;
-    // 		c = strtol(e, &p, 10);
-    // 		if(*p != '\0') {
-    // 			c= -1;
-    // 		}
-    // 	}
-    //
-    // 	if(c < 0) {
-    // 		c = getcols_fd(STDOUT_FILENO);
-    // 	}
-    //
-    // 	if(c < 0) {
-    // 		c = 80;
-    // 	}
-    //
-    // 	cached_columns = c;
-    // 	return c;
+pub fn getcols() -> usize {
+    /*assume everything is at least 80 cols wide*/
+    80
 }
 
 /* does the same thing as 'rm -rf' */
@@ -288,21 +263,23 @@ fn rmrf(path: String) -> i32 {
 
 /* output a string, but wrap words properly with a specified indentation
  */
-fn indentprint(_sstr: String, _indent: usize, _cols: usize) {
-    unimplemented!();
+fn indentprint(sstr: String, indent: usize, cols: usize) {
+    println!("{}",sstr);
+    //TODO: actually do this
+    // unimplemented!();
     // // 	wchar_t *wcstr;
     // // 	const wchar_t *p;
     // // 	size_t len, cidx;
     // let len;
     // let cidx;
-    //
-    // /* if we're not a tty, or our tty is not wide enough that wrapping even makes
-    //  * sense, print without indenting */
+
+    /* if we're not a tty, or our tty is not wide enough that wrapping even makes
+     * sense, print without indenting */
     // if cols == 0 || indent > cols {
     //     print!("{}", sstr);
     //     return;
     // }
-    //
+
     // len = sstr.len() + 1;
     // // 	wcstr = calloc(len, sizeof(wchar_t));
     // // len = mbstowcs(wcstr, sstr, len);
@@ -476,7 +453,7 @@ fn add_transaction_sizes_row<T>(rows: alpm_list_t<T>, label: String, size: off_t
     // 	*rows = alpm_list_add(*rows, row);
 }
 
-fn string_display(title: String, string: String, cols: usize, config: &config_t) {
+pub fn string_display(title: &str, string: String, cols: usize, config: &config_t) {
     if title != "" {
         print!("{}{}{} ", config.colstr.title, title, config.colstr.nocolor);
     }
@@ -658,47 +635,46 @@ fn table_print_line<T>(
 // 	return ret;
 // }
 //
-// void list_display(const char *title, const alpm_list_t *list,
-// 		unsigned short maxcols)
-// {
-// 	const alpm_list_t *i;
-// 	size_t len = 0;
-//
-// 	if(title) {
-// 		len = string_length(title) + 1;
-// 		printf("%s%s%s ", config->colstr.title, title, config->colstr.nocolor);
-// 	}
-//
-// 	if(!list) {
-// 		printf("%s\n", _("None"));
-// 	} else {
-// 		size_t cols = len;
-// 		const char *str = list->data;
-// 		fputs(str, stdout);
-// 		cols += string_length(str);
-// 		for(i = alpm_list_next(list); i; i = alpm_list_next(i)) {
-// 			str = i->data;
-// 			size_t s = string_length(str);
-// 			/* wrap only if we have enough usable column space */
-// 			if(maxcols > len && cols + s + 2 >= maxcols) {
-// 				size_t j;
-// 				cols = len;
-// 				printf("\n");
-// 				for(j = 1; j <= len; j++) {
-// 					printf(" ");
-// 				}
-// 			} else if(cols != len) {
-// 				/* 2 spaces are added if this is not the first element on a line. */
-// 				printf("  ");
-// 				cols += 2;
-// 			}
-// 			fputs(str, stdout);
-// 			cols += s;
-// 		}
-// 		putchar('\n');
-// 	}
-// }
-//
+pub fn list_display(title: &str, list: Vec<String>, maxcols: usize) {
+    unimplemented!();
+    // 	const alpm_list_t *i;
+    // 	size_t len = 0;
+    //
+    // 	if(title) {
+    // 		len = string_length(title) + 1;
+    // 		printf("%s%s%s ", config->colstr.title, title, config->colstr.nocolor);
+    // 	}
+    //
+    // 	if(!list) {
+    // 		printf("%s\n", _("None"));
+    // 	} else {
+    // 		size_t cols = len;
+    // 		const char *str = list->data;
+    // 		fputs(str, stdout);
+    // 		cols += string_length(str);
+    // 		for(i = alpm_list_next(list); i; i = alpm_list_next(i)) {
+    // 			str = i->data;
+    // 			size_t s = string_length(str);
+    // 			/* wrap only if we have enough usable column space */
+    // 			if(maxcols > len && cols + s + 2 >= maxcols) {
+    // 				size_t j;
+    // 				cols = len;
+    // 				printf("\n");
+    // 				for(j = 1; j <= len; j++) {
+    // 					printf(" ");
+    // 				}
+    // 			} else if(cols != len) {
+    // 				/* 2 spaces are added if this is not the first element on a line. */
+    // 				printf("  ");
+    // 				cols += 2;
+    // 			}
+    // 			fputs(str, stdout);
+    // 			cols += s;
+    // 		}
+    // 		putchar('\n');
+    // 	}
+}
+
 // void list_display_linebreak(const char *title, const alpm_list_t *list,
 // 		unsigned short maxcols)
 // {
@@ -976,8 +952,8 @@ fn table_print_line<T>(
 // static int pkg_cmp(const void *p1, const void *p2)
 // {
 // 	/* explicit cast due to (un)necessary removal of const */
-// 	alpm_pkg_t *pkg1 = (alpm_pkg_t *)p1;
-// 	alpm_pkg_t *pkg2 = (alpm_pkg_t *)p2;
+// 	pkg_t *pkg1 = (pkg_t *)p1;
+// 	pkg_t *pkg2 = (pkg_t *)p2;
 // 	return strcmp(alpm_pkg_get_name(pkg1), alpm_pkg_get_name(pkg2));
 // }
 //
@@ -987,7 +963,7 @@ fn table_print_line<T>(
 // 	alpm_db_t *db_local = alpm_get_localdb(config->handle);
 //
 // 	for(i = alpm_trans_get_add(config->handle); i; i = alpm_list_next(i)) {
-// 		alpm_pkg_t *pkg = i->data;
+// 		pkg_t *pkg = i->data;
 // 		pm_target_t *targ = calloc(1, sizeof(pm_target_t));
 // 		if(!targ) return;
 // 		targ->install = pkg;
@@ -998,7 +974,7 @@ fn table_print_line<T>(
 // 		targets = alpm_list_add(targets, targ);
 // 	}
 // 	for(i = alpm_trans_get_remove(config->handle); i; i = alpm_list_next(i)) {
-// 		alpm_pkg_t *pkg = i->data;
+// 		pkg_t *pkg = i->data;
 // 		pm_target_t *targ = calloc(1, sizeof(pm_target_t));
 // 		if(!targ) return;
 // 		targ->remove = pkg;
@@ -1013,7 +989,7 @@ fn table_print_line<T>(
 // 	FREELIST(targets);
 // }
 
-fn pkg_get_size(pkg: &alpm_pkg_t, config: &config_t) -> off_t {
+fn pkg_get_size(pkg: &pkg_t, config: &config_t) -> off_t {
     match config.op {
         Some(PM_OP_SYNC) => pkg.alpm_pkg_download_size(),
         Some(PM_OP_UPGRADE) => pkg.alpm_pkg_get_size(),
@@ -1021,7 +997,7 @@ fn pkg_get_size(pkg: &alpm_pkg_t, config: &config_t) -> off_t {
     }
 }
 
-fn pkg_get_location(pkg: &alpm_pkg_t, handle: &alpm_handle_t) -> String {
+fn pkg_get_location(pkg: &pkg_t, handle: &alpm_handle_t) -> String {
     // alpm_list_t *servers;
     // char *string = NULL;
     // use alpm_pkgfrom_t::*;
@@ -1116,9 +1092,9 @@ fn pkg_get_location(pkg: &alpm_pkg_t, handle: &alpm_handle_t) -> String {
 // 	return val;
 // }
 
-// pub fn print_packages(packages: &Vec<alpm_pkg_t>, config: &config_t)
+// pub fn print_packages(packages: &Vec<pkg_t>, config: &config_t)
 pub fn print_packages(
-    packages: &Vec<alpm_pkg_t>,
+    packages: &Vec<pkg_t>,
     print_format: &String,
     config: &config_t,
     handle: &alpm_handle_t,
@@ -1206,7 +1182,7 @@ pub fn print_packages(
 // 	return optstring;
 // }
 //
-// void display_new_optdepends(alpm_pkg_t *oldpkg, alpm_pkg_t *newpkg)
+// void display_new_optdepends(pkg_t *oldpkg, pkg_t *newpkg)
 // {
 // 	alpm_list_t *i, *old, *new, *optdeps, *optstrings = NULL;
 //
@@ -1230,7 +1206,7 @@ pub fn print_packages(
 // 	FREELIST(optstrings);
 // }
 //
-// void display_optdepends(alpm_pkg_t *pkg)
+// void display_optdepends(pkg_t *pkg)
 // {
 // 	alpm_list_t *i, *optdeps, *optstrings = NULL;
 //
@@ -1271,7 +1247,7 @@ pub fn print_packages(
 // 	unsigned short cols = getcols();
 //
 // 	for(i = pkglist; i; i = i->next) {
-// 		alpm_pkg_t *pkg = i->data;
+// 		pkg_t *pkg = i->data;
 // 		alpm_db_t *db = alpm_pkg_get_db(pkg);
 //
 // 		if(!dbname) {

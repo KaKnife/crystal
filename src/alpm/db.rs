@@ -1,4 +1,5 @@
 use super::*;
+use super::be_local::ALPM_LOCAL_DB_VERSION;
 /*
  *  db.h
  *
@@ -6,6 +7,28 @@ use super::*;
  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
  *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
  *  Copyright (c) 2006 by Miklos Vajna <vmiklos@frugalware.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  db.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
+ *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
+ *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
+ *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,17 +55,30 @@ use super::*;
 // #include "pkghash.h"
 // #include "signing.h"
 //
-/* Database entries */
-// pub enum alpm_dbinfrq_t {
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <string.h>
+// #include <regex.h>
+//
+// /* libalpm */
+// #include "db.h"
+// #include "alpm_list.h"
+// #include "log.h"
+// #include "util.h"
+// #include "handle.h"
+// #include "alpm.h"
+// #include "package.h"
+// #include "group.h"
+
+/// Database entries
 pub const INFRQ_BASE: i32 = (1 << 0);
 pub const INFRQ_DESC: i32 = (1 << 1);
 pub const INFRQ_FILES: i32 = (1 << 2);
 pub const INFRQ_SCRIPTLET: i32 = (1 << 3);
 pub const INFRQ_DSIZE: i32 = (1 << 4);
-/* ALL should be info stored in the package or database */
+/// ALL should be info stored in the package or database
 pub const INFRQ_ALL: i32 = INFRQ_BASE | INFRQ_DESC | INFRQ_FILES | INFRQ_SCRIPTLET | INFRQ_DSIZE;
 pub const INFRQ_ERROR: i32 = (1 << 30);
-// }
 
 /// Database status. Bitflags. */
 #[derive(Debug, Clone, Default)]
@@ -100,49 +136,893 @@ impl Default for db_ops_type {
     }
 }
 
-/*
- *  db.c
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
- *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
- *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
- *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <regex.h>
-//
-// /* libalpm */
-// #include "db.h"
-// #include "alpm_list.h"
-// #include "log.h"
-// #include "util.h"
-// #include "handle.h"
-// #include "alpm.h"
-// #include "package.h"
-// #include "group.h"
-
 impl alpm_db_t {
+    pub fn sync_db_validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
+        if self.status.DB_STATUS_VALID || self.status.DB_STATUS_MISSING {
+            return Ok(true);
+        }
+        if self.status.DB_STATUS_INVALID {
+            return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
+        }
+
+        let dbpath = match self._alpm_db_path() {
+            Ok(d) => d,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+        /* we can skip any validation if the database doesn't exist */
+        match std::fs::metadata(&dbpath) {
+            Err(e) => match e.kind() {
+                std::io::ErrorKind::NotFound => {
+                    // unimplemented!("DB NOT Found: {}", dbpath);
+                    // let event = alpm_event_database_missing_t {
+                    // 	etype: alpm_event_type_t::ALPM_EVENT_DATABASE_MISSING,
+                    // 	dbname: self.treename.clone(),
+                    // };
+                    self.status.DB_STATUS_EXISTS = false;
+                    self.status.DB_STATUS_MISSING = true;
+                    // EVENT!(handle, &alpm_event_t::database_missing(event));
+                    self.status.DB_STATUS_VALID = true;
+                    self.status.DB_STATUS_INVALID = false;
+                    return Ok(true);
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+
+        self.status.DB_STATUS_EXISTS = true;
+        self.status.DB_STATUS_MISSING = false;
+
+        /* this takes into account the default verification level if UNKNOWN
+         * was assigned to this db */
+        let siglevel = self.alpm_db_get_siglevel();
+
+        if siglevel.ALPM_SIG_DATABASE {
+            let mut ret = 0;
+            let mut retry = 1;
+            while retry != 0 {
+                retry = 0;
+                let siglist = alpm_siglist_t::default();
+                ret = _alpm_check_pgp_helper(
+                    handle,
+                    &dbpath,
+                    None,
+                    siglevel.ALPM_SIG_DATABASE_OPTIONAL,
+                    siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
+                    siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
+                    &siglist,
+                );
+                if ret != 0 {
+                    retry = _alpm_process_siglist(
+                        &handle,
+                        &self.treename,
+                        &siglist,
+                        siglevel.ALPM_SIG_DATABASE_OPTIONAL,
+                        siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
+                        siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
+                    );
+                }
+            }
+
+            if ret != 0 {
+                self.status.DB_STATUS_VALID = false;
+                self.status.DB_STATUS_INVALID = true;
+                return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
+            }
+        }
+
+        /* valid: */
+        self.status.DB_STATUS_VALID = true;
+        self.status.DB_STATUS_INVALID = false;
+        return Ok(true);
+    }
+
+    pub fn local_db_read(&mut self, info: &mut pkg_t, inforeq: i32) -> i32 {
+        enum NextLineType {
+            None,
+            Name,
+            Version,
+            Base,
+            Desc,
+            Groups,
+            Url,
+            License,
+            Arch,
+            BuildDate,
+            InstallDate,
+            Packager,
+            Reason,
+            Validation,
+            Size,
+            Replaces,
+            Depends,
+            OptDepends,
+            Confilcts,
+            Provides,
+            Files,
+            Backup,
+        }
+
+        /* bitmask logic here:
+         * infolevel: 00001111
+         * inforeq:   00010100
+         * & result:  00000100
+         * == to inforeq? nope, we need to load more info. */
+        if (info.infolevel & inforeq) == inforeq {
+            /* already loaded all of this info, do nothing */
+            return 0;
+        }
+
+        if info.infolevel & INFRQ_ERROR != 0 {
+            /* We've encountered an error loading this package before. Don't attempt
+             * repeated reloads, just give up. */
+            return -1;
+        }
+
+        info!(
+            "loading package data for {} : level=0x{:x}",
+            info.name, inforeq
+        );
+
+        /* DESC */
+        if inforeq & INFRQ_DESC != 0 && (info.infolevel & INFRQ_DESC) == 0 {
+            let path = self._alpm_local_db_pkgpath(info, &String::from("desc"));
+            let mut fp = match std::fs::File::open(&path) {
+                Ok(f) => f,
+                Err(e) => {
+                    error!("could not open file {}: {}", path, e);
+                    info.infolevel |= INFRQ_ERROR;
+                    return -1;
+                }
+            };
+            use std::io::prelude::*;
+            let mut lines: String = String::new();
+            match fp.read_to_string(&mut lines) {
+                Ok(_) => {}
+                Err(e) => {
+                    return -1;
+                }
+            }
+
+            let lines_iter = lines.lines();
+            let mut next_line_type = NextLineType::None;
+            for mut line in lines_iter {
+                if String::from(line).trim().len() == 0 {
+                    /* length of stripped line was zero */
+                    continue;
+                }
+
+                match next_line_type {
+                    NextLineType::None => {}
+                    NextLineType::Name => {
+                        if line != info.name {
+                            error!(
+                                "{} database is inconsistent: name mismatch on package {}",
+                                self.treename, info.name
+                            );
+                        }
+                    }
+                    NextLineType::Version => {
+                        if line != info.version {
+                            error!(
+                                "{} database is inconsistent: version mismatch on package {}",
+                                self.treename, info.name
+                            );
+                        }
+                    }
+                    NextLineType::Base => {
+                        info.base = String::from(line);
+                    }
+                    NextLineType::Desc => {
+                        info.desc = String::from(line);
+                    }
+                    NextLineType::Groups => {
+                        if line != "" {
+                            info.groups.push(String::from(line));
+                            continue;
+                        }
+                    }
+                    NextLineType::Url => {
+                        info.url = String::from(line);
+                    }
+                    NextLineType::License => {
+                        if line != "" {
+                            info.licenses.push(String::from(line));
+                            continue;
+                        }
+                    }
+                    NextLineType::Arch => {
+                        info.arch = String::from(line);
+                    }
+                    NextLineType::BuildDate => {
+                        info.builddate = _alpm_parsedate(line);
+                    }
+                    NextLineType::InstallDate => {
+                        info.installdate = _alpm_parsedate(line);
+                    }
+                    NextLineType::Packager => {
+                        info.packager = String::from(line);
+                    }
+                    NextLineType::Reason => {
+                        info.reason = alpm_pkgreason_t::from(u8::from_str_radix(line, 10).unwrap());
+                    }
+                    NextLineType::Validation => {
+                        unimplemented!();
+                        // // alpm_list_t *i, *v = NULL;
+                        // READ_AND_STORE_ALL(v);
+                        // // for(i = v; i; i = alpm_list_next(i))
+                        // {
+                        //     if (strcmp(i.data, "none") == 0) {
+                        //         info.validation |= ALPM_PKG_VALIDATION_NONE;
+                        //     } else if (strcmp(i.data, "md5") == 0) {
+                        //         info.validation |= ALPM_PKG_VALIDATION_MD5SUM;
+                        //     } else if (strcmp(i.data, "sha256") == 0) {
+                        //         info.validation |= ALPM_PKG_VALIDATION_SHA256SUM;
+                        //     } else if (strcmp(i.data, "pgp") == 0) {
+                        //         info.validation |= ALPM_PKG_VALIDATION_SIGNATURE;
+                        //     } else {
+                        //         info!(
+                        //             "unknown validation type for package {}: {}",
+                        //             info.name, i.data
+                        //         );
+                        //     }
+                        // }
+                        // FREELIST(v);
+                    }
+                    NextLineType::Size => {
+                        info.isize = _alpm_strtoofft(&String::from(line));
+                    }
+                    NextLineType::Replaces => {
+                        if line != "" {
+                            info.replaces.push(String::from(line));
+                            continue;
+                        };
+                    }
+                    NextLineType::Depends => {
+                        if line != "" {
+                            info.depends.push(alpm_dep_from_string(&String::from(line)));
+                            continue;
+                        };
+                    }
+                    NextLineType::OptDepends => {
+                        if line != "" {
+                            info.optdepends
+                                .push(alpm_dep_from_string(&String::from(line)));
+                            continue;
+                        };
+                    }
+                    NextLineType::Confilcts => {
+                        if line != "" {
+                            info.conflicts
+                                .push(alpm_dep_from_string(&String::from(line)));
+                            continue;
+                        };
+                    }
+                    NextLineType::Provides => {
+                        if line != "" {
+                            info.provides
+                                .push(alpm_dep_from_string(&String::from(line)));
+                            continue;
+                        };
+                    }
+                    _ => {}
+                }
+
+                next_line_type = NextLineType::None;
+
+                if line == "%NAME%" {
+                    next_line_type = NextLineType::Name;
+                } else if line == "%VERSION%" {
+                    next_line_type = NextLineType::Version;
+                } else if line == "%BASE%" {
+                    next_line_type = NextLineType::Base;
+                } else if line == "%DESC%" {
+                    next_line_type = NextLineType::Desc;
+                } else if line == "%GROUPS%" {
+                    next_line_type = NextLineType::Groups;
+                } else if line == "%URL%" {
+                    next_line_type = NextLineType::Url;
+                } else if line == "%LICENSE%" {
+                    next_line_type = NextLineType::License;
+                } else if line == "%ARCH%" {
+                    next_line_type = NextLineType::Arch;
+                } else if line == "%BUILDDATE%" {
+                    next_line_type = NextLineType::BuildDate;
+                } else if line == "%INSTALLDATE%" {
+                    next_line_type = NextLineType::InstallDate;
+                } else if line == "%PACKAGER%" {
+                    next_line_type = NextLineType::Packager;
+                } else if line == "%REASON%" {
+                    next_line_type = NextLineType::Reason;
+                } else if line == "%VALIDATION%" {
+                    next_line_type = NextLineType::Validation;
+                } else if line == "%SIZE%" {
+                    next_line_type = NextLineType::Size;
+                } else if line == "%REPLACES%" {
+                    next_line_type = NextLineType::Replaces;
+                } else if line == "%DEPENDS%" {
+                    next_line_type = NextLineType::Depends;
+                } else if line == "%OPTDEPENDS%" {
+                    next_line_type = NextLineType::OptDepends;
+                } else if line == "%CONFLICTS%" {
+                    next_line_type = NextLineType::Confilcts;
+                } else if line == "%PROVIDES%" {
+                    next_line_type = NextLineType::Provides;
+                }
+            }
+            info.infolevel |= INFRQ_DESC;
+        }
+
+        /* FILES */
+        if inforeq & INFRQ_FILES != 0 && (info.infolevel & INFRQ_FILES) == 0 {
+            unimplemented!();
+            let path = self._alpm_local_db_pkgpath(info, &String::from("desc"));
+            let mut fp = match std::fs::File::open(&path) {
+                Ok(f) => f,
+                Err(e) => {
+                    error!("could not open file {}: {}", path, e);
+                    info.infolevel |= INFRQ_ERROR;
+                    return -1;
+                }
+            };
+            use std::io::prelude::*;
+            let mut lines: String = String::new();
+            match fp.read_to_string(&mut lines) {
+                Ok(_) => {}
+                Err(e) => {
+                    return -1;
+                }
+            }
+
+            let lines_iter = lines.lines();
+            let mut next_line_type = NextLineType::None;
+            let mut files_count = 0;
+            let mut files_size = 0;
+            let mut len = 0;
+            let mut files = Vec::new();
+            for mut line in lines_iter {
+                match next_line_type {
+                    NextLineType::Files => {
+                        if line == "" {
+                            next_line_type = NextLineType::None;
+                            // info.files.count = files_count;
+                            // info.files.files = files;
+                            // _alpm_filelist_sort(&info.files);
+                            continue;
+                        }
+                        files.push(line);
+                    }
+                    NextLineType::Backup => {
+                        if line == "" {
+                            next_line_type = NextLineType::None;
+                            continue;
+                        }
+                        // let backup: alpm_backup_t;
+                        // if (_alpm_split_backup(line, &backup)) {
+                        //     info.infolevel |= INFRQ_ERROR;
+                        //     return -1;
+                        // }
+                        // info.backup.push(backup);
+                    }
+                    _ => {}
+                }
+                unimplemented!();
+                if line == "%FILES%" {
+                    next_line_type = NextLineType::Files;
+                } else if line == "%BACKUP%" {
+                    next_line_type = NextLineType::Backup;
+                }
+            }
+            info.infolevel |= INFRQ_FILES;
+        }
+
+        /* INSTALL */
+        if inforeq & INFRQ_SCRIPTLET != 0 && (info.infolevel & INFRQ_SCRIPTLET) == 0 {
+            unimplemented!();
+            // 		char *path = _alpm_local_db_pkgpath(db, info, "install");
+            // 		if(access(path, F_OK) == 0) {
+            // 			info->scriptlet = 1;
+            // 		}
+            // 		free(path);
+            // 		info->infolevel |= INFRQ_SCRIPTLET;
+        }
+
+        return 0;
+
+        // error:
+        // 	info->infolevel |= INFRQ_ERROR;
+        // 	if(fp) {
+        // 		fclose(fp);
+        // 	}
+        // 	return -1;
+    }
+
+    pub fn checkdbdir(&self) -> i32 {
+        unimplemented!();
+        // 	struct stat buf;
+        // 	const char *path = _alpm_db_path(db);
+        //
+        // 	if(stat(path, &buf) != 0) {
+        // 		_alpm_log(db.handle, ALPM_LOG_DEBUG, "database dir '{}' does not exist, creating it",
+        // 				path);
+        // 		if(_alpm_makepath(path) != 0) {
+        // 			RET_ERR(db.handle, ALPM_ERR_SYSTEM, -1);
+        // 		}
+        // 	} else if(!S_ISDIR(buf.st_mode)) {
+        // 		_alpm_log(db.handle, ALPM_LOG_WARNING, _("removing invalid database: {}"), path);
+        // 		if(unlink(path) != 0 || _alpm_makepath(path) != 0) {
+        // 			RET_ERR(db.handle, ALPM_ERR_SYSTEM, -1);
+        // 		}
+        // 	}
+        // 	return 0;
+    }
+
+    pub fn _alpm_local_db_prepare(&self, info: &pkg_t) -> i32 {
+        unimplemented!();
+        // 	mode_t oldmask;
+        // 	int retval = 0;
+        // 	char *pkgpath;
+        //
+        // 	if(checkdbdir(db) != 0) {
+        // 		return -1;
+        // 	}
+        //
+        // 	oldmask = umask(0000);
+        // 	pkgpath = _alpm_local_db_pkgpath(db, info, NULL);
+        //
+        // 	if((retval = mkdir(pkgpath, 0755)) != 0) {
+        // 		_alpm_log(db.handle, ALPM_LOG_ERROR, _("could not create directory {}: {}"),
+        // 				pkgpath, strerror(errno));
+        // 	}
+        //
+        // 	free(pkgpath);
+        // 	umask(oldmask);
+        //
+        // 	return retval;
+    }
+
+    pub fn _alpm_local_db_write(&self, info: &pkg_t, inforeq: i32) -> i32 {
+        unimplemented!();
+        // 	FILE *fp = NULL;
+        // 	mode_t oldmask;
+        // 	alpm_list_t *lp;
+        // 	int retval = 0;
+        //
+        // 	if(db == NULL || info == NULL || !(db.status & DB_STATUS_LOCAL)) {
+        // 		return -1;
+        // 	}
+        //
+        // 	/* make sure we have a sane umask */
+        // 	oldmask = umask(0022);
+        //
+        // 	/* DESC */
+        // 	if(inforeq & INFRQ_DESC) {
+        // 		char *path;
+        // 		_alpm_log(db.handle, ALPM_LOG_DEBUG,
+        // 				"writing {}-{} DESC information back to db",
+        // 				info.name, info.version);
+        // 		path = _alpm_local_db_pkgpath(db, info, "desc");
+        // 		if(!path || (fp = fopen(path, "w")) == NULL) {
+        // 			_alpm_log(db.handle, ALPM_LOG_ERROR, _("could not open file {}: {}"),
+        // 					path, strerror(errno));
+        // 			retval = -1;
+        // 			free(path);
+        // 			goto cleanup;
+        // 		}
+        // 		free(path);
+        // 		fprintf(fp, "%%NAME%%{}"
+        // 						"%%VERSION%%{}", info.name, info.version);
+        // 		if(info.base) {
+        // 			fprintf(fp, "%%BASE%%"
+        // 							"{}", info.base);
+        // 		}
+        // 		if(info.desc) {
+        // 			fprintf(fp, "%%DESC%%"
+        // 							"{}", info.desc);
+        // 		}
+        // 		if(info.url) {
+        // 			fprintf(fp, "%%URL%%"
+        // 							"{}", info.url);
+        // 		}
+        // 		if(info.arch) {
+        // 			fprintf(fp, "%%ARCH%%"
+        // 							"{}", info.arch);
+        // 		}
+        // 		if(info.builddate) {
+        // 			fprintf(fp, "%%BUILDDATE%%"
+        // 							"%jd", (intmax_t)info.builddate);
+        // 		}
+        // 		if(info.installdate) {
+        // 			fprintf(fp, "%%INSTALLDATE%%"
+        // 							"%jd", (intmax_t)info.installdate);
+        // 		}
+        // 		if(info.packager) {
+        // 			fprintf(fp, "%%PACKAGER%%"
+        // 							"{}", info.packager);
+        // 		}
+        // 		if(info.isize) {
+        // 			/* only write installed size, csize is irrelevant once installed */
+        // 			fprintf(fp, "%%SIZE%%"
+        // 							"%jd", (intmax_t)info.isize);
+        // 		}
+        // 		if(info.reason) {
+        // 			fprintf(fp, "%%REASON%%"
+        // 							"%u", info.reason);
+        // 		}
+        // 		if(info.groups) {
+        // 			fputs("%GROUPS%", fp);
+        // 			for(lp = info.groups; lp; lp = lp.next) {
+        // 				fputs(lp->data, fp);
+        // 				fputc('', fp);
+        // 			}
+        // 			fputc('', fp);
+        // 		}
+        // 		if(info->licenses) {
+        // 			fputs("%LICENSE%", fp);
+        // 			for(lp = info->licenses; lp; lp = lp->next) {
+        // 				fputs(lp->data, fp);
+        // 				fputc('', fp);
+        // 			}
+        // 			fputc('', fp);
+        // 		}
+        // 		if(info->validation) {
+        // 			fputs("%VALIDATION%", fp);
+        // 			if(info->validation & ALPM_PKG_VALIDATION_NONE) {
+        // 				fputs("none", fp);
+        // 			}
+        // 			if(info->validation & ALPM_PKG_VALIDATION_MD5SUM) {
+        // 				fputs("md5", fp);
+        // 			}
+        // 			if(info->validation & ALPM_PKG_VALIDATION_SHA256SUM) {
+        // 				fputs("sha256", fp);
+        // 			}
+        // 			if(info->validation & ALPM_PKG_VALIDATION_SIGNATURE) {
+        // 				fputs("pgp", fp);
+        // 			}
+        // 			fputc('', fp);
+        // 		}
+        //
+        // 		write_deps(fp, "%REPLACES%", info->replaces);
+        // 		write_deps(fp, "%DEPENDS%", info->depends);
+        // 		write_deps(fp, "%OPTDEPENDS%", info->optdepends);
+        // 		write_deps(fp, "%CONFLICTS%", info->conflicts);
+        // 		write_deps(fp, "%PROVIDES%", info->provides);
+        //
+        // 		fclose(fp);
+        // 		fp = NULL;
+        // 	}
+        //
+        // 	/* FILES */
+        // 	if(inforeq & INFRQ_FILES) {
+        // 		char *path;
+        // 		_alpm_log(db->handle, ALPM_LOG_DEBUG,
+        // 				"writing {}-{} FILES information back to db",
+        // 				info->name, info->version);
+        // 		path = _alpm_local_db_pkgpath(db, info, "files");
+        // 		if(!path || (fp = fopen(path, "w")) == NULL) {
+        // 			_alpm_log(db->handle, ALPM_LOG_ERROR, _("could not open file {}: {}"),
+        // 					path, strerror(errno));
+        // 			retval = -1;
+        // 			free(path);
+        // 			goto cleanup;
+        // 		}
+        // 		free(path);
+        // 		if(info->files.count) {
+        // 			size_t i;
+        // 			fputs("%FILES%", fp);
+        // 			for(i = 0; i < info->files.count; i++) {
+        // 				const alpm_file_t *file = info->files.files + i;
+        // 				fputs(file->name, fp);
+        // 				fputc('', fp);
+        // 			}
+        // 			fputc('', fp);
+        // 		}
+        // 		if(info->backup) {
+        // 			fputs("%BACKUP%", fp);
+        // 			for(lp = info->backup; lp; lp = lp->next) {
+        // 				const alpm_backup_t *backup = lp->data;
+        // 				fprintf(fp, "{}\t{}", backup->name, backup->hash);
+        // 			}
+        // 			fputc('', fp);
+        // 		}
+        // 		fclose(fp);
+        // 		fp = NULL;
+        // 	}
+        //
+        // 	/* INSTALL and MTREE */
+        // 	/* nothing needed here (automatically extracted) */
+        //
+        // cleanup:
+        // 	umask(oldmask);
+        // 	return retval;
+    }
+
+    fn _alpm_local_db_remove(&self, info: &pkg_t) -> i32 {
+        unimplemented!();
+        // 	int ret = 0;
+        // 	DIR *dirp;
+        // 	struct dirent *dp;
+        // 	char *pkgpath;
+        // 	size_t pkgpath_len;
+        //
+        // 	pkgpath = _alpm_local_db_pkgpath(db, info, NULL);
+        // 	if(!pkgpath) {
+        // 		return -1;
+        // 	}
+        // 	pkgpath_len = strlen(pkgpath);
+        //
+        // 	dirp = opendir(pkgpath);
+        // 	if(!dirp) {
+        // 		free(pkgpath);
+        // 		return -1;
+        // 	}
+        // 	/* go through the local DB entry, removing the files within, which we know
+        // 	 * are not nested directories of any kind. */
+        // 	for(dp = readdir(dirp); dp != NULL; dp = readdir(dirp)) {
+        // 		if(strcmp(dp->d_name, "..") != 0 && strcmp(dp->d_name, ".") != 0) {
+        // 			char name[PATH_MAX];
+        // 			if(pkgpath_len + strlen(dp->d_name) + 2 > PATH_MAX) {
+        // 				/* file path is too long to remove, hmm. */
+        // 				ret = -1;
+        // 			} else {
+        // 				sprintf(name, "{}/{}", pkgpath, dp->d_name);
+        // 				if(unlink(name)) {
+        // 					ret = -1;
+        // 				}
+        // 			}
+        // 		}
+        // 	}
+        // 	closedir(dirp);
+        //
+        // 	/* after removing all enclosed files, we can remove the directory itself. */
+        // 	if(rmdir(pkgpath)) {
+        // 		ret = -1;
+        // 	}
+        // 	free(pkgpath);
+        // 	return ret;
+    }
+
+    pub fn local_db_populate(&mut self) -> Result<()> {
+        use std::fs;
+        use self::alpm_errno_t::*;
+        let mut count = 0;
+        let dbdir;
+        let dbpath;
+
+        if self.status.DB_STATUS_INVALID {
+            return Err(ALPM_ERR_DB_INVALID);
+        }
+        if self.status.DB_STATUS_MISSING {
+            return Err(ALPM_ERR_DB_NOT_FOUND);
+        }
+
+        dbpath = self._alpm_db_path()?;
+
+        dbdir = match fs::read_dir(dbpath) {
+            Err(_e) => return Err(ALPM_ERR_DB_OPEN),
+            Ok(d) => d,
+        };
+        self.status.DB_STATUS_EXISTS = true;
+        self.status.DB_STATUS_MISSING = false;
+        self.pkgcache = _alpm_pkghash_create();
+
+        for ent in dbdir {
+            match ent {
+                Ok(ent) => {
+                    let mut pkg;
+                    let name = ent.file_name().into_string().unwrap();
+
+                    if name == "." || name == ".." {
+                        continue;
+                    }
+                    match fs::metadata(ent.path()) {
+                        Ok(m) => if !m.is_dir() {
+                            continue;
+                        },
+                        Err(_e) => {}
+                    }
+
+                    pkg = pkg_t::default();
+                    /* split the db entry name */
+                    {
+                        let (name, version, name_hash) = match _alpm_splitname(&name) {
+                            Err(_) => {
+                                error!("invalid name for database entry '{}'", name);
+                                continue;
+                            }
+                            Ok(d) => d,
+                        };
+                        pkg.name = name;
+                        pkg.version = version;
+                        pkg.name_hash = name_hash;
+                    }
+
+                    /* duplicated database entries are not allowed */
+                    // 		if(_alpm_pkghash_find(db->pkgcache, pkg->name)) {
+                    // 			_alpm_log(db->handle, ALPM_LOG_ERROR, _("duplicated database entry '{}'"), pkg->name);
+                    // 			_alpm_pkg_free(pkg);
+                    // 			continue;
+                    // 		}
+
+                    pkg.origin = alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB;
+
+                    /* explicitly read with only 'BASE' data, accessors will handle the rest */
+                    if self.local_db_read(&mut pkg, INFRQ_BASE) == -1 {
+                        debug!("corrupted database entry '{}'", name);
+                        continue;
+                    }
+
+                    /* add to the collection */
+                    info!(
+                        "adding '{}' to package cache for db '{}'",
+                        pkg.name, self.treename
+                    );
+                    self.pkgcache._alpm_pkghash_add(pkg);
+                    count += 1;
+                }
+                Err(_e) => unimplemented!(),
+            }
+        }
+
+        if count > 0 {
+            self.pkgcache.list.sort_by(_alpm_pkg_cmp);
+        }
+        debug!(
+            "added {} packages to package cache for db '{}'",
+            count, self.treename
+        );
+        Ok(())
+    }
+
+    pub fn local_db_validate(&mut self) -> Result<bool> {
+        let dbpath;
+        let dbdir;
+        let dbverpath;
+        let version: usize;
+        let mut dbverfile;
+
+        if self.status.DB_STATUS_VALID {
+            return Ok(true);
+        }
+        if self.status.DB_STATUS_INVALID {
+            return Ok(false);
+        }
+
+        dbpath = match self._alpm_db_path() {
+            Ok(d) => d,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+
+        dbdir = match std::fs::read_dir(&dbpath) {
+            Ok(d) => d,
+            Err(e) => {
+                match e.kind() {
+                    std::io::ErrorKind::NotFound => {
+                        /* local database dir doesn't exist yet - create it */
+                        match self.local_db_create(&dbpath) {
+                            Ok(_) => {
+                                self.status.DB_STATUS_VALID = true;
+                                self.status.DB_STATUS_INVALID = false;
+                                self.status.DB_STATUS_EXISTS = true;
+                                self.status.DB_STATUS_MISSING = false;
+                                return Ok(true);
+                            }
+                            Err(e) => {
+                                self.status.DB_STATUS_EXISTS = false;
+                                self.status.DB_STATUS_MISSING = true;
+                                return Err(e);
+                            }
+                        }
+                    }
+                    _ => {
+                        return Err(alpm_errno_t::ALPM_ERR_DB_OPEN);
+                    }
+                }
+            }
+        };
+        self.status.DB_STATUS_EXISTS = true;
+        self.status.DB_STATUS_MISSING = false;
+
+        dbverpath = format!("{}ALPM_DB_VERSION", dbpath);
+
+        dbverfile = match std::fs::File::open(&dbverpath) {
+            Err(_e) => {
+                /* create dbverfile if local database is empty - otherwise version error */
+                for ent in dbdir {
+                    match ent {
+                        Ok(ent) => {
+                            let name = &ent.file_name();
+                            if name == "." || name == ".." {
+                                continue;
+                            } else {
+                                self.status.DB_STATUS_VALID = false;
+                                self.status.DB_STATUS_INVALID = true;
+                                return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
+                            }
+                        }
+                        Err(_e) => panic!(),
+                    }
+                }
+
+                if self.local_db_add_version(&dbpath).is_err() {
+                    self.status.DB_STATUS_VALID = false;
+                    self.status.DB_STATUS_INVALID = true;
+                    return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
+                }
+
+                self.status.DB_STATUS_VALID = true;
+                self.status.DB_STATUS_INVALID = false;
+                return Ok(true);
+            }
+            Ok(f) => f,
+        };
+
+        use std::io::Read;
+        let mut dbverfilestr = String::new();
+        dbverfile.read_to_string(&mut dbverfilestr).unwrap();
+        dbverfilestr = String::from(dbverfilestr.trim());
+        version = match dbverfilestr.parse() {
+            Err(e) => {
+                self.status.DB_STATUS_VALID = false;
+                self.status.DB_STATUS_INVALID = true;
+                return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
+            }
+            Ok(v) => v,
+        };
+
+        if version != ALPM_LOCAL_DB_VERSION {
+            self.status.DB_STATUS_VALID = false;
+            self.status.DB_STATUS_INVALID = true;
+            return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
+        }
+
+        self.status.DB_STATUS_VALID = true;
+        self.status.DB_STATUS_INVALID = false;
+        return Ok(true);
+    }
+
+    fn local_db_create(&mut self, dbpath: &String) -> Result<i32> {
+        // if (std::fs::create_dir(dbpath, 0755) != 0) {
+        match std::fs::create_dir(dbpath) {
+            Err(e) => {
+                eprintln!("could not create directory {}: {}", dbpath, e);
+                return Err(alpm_errno_t::ALPM_ERR_DB_CREATE);
+            }
+            _ => {}
+        }
+        if self.local_db_add_version(dbpath).is_err() {
+            // return 1;
+            unimplemented!();
+        }
+
+        return Ok(0);
+    }
+
+    fn local_db_add_version(&self, dbpath: &String) -> std::io::Result<usize> {
+        let dbverpath = format!("{}ALPM_DB_VERSION", dbpath);
+        use std::io::Write;
+        let mut dbverfile = std::fs::File::create(dbverpath)?;
+        let data = format!("{}", ALPM_LOCAL_DB_VERSION);
+        dbverfile.write(data.as_bytes())
+    }
+
+    /* Note: the return value must be freed by the caller */
+    fn _alpm_local_db_pkgpath(&mut self, info: &pkg_t, filename: &String) -> String {
+        let pkgpath: String;
+        let dbpath: String;
+
+        dbpath = self._alpm_db_path().unwrap();
+        pkgpath = format!("{}{}-{}/{}", dbpath, info.name, info.version, filename);
+        return pkgpath;
+    }
+
     fn validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
         match self.ops_type {
-            db_ops_type::local => self.local_db_validate(handle),
+            db_ops_type::local => self.local_db_validate(),
             db_ops_type::sync => self.sync_db_validate(handle),
             db_ops_type::unknown => unimplemented!(),
         }
@@ -230,8 +1110,8 @@ impl alpm_db_t {
         return 0;
     }
 
-    /// Get a group entry from a package database. */
-    pub fn alpm_db_get_group(&self, name: &String) -> Option<&alpm_group_t> {
+    /// Get a group entry from a package database.
+    pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&alpm_group_t> {
         // if name.len() ==0{
         //     return Err(alpm_errno_t::ALPM_ERR_WRONG_ARGS);
         // }
@@ -239,7 +1119,15 @@ impl alpm_db_t {
         return self._alpm_db_get_groupfromcache(name);
     }
 
-    fn _alpm_db_get_groupfromcache(&self, target: &String) -> Option<&alpm_group_t> {
+    pub fn alpm_db_get_group_mut(&mut self, name: &String) -> Option<&mut alpm_group_t> {
+        // if name.len() ==0{
+        //     return Err(alpm_errno_t::ALPM_ERR_WRONG_ARGS);
+        // }
+
+        return self._alpm_db_get_groupfromcache_mut(name);
+    }
+
+    fn _alpm_db_get_groupfromcache(&mut self, target: &String) -> Option<&alpm_group_t> {
         if target.len() == 0 {
             return None;
         }
@@ -253,7 +1141,21 @@ impl alpm_db_t {
         return None;
     }
 
-    fn _alpm_db_get_groupcache(&self) -> &Vec<alpm_group_t> {
+    fn _alpm_db_get_groupfromcache_mut(&mut self, target: &String) -> Option<&mut alpm_group_t> {
+        if target.len() == 0 {
+            return None;
+        }
+
+        for info in self._alpm_db_get_groupcache() {
+            if info.name == *target {
+                return Some(info);
+            }
+        }
+
+        return None;
+    }
+
+    fn _alpm_db_get_groupcache(&mut self) -> &mut Vec<alpm_group_t> {
         if self.status.DB_STATUS_VALID {
             unimplemented!();
             // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
@@ -263,7 +1165,7 @@ impl alpm_db_t {
             self.load_grpcache();
         }
 
-        return &self.grpcache;
+        return &mut self.grpcache;
     }
 
     /* Returns a new group cache from db.
@@ -279,7 +1181,7 @@ impl alpm_db_t {
         //
         // for pkg in _alpm_db_get_pkgcache(&self) {
         //     // const alpm_list_t *i;
-        //     // alpm_pkg_t *pkg = lp->data;
+        //     // pkg_t *pkg = lp->data;
         //
         //     for grpname in alpm_pkg_get_groups(pkg) {
         //         // const char *grpname = i->data;
@@ -315,15 +1217,17 @@ impl alpm_db_t {
         // return 0;
     }
 
-    /// Get the group cache of a package database. */
+    /// Get the group cache of a package database.
     pub fn alpm_db_get_groupcache(&mut self) -> &Vec<alpm_group_t> {
-        // ASSERT(db != NULL, return NULL);
-        // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
-
         return self._alpm_db_get_groupcache();
     }
 
-    pub fn _alpm_db_get_pkgfromcache(&mut self, target: &String) -> Option<alpm_pkg_t> {
+    /// Get the group cache of a package database.
+    pub fn alpm_db_get_groupcache_mut(&mut self) -> &mut Vec<alpm_group_t> {
+        return self._alpm_db_get_groupcache();
+    }
+
+    pub fn _alpm_db_get_pkgfromcache(&mut self, target: &String) -> Option<pkg_t> {
         let pkgcache = self._alpm_db_get_pkgcache_hash();
         match pkgcache {
             Err(_) => {
@@ -356,6 +1260,28 @@ impl alpm_db_t {
             }
         }
         return Ok(&self.pkgcache);
+    }
+
+    fn _alpm_db_get_pkgcache_hash_mut(&mut self) -> Result<&mut alpm_pkghash_t> {
+        if !self.status.DB_STATUS_VALID {
+            // debug!(
+            //     "returning error {} from {} : {}\n",
+            //     ALPM_ERR_DB_INVALID,
+            //     __func__,
+            //     alpm_errno_t::ALPM_ERR_DB_INVALID
+            // );
+            return Err(alpm_errno_t::ALPM_ERR_DB_INVALID);
+            // return None;
+        }
+
+        if !self.status.DB_STATUS_PKGCACHE {
+            if self.load_pkgcache() != 0 {
+                /* handle->error set in local/sync-db-populate */
+                unimplemented!();
+                // return None;
+            }
+        }
+        return Ok(&mut self.pkgcache);
     }
 
     /// Returns a new package cache from db.
@@ -425,9 +1351,9 @@ impl alpm_db_t {
     }
 
     /// Get a package entry from a package database. */
-    pub fn alpm_db_get_pkg(&self, name: &String) -> Option<alpm_pkg_t> {
+    pub fn alpm_db_get_pkg(&self, name: &String) -> Option<&pkg_t> {
         unimplemented!()
-        // alpm_pkg_t *pkg;
+        // pkg_t *pkg;
         // ASSERT(db != NULL, return NULL);
         // db->handle->pm_errno = ALPM_ERR_OK;
         // ASSERT(name != NULL && strlen(name) != 0,
@@ -440,9 +1366,14 @@ impl alpm_db_t {
         // return pkg;
     }
 
-    /// Get the package cache of a package database. */
-    pub fn alpm_db_get_pkgcache(&mut self) -> Result<&Vec<alpm_pkg_t>> {
+    /// Get the package cache of a package database.
+    pub fn alpm_db_get_pkgcache(&mut self) -> Result<&Vec<pkg_t>> {
         return self._alpm_db_get_pkgcache();
+    }
+
+    /// Get the package cache of a package database.
+    pub fn alpm_db_get_pkgcache_mut(&mut self) -> Result<&mut Vec<pkg_t>> {
+        return self._alpm_db_get_pkgcache_mut();
     }
 
     /// Get the name of a package database. */
@@ -461,13 +1392,13 @@ impl alpm_db_t {
     }
 
     /// Searches a database. */
-    // pub fn alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
-    pub fn alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<alpm_pkg_t> {
+    // pub fn alpm_db_search(&self, needles: &Vec<pkg_t>) -> alpm_list_t {
+    pub fn alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<pkg_t> {
         return self._alpm_db_search(needles);
     }
 
-    // pub fn _alpm_db_search(&self, needles: &Vec<alpm_pkg_t>) -> alpm_list_t {
-    pub fn _alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<alpm_pkg_t> {
+    // pub fn _alpm_db_search(&self, needles: &Vec<pkg_t>) -> alpm_list_t {
+    pub fn _alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<pkg_t> {
         unimplemented!();
         // 	const alpm_list_t *i, *j, *k;
         // 	alpm_list_t *ret = NULL;
@@ -495,7 +1426,7 @@ impl alpm_db_t {
         // 		}
         //
         // 		for(j = list; j; j = j->next) {
-        // 			alpm_pkg_t *pkg = j->data;
+        // 			pkg_t *pkg = j->data;
         // 			const char *matched = NULL;
         // 			const char *name = pkg->name;
         // 			const char *desc = alpm_pkg_get_desc(pkg);
@@ -548,10 +1479,17 @@ impl alpm_db_t {
         // 	return ret;
     }
 
-    pub fn _alpm_db_get_pkgcache(&mut self) -> Result<&Vec<alpm_pkg_t>> {
-        match self._alpm_db_get_pkgcache_hash() {
+    pub fn _alpm_db_get_pkgcache(&mut self) -> Result<&Vec<pkg_t>> {
+        match self._alpm_db_get_pkgcache_hash_mut() {
             Err(e) => Err(e),
-            Ok(hash) => Ok(&hash.list),
+            Ok(hash) => Ok(&mut hash.list),
+        }
+    }
+
+    pub fn _alpm_db_get_pkgcache_mut(&mut self) -> Result<&mut Vec<pkg_t>> {
+        match self._alpm_db_get_pkgcache_hash_mut() {
+            Err(e) => Err(e),
+            Ok(hash) => Ok(&mut hash.list),
         }
     }
 
@@ -646,48 +1584,6 @@ impl alpm_db_t {
     }
 }
 
-impl alpm_handle_t {
-    /// Unregister all package databases. */
-    pub fn alpm_unregister_all_syncdbs(&self) -> i32 {
-        unimplemented!();
-        // 	alpm_list_t *i;
-        // 	alpm_db_t *db;
-        //
-        // 	/* Sanity checks */
-        // 	CHECK_HANDLE(handle, return -1);
-        // 	/* Do not unregister a database if a transaction is on-going */
-        // 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
-        //
-        // 	/* unregister all sync dbs */
-        // 	for(i = handle->dbs_sync; i; i = i->next) {
-        // 		db = i->data;
-        // 		db->ops->unregister(db);
-        // 		i->data = NULL;
-        // 	}
-        // 	FREELIST(handle->dbs_sync);
-        // 	return 0;
-    }
-
-    /// Register a sync database of packages. */
-    pub fn alpm_register_syncdb(
-        &mut self,
-        treename: &String,
-        siglevel: siglevel,
-    ) -> Result<alpm_db_t> {
-        /* ensure database name is unique */
-        if treename == "local" {
-            return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
-        }
-        for d in &self.dbs_sync {
-            if treename == &d.treename {
-                return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
-            }
-        }
-
-        Ok(self._alpm_db_register_sync(&treename, siglevel))
-    }
-}
-
 fn sanitize_url(url: &String) -> String {
     let newurl: String;
     newurl = url.clone();
@@ -718,9 +1614,9 @@ fn sanitize_url(url: &String) -> String {
 // }
 
 // /* "duplicate" pkg then add it to pkgcache */
-// int _alpm_db_add_pkgincache(alpm_db_t *db, alpm_pkg_t *pkg)
+// int _alpm_db_add_pkgincache(alpm_db_t *db, pkg_t *pkg)
 // {
-// 	alpm_pkg_t *newpkg = NULL;
+// 	pkg_t *newpkg = NULL;
 //
 // 	if(db == NULL || pkg == NULL || !(db->status & DB_STATUS_PKGCACHE)) {
 // 		return -1;
@@ -748,9 +1644,9 @@ fn sanitize_url(url: &String) -> String {
 // 	return 0;
 // }
 
-// int _alpm_db_remove_pkgfromcache(alpm_db_t *db, alpm_pkg_t *pkg)
+// int _alpm_db_remove_pkgfromcache(alpm_db_t *db, pkg_t *pkg)
 // {
-// 	alpm_pkg_t *data = NULL;
+// 	pkg_t *data = NULL;
 //
 // 	if(db == NULL || pkg == NULL || !(db->status & DB_STATUS_PKGCACHE)) {
 // 		return -1;

@@ -55,14 +55,14 @@ use super::*;
  *
  * @return 0 on success, -1 on error
  */
-pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32> {
+pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &pkg_t) -> Result<i32> {
     // const char *pkgname;
     // alpm_trans_t *trans;
-    // alpm_pkg_t *copy;
+    // pkg_t *copy;
 
     let pkgname = &pkg.name;
 
-    if alpm_pkg_find(&trans.remove, &pkgname).is_some() {
+    if alpm_pkg_find(&mut trans.remove, &pkgname).is_some() {
         // unimplemented!();
         // RET_ERR!(handle, alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET, -1);
         return Err(alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET);
@@ -94,9 +94,9 @@ pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32
 // 		alpm_list_t *i;
 // 		for(i = lp; i; i = i->next) {
 // 			alpm_depmissing_t *miss = i->data;
-// 			alpm_pkg_t *info = _alpm_db_get_pkgfromcache(handle->db_local, miss->target);
+// 			pkg_t *info = _alpm_db_get_pkgfromcache(handle->db_local, miss->target);
 // 			if(info) {
-// 				alpm_pkg_t *copy;
+// 				pkg_t *copy;
 // 				if(!alpm_pkg_find(trans->remove, info->name)) {
 // 					_alpm_log(handle, ALPM_LOG_DEBUG, "pulling %s in target list\n",
 // 							info->name);
@@ -134,7 +134,7 @@ pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32
 // 		for(i = lp; i; i = i->next) {
 // 			alpm_depmissing_t *miss = i->data;
 // 			void *vpkg;
-// 			alpm_pkg_t *pkg = alpm_pkg_find(trans->remove, miss->causingpkg);
+// 			pkg_t *pkg = alpm_pkg_find(trans->remove, miss->causingpkg);
 // 			if(pkg == NULL) {
 // 				continue;
 // 			}
@@ -165,7 +165,7 @@ pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32
 // 	alpm_list_t *i;
 //
 // 	for(i = _alpm_db_get_pkgcache(handle->db_local); i; i = alpm_list_next(i)) {
-// 		alpm_pkg_t *pkg = i->data;
+// 		pkg_t *pkg = i->data;
 // 		alpm_list_t *optdeps = alpm_pkg_get_optdepends(pkg);
 //
 // 		if(optdeps && !alpm_pkg_find(lp, pkg->name)) {
@@ -427,8 +427,8 @@ pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32
 //  * @return 0 on success, -1 if there was an error unlinking the file, 1 if the
 //  * file was skipped or did not exist
 //  */
-// static int unlink_file(alpm_handle_t *handle, alpm_pkg_t *oldpkg,
-// 		alpm_pkg_t *newpkg, const alpm_file_t *fileobj, int nosave)
+// static int unlink_file(alpm_handle_t *handle, pkg_t *oldpkg,
+// 		pkg_t *newpkg, const alpm_file_t *fileobj, int nosave)
 // {
 // 	struct stat buf;
 // 	char file[PATH_MAX];
@@ -473,7 +473,7 @@ pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32
 // 			int found = 0;
 // 			local_pkgs = _alpm_db_get_pkgcache(handle->db_local);
 // 			for(local = local_pkgs; local && !found; local = local->next) {
-// 				alpm_pkg_t *local_pkg = local->data;
+// 				pkg_t *local_pkg = local->data;
 // 				alpm_filelist_t *filelist;
 //
 // 				/* we duplicated the package when we put it in the removal list, so we
@@ -562,7 +562,7 @@ pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32
 //  * @return 1 if the file should be skipped, 0 if it should be removed
 //  */
 // static int should_skip_file(alpm_handle_t *handle,
-// 		alpm_pkg_t *newpkg, const char *path)
+// 		pkg_t *newpkg, const char *path)
 // {
 // 	return _alpm_fnmatch_patterns(handle->noupgrade, path) == 0
 // 		|| alpm_list_find_str(handle->trans->skip_remove, path)
@@ -584,7 +584,7 @@ pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32
 //  * files, >0 the number of files alpm was unable to delete
 //  */
 // static int remove_package_files(alpm_handle_t *handle,
-// 		alpm_pkg_t *oldpkg, alpm_pkg_t *newpkg,
+// 		pkg_t *oldpkg, pkg_t *newpkg,
 // 		size_t targ_count, size_t pkg_count)
 // {
 // 	alpm_filelist_t *filelist;
@@ -658,7 +658,7 @@ pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32
 //  * @return 0
 //  */
 // int _alpm_remove_single_package(alpm_handle_t *handle,
-// 		alpm_pkg_t *oldpkg, alpm_pkg_t *newpkg,
+// 		pkg_t *oldpkg, pkg_t *newpkg,
 // 		size_t targ_count, size_t pkg_count)
 // {
 // 	const char *pkgname = oldpkg->name;
@@ -747,7 +747,7 @@ pub fn alpm_remove_pkg(trans: &mut alpm_trans_t, pkg: &alpm_pkg_t) -> Result<i32
 // 	targ_count = 1;
 //
 // 	for(targ = trans->remove; targ; targ = targ->next) {
-// 		alpm_pkg_t *pkg = targ->data;
+// 		pkg_t *pkg = targ->data;
 //
 // 		if(trans->state == STATE_INTERRUPTED) {
 // 			return ret;

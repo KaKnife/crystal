@@ -45,7 +45,7 @@ fn remove_target(target: String, config: &mut config_t, handle:&mut alpm_handle_
                 }
                 Ok(_) => {}
             }
-            config.explicit_removes.push(pkg);
+            config.explicit_removes.push(pkg.clone());
             return 0;
         }
         _ => {}

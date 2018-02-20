@@ -15,20 +15,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// #include <string.h>
-// #include <ctype.h>
-//
-// /* libalpm */
-// #include "util.h"
-//
-// /**
-//  * Some functions in this file have been adopted from the rpm source, notably
-//  * 'rpmvercmp' located at lib/rpmvercmp.c and 'parseEVR' located at
-//  * lib/rpmds.c. It was most recently updated against rpm version 4.8.1. Small
-//  * modifications have been made to make it more consistent with the libalpm
-//  * coding style.
-//  */
-
+/**
+ * Some functions in this file have been adopted from the rpm source, notably
+ * 'rpmvercmp' located at lib/rpmvercmp.c and 'parseEVR' located at
+ * lib/rpmds.c. It was most recently updated against rpm version 4.8.1. Small
+ * modifications have been made to make it more consistent with the libalpm
+ * coding style.
+ */
 
 /// Split EVR into epoch, version, and release components.
 /// * `evr` - [epoch:]version[-release] string
@@ -56,17 +49,11 @@ fn parseEVR(evr: String) -> (String, String, Option<String>) {
     (epoch, version, release)
 }
 
-/**
- * Compare alpha and numeric segments of two versions.
- * return 1: a is newer than b
- *        0: a and b are the same version
- *       -1: b is newer than a
- */
+/// Compare alpha and numeric segments of two versions.
+/// return 1: a is newer than b;
+/// 0: a and b are the same version;
+/// -1: b is newer than a
 pub fn rpmvercmp(a: &String, b: &String) -> i8 {
-    // char oldch1, oldch2;
-    // char *str1, *str2;
-    // char *ptr1, *ptr2;
-    // char *one, *two;
     let str1: Vec<&str>;
     let str2: Vec<&str>;
 
@@ -108,9 +95,6 @@ pub fn rpmvercmp(a: &String, b: &String) -> i8 {
 /// -1 as expected. This is mainly for supporting versioned dependencies
 /// that do not include the pkgrel.
 pub fn alpm_pkg_vercmp(a: &String, b: &String) -> i8 {
-    // char *full1, *full2;
-    // const char *epoch1, *ver1, *rel1;
-    // const char *epoch2, *ver2, *rel2;
     let mut ret;
 
     /* another quick shortcut- if full version specs are equal */

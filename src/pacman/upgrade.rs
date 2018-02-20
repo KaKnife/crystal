@@ -79,7 +79,7 @@ pub fn pacman_upgrade(
     println!("loading packages...");
     /* add targets to the created transaction */
     for (n, targ) in targets.clone().iter().enumerate() {
-        let mut pkg = alpm_pkg_t::default();
+        let mut pkg = pkg_t::default();
         let siglevel;
 
         if file_is_remote[n] {
@@ -111,7 +111,7 @@ pub fn pacman_upgrade(
     }
 
     /* now that targets are resolved, we can hand it all off to the sync code */
-    sync_prepare_execute()
+    sync_prepare_execute(config, handle)
 }
 
 /* vim: set noet: */

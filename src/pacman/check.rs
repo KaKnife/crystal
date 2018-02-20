@@ -192,7 +192,7 @@ use super::*;
 // */
 
 /* Loop through the files of the package to check if they exist. */
-pub fn check_pkg_fast(pkg: &alpm_pkg_t) -> i32 {
+pub fn check_pkg_fast(pkg: &pkg_t) -> i32 {
     unimplemented!();
     // 	const char *root, *pkgname;
     // 	size_t errors = 0;
@@ -250,7 +250,7 @@ pub fn check_pkg_fast(pkg: &alpm_pkg_t) -> i32 {
 }
 
 /* Loop though files in a package and perform full file property checking. */
-pub fn check_pkg_full(pkg: &alpm_pkg_t) -> i32 {
+pub fn check_pkg_full(pkg: &pkg_t) -> i32 {
     unimplemented!();
     // 	const char *root, *pkgname;
     // 	size_t errors = 0;

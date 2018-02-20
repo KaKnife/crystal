@@ -44,90 +44,6 @@ use std::fs;
 // #include "dload.h"
 // #include "filelist.h"
 
-impl alpm_db_t {
-    pub fn sync_db_validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
-        if self.status.DB_STATUS_VALID || self.status.DB_STATUS_MISSING {
-            return Ok(true);
-        }
-        if self.status.DB_STATUS_INVALID {
-            return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
-        }
-
-        let dbpath = match self._alpm_db_path() {
-            Ok(d) => d,
-            Err(e) => {
-                return Err(e);
-            }
-        };
-        /* we can skip any validation if the database doesn't exist */
-        match std::fs::metadata(&dbpath) {
-            Err(e) => match e.kind() {
-                std::io::ErrorKind::NotFound => {
-                    // unimplemented!("DB NOT Found: {}", dbpath);
-                    // let event = alpm_event_database_missing_t {
-                    // 	etype: alpm_event_type_t::ALPM_EVENT_DATABASE_MISSING,
-                    // 	dbname: self.treename.clone(),
-                    // };
-                    self.status.DB_STATUS_EXISTS = false;
-                    self.status.DB_STATUS_MISSING = true;
-                    // EVENT!(handle, &alpm_event_t::database_missing(event));
-                    self.status.DB_STATUS_VALID = true;
-                    self.status.DB_STATUS_INVALID = false;
-                    return Ok(true);
-                }
-                _ => {}
-            },
-            _ => {}
-        }
-
-        self.status.DB_STATUS_EXISTS = true;
-        self.status.DB_STATUS_MISSING = false;
-
-        /* this takes into account the default verification level if UNKNOWN
-         * was assigned to this db */
-        let siglevel = self.alpm_db_get_siglevel();
-
-        if siglevel.ALPM_SIG_DATABASE {
-            let mut ret = 0;
-            let mut retry = 1;
-            while retry != 0 {
-                retry = 0;
-                let siglist = alpm_siglist_t::default();
-                ret = _alpm_check_pgp_helper(
-                    handle,
-                    &dbpath,
-                    None,
-                    siglevel.ALPM_SIG_DATABASE_OPTIONAL,
-                    siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
-                    siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
-                    &siglist,
-                );
-                if ret != 0 {
-                    retry = _alpm_process_siglist(
-                        &handle,
-                        &self.treename,
-                        &siglist,
-                        siglevel.ALPM_SIG_DATABASE_OPTIONAL,
-                        siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
-                        siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
-                    );
-                }
-            }
-
-            if ret != 0 {
-                self.status.DB_STATUS_VALID = false;
-                self.status.DB_STATUS_INVALID = true;
-                return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
-            }
-        }
-
-        /* valid: */
-        self.status.DB_STATUS_VALID = true;
-        self.status.DB_STATUS_INVALID = false;
-        return Ok(true);
-    }
-}
-
 /** Update a package database
  *
  * An update of the package database \a db will be attempted. Unless
@@ -302,9 +218,9 @@ pub fn alpm_db_update(
 
 // /* Forward decl so I don't reorganize the whole file right now */
 // static int sync_db_read(alpm_db_t *db, struct archive *archive,
-// 		struct archive_entry *entry, alpm_pkg_t **likely_pkg);
+// 		struct archive_entry *entry, pkg_t **likely_pkg);
 //
-// static int _sync_get_validation(alpm_pkg_t *pkg)
+// static int _sync_get_validation(pkg_t *pkg)
 // {
 // 	if(pkg->validation) {
 // 		return pkg->validation;
@@ -326,13 +242,13 @@ pub fn alpm_db_update(
 //
 // 	return pkg->validation;
 // }
-//
-// static alpm_pkg_t *load_pkg_for_entry(alpm_db_t *db, const char *entryname,
-// 		const char **entry_filename, alpm_pkg_t *likely_pkg)
+
+// static pkg_t *load_pkg_for_entry(alpm_db_t *db, const char *entryname,
+// 		const char **entry_filename, pkg_t *likely_pkg)
 // {
 // 	char *pkgname = NULL, *pkgver = NULL;
 // 	unsigned long pkgname_hash;
-// 	alpm_pkg_t *pkg;
+// 	pkg_t *pkg;
 //
 // 	/* get package and db file names */
 // 	if(entry_filename) {
@@ -382,7 +298,7 @@ pub fn alpm_db_update(
 //
 // 	return pkg;
 // }
-//
+
 // /* This function doesn't work as well as one might think, as size of database
 //  * entries varies considerably. Adding signatures nearly doubles the size of a
 //  * single entry; deltas also can make for large variations in size. These
@@ -419,7 +335,7 @@ pub fn alpm_db_update(
 //
 // 	return (size_t)((st->st_size / per_package) + 1);
 // }
-//
+
 // static int sync_db_populate(alpm_db_t *db)
 // {
 // 	const char *dbpath;
@@ -430,7 +346,7 @@ pub fn alpm_db_update(
 // 	struct stat buf;
 // 	struct archive *archive;
 // 	struct archive_entry *entry;
-// 	alpm_pkg_t *pkg = NULL;
+// 	pkg_t *pkg = NULL;
 //
 // 	if(db->status & DB_STATUS_INVALID) {
 // 		RET_ERR(db->handle, ALPM_ERR_DB_INVALID, -1);
@@ -501,7 +417,7 @@ pub fn alpm_db_update(
 // 	}
 // 	return ret;
 // }
-//
+
 // /* This function validates %FILENAME%. filename must be between 3 and
 //  * PATH_MAX characters and cannot be contain a path */
 // static int _alpm_validate_filename(alpm_db_t *db, const char *pkgname,
@@ -528,18 +444,18 @@ pub fn alpm_db_update(
 //
 // 	return 0;
 // }
-//
+
 // #define READ_NEXT() do { \
 // 	if(_alpm_archive_fgets(archive, &buf) != ARCHIVE_OK) goto error; \
 // 	line = buf.line; \
 // 	_alpm_strip_newline(line, buf.real_line_size); \
 // } while(0)
-//
+
 // #define READ_AND_STORE(f) do { \
 // 	READ_NEXT(); \
 // 	STRDUP(f, line, goto error); \
 // } while(0)
-//
+
 // #define READ_AND_STORE_ALL(f) do { \
 // 	char *linedup; \
 // 	if(_alpm_archive_fgets(archive, &buf) != ARCHIVE_OK) goto error; \
@@ -547,18 +463,18 @@ pub fn alpm_db_update(
 // 	STRDUP(linedup, buf.line, goto error); \
 // 	f = alpm_list_add(f, linedup); \
 // } while(1) /* note the while(1) and not (0) */
-//
+
 // #define READ_AND_SPLITDEP(f) do { \
 // 	if(_alpm_archive_fgets(archive, &buf) != ARCHIVE_OK) goto error; \
 // 	if(_alpm_strip_newline(buf.line, buf.real_line_size) == 0) break; \
 // 	f = alpm_list_add(f, alpm_dep_from_string(line)); \
 // } while(1) /* note the while(1) and not (0) */
-//
+
 // static int sync_db_read(alpm_db_t *db, struct archive *archive,
-// 		struct archive_entry *entry, alpm_pkg_t **likely_pkg)
+// 		struct archive_entry *entry, pkg_t **likely_pkg)
 // {
 // 	const char *entryname, *filename;
-// 	alpm_pkg_t *pkg;
+// 	pkg_t *pkg;
 // 	struct archive_read_buffer buf;
 //
 // 	entryname = archive_entry_pathname(entry);
@@ -728,55 +644,9 @@ pub fn alpm_db_update(
 // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "error parsing database file: %s\n", filename);
 // 	return -1;
 // }
-//
+
 // struct db_operations sync_db_ops = {
 // 	.validate         = sync_db_validate,
 // 	.populate         = sync_db_populate,
 // 	.unregister       = _alpm_db_unregister,
 // };
-impl alpm_handle_t {
-    pub fn _alpm_db_register_sync(&mut self, treename: &String, level: siglevel) -> alpm_db_t {
-        // 	_alpm_log(handle, ALPM_LOG_DEBUG, "registering sync database '%s'\n", treename);
-
-        // #ifndef HAVE_LIBGPGME
-        // 	if(level != ALPM_SIG_USE_DEFAULT) {
-        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
-        // 	}
-        // #endif
-
-        let mut db = alpm_db_t::_alpm_db_new(treename, false);
-        db.ops_type = db_ops_type::sync;
-        // db->ops = &sync_db_ops;
-        // db.handle = handle;
-        db.siglevel = level;
-        db.create_path(&self.dbpath, &self.dbext);
-        db.sync_db_validate(self);
-
-        // handle.dbs_sync.push(db);
-        return db;
-    }
-
-    pub fn get_sync_dir(&mut self) -> Result<String> {
-        let syncpath = format!("{}{}", self.dbpath, "sync/");
-        match std::fs::metadata(&syncpath) {
-            Err(_e) => {
-                debug!("database dir '{}' does not exist, creating it", syncpath);
-                if fs::create_dir_all(&syncpath).is_err() {
-                    return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
-                }
-            }
-            Ok(m) => {
-                if !m.is_dir() {
-                    warn!("removing invalid file: {}", syncpath);
-                    if std::fs::remove_file(&syncpath).is_err()
-                        || fs::create_dir_all(&syncpath).is_err()
-                    {
-                        return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
-                    }
-                }
-            }
-        }
-
-        return Ok(syncpath);
-    }
-}

@@ -134,7 +134,7 @@ fn sync_cleandb(dbpath: String) -> i32 {
     // 	return ret;
 }
 
-fn sync_cleandb_all(config: &config_t, handle:&mut alpm_handle_t) -> i32 {
+fn sync_cleandb_all(config: &config_t, handle: &mut alpm_handle_t) -> i32 {
     let mut syncdbpath; // = String::new();
     let mut ret = 0;
 
@@ -212,7 +212,7 @@ fn sync_cleancache(level: i32) -> i32 {
     // 		while((ent = readdir(dir)) != NULL) {
     // 			char path[PATH_MAX];
     // 			int delete = 1;
-    // 			alpm_pkg_t *localpkg = NULL, *pkg = NULL;
+    // 			pkg_t *localpkg = NULL, *pkg = NULL;
     // 			const char *local_name, *local_version;
     //
     // 			if(strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0) {
@@ -310,7 +310,12 @@ fn sync_cleancache(level: i32) -> i32 {
 }
 
 /* search the sync dbs for a matching package */
-fn sync_search(syncs: &mut Vec<alpm_db_t>, targets: &Vec<String>, config: &config_t, handle:&mut alpm_handle_t) -> bool {
+fn sync_search(
+    syncs: &mut Vec<alpm_db_t>,
+    targets: &Vec<String>,
+    config: &config_t,
+    handle: &mut alpm_handle_t,
+) -> bool {
     let mut found = 0;
 
     for db in syncs {
@@ -414,7 +419,7 @@ fn sync_group(
 // 				founddb = 1;
 //
 // 				for(k = alpm_db_get_pkgcache(db); k; k = alpm_list_next(k)) {
-// 					alpm_pkg_t *pkg = k->data;
+// 					pkg_t *pkg = k->data;
 //
 // 					if(strcmp(alpm_pkg_get_name(pkg), pkgstr) == 0) {
 // 						dump_pkg_full(pkg, config->op_s_info > 1);
@@ -441,7 +446,7 @@ fn sync_group(
 // 			alpm_db_t *db = i->data;
 //
 // 			for(j = alpm_db_get_pkgcache(db); j; j = alpm_list_next(j)) {
-// 				alpm_pkg_t *pkg = j->data;
+// 				pkg_t *pkg = j->data;
 // 				dump_pkg_full(pkg, config->op_s_info > 1);
 // 			}
 // 		}
@@ -486,7 +491,7 @@ fn sync_group(
 // 		alpm_db_t *db = i->data;
 //
 // 		for(j = alpm_db_get_pkgcache(db); j; j = alpm_list_next(j)) {
-// 			alpm_pkg_t *pkg = j->data;
+// 			pkg_t *pkg = j->data;
 //
 // 			if(!config->quiet) {
 // 				const colstr_t *colstr = &config->colstr;
@@ -520,7 +525,7 @@ fn sync_group(
 // 	return NULL;
 // }
 
-fn process_pkg(pkg: &alpm_pkg_t) -> i32 {
+fn process_pkg(pkg: &pkg_t) -> i32 {
     unimplemented!();
     // 	int ret = alpm_add_pkg(config->handle, pkg);
     //
@@ -577,7 +582,7 @@ fn process_group<T>(dbs: Vec<T>, group: &String, error: i32) -> i32 {
     // 			goto cleanup;
     // 		}
     // 		for(i = pkgs, n = 0; i; i = alpm_list_next(i)) {
-    // 			alpm_pkg_t *pkg = i->data;
+    // 			pkg_t *pkg = i->data;
     //
     // 			if(array[n++] == 0) {
     // 				continue;
@@ -592,7 +597,7 @@ fn process_group<T>(dbs: Vec<T>, group: &String, error: i32) -> i32 {
     // 		free(array);
     // 	} else {
     // 		for(i = pkgs; i; i = alpm_list_next(i)) {
-    // 			alpm_pkg_t *pkg = i->data;
+    // 			pkg_t *pkg = i->data;
     //
     // 			if(process_pkg(pkg) == 1) {
     // 				ret = 1;
@@ -606,8 +611,13 @@ fn process_group<T>(dbs: Vec<T>, group: &String, error: i32) -> i32 {
     // 	return ret;
 }
 
-fn process_targname<T>(dblist: Vec<T>, targname: &String, error: i32, handle:&mut alpm_handle_t) -> i32 {
-    let pkg: Option<alpm_pkg_t> = handle.alpm_find_dbs_satisfier(&dblist, targname);
+fn process_targname<T>(
+    dblist: Vec<T>,
+    targname: &String,
+    error: i32,
+    handle: &mut alpm_handle_t,
+) -> i32 {
+    let pkg: Option<pkg_t> = handle.alpm_find_dbs_satisfier(&dblist, targname);
 
     /* skip ignored packages when user says no */
     // match config.handle.alpm_errno() {
@@ -679,7 +689,11 @@ fn process_target(target: &String, error: i32) -> i32 {
     // 	return ret;
 }
 
-fn sync_trans(targets: &Vec<String>, config: &mut config_t, handle:&mut alpm_handle_t) -> std::result::Result<(), ()> {
+fn sync_trans(
+    targets: &Vec<String>,
+    config: &mut config_t,
+    handle: &mut alpm_handle_t,
+) -> std::result::Result<(), ()> {
     let mut retval = 0;
 
     /* Step 1: create a new transaction... */
@@ -711,14 +725,14 @@ fn sync_trans(targets: &Vec<String>, config: &mut config_t, handle:&mut alpm_han
         }
     }
 
-    return sync_prepare_execute();
+    sync_prepare_execute(config, handle)
 }
 
 fn print_broken_dep(miss: &alpm_depmissing_t) {
     unimplemented!();
     // 	char *depstring = alpm_dep_compute_string(miss->depend);
     // 	alpm_list_t *trans_add = alpm_trans_get_add(config->handle);
-    // 	alpm_pkg_t *pkg;
+    // 	pkg_t *pkg;
     // 	if(miss->causingpkg == NULL) {
     // 		/* package being installed/upgraded has unresolved dependency */
     // 		colon_printf(_("unable to satisfy dependency '%s' required by %s\n"),
@@ -735,53 +749,57 @@ fn print_broken_dep(miss: &alpm_depmissing_t) {
     // 	free(depstring);
 }
 
-pub fn sync_prepare_execute() -> std::result::Result<(), ()> {
+pub fn sync_prepare_execute(
+    config: &config_t,
+    handle: &alpm_handle_t,
+) -> std::result::Result<(), ()> {
     unimplemented!();
     // 	alpm_list_t *i, *packages, *data = NULL;
-    // 	int retval = 0;
-    //
-    // 	/* Step 2: "compute" the transaction based on targets and flags */
-    // 	if(alpm_trans_prepare(config->handle, &data) == -1) {
-    // 		alpm_errno_t err = alpm_errno(config->handle);
-    // 		pm_printf(ALPM_LOG_ERROR, _("failed to prepare transaction (%s)\n"),
-    // 		        alpm_strerror(err));
-    // 		switch(err) {
-    // 			case ALPM_ERR_PKG_INVALID_ARCH:
-    // 				for(i = data; i; i = alpm_list_next(i)) {
-    // 					char *pkg = i->data;
-    // 					colon_printf(_("package %s does not have a valid architecture\n"), pkg);
-    // 					free(pkg);
-    // 				}
-    // 				break;
-    // 			case ALPM_ERR_UNSATISFIED_DEPS:
-    // 				for(i = data; i; i = alpm_list_next(i)) {
-    // 					print_broken_dep(i->data);
-    // 					alpm_depmissing_free(i->data);
-    // 				}
-    // 				break;
-    // 			case ALPM_ERR_CONFLICTING_DEPS:
-    // 				for(i = data; i; i = alpm_list_next(i)) {
-    // 					alpm_conflict_t *conflict = i->data;
-    // 					/* only print reason if it contains new information */
-    // 					if(conflict->reason->mod == ALPM_DEP_MOD_ANY) {
-    // 						colon_printf(_("%s and %s are in conflict\n"),
-    // 								conflict->package1, conflict->package2);
-    // 					} else {
-    // 						char *reason = alpm_dep_compute_string(conflict->reason);
-    // 						colon_printf(_("%s and %s are in conflict (%s)\n"),
-    // 								conflict->package1, conflict->package2, reason);
-    // 						free(reason);
-    // 					}
-    // 					alpm_conflict_free(conflict);
-    // 				}
-    // 				break;
-    // 			default:
-    // 				break;
-    // 		}
-    // 		retval = 1;
-    // 		goto cleanup;
-    // 	}
-    //
+    let retval = Ok(());
+    let mut data = Vec::new();
+
+    /* Step 2: "compute" the transaction based on targets and flags */
+    match handle.alpm_trans_prepare(&mut data) {
+        Err(err) => {
+            // == -1 {
+            error!("failed to prepare transaction ({})", err);
+            use self::alpm_errno_t::*;
+            match err {
+                ALPM_ERR_PKG_INVALID_ARCH => {
+                    for pkg in data {
+                        unimplemented!();
+                        // colon_printf(_("package %s does not have a valid architecture\n"), pkg);
+                    }
+                }
+                ALPM_ERR_UNSATISFIED_DEPS => {
+                    for pkg in data {
+                        // 	print_broken_dep(pkg);
+                    }
+                }
+                ALPM_ERR_CONFLICTING_DEPS => {
+                    // for(i = data; i; i = alpm_list_next(i)) {
+                    // 	alpm_conflict_t *conflict = i->data;
+                    // 	/* only print reason if it contains new information */
+                    // 	if(conflict->reason->mod == ALPM_DEP_MOD_ANY) {
+                    // 		colon_printf(_("%s and %s are in conflict\n"),
+                    // 				conflict->package1, conflict->package2);
+                    // 	} else {
+                    // 		char *reason = alpm_dep_compute_string(conflict->reason);
+                    // 		colon_printf(_("%s and %s are in conflict (%s)\n"),
+                    // 				conflict->package1, conflict->package2, reason);
+                    // 		free(reason);
+                    // 	}
+                    // 	alpm_conflict_free(conflict);
+                    // }
+                }
+                _ => {}
+            }
+            // 		retval = 1;
+            // 		goto cleanup;
+        }
+        _ => {}
+    }
+
     // 	packages = alpm_trans_get_add(config->handle);
     // 	if(packages == NULL) {
     // 		/* nothing to do: just exit without complaining */
@@ -790,16 +808,16 @@ pub fn sync_prepare_execute() -> std::result::Result<(), ()> {
     // 		}
     // 		goto cleanup;
     // 	}
-    //
+
     // 	/* Step 3: actually perform the operation */
     // 	if(config->print) {
     // 		print_packages(packages);
     // 		goto cleanup;
     // 	}
-    //
+
     // 	display_targets();
     // 	printf("\n");
-    //
+
     // 	int confirm;
     // 	if(config->op_s_downloadonly) {
     // 		confirm = yesno(_("Proceed with download?"));
@@ -810,7 +828,7 @@ pub fn sync_prepare_execute() -> std::result::Result<(), ()> {
     // 		retval = 1;
     // 		goto cleanup;
     // 	}
-    //
+
     // 	if(alpm_trans_commit(config->handle, &data) == -1) {
     // 		alpm_errno_t err = alpm_errno(config->handle);
     // 		pm_printf(ALPM_LOG_ERROR, _("failed to commit transaction (%s)\n"),
@@ -858,18 +876,22 @@ pub fn sync_prepare_execute() -> std::result::Result<(), ()> {
     // 		retval = 1;
     // 		goto cleanup;
     // 	}
-    //
+
     // 	/* Step 4: release transaction resources */
     // cleanup:
     // 	alpm_list_free(data);
     // 	if(trans_release() == -1) {
     // 		retval = 1;
     // 	}
-    //
-    // 	return retval;
+
+    return retval;
 }
 
-pub fn pacman_sync(targets: Vec<String>, config: &mut config_t, handle: &mut alpm_handle_t) -> std::result::Result<(), ()> {
+pub fn pacman_sync(
+    targets: Vec<String>,
+    config: &mut config_t,
+    handle: &mut alpm_handle_t,
+) -> std::result::Result<(), ()> {
     // 	alpm_list_t *sync_dbs = NULL;
     let mut sync_dbs: Vec<alpm_db_t>;
 
@@ -907,7 +929,7 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut config_t, handle: &mut alp
         sync_syncdbs(config.op_s_sync as i32, &mut sync_dbs, handle)?;
     }
 
-    check_syncdbs(1, true,  handle)?;
+    check_syncdbs(1, true, handle)?;
 
     /* search for a package */
     if config.op_s_search != 0 {

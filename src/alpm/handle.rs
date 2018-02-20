@@ -7,6 +7,8 @@ use std::fs::File;
 // use std::io::Result;
 // use std::ffi::OsString;
 use self::alpm_errno_t::*;
+use std::fs;
+use super::deps::find_dep_satisfier;
 /*
  *  handle.c
  *
@@ -73,8 +75,1463 @@ use self::alpm_errno_t::*;
 // #[derive(Default, Debug)]
 ///TODO: Implement this
 pub type alpm_list_t<T> = Vec<T>;
+pub struct archive {}
+pub struct archive_entry {}
 
 impl alpm_handle_t {
+    /// Run ldconfig in a chroot. Returns 0 on success, 1 on error
+    pub fn _alpm_ldconfig(&self) -> i32 {
+        use std::fs::metadata;
+        let mut line: String;
+
+        debug!("running ldconfig");
+
+        line = format!("{}etc/ld.so.conf", self.root);
+        if metadata(line).is_ok() {
+            unimplemented!();
+            // // unimplemented due to lack of global var LDCONFIG
+            // line = format!("{}{}", self.root, LDCONFIG);
+            // if metadata(line).is_ok() {
+            //     let arg0: &str = "ldconfig";
+            //     let argv: [&str; 1] = [arg0];
+            //     return _alpm_run_chroot(self, LDCONFIG, argv, NULL, NULL);
+            // }
+        }
+
+        return 0;
+    }
+
+    /// Initialize the transaction.
+    pub fn alpm_trans_init(&mut self, flags: &alpm_transflag_t) -> Result<()> {
+        let mut trans: alpm_trans_t = alpm_trans_t::default();
+
+        /* lock db */
+        if !flags.NOLOCK {
+            if self._alpm_handle_lock().is_err() {
+                return Err(alpm_errno_t::ALPM_ERR_HANDLE_LOCK);
+            }
+        }
+
+        trans.flags = flags.clone();
+        trans.state = alpm_transstate_t::STATE_INITIALIZED;
+
+        self.trans = trans;
+
+        Ok(())
+    }
+
+    pub fn check_arch(&self, pkgs: &Vec<pkg_t>) -> Vec<String> {
+        let mut invalid = Vec::new();
+        let arch: &str = &self.arch;
+        for pkg in pkgs {
+            let pkgarch = pkg.alpm_pkg_get_arch();
+            if pkgarch != "" && pkgarch == arch && pkgarch == "any" {
+                let string;
+                let pkgname = &pkg.name;
+                let pkgver = &pkg.version;
+                string = format!("{}-{}-{}", pkgname, pkgver, pkgarch);
+                invalid.push(string);
+            }
+        }
+        return invalid;
+    }
+
+    /** Prepare a transaction. */
+    pub fn alpm_trans_prepare(&self, data: &mut Vec<String>) -> Result<i32> {
+        unimplemented!();
+        // 	alpm_trans_t *trans;
+        //
+        // 	/* Sanity checks */
+        // 	CHECK_HANDLE(handle, return -1);
+        // 	ASSERT(data != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+        //
+        let trans = &self.trans;
+        //
+        // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+        // 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
+
+        /* If there's nothing to do, return without complaining */
+        if trans.add.is_empty() && trans.remove.is_empty() {
+            return Ok(0);
+        }
+
+        // 	alpm_list_t *invalid = check_arch(handle, trans->add);
+        let invalid = &self.check_arch(&trans.add);
+        if !invalid.is_empty() {
+            // if data {
+            *data = invalid.clone();
+            // }
+            return Err(alpm_errno_t::ALPM_ERR_PKG_INVALID_ARCH);
+        }
+
+        if trans.add.is_empty() {
+            unimplemented!();
+        // 		if(_alpm_remove_prepare(handle, data) == -1) {
+        // 			/* pm_errno is set by _alpm_remove_prepare() */
+        // 			return -1;
+        // 		}
+        } else {
+            unimplemented!();
+            // 		if(_alpm_sync_prepare(handle, data) == -1) {
+            // 			/* pm_errno is set by _alpm_sync_prepare() */
+            // 			return -1;
+            // 		}
+        }
+
+        // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
+        // 		_alpm_log(handle, ALPM_LOG_DEBUG, "sorting by dependencies\n");
+        // 		if(trans->add) {
+        // 			alpm_list_t *add_orig = trans->add;
+        // 			trans->add = _alpm_sortbydeps(handle, add_orig, trans->remove, 0);
+        // 			alpm_list_free(add_orig);
+        // 		}
+        // 		if(trans->remove) {
+        // 			alpm_list_t *rem_orig = trans->remove;
+        // 			trans->remove = _alpm_sortbydeps(handle, rem_orig, NULL, 1);
+        // 			alpm_list_free(rem_orig);
+        // 		}
+        // 	}
+
+        // 	trans->state = STATE_PREPARED;
+
+        return Ok(0);
+    }
+
+    // /** Commit a transaction. */
+    // int SYMEXPORT alpm_trans_commit(alpm_handle_t *handle, alpm_list_t **data)
+    // {
+    // 	alpm_trans_t *trans;
+    // 	alpm_event_any_t event;
+    //
+    // 	/* Sanity checks */
+    // 	CHECK_HANDLE(handle, return -1);
+    //
+    // 	trans = handle->trans;
+    //
+    // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+    // 	ASSERT(trans->state == STATE_PREPARED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_PREPARED, -1));
+    //
+    //ASSERT(!(trans->flags & ALPM_TRANS_FLAG_NOLOCK), RET_ERR(handle, ALPM_ERR_TRANS_NOT_LOCKED, -1));
+    //
+    // 	/* If there's nothing to do, return without complaining */
+    // 	if(trans->add == NULL && trans->remove == NULL) {
+    // 		return 0;
+    // 	}
+    //
+    // 	if(trans->add) {
+    // 		if(_alpm_sync_load(handle, data) != 0) {
+    // 			/* pm_errno is set by _alpm_sync_load() */
+    // 			return -1;
+    // 		}
+    // 		if(trans->flags & ALPM_TRANS_FLAG_DOWNLOADONLY) {
+    // 			return 0;
+    // 		}
+    // 		if(_alpm_sync_check(handle, data) != 0) {
+    // 			/* pm_errno is set by _alpm_sync_check() */
+    // 			return -1;
+    // 		}
+    // 	}
+    //
+    // 	if(_alpm_hook_run(handle, ALPM_HOOK_PRE_TRANSACTION) != 0) {
+    // 		RET_ERR(handle, ALPM_ERR_TRANS_HOOK_FAILED, -1);
+    // 	}
+    //
+    // 	trans->state = STATE_COMMITING;
+    //
+    // 	alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction started\n");
+    // 	event.type = ALPM_EVENT_TRANSACTION_START;
+    // 	EVENT(handle, (void *)&event);
+    //
+    // 	if(trans->add == NULL) {
+    // 		if(_alpm_remove_packages(handle, 1) == -1) {
+    // 			/* pm_errno is set by _alpm_remove_packages() */
+    // 			alpm_errno_t save = handle->pm_errno;
+    // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
+    // 			handle->pm_errno = save;
+    // 			return -1;
+    // 		}
+    // 	} else {
+    // 		if(_alpm_sync_commit(handle) == -1) {
+    // 			/* pm_errno is set by _alpm_sync_commit() */
+    // 			alpm_errno_t save = handle->pm_errno;
+    // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
+    // 			handle->pm_errno = save;
+    // 			return -1;
+    // 		}
+    // 	}
+    //
+    // 	if(trans->state == STATE_INTERRUPTED) {
+    // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction interrupted\n");
+    // 	} else {
+    // 		event.type = ALPM_EVENT_TRANSACTION_DONE;
+    // 		EVENT(handle, (void *)&event);
+    // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction completed\n");
+    // 		_alpm_hook_run(handle, ALPM_HOOK_POST_TRANSACTION);
+    // 	}
+    //
+    // 	trans->state = STATE_COMMITED;
+    //
+    // 	return 0;
+    // }
+    //
+    // /** Interrupt a transaction.
+    //  * @note Safe to call from inside signal handlers.
+    //  */
+    // int SYMEXPORT alpm_trans_interrupt(alpm_handle_t *handle)
+    // {
+    // 	alpm_trans_t *trans;
+    //
+    // 	/* Sanity checks */
+    // 	CHECK_HANDLE(handle, return -1);
+    //
+    // 	trans = handle->trans;
+    // 	ASSERT(trans != NULL, RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_NULL, -1));
+    // 	ASSERT(trans->state == STATE_COMMITING || trans->state == STATE_INTERRUPTED,
+    // 			RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_TYPE, -1));
+    //
+    // 	trans->state = STATE_INTERRUPTED;
+    //
+    // 	return 0;
+    // }
+    //
+    /** Release a transaction. */
+    pub fn alpm_trans_release(&self) -> Result<i32> {
+        unimplemented!();
+        // 	alpm_trans_t *trans;
+        //
+        // 	/* Sanity checks */
+        // 	CHECK_HANDLE(handle, return -1);
+        //
+        // 	trans = handle->trans;
+        // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+        // 	ASSERT(trans->state != STATE_IDLE, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+        //
+        // 	int nolock_flag = trans->flags & ALPM_TRANS_FLAG_NOLOCK;
+        //
+        // 	_alpm_trans_free(trans);
+        // 	handle->trans = NULL;
+        //
+        // 	/* unlock db */
+        // 	if(!nolock_flag) {
+        // 		_alpm_handle_unlock(handle);
+        // 	}
+        //
+        // 	return 0;
+    }
+
+    /**
+     * Form a signature path given a file path.
+     * Caller must free the result.
+     * @param handle the context handle
+     * @param path the full path to a file
+     * @return the path with '.sig' appended, NULL on errors
+     */
+    pub fn _alpm_sigpath(&self, path: &Option<String>) -> Option<String> {
+        // 	char *sigpath;
+        // 	size_t len;
+        //
+        match path {
+            &None => None,
+            &Some(ref path) => Some(format!("{}.sig", path)),
+        }
+        // 	return sigpath;
+    }
+
+    fn no_dep_version(&self) -> bool {
+        self.trans.flags.NODEPVERSION
+    }
+
+    /* Checks dependencies and returns missing ones in a list.
+     * Dependencies can include versions with depmod operators.
+     * @param handle the context handle
+     * @param pkglist the list of local packages
+     * @param remove an alpm_list_t* of packages to be removed
+     * @param upgrade an alpm_list_t* of packages to be upgraded (remove-then-upgrade)
+     * @param reversedeps handles the backward dependencies
+     * @return an alpm_list_t* of alpm_depmissing_t pointers.
+     */
+    pub fn alpm_checkdeps(
+        &self,
+        pkglist: Option<Vec<pkg_t>>,
+        remw: Option<Vec<pkg_t>>,
+        upgrade: &mut Vec<pkg_t>,
+        reversedeps: i32,
+    ) -> Vec<alpm_depmissing_t> {
+        unimplemented!();
+        // 	alpm_list_t *i, *j;
+        // 	alpm_list_t *dblist = NULL, *modified = NULL;
+        let mut dblist = Vec::new();
+        let mut modified = Vec::new();
+        let mut baddeps = Vec::new(); // 	alpm_list_t *baddeps = NULL;
+        let nodepversion; // 	int nodepversion;
+        let mut rem; //
+
+        if remw.is_some() {
+            rem = remw.unwrap();
+        } else {
+            rem = Vec::new();
+        }
+        if pkglist.is_some() {
+            for pkg in pkglist.unwrap() {
+                // pkg_t *pkg = i->data;
+                if alpm_pkg_find(upgrade, &pkg.name).is_some()
+                    || alpm_pkg_find(&mut rem, &pkg.name).is_some()
+                {
+                    modified.push(pkg);
+                } else {
+                    dblist.push(pkg);
+                }
+            }
+        }
+
+        nodepversion = self.no_dep_version();
+
+        /* look for unsatisfied dependencies of the upgrade list */
+        for ref mut tp in &*upgrade {
+            // pkg_t *tp = i->data;
+            // _alpm_log(
+            //     handle,
+            //     ALPM_LOG_DEBUG,
+            //     "checkdeps: package %s-%s\n",
+            //     tp.name,
+            //     tp.version,
+            // );
+
+            for mut depend in &tp.depends {
+                // alpm_depend_t *depend = j->data;
+                let orig_mod = depend.depmod.clone();
+                // if (nodepversion) {
+                //     depend.depmod = alpm_depmod_t::ALPM_DEP_MOD_ANY;
+                // }
+                /* 1. we check the upgrade list */
+                /* 2. we check database for untouched satisfying packages */
+                /* 3. we check the dependency ignore list */
+                if find_dep_satisfier(upgrade, &depend).is_none()
+                    && find_dep_satisfier(&dblist, &depend).is_none()
+                    && depend._alpm_depcmp_provides(&self.assumeinstalled)
+                {
+                    unimplemented!();
+                    /* Unsatisfied dependency in the upgrade list */
+                    // alpm_depmissing_t *miss;
+                    // let missdepstring = alpm_dep_compute_string(depend);
+                    // _alpm_log(handle, ALPM_LOG_DEBUG,
+                    //"checkdeps: missing dependency '%s' for package '%s'\n",
+                    // 		missdepstring, tp->name);
+                    // free(missdepstring);
+                    // miss = depmiss_new(tp->name, depend, NULL);
+                    // baddeps = alpm_list_add(baddeps, miss);
+                }
+                // depend.depmod = orig_mod;
+            }
+        }
+
+        if reversedeps != 0 {
+            unimplemented!();
+            // 		/* reversedeps handles the backwards dependencies, ie,
+            // 		 * the packages listed in the requiredby field. */
+            // 		for(i = dblist; i; i = i->next) {
+            // 			pkg_t *lp = i->data;
+            // 			for(j = alpm_pkg_get_depends(lp); j; j = j->next) {
+            // 				alpm_depend_t *depend = j->data;
+            // 				alpm_depmod_t orig_mod = depend->mod;
+            // 				if(nodepversion) {
+            // 					depend->mod = ALPM_DEP_MOD_ANY;
+            // 				}
+            // 				pkg_t *causingpkg = find_dep_satisfier(modified, depend);
+            // 				/* we won't break this depend, if it is already broken, we ignore it */
+            // 				/* 1. check upgrade list for satisfiers */
+            // 				/* 2. check dblist for satisfiers */
+            // 				/* 3. we check the dependency ignore list */
+            // 				if(causingpkg &&
+            // 						!find_dep_satisfier(upgrade, depend) &&
+            // 						!find_dep_satisfier(dblist, depend) &&
+            // 						!_alpm_depcmp_provides(depend, handle->assumeinstalled)) {
+            // 					alpm_depmissing_t *miss;
+            // 					char *missdepstring = alpm_dep_compute_string(depend);
+            //_alpm_log(handle, ALPM_LOG_DEBUG,
+            //"checkdeps: transaction would break '%s' dependency of '%s'\n",
+            // 							missdepstring, lp->name);
+            // 					free(missdepstring);
+            // 					miss = depmiss_new(lp->name, depend, causingpkg->name);
+            // 					baddeps = alpm_list_add(baddeps, miss);
+            // 				}
+            // 				depend->mod = orig_mod;
+            // 			}
+            // 		}
+        }
+
+        // 	alpm_list_free(modified);
+        // 	alpm_list_free(dblist);
+        //
+        return baddeps;
+    }
+
+    /** Find a package satisfying a specified dependency.
+     * First look for a literal, going through each db one by one. Then look for
+     * providers. The first satisfier found is returned.
+     * The dependency can include versions with depmod operators.
+     * @param handle the context handle
+     * @param dbs an alpm_list_t* of alpm_db_t where the satisfier will be searched
+     * @param depstring package or provision name, versioned or not
+     * @return a pkg_t* satisfying depstring
+     */
+    pub fn alpm_find_dbs_satisfier<T>(&self, dbs: &Vec<T>, depstring: &String) -> Option<pkg_t> {
+        unimplemented!();
+        // 	alpm_depend_t *dep;
+        // 	pkg_t *pkg;
+        //
+        // 	CHECK_HANDLE(handle, return NULL);
+        // 	ASSERT(dbs, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
+        //
+        // 	dep = alpm_dep_from_string(depstring);
+        // 	ASSERT(dep, return NULL);
+        // 	pkg = resolvedep(handle, dep, dbs, NULL, 1);
+        // 	alpm_dep_free(dep);
+        // 	return pkg;
+    }
+
+    /** @brief Check the package conflicts in a database
+     *
+     * @param handle the context handle
+     * @param pkglist the list of packages to check
+     *
+     * @return an alpm_list_t of alpm_conflict_t
+     */
+    pub fn alpm_checkconflicts(&self, pkglist: &Vec<pkg_t>) -> Vec<alpm_conflict_t> {
+        unimplemented!();
+        // CHECK_HANDLE(handle, return NULL);
+        // return _alpm_innerconflicts(handle, pkglist);
+    }
+
+    pub fn _alpm_db_register_sync(&mut self, treename: &String, level: siglevel) -> alpm_db_t {
+        // 	_alpm_log(handle, ALPM_LOG_DEBUG, "registering sync database '%s'\n", treename);
+
+        // #ifndef HAVE_LIBGPGME
+        // 	if(level != ALPM_SIG_USE_DEFAULT) {
+        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
+        // 	}
+        // #endif
+
+        let mut db = alpm_db_t::_alpm_db_new(treename, false);
+        db.ops_type = db_ops_type::sync;
+        // db->ops = &sync_db_ops;
+        // db.handle = handle;
+        db.siglevel = level;
+        db.create_path(&self.dbpath, &self.dbext);
+        db.sync_db_validate(self);
+
+        // handle.dbs_sync.push(db);
+        return db;
+    }
+
+    pub fn get_sync_dir(&mut self) -> Result<String> {
+        let syncpath = format!("{}{}", self.dbpath, "sync/");
+        match std::fs::metadata(&syncpath) {
+            Err(_e) => {
+                debug!("database dir '{}' does not exist, creating it", syncpath);
+                if fs::create_dir_all(&syncpath).is_err() {
+                    return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                }
+            }
+            Ok(m) => {
+                if !m.is_dir() {
+                    warn!("removing invalid file: {}", syncpath);
+                    if std::fs::remove_file(&syncpath).is_err()
+                        || fs::create_dir_all(&syncpath).is_err()
+                    {
+                        return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                    }
+                }
+            }
+        }
+
+        return Ok(syncpath);
+    }
+
+    /// Load a package and create the corresponding pkg_t struct.
+    ///@param handle the context handle
+    ///@param pkgfile path to the package file
+    ///@param full whether to stop the load after metadata is read or continue
+    ///through the full archive
+    fn _alpm_pkg_load_internal(&self, pkgfile: &String, full: i32) -> pkg_t {
+        unimplemented!();
+        // 	int ret, fd;
+        // 	int config = 0;
+        // 	int hit_mtree = 0;
+        // 	struct archive *archive;
+        // 	struct archive_entry *entry;
+        // 	pkg_t *newpkg;
+        // 	struct stat st;
+        // 	size_t files_size = 0;
+        //
+        // 	if(pkgfile == NULL || strlen(pkgfile) == 0) {
+        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
+        // 	}
+        //
+        // 	fd = _alpm_open_archive(handle, pkgfile, &st, &archive, ALPM_ERR_PKG_OPEN);
+        // 	if(fd < 0) {
+        // 		if(errno == ENOENT) {
+        // 			handle->pm_errno = ALPM_ERR_PKG_NOT_FOUND;
+        // 		} else if(errno == EACCES) {
+        // 			handle->pm_errno = ALPM_ERR_BADPERMS;
+        // 		} else {
+        // 			handle->pm_errno = ALPM_ERR_PKG_OPEN;
+        // 		}
+        // 		return NULL;
+        // 	}
+        //
+        // 	newpkg = _alpm_pkg_new();
+        // 	if(newpkg == NULL) {
+        // 		handle->pm_errno = ALPM_ERR_MEMORY;
+        // 		goto error;
+        // 	}
+        // 	STRDUP(newpkg->filename, pkgfile,
+        // 			handle->pm_errno = ALPM_ERR_MEMORY; goto error);
+        // 	newpkg->size = st.st_size;
+        //
+        // 	_alpm_log(handle, ALPM_LOG_DEBUG, "starting package load for %s\n", pkgfile);
+        //
+        // 	/* If full is false, only read through the archive until we find our needed
+        // 	 * metadata. If it is true, read through the entire archive, which serves
+        // 	 * as a verification of integrity and allows us to create the filelist. */
+        // 	while((ret = archive_read_next_header(archive, &entry)) == ARCHIVE_OK) {
+        // 		const char *entry_name = archive_entry_pathname(entry);
+        //
+        // 		if(strcmp(entry_name, ".PKGINFO") == 0) {
+        // 			/* parse the info file */
+        // 			if(parse_descfile(handle, archive, newpkg) != 0) {
+        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("could not parse package description file in %s\n"),
+        // 						pkgfile);
+        // 				goto pkg_invalid;
+        // 			}
+        // 			if(newpkg->name == NULL || strlen(newpkg->name) == 0) {
+        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("missing package name in %s\n"), pkgfile);
+        // 				goto pkg_invalid;
+        // 			}
+        // 			if(newpkg->version == NULL || strlen(newpkg->version) == 0) {
+        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("missing package version in %s\n"), pkgfile);
+        // 				goto pkg_invalid;
+        // 			}
+        // 			if(strchr(newpkg->version, '-') == NULL) {
+        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("invalid package version in %s\n"), pkgfile);
+        // 				goto pkg_invalid;
+        // 			}
+        // 			config = 1;
+        // 			continue;
+        // 		} else if(full && strcmp(entry_name, ".MTREE") == 0) {
+        // 			/* building the file list: cheap way
+        // 			 * get the filelist from the mtree file rather than scanning
+        // 			 * the whole archive  */
+        // 			hit_mtree = build_filelist_from_mtree(handle, newpkg, archive) == 0;
+        // 			continue;
+        // 		} else if(handle_simple_path(newpkg, entry_name)) {
+        // 			continue;
+        // 		} else if(full && !hit_mtree) {
+        // 			/* building the file list: expensive way */
+        // 			if(add_entry_to_files_list(&newpkg->files, &files_size, entry, entry_name) < 0) {
+        // 				goto error;
+        // 			}
+        // 		}
+        //
+        // 		if(archive_read_data_skip(archive)) {
+        // 			_alpm_log(handle, ALPM_LOG_ERROR, _("error while reading package %s: %s\n"),
+        // 					pkgfile, archive_error_string(archive));
+        // 			handle->pm_errno = ALPM_ERR_LIBARCHIVE;
+        // 			goto error;
+        // 		}
+        //
+        // 		/* if we are not doing a full read, see if we have all we need */
+        // 		if((!full || hit_mtree) && config) {
+        // 			break;
+        // 		}
+        // 	}
+        //
+        // 	if(ret != ARCHIVE_EOF && ret != ARCHIVE_OK) { /* An error occurred */
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("error while reading package %s: %s\n"),
+        // 				pkgfile, archive_error_string(archive));
+        // 		handle->pm_errno = ALPM_ERR_LIBARCHIVE;
+        // 		goto error;
+        // 	}
+        //
+        // 	if(!config) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("missing package metadata in %s\n"), pkgfile);
+        // 		goto pkg_invalid;
+        // 	}
+        //
+        // 	_alpm_archive_read_free(archive);
+        // 	close(fd);
+        //
+        // 	/* internal fields for package struct */
+        // 	newpkg->origin = ALPM_PKG_FROM_FILE;
+        // 	newpkg->origin_data.file = strdup(pkgfile);
+        // 	newpkg->ops = get_file_pkg_ops();
+        // 	newpkg->handle = handle;
+        // 	newpkg->infolevel = INFRQ_BASE | INFRQ_DESC | INFRQ_SCRIPTLET;
+        // 	newpkg->validation = ALPM_PKG_VALIDATION_NONE;
+        //
+        // 	if(full) {
+        // 		if(newpkg->files.files) {
+        // 			/* attempt to hand back any memory we don't need */
+        // 			newpkg->files.files = realloc(newpkg->files.files,
+        // 					sizeof(alpm_file_t) * newpkg->files.count);
+        // 			/* "checking for conflicts" requires a sorted list, ensure that here */
+        // 			_alpm_log(handle, ALPM_LOG_DEBUG,
+        // 					"sorting package filelist for %s\n", pkgfile);
+        //
+        // 			_alpm_filelist_sort(&newpkg->files);
+        // 		}
+        // 		newpkg->infolevel |= INFRQ_FILES;
+        // 	}
+        //
+        // 	return newpkg;
+        //
+        // pkg_invalid:
+        // 	handle->pm_errno = ALPM_ERR_PKG_INVALID;
+        // error:
+        // 	_alpm_pkg_free(newpkg);
+        // 	_alpm_archive_read_free(archive);
+        // 	if(fd >= 0) {
+        // 		close(fd);
+        // 	}
+        //
+        // 	return NULL;
+    }
+
+    // /* adopted limit from repo-add */
+    // #define MAX_SIGFILE_SIZE 16384
+
+    // static int read_sigfile(const char *sigpath, unsigned char **sig)
+    // {
+    // 	struct stat st;
+    // 	FILE *fp;
+    //
+    // 	if((fp = fopen(sigpath, "rb")) == NULL) {
+    // 		return -1;
+    // 	}
+    //
+    // 	if(fstat(fileno(fp), &st) != 0 || st.st_size > MAX_SIGFILE_SIZE) {
+    // 		fclose(fp);
+    // 		return -1;
+    // 	}
+    //
+    // 	MALLOC(*sig, st.st_size, fclose(fp); return -1);
+    //
+    // 	if(fread(*sig, st.st_size, 1, fp) != 1) {
+    // 		free(*sig);
+    // 		fclose(fp);
+    // 		return -1;
+    // 	}
+    //
+    // 	fclose(fp);
+    // 	return st.st_size;
+    // }
+
+    pub fn alpm_pkg_load(
+        &self,
+        filename: &String,
+        full: i32,
+        level: &siglevel,
+        pkg: &pkg_t,
+    ) -> Result<i32> {
+        unimplemented!();
+        // 	int validation = 0;
+        // 	char *sigpath;
+        //
+        // 	CHECK_HANDLE(handle, return -1);
+        // 	ASSERT(pkg != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+        //
+        // 	sigpath = _alpm_sigpath(handle, filename);
+        // 	if(sigpath && !_alpm_access(handle, NULL, sigpath, R_OK)) {
+        // 		if(level & ALPM_SIG_PACKAGE) {
+        // 			alpm_list_t *keys = NULL;
+        // 			int fail = 0;
+        // 			unsigned char *sig = NULL;
+        // 			int len = read_sigfile(sigpath, &sig);
+        //
+        // 			if(len == -1) {
+        // 				_alpm_log(handle, ALPM_LOG_ERROR,
+        // 					_("failed to read signature file: %s\n"), sigpath);
+        // 				free(sigpath);
+        // 				return -1;
+        // 			}
+        //
+        // 			if(alpm_extract_keyid(handle, filename, sig, len, &keys) == 0) {
+        // 				alpm_list_t *k;
+        // 				for(k = keys; k; k = k->next) {
+        // 					char *key = k->data;
+        // 					if(_alpm_key_in_keychain(handle, key) == 0) {
+        // 						if(_alpm_key_import(handle, key) == -1) {
+        // 							fail = 1;
+        // 						}
+        // 					}
+        // 				}
+        // 				FREELIST(keys);
+        // 			}
+        //
+        // 			free(sig);
+        //
+        // 			if(fail) {
+        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("required key missing from keyring\n"));
+        // 				free(sigpath);
+        // 				return -1;
+        // 			}
+        // 		}
+        // 	}
+        // 	free(sigpath);
+        //
+        // 	if(_alpm_pkg_validate_internal(handle, filename, NULL, level, NULL,
+        // 				&validation) == -1) {
+        // 		/* pm_errno is set by pkg_validate */
+        // 		return -1;
+        // 	}
+        // 	*pkg = _alpm_pkg_load_internal(handle, filename, full);
+        // 	if(*pkg == NULL) {
+        // 		/* pm_errno is set by pkg_load */
+        // 		return -1;
+        // 	}
+        // 	(*pkg)->validation = validation;
+        //
+        // 	return 0;
+    }
+
+    ///Test if a package should be ignored.
+    ///Checks if the package is ignored via IgnorePkg, or if the package is
+    ///in a group ignored via IgnoreGroup.
+    pub fn alpm_pkg_should_ignore(&self, pkg: &pkg_t) -> bool {
+        unimplemented!();
+        // 	alpm_list_t *groups = NULL;
+        //
+        // 	/* first see if the package is ignored */
+        // if alpm_list_find(self.ignorepkg, pkg.name, _alpm_fnmatch) {
+        //     return true;
+        // }
+        //
+        // /* next see if the package is in a group that is ignored */
+        // for grp in pkg.alpm_pkg_get_groups() {
+        //     // char *grp = groups->data;
+        //     if alpm_list_find(self.ignoregroup, grp, _alpm_fnmatch) {
+        //         return true;
+        //     }
+        // }
+        //
+        // return false;
+    }
+
+    /// Unregister all package databases. */
+    pub fn alpm_unregister_all_syncdbs(&self) -> i32 {
+        unimplemented!();
+        // 	alpm_list_t *i;
+        // 	alpm_db_t *db;
+        //
+        // 	/* Sanity checks */
+        // 	CHECK_HANDLE(handle, return -1);
+        // 	/* Do not unregister a database if a transaction is on-going */
+        // 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
+        //
+        // 	/* unregister all sync dbs */
+        // 	for(i = handle->dbs_sync; i; i = i->next) {
+        // 		db = i->data;
+        // 		db->ops->unregister(db);
+        // 		i->data = NULL;
+        // 	}
+        // 	FREELIST(handle->dbs_sync);
+        // 	return 0;
+    }
+
+    /// Register a sync database of packages. */
+    pub fn alpm_register_syncdb(
+        &mut self,
+        treename: &String,
+        siglevel: siglevel,
+    ) -> Result<alpm_db_t> {
+        /* ensure database name is unique */
+        if treename == "local" {
+            return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
+        }
+        for d in &self.dbs_sync {
+            if treename == &d.treename {
+                return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
+            }
+        }
+
+        Ok(self._alpm_db_register_sync(&treename, siglevel))
+    }
+
+    pub fn _alpm_db_register_local(&mut self) -> Result<&alpm_db_t> {
+        let mut db;
+        debug!("registering local database");
+
+        db = alpm_db_t::_alpm_db_new(&String::from("local"), true);
+        // db.ops = &local_db_ops;
+        db.ops_type = db_ops_type::local;
+        db.usage.ALPM_DB_USAGE_ALL = true;
+        db.create_path(&self.dbpath, &self.dbext)?;
+        db.local_db_validate()?;
+
+        self.db_local = db;
+        return Ok(&self.db_local);
+    }
+
+    /// Add a package to the transaction.
+    pub fn alpm_add_pkg(&mut self, pkg: &mut pkg_t) -> Result<()> {
+        let trans: &mut alpm_trans_t = &mut self.trans;
+        let pkgname: &String = &pkg.name;
+        let pkgver: String = pkg.version.clone();
+
+        debug!("adding package '{}'", pkgname);
+
+        if alpm_pkg_find(&mut trans.add, &pkgname).is_some() {
+            return Err(alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET);
+        }
+
+        match self.db_local._alpm_db_get_pkgfromcache(pkgname) {
+            Some(local) => {
+                let localpkgname: &String = &local.name;
+                let localpkgver: &String = &local.version;
+                let cmp: i8 = pkg._alpm_pkg_compare_versions(&local);
+
+                if cmp == 0 {
+                    if trans.flags.NEEDED {
+                        /* with the NEEDED flag, packages up to date are not reinstalled */
+                        warn!(
+                            "{}-{} is up to date -- skipping\n",
+                            localpkgname, localpkgver
+                        );
+                        return Ok(());
+                    } else if !trans.flags.DOWNLOADONLY {
+                        warn!(
+                            "{}-{} is up to date -- reinstalling\n",
+                            localpkgname, localpkgver
+                        );
+                    }
+                } else if cmp < 0 && !trans.flags.DOWNLOADONLY {
+                    /* local version is newer */
+                    warn!(
+                        "downgrading package {} ({} => {})\n",
+                        localpkgname, localpkgver, pkgver
+                    );
+                }
+            }
+            None => {}
+        }
+
+        /* add the package to the transaction */
+        pkg.reason = alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT;
+        debug!(
+            "adding package {}-{} to the transaction add list\n",
+            pkgname, pkgver
+        );
+        trans.add.push(pkg.clone());
+        Ok(())
+    }
+
+    pub fn perform_extraction(
+        &self,
+        archive: &archive,
+        entry: &archive_entry,
+        filename: &String,
+    ) -> i32 {
+        unimplemented!();
+        // 	int ret;
+        // 	struct archive *archive_writer;
+        // 	const int archive_flags = ARCHIVE_EXTRACT_OWNER |
+        // 	                          ARCHIVE_EXTRACT_PERM |
+        // 	                          ARCHIVE_EXTRACT_TIME |
+        // 	                          ARCHIVE_EXTRACT_UNLINK |
+        // 	                          ARCHIVE_EXTRACT_SECURE_SYMLINKS;
+        //
+        // 	archive_entry_set_pathname(entry, filename);
+        //
+        // 	archive_writer = archive_write_disk_new();
+        // 	if (archive_writer == NULL) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("cannot allocate disk archive object"));
+        // 		alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 				"error: cannot allocate disk archive object");
+        // 		return 1;
+        // 	}
+        //
+        // 	archive_write_disk_set_options(archive_writer, archive_flags);
+        //
+        // 	ret = archive_read_extract2(archive, entry, archive_writer);
+        //
+        // 	archive_write_free(archive_writer);
+        //
+        // 	if(ret == ARCHIVE_WARN && archive_errno(archive) != ENOSPC) {
+        // 		/* operation succeeded but a "non-critical" error was encountered */
+        // 		_alpm_log(handle, ALPM_LOG_WARNING, _("warning given when extracting {} ({})\n"),
+        // 				filename, archive_error_string(archive));
+        // 	} else if(ret != ARCHIVE_OK) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not extract {} ({})\n"),
+        // 				filename, archive_error_string(archive));
+        // 		alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 				"error: could not extract {} ({})\n",
+        // 				filename, archive_error_string(archive));
+        // 		return 1;
+        // 	}
+        // 	return 0;
+    }
+
+    pub fn _alpm_upgrade_packages(&mut self) -> Result<()> {
+        let mut skip_ldconfig: bool = false;
+        let mut ret: Result<()> = Ok(());
+        let pkg_count: usize;
+        let mut pkg_current: usize;
+
+        if self.trans.add.is_empty() {
+            return Ok(());
+        }
+
+        pkg_count = self.trans.add.len();
+        pkg_current = 1;
+
+        /* loop through our package list adding/upgrading one at a time */
+        for newpkg in &self.trans.add {
+            match &self.trans.state {
+                &alpm_transstate_t::STATE_INTERRUPTED => {
+                    return ret;
+                }
+                _ => {}
+            }
+
+            if self.commit_single_pkg(&newpkg, pkg_current, pkg_count) != 0 {
+                /* something screwed up on the commit, abort the trans */
+                self.trans.state = alpm_transstate_t::STATE_INTERRUPTED;
+                /* running ldconfig at this point could possibly screw system */
+                skip_ldconfig = true;
+                ret = Err(alpm_errno_t::ALPM_ERR_TRANS_ABORT);
+            }
+
+            pkg_current += 1;
+        }
+
+        if !skip_ldconfig {
+            /* run ldconfig if it exists */
+            self._alpm_ldconfig();
+        }
+
+        ret
+    }
+
+    pub fn try_rename(&self, src: &String, dest: &String) -> i32 {
+        match std::fs::rename(src, dest) {
+            Err(e) => {
+                error!("could not rename {} to {} ({})\n", src, dest, e);
+                // alpm_logaction(handle, ALPM_CALLER_PREFIX,
+                // "error: could not rename {} to {} ({})\n", src, dest, strerror(errno));
+                return 1;
+            }
+            Ok(()) => {}
+        }
+        return 0;
+    }
+
+    pub fn extract_db_file(
+        &self,
+        archive: &archive,
+        entry: &archive_entry,
+        newpkg: &pkg_t,
+        entryname: &String,
+    ) -> i32 {
+        unimplemented!();
+        // 	char filename[PATH_MAX]; /* the actual file we're extracting */
+        // 	const char *dbfile = NULL;
+        // 	if(strcmp(entryname, ".INSTALL") == 0) {
+        // 		dbfile = "install";
+        // 	} else if(strcmp(entryname, ".CHANGELOG") == 0) {
+        // 		dbfile = "changelog";
+        // 	} else if(strcmp(entryname, ".MTREE") == 0) {
+        // 		dbfile = "mtree";
+        // 	} else if(*entryname == '.') {
+        // 		/* reserve all files starting with '.' for future possibilities */
+        // 		debug!("skipping extraction of '{}'\n", entryname);
+        // 		archive_read_data_skip(archive);
+        // 		return 0;
+        // 	}
+        // 	archive_entry_set_perm(entry, 0644);
+        // 	snprintf(filename, PATH_MAX, "{}{}-{}/{}",
+        // 			_alpm_db_path(handle->db_local), newpkg->name, newpkg->version, dbfile);
+        // 	return perform_extraction(handle, archive, entry, filename);
+    }
+
+    pub fn extract_single_file(
+        &self,
+        archive: &archive,
+        entry: &archive_entry,
+        newpkg: &pkg_t,
+        oldpkg: &pkg_t,
+    ) -> i32 {
+        unimplemented!();
+        // 	const char *entryname = archive_entry_pathname(entry);
+        // 	mode_t entrymode = archive_entry_mode(entry);
+        // 	alpm_backup_t *backup = _alpm_needbackup(entryname, newpkg);
+        // 	char filename[PATH_MAX]; /* the actual file we're extracting */
+        // 	int needbackup = 0, notouch = 0;
+        // 	const char *hash_orig = NULL;
+        // 	int isnewfile = 0, errors = 0;
+        // 	struct stat lsbuf;
+        // 	size_t filename_len;
+        //
+        // 	if(*entryname == '.') {
+        // 		return extract_db_file(handle, archive, entry, newpkg, entryname);
+        // 	}
+        //
+        // 	if (!alpm_filelist_contains(&newpkg->files, entryname)) {
+        // 		_alpm_log(handle, ALPM_LOG_WARNING,
+        // 				_("file not found in file list for package {}. skipping extraction of {}\n"),
+        // 				newpkg->name, entryname);
+        // 		return 0;
+        // 	}
+        //
+        // 	/* build the new entryname relative to handle->root */
+        // 	filename_len = snprintf(filename, PATH_MAX, "{}{}", handle->root, entryname);
+        // 	if(filename_len >= PATH_MAX) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR,
+        // 				_("unable to extract {}{}: path too long"), handle->root, entryname);
+        // 		return 1;
+        // 	}
+        //
+        // 	/* if a file is in NoExtract then we never extract it */
+        // 	if(_alpm_fnmatch_patterns(handle->noextract, entryname) == 0) {
+        // 		debug!("{} is in NoExtract,"
+        // 				" skipping extraction of {}\n",
+        // 				entryname, filename);
+        // 		archive_read_data_skip(archive);
+        // 		return 0;
+        // 	}
+        //
+        // 	/* Check for file existence. This is one of the more crucial parts
+        // 	 * to get 'right'. Here are the possibilities, with the filesystem
+        // 	 * on the left and the package on the top:
+        // 	 * (F=file, N=node, S=symlink, D=dir)
+        // 	 *               |  F/N  |   D
+        // 	 *  non-existent |   1   |   2
+        // 	 *  F/N          |   3   |   4
+        // 	 *  D            |   5   |   6
+        // 	 *
+        // 	 *  1,2- extract, no magic necessary. lstat (llstat) will fail here.
+        // 	 *  3,4- conflict checks should have caught this. either overwrite
+        // 	 *      or backup the file.
+        // 	 *  5- file replacing directory- don't allow it.
+        // 	 *  6- skip extraction, dir already exists.
+        // 	 */
+        //
+        // 	isnewfile = llstat(filename, &lsbuf) != 0;
+        // 	if(isnewfile) {
+        // 		/* cases 1,2: file doesn't exist, skip all backup checks */
+        // 	} else if(S_ISDIR(lsbuf.st_mode) && S_ISDIR(entrymode)) {
+        // #if 0
+        // 		uid_t entryuid = archive_entry_uid(entry);
+        // 		gid_t entrygid = archive_entry_gid(entry);
+        // #endif
+        //
+        // 		/* case 6: existing dir, ignore it */
+        // 		if(lsbuf.st_mode != entrymode) {
+        // 			/* if filesystem perms are different than pkg perms, warn user */
+        // 			mode_t mask = 07777;
+        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("directory permissions differ on {}\n"
+        // 					"filesystem: %o  package: %o\n"), filename, lsbuf.st_mode & mask,
+        // 					entrymode & mask);
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 					"warning: directory permissions differ on {}\n"
+        // 					"filesystem: %o  package: %o\n", filename, lsbuf.st_mode & mask,
+        // 					entrymode & mask);
+        // 		}
+        //
+        // #if 0
+        // 		/* Disable this warning until our user management in packages has improved.
+        // 		   Currently many packages have to create users in post_install and chown the
+        // 		   directories. These all resulted in "false-positive" warnings. */
+        //
+        // 		if((entryuid != lsbuf.st_uid) || (entrygid != lsbuf.st_gid)) {
+        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("directory ownership differs on {}\n"
+        // 					"filesystem: %u:%u  package: %u:%u\n"), filename,
+        // 					lsbuf.st_uid, lsbuf.st_gid, entryuid, entrygid);
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 					"warning: directory ownership differs on {}\n"
+        // 					"filesystem: %u:%u  package: %u:%u\n", filename,
+        // 					lsbuf.st_uid, lsbuf.st_gid, entryuid, entrygid);
+        // 		}
+        // #endif
+        //
+        // 		debug!("extract: skipping dir extraction of {}\n",
+        // 				filename);
+        // 		archive_read_data_skip(archive);
+        // 		return 0;
+        // 	} else if(S_ISDIR(lsbuf.st_mode)) {
+        // 		/* case 5: trying to overwrite dir with file, don't allow it */
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("extract: not overwriting dir with file {}\n"),
+        // 				filename);
+        // 		archive_read_data_skip(archive);
+        // 		return 1;
+        // 	} else if(S_ISDIR(entrymode)) {
+        // 		/* case 4: trying to overwrite file with dir */
+        // 		debug!("extract: overwriting file with dir {}\n",
+        // 				filename);
+        // 	} else {
+        // 		/* case 3: trying to overwrite file with file */
+        // 		/* if file is in NoUpgrade, don't touch it */
+        // 		if(_alpm_fnmatch_patterns(handle->noupgrade, entryname) == 0) {
+        // 			notouch = 1;
+        // 		} else {
+        // 			alpm_backup_t *oldbackup;
+        // 			if(oldpkg && (oldbackup = _alpm_needbackup(entryname, oldpkg))) {
+        // 				hash_orig = oldbackup->hash;
+        // 				needbackup = 1;
+        // 			} else if(backup) {
+        // 				/* allow adding backup files retroactively */
+        // 				needbackup = 1;
+        // 			}
+        // 		}
+        // 	}
+        //
+        // 	if(notouch || needbackup) {
+        // 		if(filename_len + strlen(".pacnew") >= PATH_MAX) {
+        // 			_alpm_log(handle, ALPM_LOG_ERROR,
+        // 					_("unable to extract {}.pacnew: path too long"), filename);
+        // 			return 1;
+        // 		}
+        // 		strcpy(filename + filename_len, ".pacnew");
+        // 		isnewfile = (llstat(filename, &lsbuf) != 0 && errno == ENOENT);
+        // 	}
+        //
+        // 	debug!("extracting {}\n", filename);
+        // 	if(perform_extraction(handle, archive, entry, filename)) {
+        // 		errors++;
+        // 		return errors;
+        // 	}
+        //
+        // 	if(backup) {
+        // 		FREE(backup->hash);
+        // 		backup->hash = alpm_compute_md5sum(filename);
+        // 	}
+        //
+        // 	if(notouch) {
+        // 		alpm_event_pacnew_created_t event = {
+        // 			.type = ALPM_EVENT_PACNEW_CREATED,
+        // 			.from_noupgrade = 1,
+        // 			.oldpkg = oldpkg,
+        // 			.newpkg = newpkg,
+        // 			.file = filename
+        // 		};
+        // 		/* "remove" the .pacnew suffix */
+        // 		filename[filename_len] = '\0';
+        // 		EVENT(handle, &event);
+        // 		alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 				"warning: {} installed as {}.pacnew\n", filename, filename);
+        // 	} else if(needbackup) {
+        // 		char *hash_local = NULL, *hash_pkg = NULL;
+        // 		char origfile[PATH_MAX] = "";
+        //
+        // 		strncat(origfile, filename, filename_len);
+        //
+        // 		hash_local = alpm_compute_md5sum(origfile);
+        // 		hash_pkg = backup ? backup->hash : alpm_compute_md5sum(filename);
+        //
+        // 		debug!("checking hashes for {}\n", origfile);
+        // 		debug!("current:  {}\n", hash_local);
+        // 		debug!("new:      {}\n", hash_pkg);
+        // 		debug!("original: {}\n", hash_orig);
+        //
+        // 		if(hash_local && hash_pkg && strcmp(hash_local, hash_pkg) == 0) {
+        // 			/* local and new files are the same, updating anyway to get
+        // 			 * correct timestamps */
+        // 			debug!("action: installing new file: {}\n",
+        // 					origfile);
+        // 			if(try_rename(handle, filename, origfile)) {
+        // 				errors++;
+        // 			}
+        // 		} else if(hash_orig && hash_pkg && strcmp(hash_orig, hash_pkg) == 0) {
+        // 			/* original and new files are the same, leave the local version alone,
+        // 			 * including any user changes */
+        // 			debug!(
+        // 					"action: leaving existing file in place\n");
+        // 			if(isnewfile) {
+        // 				unlink(filename);
+        // 			}
+        // 		} else if(hash_orig && hash_local && strcmp(hash_orig, hash_local) == 0) {
+        // 			/* installed file has NOT been changed by user,
+        // 			 * update to the new version */
+        // 		debug!(action: installing new file: {}\n",
+        // 					origfile);
+        // 			if(try_rename(handle, filename, origfile)) {
+        // 				errors++;
+        // 			}
+        // 		} else {
+        // 			/* none of the three files matched another,  leave the unpacked
+        // 			 * file alongside the local file */
+        // 			alpm_event_pacnew_created_t event = {
+        // 				.type = ALPM_EVENT_PACNEW_CREATED,
+        // 				.from_noupgrade = 0,
+        // 				.oldpkg = oldpkg,
+        // 				.newpkg = newpkg,
+        // 				.file = origfile
+        // 			};
+        // 			debug!(
+        // 					"action: keeping current file and installing"
+        // 					" new one with .pacnew ending\n");
+        // 			EVENT(handle, &event);
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 					"warning: {} installed as {}\n", origfile, filename);
+        // 		}
+        //
+        // 		free(hash_local);
+        // 		if(!backup) {
+        // 			free(hash_pkg);
+        // 		}
+        // 	}
+        // 	return errors;
+    }
+
+    pub fn commit_single_pkg(&self, newpkg: &pkg_t, pkg_current: usize, pkg_count: usize) -> i32 {
+        unimplemented!();
+        // 	int i, ret = 0, errors = 0;
+        // 	int is_upgrade = 0;
+        let oldpkg: &Option<pkg_t>;
+        // 	pkg_t *oldpkg = NULL;
+        // 	alpm_db_t *db = handle->db_local;
+        // 	alpm_trans_t *trans = handle->trans;
+        // 	alpm_progress_t progress = ALPM_PROGRESS_ADD_START;
+        // 	alpm_event_package_operation_t event;
+        // 	const char *log_msg = "adding";
+        // 	const char *pkgfile;
+        // 	struct archive *archive;
+        // 	struct archive_entry *entry;
+        // 	int fd, cwdfd;
+        // 	struct stat buf;
+        //
+        // 	ASSERT(trans != NULL, return -1);
+
+        /* see if this is an upgrade. if so, remove the old package first */
+        // match newpkg.oldpkg {
+        //     Some(ref oldpkg) => {
+        //         // int cmp = _alpm_pkg_compare_versions(newpkg, oldpkg);
+        //         let cpm = newpkg._alpm_pkg_compare_versions(oldpkg);
+        //         // 		if(cmp < 0) {
+        //         // 			log_msg = "downgrading";
+        //         // 			progress = ALPM_PROGRESS_DOWNGRADE_START;
+        //         // 			event.operation = ALPM_PACKAGE_DOWNGRADE;
+        //         // 		} else if(cmp == 0) {
+        //         // 			log_msg = "reinstalling";
+        //         // 			progress = ALPM_PROGRESS_REINSTALL_START;
+        //         // 			event.operation = ALPM_PACKAGE_REINSTALL;
+        //         // 		} else {
+        //         // 			log_msg = "upgrading";
+        //         // 			progress = ALPM_PROGRESS_UPGRADE_START;
+        //         // 			event.operation = ALPM_PACKAGE_UPGRADE;
+        //         // 		}
+        //         // 		is_upgrade = 1;
+        //         //
+        //         // 		/* copy over the install reason */
+        //         // 		newpkg->reason = alpm_pkg_get_reason(oldpkg);
+        //     }
+        //     None => {
+        //         // event.operation = ALPM_PACKAGE_INSTALL;
+        //     }
+        // };
+
+        // 	event.type = ALPM_EVENT_PACKAGE_OPERATION_START;
+        // 	event.oldpkg = oldpkg;
+        // 	event.newpkg = newpkg;
+        // 	EVENT(handle, &event);
+        //
+        // 	pkgfile = newpkg->origin_data.file;
+        //
+        // 	debug!("{} package {}-{}\n",
+        // 			log_msg, newpkg->name, newpkg->version);
+        /* pre_install/pre_upgrade scriptlet */
+        // 	if(alpm_pkg_has_scriptlet(newpkg) &&
+        // 			!(trans->flags & ALPM_TRANS_FLAG_NOSCRIPTLET)) {
+        // 		const char *scriptlet_name = is_upgrade ? "pre_upgrade" : "pre_install";
+        //
+        // 		_alpm_runscriptlet(handle, pkgfile, scriptlet_name,
+        // 				newpkg->version, oldpkg ? oldpkg->version : NULL, 1);
+        // 	}
+
+        /* we override any pre-set reason if we have alldeps or allexplicit set */
+        // 	if(trans->flags & ALPM_TRANS_FLAG_ALLDEPS) {
+        // 		newpkg->reason = ALPM_PKG_REASON_DEPEND;
+        // 	} else if(trans->flags & ALPM_TRANS_FLAG_ALLEXPLICIT) {
+        // 		newpkg->reason = ALPM_PKG_REASON_EXPLICIT;
+        // 	}
+
+        // 	if(oldpkg) {
+        // 		/* set up fake remove transaction */
+        // 		if(_alpm_remove_single_package(handle, oldpkg, newpkg, 0, 0) == -1) {
+        // 			handle->pm_errno = ALPM_ERR_TRANS_ABORT;
+        // 			ret = -1;
+        // 			goto cleanup;
+        // 		}
+        // 	}
+
+        /* prepare directory for database entries so permissions are correct after
+        	   changelog/install script installation */
+        // 	if(_alpm_local_db_prepare(db, newpkg)) {
+        // 		alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 				"error: could not create database entry {}-{}\n",
+        // 				newpkg->name, newpkg->version);
+        // 		handle->pm_errno = ALPM_ERR_DB_WRITE;
+        // 		ret = -1;
+        // 		goto cleanup;
+        // 	}
+        //
+        // 	fd = _alpm_open_archive(db->handle, pkgfile, &buf,
+        // 			&archive, ALPM_ERR_PKG_OPEN);
+        // 	if(fd < 0) {
+        // 		ret = -1;
+        // 		goto cleanup;
+        // 	}
+        //
+        // 	/* save the cwd so we can restore it later */
+        // 	OPEN(cwdfd, ".", O_RDONLY | O_CLOEXEC);
+        // 	if(cwdfd < 0) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not get current working directory\n"));
+        // 	}
+        //
+        // 	/* libarchive requires this for extracting hard links */
+        // 	if(chdir(handle->root) != 0) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not change directory to {} ({})\n"),
+        // 				handle->root, strerror(errno));
+        // 		_alpm_archive_read_free(archive);
+        // 		if(cwdfd >= 0) {
+        // 			close(cwdfd);
+        // 		}
+        // 		close(fd);
+        // 		ret = -1;
+        // 		goto cleanup;
+        // 	}
+        //
+        // 	if(trans->flags & ALPM_TRANS_FLAG_DBONLY) {
+        // 		debug!("extracting db files\n");
+        // 		while(archive_read_next_header(archive, &entry) == ARCHIVE_OK) {
+        // 			const char *entryname = archive_entry_pathname(entry);
+        // 			if(entryname[0] == '.') {
+        // 				errors += extract_db_file(handle, archive, entry, newpkg, entryname);
+        // 			} else {
+        // 				archive_read_data_skip(archive);
+        // 			}
+        // 		}
+        // 	} else {
+        // 		debug!("extracting files\n");
+        //
+        // 		/* call PROGRESS once with 0 percent, as we sort-of skip that here */
+        // 		PROGRESS(handle, progress, newpkg->name, 0, pkg_count, pkg_current);
+        //
+        // 		for(i = 0; archive_read_next_header(archive, &entry) == ARCHIVE_OK; i++) {
+        // 			int percent;
+        //
+        // 			if(newpkg->size != 0) {
+        // 				/* Using compressed size for calculations here, as newpkg->isize is not
+        // 				 * exact when it comes to comparing to the ACTUAL uncompressed size
+        // 				 * (missing metadata sizes) */
+        // 				int64_t pos = _alpm_archive_compressed_ftell(archive);
+        // 				percent = (pos * 100) / newpkg->size;
+        // 				if(percent >= 100) {
+        // 					percent = 100;
+        // 				}
+        // 			} else {
+        // 				percent = 0;
+        // 			}
+        //
+        // 			PROGRESS(handle, progress, newpkg->name, percent, pkg_count, pkg_current);
+        //
+        // 			/* extract the next file from the archive */
+        // 			errors += extract_single_file(handle, archive, entry, newpkg, oldpkg);
+        // 		}
+        // 	}
+        //
+        // 	_alpm_archive_read_free(archive);
+        // 	close(fd);
+        //
+        // 	/* restore the old cwd if we have it */
+        // 	if(cwdfd >= 0) {
+        // 		if(fchdir(cwdfd) != 0) {
+        // 			_alpm_log(handle, ALPM_LOG_ERROR,
+        // 					_("could not restore working directory ({})\n"), strerror(errno));
+        // 		}
+        // 		close(cwdfd);
+        // 	}
+        //
+        // 	if(errors) {
+        // 		ret = -1;
+        // 		if(is_upgrade) {
+        // 			_alpm_log(handle, ALPM_LOG_ERROR, _("problem occurred while upgrading {}\n"),
+        // 					newpkg->name);
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 					"error: problem occurred while upgrading {}\n",
+        // 					newpkg->name);
+        // 		} else {
+        // 			_alpm_log(handle, ALPM_LOG_ERROR, _("problem occurred while installing {}\n"),
+        // 					newpkg->name);
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 					"error: problem occurred while installing {}\n",
+        // 					newpkg->name);
+        // 		}
+        // 	}
+        //
+        // 	/* make an install date (in UTC) */
+        // 	newpkg->installdate = time(NULL);
+        //
+        // 	debug!("updating database\n");
+        // 	debug!("adding database entry '{}'\n", newpkg->name);
+        //
+        // 	if(_alpm_local_db_write(db, newpkg, INFRQ_ALL)) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not update database entry {}-{}\n"),
+        // 				newpkg->name, newpkg->version);
+        // 		alpm_logaction(handle, ALPM_CALLER_PREFIX,
+        // 				"error: could not update database entry {}-{}\n",
+        // 				newpkg->name, newpkg->version);
+        // 		handle->pm_errno = ALPM_ERR_DB_WRITE;
+        // 		ret = -1;
+        // 		goto cleanup;
+        // 	}
+        //
+        // 	if(_alpm_db_add_pkgincache(db, newpkg) == -1) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not add entry '{}' in cache\n"),
+        // 				newpkg->name);
+        // 	}
+        //
+        // 	PROGRESS(handle, progress, newpkg->name, 100, pkg_count, pkg_current);
+        //
+        // 	switch(event.operation) {
+        // 		case ALPM_PACKAGE_INSTALL:
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "installed {} ({})\n",
+        // 					newpkg->name, newpkg->version);
+        // 			break;
+        // 		case ALPM_PACKAGE_DOWNGRADE:
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "downgraded {} ({} -> {})\n",
+        // 					newpkg->name, oldpkg->version, newpkg->version);
+        // 			break;
+        // 		case ALPM_PACKAGE_REINSTALL:
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "reinstalled {} ({})\n",
+        // 					newpkg->name, newpkg->version);
+        // 			break;
+        // 		case ALPM_PACKAGE_UPGRADE:
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "upgraded {} ({} -> {})\n",
+        // 					newpkg->name, oldpkg->version, newpkg->version);
+        // 			break;
+        // 		default:
+        // 			/* we should never reach here */
+        // 			break;
+        // 	}
+        //
+        // 	/* run the post-install script if it exists */
+        // 	if(alpm_pkg_has_scriptlet(newpkg)
+        // 			&& !(trans->flags & ALPM_TRANS_FLAG_NOSCRIPTLET)) {
+        // 		char *scriptlet = _alpm_local_db_pkgpath(db, newpkg, "install");
+        // 		const char *scriptlet_name = is_upgrade ? "post_upgrade" : "post_install";
+        //
+        // 		_alpm_runscriptlet(handle, scriptlet, scriptlet_name,
+        // 				newpkg->version, oldpkg ? oldpkg->version : NULL, 0);
+        // 		free(scriptlet);
+        // 	}
+        //
+        // 	event.type = ALPM_EVENT_PACKAGE_OPERATION_DONE;
+        // 	EVENT(handle, &event);
+        //
+        // cleanup:
+        // 	return ret;
+    }
+
     pub fn alpm_option_get_root(&self) -> String {
         return self.root.clone();
     }
@@ -531,6 +1988,10 @@ impl alpm_handle_t {
         return &self.dbs_sync;
     }
 
+    pub fn alpm_get_syncdbs_mut(&mut self) -> &mut Vec<alpm_db_t> {
+        return &mut self.dbs_sync;
+    }
+
     pub fn alpm_option_set_checkspace(&mut self, checkspace: i32) {
         self.checkspace = checkspace;
     }
@@ -813,7 +2274,7 @@ pub struct alpm_handle_t {
     // 	alpm_cb_progress progresscb;
     //
     // 	/* filesystem paths */
-    pub root: String, /* Root path, default '/' */
+    pub root: String,                 /* Root path, default '/' */
     pub dbpath: String,               /* Base path to pacman's DBs */
     pub logfile: String,              /* Name of the log file */
     pub lockfile: String,             /* Name of the lock file */
@@ -831,7 +2292,7 @@ pub struct alpm_handle_t {
     pub assumeinstalled: Vec<alpm_depend_t>,
     //
     // 	/* options */
-    arch: String, /* Architecture of packages we should allow */
+    pub arch: String, /* Architecture of packages we should allow */
     deltaratio: f64,
     /// Download deltas if possible; a ratio value */
     pub usesyslog: i32, /* Use syslog instead of logfile? */
@@ -856,8 +2317,8 @@ pub struct alpm_handle_t {
 }
 
 impl Clone for alpm_handle_t {
-    fn clone(&self)->Self{
-        alpm_handle_t{
+    fn clone(&self) -> Self {
+        alpm_handle_t {
             db_local: self.db_local.clone(),
             dbs_sync: self.dbs_sync.clone(),
             // 	FILE *logstream;
@@ -888,7 +2349,7 @@ impl Clone for alpm_handle_t {
             cachedirs: self.cachedirs.clone(),
             hookdirs: self.hookdirs.clone(),
             overwrite_files: self.overwrite_files.clone(),
-            noupgrade:self.noupgrade.clone(),
+            noupgrade: self.noupgrade.clone(),
             noextract: self.noextract.clone(),
             ignorepkg: self.ignorepkg.clone(),
             ignoregroup: self.ignoregroup.clone(),

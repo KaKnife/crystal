@@ -47,14 +47,13 @@ use super::*;
 // 	struct archive *archive;
 // 	int fd;
 // };
-//
-// /**
-//  * Open a package changelog for reading. Similar to fopen in functionality,
+
+// /** Open a package changelog for reading. Similar to fopen in functionality,
 //  * except that the returned 'file stream' is from an archive.
 //  * @param pkg the package (file) to read the changelog
 //  * @return a 'file stream' to the package changelog
 //  */
-// static void *_package_changelog_open(alpm_pkg_t *pkg)
+// static void *_package_changelog_open(pkg_t *pkg)
 // {
 // 	ASSERT(pkg != NULL, return NULL);
 //
@@ -94,9 +93,8 @@ use super::*;
 //
 // 	return NULL;
 // }
-//
-// /**
-//  * Read data from an open changelog 'file stream'. Similar to fread in
+
+// /**Read data from an open changelog 'file stream'. Similar to fread in
 //  * functionality, this function takes a buffer and amount of data to read.
 //  * @param ptr a buffer to fill with raw changelog data
 //  * @param size the size of the buffer
@@ -105,7 +103,7 @@ use super::*;
 //  * @return the number of characters read, or 0 if there is no more data
 //  */
 // static size_t _package_changelog_read(void *ptr, size_t size,
-// 		const alpm_pkg_t UNUSED *pkg, void *fp)
+// 		const pkg_t UNUSED *pkg, void *fp)
 // {
 // 	struct package_changelog *changelog = fp;
 // 	ssize_t sret = archive_read_data(changelog->archive, ptr, size);
@@ -116,7 +114,7 @@ use super::*;
 // 		return (size_t)sret;
 // 	}
 // }
-//
+
 // /**
 //  * Close a package changelog for reading. Similar to fclose in functionality,
 //  * except that the 'file stream' is from an archive.
@@ -124,7 +122,7 @@ use super::*;
 //  * @param fp a 'file stream' to the package changelog
 //  * @return whether closing the package changelog stream was successful
 //  */
-// static int _package_changelog_close(const alpm_pkg_t UNUSED *pkg, void *fp)
+// static int _package_changelog_close(const pkg_t UNUSED *pkg, void *fp)
 // {
 // 	int ret;
 // 	struct package_changelog *changelog = fp;
@@ -133,7 +131,7 @@ use super::*;
 // 	free(changelog);
 // 	return ret;
 // }
-//
+
 // /** Package file operations struct accessor. We implement this as a method
 //  * rather than a static struct as in be_files because we want to reuse the
 //  * majority of the default_pkg_ops struct and add only a few operations of
@@ -152,15 +150,15 @@ use super::*;
 // 	}
 // 	return &file_pkg_ops;
 // }
-//
+
 // /**
-//  * Parses the package description file for a package into a alpm_pkg_t struct.
+//  * Parses the package description file for a package into a pkg_t struct.
 //  * @param archive the archive to read from, pointed at the .PKGINFO entry
-//  * @param newpkg an empty alpm_pkg_t struct to fill with package info
+//  * @param newpkg an empty pkg_t struct to fill with package info
 //  *
 //  * @return 0 on success, -1 on error
 //  */
-// static int parse_descfile(alpm_handle_t *handle, struct archive *a, alpm_pkg_t *newpkg)
+// static int parse_descfile(alpm_handle_t *handle, struct archive *a, pkg_t *newpkg)
 // {
 // 	char *ptr = NULL;
 // 	char *key = NULL;
@@ -260,7 +258,7 @@ use super::*;
 //
 // 	return 0;
 // }
-//
+
 // /**
 //  * Validate a package.
 //  * @param handle the context handle
@@ -273,7 +271,7 @@ use super::*;
 //  * @return 0 if package is fully valid, -1 and pm_errno otherwise
 //  */
 // int _alpm_pkg_validate_internal(alpm_handle_t *handle,
-// 		const char *pkgfile, alpm_pkg_t *syncpkg, int level,
+// 		const char *pkgfile, pkg_t *syncpkg, int level,
 // 		alpm_siglist_t **sigdata, int *validation)
 // {
 // 	int has_sig;
@@ -358,14 +356,14 @@ use super::*;
 //
 // 	return 0;
 // }
-//
+
 // /**
 //  * Handle the existence of simple paths for _alpm_load_pkg_internal()
 //  * @param pkg package to change
 //  * @param path path to examine
 //  * @return 0 if path doesn't match any rule, 1 if it has been handled
 //  */
-// static int handle_simple_path(alpm_pkg_t *pkg, const char *path)
+// static int handle_simple_path(pkg_t *pkg, const char *path)
 // {
 // 	if(strcmp(path, ".INSTALL") == 0) {
 // 		pkg->scriptlet = 1;
@@ -378,7 +376,7 @@ use super::*;
 //
 // 	return 0;
 // }
-//
+
 // /**
 //  * Add a file to the files list for pkg.
 //  *
@@ -426,7 +424,7 @@ use super::*;
 // 	filelist->count++;
 // 	return 0;
 // }
-//
+
 // /**
 //  * Generate a new file list from an mtree file and add it to the package.
 //  * An existing file list will be free()d first.
@@ -439,7 +437,7 @@ use super::*;
 //  * @param archive archive containing the mtree
 //  * @return 0 on success, <0 on error
 //  */
-// static int build_filelist_from_mtree(alpm_handle_t *handle, alpm_pkg_t *pkg, struct archive *archive)
+// static int build_filelist_from_mtree(alpm_handle_t *handle, pkg_t *pkg, struct archive *archive)
 // {
 // 	int ret = 0;
 // 	size_t i;
@@ -545,253 +543,3 @@ use super::*;
 // 	_alpm_archive_read_free(mtree);
 // 	return -1;
 // }
-
-impl alpm_handle_t {
-    /**
-     * Load a package and create the corresponding alpm_pkg_t struct.
-     * @param handle the context handle
-     * @param pkgfile path to the package file
-     * @param full whether to stop the load after metadata is read or continue
-     * through the full archive
-     */
-    fn _alpm_pkg_load_internal(&self, pkgfile: &String, full: i32) -> alpm_pkg_t {
-        unimplemented!();
-        // 	int ret, fd;
-        // 	int config = 0;
-        // 	int hit_mtree = 0;
-        // 	struct archive *archive;
-        // 	struct archive_entry *entry;
-        // 	alpm_pkg_t *newpkg;
-        // 	struct stat st;
-        // 	size_t files_size = 0;
-        //
-        // 	if(pkgfile == NULL || strlen(pkgfile) == 0) {
-        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
-        // 	}
-        //
-        // 	fd = _alpm_open_archive(handle, pkgfile, &st, &archive, ALPM_ERR_PKG_OPEN);
-        // 	if(fd < 0) {
-        // 		if(errno == ENOENT) {
-        // 			handle->pm_errno = ALPM_ERR_PKG_NOT_FOUND;
-        // 		} else if(errno == EACCES) {
-        // 			handle->pm_errno = ALPM_ERR_BADPERMS;
-        // 		} else {
-        // 			handle->pm_errno = ALPM_ERR_PKG_OPEN;
-        // 		}
-        // 		return NULL;
-        // 	}
-        //
-        // 	newpkg = _alpm_pkg_new();
-        // 	if(newpkg == NULL) {
-        // 		handle->pm_errno = ALPM_ERR_MEMORY;
-        // 		goto error;
-        // 	}
-        // 	STRDUP(newpkg->filename, pkgfile,
-        // 			handle->pm_errno = ALPM_ERR_MEMORY; goto error);
-        // 	newpkg->size = st.st_size;
-        //
-        // 	_alpm_log(handle, ALPM_LOG_DEBUG, "starting package load for %s\n", pkgfile);
-        //
-        // 	/* If full is false, only read through the archive until we find our needed
-        // 	 * metadata. If it is true, read through the entire archive, which serves
-        // 	 * as a verification of integrity and allows us to create the filelist. */
-        // 	while((ret = archive_read_next_header(archive, &entry)) == ARCHIVE_OK) {
-        // 		const char *entry_name = archive_entry_pathname(entry);
-        //
-        // 		if(strcmp(entry_name, ".PKGINFO") == 0) {
-        // 			/* parse the info file */
-        // 			if(parse_descfile(handle, archive, newpkg) != 0) {
-        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("could not parse package description file in %s\n"),
-        // 						pkgfile);
-        // 				goto pkg_invalid;
-        // 			}
-        // 			if(newpkg->name == NULL || strlen(newpkg->name) == 0) {
-        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("missing package name in %s\n"), pkgfile);
-        // 				goto pkg_invalid;
-        // 			}
-        // 			if(newpkg->version == NULL || strlen(newpkg->version) == 0) {
-        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("missing package version in %s\n"), pkgfile);
-        // 				goto pkg_invalid;
-        // 			}
-        // 			if(strchr(newpkg->version, '-') == NULL) {
-        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("invalid package version in %s\n"), pkgfile);
-        // 				goto pkg_invalid;
-        // 			}
-        // 			config = 1;
-        // 			continue;
-        // 		} else if(full && strcmp(entry_name, ".MTREE") == 0) {
-        // 			/* building the file list: cheap way
-        // 			 * get the filelist from the mtree file rather than scanning
-        // 			 * the whole archive  */
-        // 			hit_mtree = build_filelist_from_mtree(handle, newpkg, archive) == 0;
-        // 			continue;
-        // 		} else if(handle_simple_path(newpkg, entry_name)) {
-        // 			continue;
-        // 		} else if(full && !hit_mtree) {
-        // 			/* building the file list: expensive way */
-        // 			if(add_entry_to_files_list(&newpkg->files, &files_size, entry, entry_name) < 0) {
-        // 				goto error;
-        // 			}
-        // 		}
-        //
-        // 		if(archive_read_data_skip(archive)) {
-        // 			_alpm_log(handle, ALPM_LOG_ERROR, _("error while reading package %s: %s\n"),
-        // 					pkgfile, archive_error_string(archive));
-        // 			handle->pm_errno = ALPM_ERR_LIBARCHIVE;
-        // 			goto error;
-        // 		}
-        //
-        // 		/* if we are not doing a full read, see if we have all we need */
-        // 		if((!full || hit_mtree) && config) {
-        // 			break;
-        // 		}
-        // 	}
-        //
-        // 	if(ret != ARCHIVE_EOF && ret != ARCHIVE_OK) { /* An error occurred */
-        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("error while reading package %s: %s\n"),
-        // 				pkgfile, archive_error_string(archive));
-        // 		handle->pm_errno = ALPM_ERR_LIBARCHIVE;
-        // 		goto error;
-        // 	}
-        //
-        // 	if(!config) {
-        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("missing package metadata in %s\n"), pkgfile);
-        // 		goto pkg_invalid;
-        // 	}
-        //
-        // 	_alpm_archive_read_free(archive);
-        // 	close(fd);
-        //
-        // 	/* internal fields for package struct */
-        // 	newpkg->origin = ALPM_PKG_FROM_FILE;
-        // 	newpkg->origin_data.file = strdup(pkgfile);
-        // 	newpkg->ops = get_file_pkg_ops();
-        // 	newpkg->handle = handle;
-        // 	newpkg->infolevel = INFRQ_BASE | INFRQ_DESC | INFRQ_SCRIPTLET;
-        // 	newpkg->validation = ALPM_PKG_VALIDATION_NONE;
-        //
-        // 	if(full) {
-        // 		if(newpkg->files.files) {
-        // 			/* attempt to hand back any memory we don't need */
-        // 			newpkg->files.files = realloc(newpkg->files.files,
-        // 					sizeof(alpm_file_t) * newpkg->files.count);
-        // 			/* "checking for conflicts" requires a sorted list, ensure that here */
-        // 			_alpm_log(handle, ALPM_LOG_DEBUG,
-        // 					"sorting package filelist for %s\n", pkgfile);
-        //
-        // 			_alpm_filelist_sort(&newpkg->files);
-        // 		}
-        // 		newpkg->infolevel |= INFRQ_FILES;
-        // 	}
-        //
-        // 	return newpkg;
-        //
-        // pkg_invalid:
-        // 	handle->pm_errno = ALPM_ERR_PKG_INVALID;
-        // error:
-        // 	_alpm_pkg_free(newpkg);
-        // 	_alpm_archive_read_free(archive);
-        // 	if(fd >= 0) {
-        // 		close(fd);
-        // 	}
-        //
-        // 	return NULL;
-    }
-
-    // /* adopted limit from repo-add */
-    // #define MAX_SIGFILE_SIZE 16384
-
-    // static int read_sigfile(const char *sigpath, unsigned char **sig)
-    // {
-    // 	struct stat st;
-    // 	FILE *fp;
-    //
-    // 	if((fp = fopen(sigpath, "rb")) == NULL) {
-    // 		return -1;
-    // 	}
-    //
-    // 	if(fstat(fileno(fp), &st) != 0 || st.st_size > MAX_SIGFILE_SIZE) {
-    // 		fclose(fp);
-    // 		return -1;
-    // 	}
-    //
-    // 	MALLOC(*sig, st.st_size, fclose(fp); return -1);
-    //
-    // 	if(fread(*sig, st.st_size, 1, fp) != 1) {
-    // 		free(*sig);
-    // 		fclose(fp);
-    // 		return -1;
-    // 	}
-    //
-    // 	fclose(fp);
-    // 	return st.st_size;
-    // }
-
-    pub fn alpm_pkg_load(
-        &self,
-        filename: &String,
-        full: i32,
-        level: &siglevel,
-        pkg: &alpm_pkg_t,
-    ) -> Result<i32> {
-        unimplemented!();
-        // 	int validation = 0;
-        // 	char *sigpath;
-        //
-        // 	CHECK_HANDLE(handle, return -1);
-        // 	ASSERT(pkg != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
-        //
-        // 	sigpath = _alpm_sigpath(handle, filename);
-        // 	if(sigpath && !_alpm_access(handle, NULL, sigpath, R_OK)) {
-        // 		if(level & ALPM_SIG_PACKAGE) {
-        // 			alpm_list_t *keys = NULL;
-        // 			int fail = 0;
-        // 			unsigned char *sig = NULL;
-        // 			int len = read_sigfile(sigpath, &sig);
-        //
-        // 			if(len == -1) {
-        // 				_alpm_log(handle, ALPM_LOG_ERROR,
-        // 					_("failed to read signature file: %s\n"), sigpath);
-        // 				free(sigpath);
-        // 				return -1;
-        // 			}
-        //
-        // 			if(alpm_extract_keyid(handle, filename, sig, len, &keys) == 0) {
-        // 				alpm_list_t *k;
-        // 				for(k = keys; k; k = k->next) {
-        // 					char *key = k->data;
-        // 					if(_alpm_key_in_keychain(handle, key) == 0) {
-        // 						if(_alpm_key_import(handle, key) == -1) {
-        // 							fail = 1;
-        // 						}
-        // 					}
-        // 				}
-        // 				FREELIST(keys);
-        // 			}
-        //
-        // 			free(sig);
-        //
-        // 			if(fail) {
-        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("required key missing from keyring\n"));
-        // 				free(sigpath);
-        // 				return -1;
-        // 			}
-        // 		}
-        // 	}
-        // 	free(sigpath);
-        //
-        // 	if(_alpm_pkg_validate_internal(handle, filename, NULL, level, NULL,
-        // 				&validation) == -1) {
-        // 		/* pm_errno is set by pkg_validate */
-        // 		return -1;
-        // 	}
-        // 	*pkg = _alpm_pkg_load_internal(handle, filename, full);
-        // 	if(*pkg == NULL) {
-        // 		/* pm_errno is set by pkg_load */
-        // 		return -1;
-        // 	}
-        // 	(*pkg)->validation = validation;
-        //
-        // 	return 0;
-    }
-}

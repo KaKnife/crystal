@@ -42,38 +42,38 @@ use super::*;
 //  * information displayed by pacman. Titles are stored in the `titles` array and
 //  * referenced by the following indices.
 //  */
-// enum {
-// 	T_ARCHITECTURE = 0,
-// 	T_BACKUP_FILES,
-// 	T_BUILD_DATE,
-// 	T_COMPRESSED_SIZE,
-// 	T_CONFLICTS_WITH,
-// 	T_DEPENDS_ON,
-// 	T_DESCRIPTION,
-// 	T_DOWNLOAD_SIZE,
-// 	T_GROUPS,
-// 	T_INSTALL_DATE,
-// 	T_INSTALL_REASON,
-// 	T_INSTALL_SCRIPT,
-// 	T_INSTALLED_SIZE,
-// 	T_LICENSES,
-// 	T_MD5_SUM,
-// 	T_NAME,
-// 	T_OPTIONAL_DEPS,
-// 	T_OPTIONAL_FOR,
-// 	T_PACKAGER,
-// 	T_PROVIDES,
-// 	T_REPLACES,
-// 	T_REPOSITORY,
-// 	T_REQUIRED_BY,
-// 	T_SHA_256_SUM,
-// 	T_SIGNATURES,
-// 	T_URL,
-// 	T_VALIDATED_BY,
-// 	T_VERSION,
-// 	/* the following is a sentinel and should remain in last position */
-// 	_T_MAX
-// };
+enum title_enum {
+	T_ARCHITECTURE = 0,
+	T_BACKUP_FILES,
+	T_BUILD_DATE,
+	T_COMPRESSED_SIZE,
+	T_CONFLICTS_WITH,
+	T_DEPENDS_ON,
+	T_DESCRIPTION,
+	T_DOWNLOAD_SIZE,
+	T_GROUPS,
+	T_INSTALL_DATE,
+	T_INSTALL_REASON,
+	T_INSTALL_SCRIPT,
+	T_INSTALLED_SIZE,
+	T_LICENSES,
+	T_MD5_SUM,
+	T_NAME,
+	T_OPTIONAL_DEPS,
+	T_OPTIONAL_FOR,
+	T_PACKAGER,
+	T_PROVIDES,
+	T_REPLACES,
+	T_REPOSITORY,
+	T_REQUIRED_BY,
+	T_SHA_256_SUM,
+	T_SIGNATURES,
+	T_URL,
+	T_VALIDATED_BY,
+	T_VERSION,
+	/* the following is a sentinel and should remain in last position */
+	_T_MAX,
+}
 //
 // /* As of 2015/10/20, the longest title (all locales considered) was less than 30
 //  * characters long. We set the title maximum length to 50 to allow for some
@@ -87,83 +87,110 @@ use super::*;
 //  * that they align with the longest title. Storage for strings is stack
 //  * allocated and naively truncated to TITLE_MAXLEN characters.
 //  */
-// static void make_aligned_titles(void)
-// {
-// 	unsigned int i;
-// 	size_t maxlen = 0;
-// 	int maxcol = 0;
-// 	static const wchar_t title_suffix[] = L" :";
-// 	wchar_t wbuf[ARRAYSIZE(titles)][TITLE_MAXLEN + ARRAYSIZE(title_suffix)];
-// 	size_t wlen[ARRAYSIZE(wbuf)];
-// 	int wcol[ARRAYSIZE(wbuf)];
-// 	char *buf[ARRAYSIZE(wbuf)];
-// 	buf[T_ARCHITECTURE] = _("Architecture");
-// 	buf[T_BACKUP_FILES] = _("Backup Files");
-// 	buf[T_BUILD_DATE] = _("Build Date");
-// 	buf[T_COMPRESSED_SIZE] = _("Compressed Size");
-// 	buf[T_CONFLICTS_WITH] = _("Conflicts With");
-// 	buf[T_DEPENDS_ON] = _("Depends On");
-// 	buf[T_DESCRIPTION] = _("Description");
-// 	buf[T_DOWNLOAD_SIZE] = _("Download Size");
-// 	buf[T_GROUPS] = _("Groups");
-// 	buf[T_INSTALL_DATE] = _("Install Date");
-// 	buf[T_INSTALL_REASON] = _("Install Reason");
-// 	buf[T_INSTALL_SCRIPT] = _("Install Script");
-// 	buf[T_INSTALLED_SIZE] = _("Installed Size");
-// 	buf[T_LICENSES] = _("Licenses");
-// 	buf[T_MD5_SUM] = _("MD5 Sum");
-// 	buf[T_NAME] = _("Name");
-// 	buf[T_OPTIONAL_DEPS] = _("Optional Deps");
-// 	buf[T_OPTIONAL_FOR] = _("Optional For");
-// 	buf[T_PACKAGER] = _("Packager");
-// 	buf[T_PROVIDES] = _("Provides");
-// 	buf[T_REPLACES] = _("Replaces");
-// 	buf[T_REPOSITORY] = _("Repository");
-// 	buf[T_REQUIRED_BY] = _("Required By");
-// 	buf[T_SHA_256_SUM] = _("SHA-256 Sum");
-// 	buf[T_SIGNATURES] = _("Signatures");
-// 	buf[T_URL] = _("URL");
-// 	buf[T_VALIDATED_BY] = _("Validated By");
-// 	buf[T_VERSION] = _("Version");
-//
-// 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
-// 		wlen[i] = mbstowcs(wbuf[i], buf[i], strlen(buf[i]) + 1);
-// 		wcol[i] = wcswidth(wbuf[i], wlen[i]);
-// 		if(wcol[i] > maxcol) {
-// 			maxcol = wcol[i];
-// 		}
-// 		if(wlen[i] > maxlen) {
-// 			maxlen = wlen[i];
-// 		}
-// 	}
-//
-// 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
-// 		size_t padlen = maxcol - wcol[i];
-// 		wmemset(wbuf[i] + wlen[i], L' ', padlen);
-// 		wmemcpy(wbuf[i] + wlen[i] + padlen, title_suffix, ARRAYSIZE(title_suffix));
-// 		wcstombs(titles[i], wbuf[i], sizeof(wbuf[i]));
-// 	}
-// }
-//
-// /** Turn a depends list into a text list.
-//  * @param deps a list with items of type alpm_depend_t
-//  */
-// static void deplist_display(const char *title,
-// 		alpm_list_t *deps, unsigned short cols)
-// {
-// 	alpm_list_t *i, *text = NULL;
-// 	for(i = deps; i; i = alpm_list_next(i)) {
-// 		alpm_depend_t *dep = i->data;
-// 		text = alpm_list_add(text, alpm_dep_compute_string(dep));
-// 	}
-// 	list_display(title, text, cols);
-// 	FREELIST(text);
-// }
-//
+
+const T_ARCHITECTURE: &str = "Architecture";
+const T_BACKUP_FILES: &str = "Backup Files";
+const T_BUILD_DATE: &str = "Build Date";
+const T_COMPRESSED_SIZE: &str = "Compressed Size";
+const T_CONFLICTS_WITH: &str = "Conflicts With";
+const T_DEPENDS_ON: &str = "Depends On";
+const T_DESCRIPTION: &str = "Description";
+const T_DOWNLOAD_SIZE: &str = "Download Size";
+const T_GROUPS: &str = "Groups";
+const T_INSTALL_DATE: &str = "Install Date";
+const T_INSTALL_REASON: &str = "Install Reason";
+const T_INSTALL_SCRIPT: &str = "Install Script";
+const T_INSTALLED_SIZE: &str = "Installed Size";
+const T_LICENSES: &str = "Licenses";
+const T_MD5_SUM: &str = "MD5 Sum";
+const T_NAME: &str = "Name";
+const T_OPTIONAL_DEPS: &str = "Optional Deps";
+const T_OPTIONAL_FOR: &str = "Optional For";
+const T_PACKAGER: &str = "Packager";
+const T_PROVIDES: &str = "Provides";
+const T_REPLACES: &str = "Replaces";
+const T_REPOSITORY: &str = "Repository";
+const T_REQUIRED_BY: &str = "Required By";
+const T_SHA_256_SUM: &str = "SHA-256 Sum";
+const T_SIGNATURES: &str = "Signatures";
+const T_URL: &str = "URL";
+const T_VALIDATED_BY: &str = "Validated By";
+const T_VERSION: &str = "Version";
+
+pub fn make_aligned_titles() {
+	unimplemented!();
+	// 	unsigned int i;
+	// 	size_t maxlen = 0;
+	// 	int maxcol = 0;
+	// 	static const wchar_t title_suffix[] = L" :";
+	// 	wchar_t wbuf[ARRAYSIZE(titles)][TITLE_MAXLEN + ARRAYSIZE(title_suffix)];
+	// 	size_t wlen[ARRAYSIZE(wbuf)];
+	// 	int wcol[ARRAYSIZE(wbuf)];
+	// 	char *buf[ARRAYSIZE(wbuf)];
+	// let buf: [&str; _T_MAX as i32]
+	// 	buf[T_ARCHITECTURE] = _("Architecture");
+	// 	buf[T_BACKUP_FILES] = _("Backup Files");
+	// 	buf[T_BUILD_DATE] = _("Build Date");
+	// 	buf[T_COMPRESSED_SIZE] = _("Compressed Size");
+	// 	buf[T_CONFLICTS_WITH] = _("Conflicts With");
+	// 	buf[T_DEPENDS_ON] = _("Depends On");
+	// 	buf[T_DESCRIPTION] = _("Description");
+	// 	buf[T_DOWNLOAD_SIZE] = _("Download Size");
+	// 	buf[T_GROUPS] = _("Groups");
+	// 	buf[T_INSTALL_DATE] = _("Install Date");
+	// 	buf[T_INSTALL_REASON] = _("Install Reason");
+	// 	buf[T_INSTALL_SCRIPT] = _("Install Script");
+	// 	buf[T_INSTALLED_SIZE] = _("Installed Size");
+	// 	buf[T_LICENSES] = _("Licenses");
+	// 	buf[T_MD5_SUM] = _("MD5 Sum");
+	// 	buf[T_NAME] = _("Name");
+	// 	buf[T_OPTIONAL_DEPS] = _("Optional Deps");
+	// 	buf[T_OPTIONAL_FOR] = _("Optional For");
+	// 	buf[T_PACKAGER] = _("Packager");
+	// 	buf[T_PROVIDES] = _("Provides");
+	// 	buf[T_REPLACES] = _("Replaces");
+	// 	buf[T_REPOSITORY] = _("Repository");
+	// 	buf[T_REQUIRED_BY] = _("Required By");
+	// 	buf[T_SHA_256_SUM] = _("SHA-256 Sum");
+	// 	buf[T_SIGNATURES] = _("Signatures");
+	// 	buf[T_URL] = _("URL");
+	// 	buf[T_VALIDATED_BY] = _("Validated By");
+	// 	buf[T_VERSION] = _("Version");
+	//
+	// 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
+	// 		wlen[i] = mbstowcs(wbuf[i], buf[i], strlen(buf[i]) + 1);
+	// 		wcol[i] = wcswidth(wbuf[i], wlen[i]);
+	// 		if(wcol[i] > maxcol) {
+	// 			maxcol = wcol[i];
+	// 		}
+	// 		if(wlen[i] > maxlen) {
+	// 			maxlen = wlen[i];
+	// 		}
+	// 	}
+	//
+	// 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
+	// 		size_t padlen = maxcol - wcol[i];
+	// 		wmemset(wbuf[i] + wlen[i], L' ', padlen);
+	// 		wmemcpy(wbuf[i] + wlen[i] + padlen, title_suffix, ARRAYSIZE(title_suffix));
+	// 		wcstombs(titles[i], wbuf[i], sizeof(wbuf[i]));
+	// 	}
+}
+
+/** Turn a depends list into a text list.
+ * @param deps a list with items of type alpm_depend_t
+ */
+fn deplist_display(title: &str, deps: &Vec<alpm_depend_t>, cols: usize) {
+	let mut text = Vec::new();
+	for dep in deps {
+		text.push(dep.alpm_dep_compute_string());
+	}
+	list_display(title, text, cols);
+}
+
 // /** Turn a optdepends list into a text list.
 //  * @param optdeps a list with items of type alpm_depend_t
 //  */
-// static void optdeplist_display(alpm_pkg_t *pkg, unsigned short cols)
+// static void optdeplist_display(pkg_t *pkg, unsigned short cols)
 // {
 // 	alpm_list_t *i, *text = NULL;
 // 	alpm_db_t *localdb = alpm_get_localdb(config->handle);
@@ -182,7 +209,7 @@ use super::*;
 // 	list_display_linebreak(titles[T_OPTIONAL_DEPS], text, cols);
 // 	FREELIST(text);
 // }
-//
+
 /**
  * Display the details of a package.
  * Extra information entails 'required by' info for sync packages and backup
@@ -190,92 +217,107 @@ use super::*;
  * @param pkg package to display information for
  * @param extra should we show extra information
  */
-pub fn dump_pkg_full(pkg: &alpm_pkg_t, extra: bool) {
-	unimplemented!();
-	// 	unsigned short cols;
-	// 	time_t bdate, idate;
+pub fn dump_pkg_full(
+	pkg: &mut pkg_t,
+	extra: bool,
+	config: &config_t,
+	db_local: &mut alpm_db_t,
+	dbs_sync: &mut Vec<alpm_db_t>,
+) {
+	// unimplemented!();
+	// unsigned short cols;
+	// time_t bdate, idate;
 	let bdate;
 	let idate;
-	// 	alpm_pkgfrom_t from;
+	// alpm_pkgfrom_t from;
 	let from;
 	let reason;
-	// 	double size;
-	// 	char bdatestr[50] = "", idatestr[50] = "";
-	// 	const char *label, *reason;
-	// 	alpm_list_t *validation = NULL, *requiredby = NULL, *optionalfor = NULL;
-	//
-	// 	/* make aligned titles once only */
-	// 	static int need_alignment = 1;
-	// 	if(need_alignment) {
-	// 		need_alignment = 0;
-	// 		make_aligned_titles();
-	// 	}
-	//
+	// double size;
+	// char bdatestr[50] = "", idatestr[50] = "";
+	// const char *label, *reason;
+	// alpm_list_t *validation = NULL, *requiredby = NULL, *optionalfor = NULL;
+	let mut validation = Vec::new();
+	let requiredby;
+	let optionalfor;
+
+	/* make aligned titles once only */
+	// static int need_alignment = 1;
+	// static mut need_alignment: bool = true;
+	// if need_alignment {
+	// 	need_alignment = false;
+	// 	make_aligned_titles();
+	// }
+
 	from = pkg.alpm_pkg_get_origin();
-	//
-	// 	/* set variables here, do all output below */
-	bdate = pkg.alpm_pkg_get_builddate();
+
+	/* set variables here, do all output below */
+	bdate = pkg.alpm_pkg_get_builddate(db_local);
 	if bdate != 0 {
-		unimplemented!();
-		// strftime(bdatestr, 50, "%c", localtime(&bdate));
+		// unimplemented!();
+		// bdatestr = time::strftime("%c", localtime(&bdate));
 	}
-	idate = pkg.alpm_pkg_get_installdate();
+	idate = pkg.alpm_pkg_get_installdate(db_local);
 	if idate != 0 {
-		unimplemented!();
-		// 		strftime(idatestr, 50, "%c", localtime(&idate));
+		// unimplemented!();
+		// strftime(idatestr, 50, "%c", localtime(&idate));
 	}
-	//
-	reason = match pkg.alpm_pkg_get_reason() {
+
+	reason = match pkg.alpm_pkg_get_reason(db_local) {
 		&alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT => "Explicitly installed",
 		&alpm_pkgreason_t::ALPM_PKG_REASON_DEPEND => {
 			"Installed as a dependency for another package"
 		}
 		_ => "Unknown",
 	};
-	//
-	let v = pkg.alpm_pkg_get_validation();
+
+	let v = pkg.alpm_pkg_get_validation(db_local);
 	if v != 0 {
-		if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_NONE as i32!=0 {
-			// 			validation = alpm_list_add(validation, _("None"));
+		if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_NONE as i32 != 0 {
+			validation.push("None");
 		} else {
-			// 			if(v & ALPM_PKG_VALIDATION_MD5SUM) {
-			// 				validation = alpm_list_add(validation, _("MD5 Sum"));
-			// 			}
-			// 			if(v & ALPM_PKG_VALIDATION_SHA256SUM) {
-			// 				validation = alpm_list_add(validation, _("SHA-256 Sum"));
-			// 			}
-			// 			if(v & ALPM_PKG_VALIDATION_SIGNATURE) {
-			// 				validation = alpm_list_add(validation, _("Signature"));
-			// 			}
+			if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_MD5SUM as i32 != 0 {
+				validation.push("MD5 Sum");
+			}
+			if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_SHA256SUM as i32 != 0 {
+				validation.push("SHA-256 Sum");
+			}
+			if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_SIGNATURE as i32 != 0 {
+				validation.push("Signature");
+			}
 		}
 	} else {
-		// 		validation = alpm_list_add(validation, _("Unknown"));
+		validation.push("Unknown");
 	}
-	//
-	// 	if(extra || from == ALPM_PKG_FROM_LOCALDB) {
-	// 		/* compute this here so we don't get a pause in the middle of output */
-	// 		requiredby = alpm_pkg_compute_requiredby(pkg);
-	// 		optionalfor = alpm_pkg_compute_optionalfor(pkg);
+
+	match (from, extra) {
+		(alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB, _) | (_, true) => {
+			/* compute this here so we don't get a pause in the middle of output */
+			requiredby = pkg.alpm_pkg_compute_requiredby(db_local, dbs_sync);
+			optionalfor = pkg.alpm_pkg_compute_optionalfor(db_local, dbs_sync);
+		}
+		_ => {}
+	}
+
+	let cols = getcols();
+	// unimplemented!();
+	// /* actual output */
+	// match from {
+	// 	alpm_pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+	// 		string_display(T_REPOSITORY, alpm_db_get_name(alpm_pkg_get_db(pkg)), cols)
 	// 	}
-	//
-	// 	cols = getcols();
-	//
-	// 	/* actual output */
-	// 	if(from == ALPM_PKG_FROM_SYNCDB) {
-	// 		string_display(titles[T_REPOSITORY],
-	// 				alpm_db_get_name(alpm_pkg_get_db(pkg)), cols);
-	// 	}
-	// 	string_display(titles[T_NAME], alpm_pkg_get_name(pkg), cols);
-	// 	string_display(titles[T_VERSION], alpm_pkg_get_version(pkg), cols);
-	// 	string_display(titles[T_DESCRIPTION], alpm_pkg_get_desc(pkg), cols);
-	// 	string_display(titles[T_ARCHITECTURE], alpm_pkg_get_arch(pkg), cols);
-	// 	string_display(titles[T_URL], alpm_pkg_get_url(pkg), cols);
-	// 	list_display(titles[T_LICENSES], alpm_pkg_get_licenses(pkg), cols);
-	// 	list_display(titles[T_GROUPS], alpm_pkg_get_groups(pkg), cols);
-	// 	deplist_display(titles[T_PROVIDES], alpm_pkg_get_provides(pkg), cols);
-	// 	deplist_display(titles[T_DEPENDS_ON], alpm_pkg_get_depends(pkg), cols);
-	// 	optdeplist_display(pkg, cols);
-	//
+	// 	_ => {}
+	// }
+	string_display(T_NAME, pkg.alpm_pkg_get_name(), cols, config);
+	string_display(T_VERSION, pkg.alpm_pkg_get_version(), cols, config);
+	string_display(T_DESCRIPTION, pkg.alpm_pkg_get_desc(), cols, config);
+	string_display(T_ARCHITECTURE, pkg.alpm_pkg_get_arch(), cols, config);
+	string_display(T_URL, pkg.alpm_pkg_get_url(), cols, config);
+	list_display(T_LICENSES, pkg.alpm_pkg_get_licenses(), cols);
+	list_display(T_GROUPS, pkg.alpm_pkg_get_groups(), cols);
+	deplist_display(T_PROVIDES, pkg.alpm_pkg_get_provides(), cols);
+	// deplist_display(T_DEPENDS_ON, pkg.alpm_pkg_get_depends(), cols);
+	// optdeplist_display(pkg, cols);
+
 	// 	if(extra || from == ALPM_PKG_FROM_LOCALDB) {
 	// 		list_display(titles[T_REQUIRED_BY], requiredby, cols);
 	// 		list_display(titles[T_OPTIONAL_FOR], optionalfor, cols);
@@ -404,7 +446,7 @@ pub fn dump_pkg_full(pkg: &alpm_pkg_t, extra: bool) {
 //
 // /* Display list of backup files and their modification states
 //  */
-// void dump_pkg_backups(alpm_pkg_t *pkg)
+// void dump_pkg_backups(pkg_t *pkg)
 // {
 // 	alpm_list_t *i;
 // 	const char *root = alpm_option_get_root(config->handle);
@@ -429,7 +471,7 @@ pub fn dump_pkg_full(pkg: &alpm_pkg_t, extra: bool) {
 
 /* List all files contained in a package
  */
-pub fn dump_pkg_files(pkg: &alpm_pkg_t, quiet: bool) {
+pub fn dump_pkg_files(pkg: &pkg_t, quiet: bool) {
 	unimplemented!();
 	// 	const char *pkgname, *root;
 	// 	alpm_filelist_t *pkgfiles;
@@ -455,7 +497,7 @@ pub fn dump_pkg_files(pkg: &alpm_pkg_t, quiet: bool) {
 
 /* Display the changelog of a package
  */
-pub fn dump_pkg_changelog(pkg: &alpm_pkg_t) {
+pub fn dump_pkg_changelog(pkg: &pkg_t) {
 	unimplemented!();
 	// 	void *fp = NULL;
 	//
@@ -480,11 +522,11 @@ pub fn dump_pkg_changelog(pkg: &alpm_pkg_t) {
 	// 	}
 }
 
-// void print_installed(alpm_db_t *db_local, alpm_pkg_t *pkg)
+// void print_installed(alpm_db_t *db_local, pkg_t *pkg)
 // {
 // 	const char *pkgname = alpm_pkg_get_name(pkg);
 // 	const char *pkgver = alpm_pkg_get_version(pkg);
-// 	alpm_pkg_t *lpkg = alpm_db_get_pkg(db_local, pkgname);
+// 	pkg_t *lpkg = alpm_db_get_pkg(db_local, pkgname);
 // 	if(lpkg) {
 // 		const char *lpkgver = alpm_pkg_get_version(lpkg);
 // 		const colstr_t *colstr = &config->colstr;
@@ -519,6 +561,7 @@ pub fn dump_pkg_search(
 	let searchlist;
 	let mut freelist = 0;
 	// 	unsigned short cols;
+	let cols;
 	// 	const colstr_t *colstr = &config->colstr;
 	// let colstr = &config.colstr;
 	//
@@ -538,11 +581,11 @@ pub fn dump_pkg_search(
 		return 1;
 	}
 
-	// cols = getcols();
+	cols = getcols();
 	for pkg in searchlist {
 		// let grp;
 		// 		alpm_list_t *grp;
-		// 		alpm_pkg_t *pkg = i->data;
+		// 		pkg_t *pkg = i->data;
 		//
 		if quiet {
 			print!("{}", pkg.alpm_pkg_get_name())

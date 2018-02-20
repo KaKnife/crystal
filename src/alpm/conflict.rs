@@ -44,7 +44,7 @@ use super::*;
 // /**
 //  * @brief Creates a new conflict.
 //  */
-// static alpm_conflict_t *conflict_new(alpm_pkg_t *pkg1, alpm_pkg_t *pkg2,
+// static alpm_conflict_t *conflict_new(pkg_t *pkg1, pkg_t *pkg2,
 // 		alpm_depend_t *reason)
 // {
 // 	alpm_conflict_t *conflict;
@@ -132,7 +132,7 @@ use super::*;
 //  * @return 0 on success, -1 on error
 //  */
 // static int add_conflict(alpm_handle_t *handle, alpm_list_t **baddeps,
-// 		alpm_pkg_t *pkg1, alpm_pkg_t *pkg2, alpm_depend_t *reason)
+// 		pkg_t *pkg1, pkg_t *pkg2, alpm_depend_t *reason)
 // {
 // 	alpm_conflict_t *conflict = conflict_new(pkg1, pkg2, reason);
 // 	if(!conflict) {
@@ -174,7 +174,7 @@ use super::*;
 // 		return;
 // 	}
 // 	for(i = list1; i; i = i->next) {
-// 		alpm_pkg_t *pkg1 = i->data;
+// 		pkg_t *pkg1 = i->data;
 // 		alpm_list_t *j;
 //
 // 		for(j = alpm_pkg_get_conflicts(pkg1); j; j = j->next) {
@@ -182,7 +182,7 @@ use super::*;
 // 			alpm_list_t *k;
 //
 // 			for(k = list2; k; k = k->next) {
-// 				alpm_pkg_t *pkg2 = k->data;
+// 				pkg_t *pkg2 = k->data;
 //
 // 				if(pkg1->name_hash == pkg2->name_hash
 // 						&& strcmp(pkg1->name, pkg2->name) == 0) {
@@ -244,21 +244,6 @@ use super::*;
 // 	return baddeps;
 // }
 
-impl alpm_handle_t {
-    /**
-     * @brief Check the package conflicts in a database
-     *
-     * @param handle the context handle
-     * @param pkglist the list of packages to check
-     *
-     * @return an alpm_list_t of alpm_conflict_t
-     */
-    pub fn alpm_checkconflicts(&self, pkglist: &Vec<alpm_pkg_t>) -> Vec<alpm_conflict_t> {
-        unimplemented!();
-        // CHECK_HANDLE(handle, return NULL);
-        // return _alpm_innerconflicts(handle, pkglist);
-    }
-}
 // /**
 //  * @brief Creates and adds a file conflict to a conflict list.
 //  *
@@ -272,7 +257,7 @@ impl alpm_handle_t {
 //  */
 // static alpm_list_t *add_fileconflict(alpm_handle_t *handle,
 // 		alpm_list_t *conflicts, const char *filestr,
-// 		alpm_pkg_t *pkg1, alpm_pkg_t *pkg2)
+// 		pkg_t *pkg1, pkg_t *pkg2)
 // {
 // 	alpm_fileconflict_t *conflict;
 // 	CALLOC(conflict, 1, sizeof(alpm_fileconflict_t), goto error);
@@ -389,7 +374,7 @@ impl alpm_handle_t {
 // 	return owners;
 // }
 //
-// static alpm_pkg_t *_alpm_find_file_owner(alpm_handle_t *handle, const char *path)
+// static pkg_t *_alpm_find_file_owner(alpm_handle_t *handle, const char *path)
 // {
 // 	alpm_list_t *i;
 // 	for(i = alpm_db_get_pkgcache(handle->db_local); i; i = i->next) {
@@ -438,10 +423,10 @@ impl alpm_handle_t {
 // 	 * here as we do when we actually extract files in add.c with our 12
 // 	 * different cases. */
 // 	for(current = 0, i = upgrade; i; i = i->next, current++) {
-// 		alpm_pkg_t *p1 = i->data;
+// 		pkg_t *p1 = i->data;
 // 		alpm_list_t *j;
 // 		alpm_list_t *newfiles = NULL;
-// 		alpm_pkg_t *dbpkg;
+// 		pkg_t *dbpkg;
 //
 // 		int percent = (current * 100) / numtargs;
 // 		PROGRESS(handle, ALPM_PROGRESS_CONFLICTS_START, "", percent,
@@ -452,7 +437,7 @@ impl alpm_handle_t {
 // 				p1->name);
 // 		for(j = i->next; j; j = j->next) {
 // 			alpm_list_t *common_files;
-// 			alpm_pkg_t *p2 = j->data;
+// 			pkg_t *p2 = j->data;
 //
 // 			alpm_filelist_t *p1_files = alpm_pkg_get_files(p1);
 // 			alpm_filelist_t *p2_files = alpm_pkg_get_files(p2);
@@ -568,7 +553,7 @@ impl alpm_handle_t {
 //
 // 			/* Check remove list (will we remove the conflicting local file?) */
 // 			for(k = rem; k && !resolved_conflict; k = k->next) {
-// 				alpm_pkg_t *rempkg = k->data;
+// 				pkg_t *rempkg = k->data;
 // 				if(rempkg && alpm_filelist_contains(alpm_pkg_get_files(rempkg),
 // 							relative_path)) {
 // 					_alpm_log(handle, ALPM_LOG_DEBUG,
@@ -591,7 +576,7 @@ impl alpm_handle_t {
 //
 // 			/* Look at all the targets to see if file has changed hands */
 // 			for(k = upgrade; k && !resolved_conflict; k = k->next) {
-// 				alpm_pkg_t *localp2, *p2 = k->data;
+// 				pkg_t *localp2, *p2 = k->data;
 // 				if(!p2 || p1 == p2) {
 // 					/* skip p1; both p1 and p2 come directly from the upgrade list
 // 					 * so they can be compared directly */
