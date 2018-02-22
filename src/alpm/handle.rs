@@ -754,8 +754,8 @@ impl Handle {
         filename: &String,
         full: i32,
         level: &SigLevel,
-        pkg: &Package,
-    ) -> Result<i32> {
+        // pkg: &Package,
+    ) -> Result<&Package> {
         unimplemented!();
         // 	int validation = 0;
         // 	char *sigpath;

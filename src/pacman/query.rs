@@ -437,6 +437,7 @@ pub fn pacman_query(
     // 	Package *pkg = NULL;
     let mut pkg;
     // 	Database *db_local;
+
     let mut db_local;
     // let op_q_explicit = config.op_q_explicit;
     // let op_q_deps = config.op_q_deps;
@@ -512,36 +513,36 @@ pub fn pacman_query(
         /* strip leading part of "local/pkgname" */
         let strname = String::from(strname.trim_left_matches(LOCAL_PREFIX));
         if config.op_q_isfile != 0 {
-            // alpm_pkg_load(config.handle, strname, 1, 0, &pkg);
-
-            // if pkg.is_none() {
-            //     error!(
-            //         "could not load package '{}': {}\n",
-            //         strname,
-            //         alpm_strerror(alpm_errno(config.handle))
-            //     );
-            // }
-            unimplemented!();
+            pkg = match handle_clone.alpm_pkg_load(&strname, 1, &SigLevel::default()) {
+                Ok(pkg) => pkg,
+                Err(e) => {
+                    error!("could not load package '{}': {}", strname, e);
+                    ret = Err(1);
+                    continue;
+                }
+            }
         } else {
-            pkg = db_local.alpm_db_get_pkg(&strname).clone();
-            if pkg.is_none() {
-                unimplemented!();
-                // pkg = alpm_find_satisfier(db_local.alpm_db_get_pkgcache().unwrap(), &strname);
-            }
             unimplemented!();
-            if pkg.is_none() {
-                error!("package '{}' was not found", strname);
-                unimplemented!();
-                // 	if(!config.op_q_isfile && access(strname, R_OK) == 0) {
-                // 		pm_printf(ALPM_LOG_WARNING,
-                // 				_("'{}' is a file, you might want to use {}.\n"),
-                // 				strname, "-p/--file");
-                // 	}
-            }
-        }
-        if pkg.is_none() {
-            ret = Err(1);
-            continue;
+            // pkg = match db_local_tmp.alpm_db_get_pkg(&strname) {
+            //     None => {
+            //         match alpm::alpm_find_satisfier(db_local.alpm_db_get_pkgcache().unwrap(), &strname){
+            //             None => {
+            //                 error!("package '{}' was not found", strname);
+            //                 unimplemented!();
+            //                 // 	if(!config.op_q_isfile && access(strname, R_OK) == 0) {
+            //                 // 		pm_printf(ALPM_LOG_WARNING,
+            //                 // 				_("'{}' is a file, you might want to use {}.\n"),
+            //                 // 				strname, "-p/--file");
+            //                 // 	}
+            //                 ret = Err(1);
+            //                 continue;
+            //             }
+            //             Some(pkg) => pkg,
+            //         }
+            //     }
+            //     Some(pkg) => pkg,
+            // };
+
         }
         unimplemented!();
 

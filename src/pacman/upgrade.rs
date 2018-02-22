@@ -79,7 +79,7 @@ pub fn pacman_upgrade(
     println!("loading packages...");
     /* add targets to the created transaction */
     for (n, targ) in targets.clone().iter().enumerate() {
-        let mut pkg = Package::default();
+        let mut pkg;
         let siglevel;
 
         if file_is_remote[n] {
@@ -87,14 +87,14 @@ pub fn pacman_upgrade(
         } else {
             siglevel = handle.alpm_option_get_local_file_siglevel();
         }
-        match handle.alpm_pkg_load(targ, 1, &siglevel, &pkg) {
+        pkg = match handle.alpm_pkg_load(targ, 1, &siglevel) {
             Err(e) => {
                 eprintln!("'{}': {}", targ, e);
                 retval = Err(());
                 continue;
             }
-            Ok(_) => {}
-        }
+            Ok(p) => p.clone(),
+        };
         match handle.alpm_add_pkg(&mut pkg) {
             Err(e) => {
                 eprintln!("'{}': {}", targ, e);
@@ -103,7 +103,7 @@ pub fn pacman_upgrade(
             }
             Ok(_) => {}
         }
-        config.explicit_adds.push(pkg);
+        config.explicit_adds.push(pkg.clone());
     }
 
     if retval.is_err() {
