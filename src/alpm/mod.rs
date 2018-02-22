@@ -1641,7 +1641,7 @@ pub struct alpm_transflag_t {
 // char *alpm_compute_md5sum(const char *filename);
 // char *alpm_compute_sha256sum(const char *filename);
 //
-// alpm_handle_t *alpm_initialize(const char *root, const char *dbpath,
+// alpm_handle_t *initialize(const char *root, const char *dbpath,
 // 		errno_t *err);
 // int alpm_release(alpm_handle_t *handle);
 // int alpm_unlock(alpm_handle_t *handle);
@@ -1715,7 +1715,7 @@ pub struct alpm_caps {
 /// * `root` the root path for all filesystem operations
 /// * `dbpath` the absolute path to the libalpm database
 /// * return - a context handle on success, or error
-pub fn alpm_initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
+pub fn initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
     let myerr = errno_t::default();
     let lf = "db.lck";
     let hookdir;

@@ -1600,7 +1600,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<alpm_handle_t> {
     }
 
     /* initialize library */
-    handle = match alpm_initialize(&config.rootdir, &config.dbpath) {
+    handle = match alpm::initialize(&config.rootdir, &config.dbpath) {
         Ok(h) => h,
         Err(e) => {
             eprintln!(
