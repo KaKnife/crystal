@@ -1646,29 +1646,18 @@ pub struct alpm_transflag_t {
 // int alpm_release(alpm_handle_t *handle);
 // int alpm_unlock(alpm_handle_t *handle);
 #[derive(Default)]
-pub struct alpm_caps {
+// pub struct alpm_caps {
+pub struct Capabilities {
     pub ALPM_CAPABILITY_NLS: bool,
     pub ALPM_CAPABILITY_DOWNLOADER: bool,
     pub ALPM_CAPABILITY_SIGNATURES: bool,
 }
 
 // const char *alpm_version(void);
-// /* Return a bitfield of capabilities using values from 'enum alpm_caps'
-// int capabilities(void);
-//
 // void alpm_fileconflict_free(fileconflict_t *conflict);
 // void alpm_depmissing_free(depmissing_t *miss);
 // void alpm_conflict_free(alpm_conflict_t *conflict);
-//
-// /* End of alpm_api
-// /// @}
-//
-// #ifdef __cplusplus
-// }
-// #endif
-// #endif /* ALPM_H
-//
-// /* vim: set noet:
+
 // /*
 //  *  alpm.c
 //  *
@@ -1711,10 +1700,9 @@ pub struct alpm_caps {
 /// Initializes the library.
 /// Creates handle, connects to database and creates lockfile.
 /// This must be called before any other functions are called.
-
 /// * `root` the root path for all filesystem operations
 /// * `dbpath` the absolute path to the libalpm database
-/// * return - a context handle on success, or error
+/// * returns a context handle on success, or error
 pub fn initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
     let myerr = errno_t::default();
     let lf = "db.lck";
@@ -1796,8 +1784,8 @@ pub fn initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
 // }
 
 /// Get the capabilities of the library.
-pub fn capabilities() -> alpm_caps {
-    return alpm_caps::default();
+pub fn capabilities() -> Capabilities {
+    return Capabilities::default();
     // 	return 0
     // #ifdef ENABLE_NLS
     // 		| ALPM_CAPABILITY_NLS
