@@ -6,7 +6,6 @@ use std;
 use std::fs::File;
 // use std::io::Result;
 // use std::ffi::OsString;
-// use self::Error::*;
 use std::fs;
 use super::deps::find_dep_satisfier;
 /*

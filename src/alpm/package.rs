@@ -125,8 +125,8 @@ pub struct Package {
     pub base64_sig: String,
     pub arch: String,
 
-    pub builddate: alpm_time_t,
-    pub installdate: alpm_time_t,
+    pub builddate: Time,
+    pub installdate: Time,
 
     size: i64,
     pub isize: i64,
@@ -390,14 +390,14 @@ impl Package {
         // return self.ops.get_url(self);
     }
 
-    pub fn alpm_pkg_get_builddate(&mut self, db: &mut Database) -> alpm_time_t {
+    pub fn alpm_pkg_get_builddate(&mut self, db: &mut Database) -> Time {
         match self.alpm_pkg_get_origin() {
             PackageFrom::LocalDatabase => self._cache_get_builddate(db),
             _ => unimplemented!(),
         }
     }
 
-    pub fn alpm_pkg_get_installdate(&mut self, db: &mut Database) -> alpm_time_t {
+    pub fn alpm_pkg_get_installdate(&mut self, db: &mut Database) -> Time {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_installdate(db),
             _ => unimplemented!(),
@@ -808,12 +808,12 @@ impl Package {
         return &self.url;
     }
 
-    pub fn _cache_get_builddate(&mut self, db: &mut Database) -> alpm_time_t {
+    pub fn _cache_get_builddate(&mut self, db: &mut Database) -> Time {
         self.lazy_load(INFRQ_DESC, db);
         return self.builddate;
     }
 
-    pub fn _cache_get_installdate(&mut self, db: &mut Database) -> alpm_time_t {
+    pub fn _cache_get_installdate(&mut self, db: &mut Database) -> Time {
         self.lazy_load(INFRQ_DESC, db);
         return self.installdate;
     }

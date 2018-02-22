@@ -724,21 +724,22 @@ pub fn sync_prepare_execute(
         Err(err) => {
             // == -1 {
             error!("failed to prepare transaction ({})", err);
-            use self::Error::*;
             match err {
-                ALPM_ERR_PKG_INVALID_ARCH => {
+                Error::ALPM_ERR_PKG_INVALID_ARCH => {
                     for pkg in data {
                         unimplemented!();
                         // colon_printf(_("package %s does not have a valid architecture\n"), pkg);
                     }
                 }
-                ALPM_ERR_UNSATISFIED_DEPS => {
+                Error::UnsatisfiedDeps => {
                     for pkg in data {
+                        unimplemented!();
                         // print_broken_dep(pkg);
                     }
                 }
-                ALPM_ERR_CONFLICTING_DEPS => {
+                Error::ConflictingDeps => {
                     for conflict in data {
+                        unimplemented!();
                         // 	alpm_conflict_t *conflict = i->data;
                         // 	/* only print reason if it contains new information */
                         // 	if(conflict->reason->mod == ALPM_DEP_MOD_ANY) {

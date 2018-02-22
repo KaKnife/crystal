@@ -1,4 +1,3 @@
-use super::*;
 /*
  *  error.c
  *
@@ -18,13 +17,6 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http=>//www.gnu.org/licenses/>.
  */
-
-// impl alpm_handle_t {
-//     pub fn alpm_errno(&self) -> Error {
-//         self.pm_errno
-//     }
-// }
-
 
 // impl Default for Error {
 //     fn default() -> Self {

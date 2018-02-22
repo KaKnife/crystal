@@ -781,22 +781,21 @@ impl Database {
 
     pub fn local_db_populate(&mut self) -> Result<()> {
         use std::fs;
-        use self::Error::*;
         let mut count = 0;
         let dbdir;
         let dbpath;
 
         if self.status.invalid {
-            return Err(ALPM_ERR_DB_INVALID);
+            return Err(Error::ALPM_ERR_DB_INVALID);
         }
         if self.status.missing {
-            return Err(ALPM_ERR_DB_NOT_FOUND);
+            return Err(Error::ALPM_ERR_DB_NOT_FOUND);
         }
 
         dbpath = self._alpm_db_path()?;
 
         dbdir = match fs::read_dir(dbpath) {
-            Err(_e) => return Err(ALPM_ERR_DB_OPEN),
+            Err(_e) => return Err(Error::ALPM_ERR_DB_OPEN),
             Ok(d) => d,
         };
         self.status.exists = true;
@@ -1505,8 +1504,7 @@ impl Database {
             // let dbpath = &handle.dbpathhandle;
             if dbpath == "" {
                 eprintln!("database path is undefined");
-                use self::Error::ALPM_ERR_DB_OPEN;
-                return Err(ALPM_ERR_DB_OPEN);
+                return Err(Error::ALPM_ERR_DB_OPEN);
             }
 
             if self.status.local {

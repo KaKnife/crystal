@@ -93,7 +93,7 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 // type __Database = Database;
 // type __Package = Package;
 // type __alpm_trans_t = Transaction;
-type alpm_time_t = i64;
+type Time = i64;
 
 /// Package install reasons.
 #[derive(Debug, Clone)]
@@ -384,8 +384,8 @@ struct PgpKey {
     uid: String,
     name: String,
     email: String,
-    created: alpm_time_t,
-    expires: alpm_time_t,
+    created: Time,
+    expires: Time,
     length: u32,
     revoked: u32,
     pubkey_algo: char,

@@ -431,29 +431,28 @@ impl Config {
             cleanup(0);
         }
 
-        use self::Operations::*;
         match &self.op {
-            &Some(Database) => {
+            &Some(Operations::Database) => {
                 self.parsearg_database(&matches);
                 self.checkargs_database();
             }
-            &Some(QUERY) => {
+            &Some(Operations::QUERY) => {
                 self.parsearg_query(&matches);
                 self.checkargs_query();
             }
-            &Some(REMOVE) => {
+            &Some(Operations::REMOVE) => {
                 self.parsearg_remove(&matches);
                 self.checkargs_remove();
             }
-            &Some(SYNC) => {
+            &Some(Operations::SYNC) => {
                 self.parsearg_sync(&matches);
                 self.checkargs_sync();
             }
-            &Some(UPGRADE) => {
+            &Some(Operations::UPGRADE) => {
                 self.parsearg_upgrade(&matches);
                 self.checkargs_upgrade();
             }
-            &Some(FILES) => {
+            &Some(Operations::FILES) => {
                 self.parsearg_files(&matches);
                 self.checkargs_files();
             }
@@ -481,48 +480,47 @@ impl Config {
      */
     // fn parsearg_op(int opt, int dryrun) . i64
     fn parsearg_op(&mut self, opts: &getopts::Matches) -> i64 {
-        use self::Operations::*;
         /* operations */
         if opts.opt_present("D") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(MAIN) => Some(Operations::Database),
+                Some(Operations::MAIN) => Some(Operations::Database),
                 _ => None,
             }
         } else if opts.opt_present("F") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(MAIN) => Some(FILES),
+                Some(Operations::MAIN) => Some(Operations::FILES),
                 _ => None,
             };
         } else if opts.opt_present("Q") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(MAIN) => Some(QUERY),
+                Some(Operations::MAIN) => Some(Operations::QUERY),
                 _ => None,
             };
         } else if opts.opt_present("R") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(MAIN) => Some(REMOVE),
+                Some(Operations::MAIN) => Some(Operations::REMOVE),
                 _ => None,
             };
         } else if opts.opt_present("S") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(MAIN) => Some(SYNC),
+                Some(Operations::MAIN) => Some(Operations::SYNC),
                 _ => None,
             };
         } else if opts.opt_present("T") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(MAIN) => Some(Operations::DEPTEST),
+                Some(Operations::MAIN) => Some(Operations::DEPTEST),
                 _ => None,
             };
         } else if opts.opt_present("U") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(MAIN) => Some(Operations::UPGRADE),
+                Some(Operations::MAIN) => Some(Operations::UPGRADE),
                 _ => None,
             };
         } else if opts.opt_present("V") {

@@ -1269,7 +1269,7 @@ pub fn _alpm_strtoofft(line: &String) -> i64
 /// Parses a date into an alpm_time_t struct.
 /// @param line date to parse
 /// @return time struct on success, 0 on error
-pub fn _alpm_parsedate(line: &str) -> alpm_time_t {
+pub fn _alpm_parsedate(line: &str) -> Time {
     match i64::from_str_radix(line, 10) {
         Ok(r) => r,
         Err(_) => 0,
