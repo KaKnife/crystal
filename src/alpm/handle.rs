@@ -107,7 +107,7 @@ impl Handle {
         /* lock db */
         if !flags.no_lock {
             if self.handle_lock().is_err() {
-                return Err(Error::ALPM_ERR_HANDLE_LOCK);
+                return Err(Error::HandleLock);
             }
         }
 
@@ -160,7 +160,7 @@ impl Handle {
             // if data {
             *data = invalid.clone();
             // }
-            return Err(Error::ALPM_ERR_PKG_INVALID_ARCH);
+            return Err(Error::PkgInvalidArch);
         }
 
         if trans.add.is_empty() {
@@ -864,11 +864,11 @@ impl Handle {
     pub fn register_syncdb(&mut self, treename: &String, siglevel: SigLevel) -> Result<Database> {
         /* ensure database name is unique */
         if treename == "local" {
-            return Err(Error::ALPM_ERR_DB_NOT_NULL);
+            return Err(Error::DatabaseNotNull);
         }
         for d in &self.dbs_sync {
             if treename == d.get_name() {
-                return Err(Error::ALPM_ERR_DB_NOT_NULL);
+                return Err(Error::DatabaseNotNull);
             }
         }
 
@@ -898,7 +898,7 @@ impl Handle {
         debug!("adding package '{}'", pkgname);
 
         if alpm_pkg_find(&mut trans.add, &pkgname).is_some() {
-            return Err(Error::ALPM_ERR_TRANS_DUP_TARGET);
+            return Err(Error::TransactionDupTarget);
         }
 
         match self.db_local.get_pkgfromcache(&pkgname) {

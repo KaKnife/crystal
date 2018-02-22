@@ -31,7 +31,7 @@ fn remove_target(target: String, config: &mut Config, handle:&mut Handle) -> i32
             match alpm_remove_pkg(&mut handle.trans, &pkg) {
                 Err(err) => {
                     match err {
-                        Error::ALPM_ERR_TRANS_DUP_TARGET => {
+                        Error::TransactionDupTarget => {
                             /* just skip duplicate targets */
                             println!("skipping target: {}", target);
                             return 0;

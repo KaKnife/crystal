@@ -42,30 +42,30 @@ pub enum Error {
     WrongArgs,
     DiskSpace,
     /* Interface */
-    ALPM_ERR_HANDLE_NULL,
-    ALPM_ERR_HANDLE_NOT_NULL,
-    ALPM_ERR_HANDLE_LOCK,
+    HandleNull,
+    HandleNotNull,
+    HandleLock,
     /* Databases */
-    ALPM_ERR_DB_OPEN,
-    ALPM_ERR_DB_CREATE,
-    ALPM_ERR_DB_NULL,
-    ALPM_ERR_DB_NOT_NULL,
-    ALPM_ERR_DB_NOT_FOUND,
-    ALPM_ERR_DB_INVALID,
-    ALPM_ERR_DB_INVALID_SIG,
-    ALPM_ERR_DB_VERSION,
-    ALPM_ERR_DB_WRITE,
-    ALPM_ERR_DB_REMOVE,
-    no_db_path,
+    DatabaseOpen,
+    DatabaseCreate,
+    DatabaseNull,
+    DatabaseNotNull,
+    DatabaseNotFound,
+    DatabaseNotInvalid,
+    DatabaseNotInvalidSig,
+    DatabaseVersion,
+    DatabaseWrite,
+    DatabaseRemove,
+    NoDbPath,
     /* Servers */
-    ALPM_ERR_SERVER_BAD_URL,
-    ALPM_ERR_SERVER_NONE,
+    ServerBadUrl,
+    ServerNone,
     /* Transactions */
-    ALPM_ERR_TRANS_NOT_NULL,
-    ALPM_ERR_TRANS_NULL,
-    ALPM_ERR_TRANS_DUP_TARGET,
-    ALPM_ERR_TRANS_NOT_INITIALIZED,
-    ALPM_ERR_TRANS_NOT_PREPARED,
+    TransactionNotNull,
+    TransactionNull,
+    TransactionDupTarget,
+    TransactionNotInitialized,
+    TransactionNotPrepared,
     ALPM_ERR_TRANS_ABORT,
     ALPM_ERR_TRANS_TYPE,
     ALPM_ERR_TRANS_NOT_LOCKED,
@@ -77,11 +77,11 @@ pub enum Error {
     ALPM_ERR_PKG_INVALID_CHECKSUM,
     ALPM_ERR_PKG_INVALID_SIG,
     ALPM_ERR_PKG_MISSING_SIG,
-    ALPM_ERR_PKG_OPEN,
-    ALPM_ERR_PKG_CANT_REMOVE,
-    ALPM_ERR_PKG_INVALID_NAME,
-    ALPM_ERR_PKG_INVALID_ARCH,
-    ALPM_ERR_PKG_REPO_NOT_FOUND,
+    PkgOpen,
+    PkgCantRemove,
+    PkgInvalidName,
+    PkgInvalidArch,
+    RepoNotFound,
     /* Signatures */
     SigMissing,
     SigInvalid,
@@ -105,129 +105,128 @@ pub enum Error {
 
 impl Error {
     pub fn alpm_strerror(&self) -> String {
-        use self::Error::*;
         match self {
 		/* System */
-		 &Memory=>
+		 &Error::Memory=>
 			return String::from("out of memory!"),
-		 &System=>
+		 &Error::System=>
 			return String::from("unexpected system error"),
-		 &BadPerms=>
+		 &Error::BadPerms=>
 			return String::from("permission denied"),
-		 &NotAFile=>
+		 &Error::NotAFile=>
 			return String::from("could not find or read file"),
-		 &NotADirectory=>
+		 &Error::NotADirectory=>
 			return String::from("could not find or read directory"),
-		 &WrongArgs=>
+		 &Error::WrongArgs=>
 			return String::from("wrong or NULL argument passed"),
-		 &DiskSpace=>
+		 &Error::DiskSpace=>
 			return String::from("not enough free disk space"),
 		/* Interface */
-		 &ALPM_ERR_HANDLE_NULL=>
+		 &Error::HandleNull=>
 			return String::from("library not initialized"),
-		 &ALPM_ERR_HANDLE_NOT_NULL=>
+		 &Error::HandleNotNull=>
 			return String::from("library already initialized"),
-		 &ALPM_ERR_HANDLE_LOCK=>
+		 &Error::HandleLock=>
 			return String::from("unable to lock database"),
 		/* Databases */
-		 &ALPM_ERR_DB_OPEN=>
+		 &Error::DatabaseOpen=>
 			return String::from("could not open database"),
-		 &ALPM_ERR_DB_CREATE=>
+		 &Error::DatabaseCreate=>
 			return String::from("could not create database"),
-		 &ALPM_ERR_DB_NULL=>
+		 &Error::DatabaseNull=>
 			return String::from("database not initialized"),
-		 &ALPM_ERR_DB_NOT_NULL=>
+		 &Error::DatabaseNotNull=>
 			return String::from("database already registered"),
-		 &ALPM_ERR_DB_NOT_FOUND=>
+		 &Error::DatabaseNotFound=>
 			return String::from("could not find database"),
-		 &ALPM_ERR_DB_INVALID=>
+		 &Error::DatabaseNotInvalid=>
 			return String::from("invalid or corrupted database"),
-		 &ALPM_ERR_DB_INVALID_SIG=>
+		 &Error::DatabaseNotInvalidSig=>
 			return String::from("invalid or corrupted database (PGP signature)"),
-		 &ALPM_ERR_DB_VERSION=>
+		 &Error::DatabaseVersion=>
 			return String::from("database is incorrect version"),
-		 &ALPM_ERR_DB_WRITE=>
+		 &Error::DatabaseWrite=>
 			return String::from("could not update database"),
-		 &ALPM_ERR_DB_REMOVE=>
+		 &Error::DatabaseRemove=>
 			return String::from("could not remove database entry"),
 		/* Servers */
-		 &ALPM_ERR_SERVER_BAD_URL=>
+		 &Error::ServerBadUrl=>
 			return String::from("invalid url for server"),
-		 &ALPM_ERR_SERVER_NONE=>
+		 &Error::ServerNone=>
 			return String::from("no servers configured for repository"),
 		/* Transactions */
-		 &ALPM_ERR_TRANS_NOT_NULL=>
+		 &Error::TransactionNotNull=>
 			return String::from("transaction already initialized"),
-		 &ALPM_ERR_TRANS_NULL=>
+		 &Error::TransactionNull=>
 			return String::from("transaction not initialized"),
-		 &ALPM_ERR_TRANS_DUP_TARGET=>
+		 &Error::TransactionDupTarget=>
 			return String::from("duplicate target"),
-		 &ALPM_ERR_TRANS_NOT_INITIALIZED=>
+		 &Error::TransactionNotInitialized=>
 			return String::from("transaction not initialized"),
-		 &ALPM_ERR_TRANS_NOT_PREPARED=>
+		 &Error::TransactionNotPrepared=>
 			return String::from("transaction not prepared"),
-		 &ALPM_ERR_TRANS_ABORT=>
+		 &Error::ALPM_ERR_TRANS_ABORT=>
 			return String::from("transaction aborted"),
-		 &ALPM_ERR_TRANS_TYPE=>
+		 &Error::ALPM_ERR_TRANS_TYPE=>
 			return String::from("operation not compatible with the transaction type"),
-		 &ALPM_ERR_TRANS_NOT_LOCKED=>
+		 &Error::ALPM_ERR_TRANS_NOT_LOCKED=>
 			return String::from("transaction commit attempt when database is not locked"),
-		 &ALPM_ERR_TRANS_HOOK_FAILED=>
+		 &Error::ALPM_ERR_TRANS_HOOK_FAILED=>
 			return String::from("failed to run transaction hooks"),
 		/* Packages */
-		 &ALPM_ERR_PKG_NOT_FOUND=>
+		 &Error::ALPM_ERR_PKG_NOT_FOUND=>
 			return String::from("could not find or read package"),
-		 &ALPM_ERR_PKG_IGNORED=>
+		 &Error::ALPM_ERR_PKG_IGNORED=>
 			return String::from("operation cancelled due to ignorepkg"),
-		 &ALPM_ERR_PKG_INVALID=>
+		 &Error::ALPM_ERR_PKG_INVALID=>
 			return String::from("invalid or corrupted package"),
-		 &ALPM_ERR_PKG_INVALID_CHECKSUM=>
+		 &Error::ALPM_ERR_PKG_INVALID_CHECKSUM=>
 			return String::from("invalid or corrupted package (checksum)"),
-		 &ALPM_ERR_PKG_INVALID_SIG=>
+		 &Error::ALPM_ERR_PKG_INVALID_SIG=>
 			return String::from("invalid or corrupted package (PGP signature)"),
-		 &ALPM_ERR_PKG_MISSING_SIG=>
+		 &Error::ALPM_ERR_PKG_MISSING_SIG=>
 			return String::from("package missing required signature"),
-		 &ALPM_ERR_PKG_OPEN=>
+		 &Error::PkgOpen=>
 			return String::from("cannot open package file"),
-		 &ALPM_ERR_PKG_CANT_REMOVE=>
+		 &Error::PkgCantRemove=>
 			return String::from("cannot remove all files for package"),
-		 &ALPM_ERR_PKG_INVALID_NAME=>
+		 &Error::PkgInvalidName=>
 			return String::from("package filename is not valid"),
-		 &ALPM_ERR_PKG_INVALID_ARCH=>
+		 &Error::PkgInvalidArch=>
 			return String::from("package architecture is not valid"),
-		 &ALPM_ERR_PKG_REPO_NOT_FOUND=>
+		 &Error::RepoNotFound=>
 			return String::from("could not find repository for target"),
 		/* Signatures */
-		 &SigMissing=>
+		 &Error::SigMissing=>
 			return String::from("missing PGP signature"),
-		 &SigInvalid=>
+		 &Error::SigInvalid=>
 			return String::from("invalid PGP signature"),
 		/* Deltas */
-		 &DltInvalid=>
+		 &Error::DltInvalid=>
 			return String::from("invalid or corrupted delta"),
-		 &DltPatchFailed=>
+		 &Error::DltPatchFailed=>
 			return String::from("delta patch failed"),
 		/* Dependencies */
-		 &UnsatisfiedDeps=>
+		 &Error::UnsatisfiedDeps=>
 			return String::from("could not satisfy dependencies"),
-		 &ConflictingDeps=>
+		 &Error::ConflictingDeps=>
 			return String::from("conflicting dependencies"),
-		 &FileConflicts=>
+		 &Error::FileConflicts=>
 			return String::from("conflicting files"),
 		/* Miscellaenous */
-		 &Retrive=>
+		 &Error::Retrive=>
 			return String::from("failed to retrieve some files"),
-		 &InvalidRegex=>String::from("invalid regular expression"),
+		 &Error::InvalidRegex=>String::from("invalid regular expression"),
 		/* Errors from external libraries- our own wrapper error */
-		 &LibArchive=>
+		 &Error::LibArchive=>
 			/* it would be nice to use archive_error_string() here, but that
 			 * requires the archive struct, so we can't. Just use a generic
 			 * error string instead. */
 			return String::from("libarchive error"),
-		 &LibCurl=> String::from("download library error"),
-		 &GpgMe=> String::from("gpgme error"),
-		 &Download=> String::from("error invoking external downloader"),
-         &Error::no_db_path => String::from("no database path"),
+		 &Error::LibCurl=> String::from("download library error"),
+		 &Error::GpgMe=> String::from("gpgme error"),
+		 &Error::Download=> String::from("error invoking external downloader"),
+         &Error::NoDbPath => String::from("no database path"),
          &Error::GroupNotFound=>
 			return String::from("could not find or read group"),
 		/* Unknown error! */

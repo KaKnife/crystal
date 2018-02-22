@@ -1607,7 +1607,7 @@ fn setup_libalpm(config: &mut Config) -> Result<Handle> {
                 config.dbpath
             );
             match e {
-                Error::ALPM_ERR_DB_VERSION => {
+                Error::DatabaseVersion => {
                     eprintln!("try running pacman-db-upgrade");
                 }
                 _ => {}

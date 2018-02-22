@@ -139,7 +139,7 @@ impl Database {
             return Ok(true);
         }
         if self.status.invalid {
-            return Err(Error::ALPM_ERR_DB_INVALID_SIG);
+            return Err(Error::DatabaseNotInvalidSig);
         }
 
         let dbpath = match self.path() {
@@ -206,7 +206,7 @@ impl Database {
             if ret != 0 {
                 self.status.valid = false;
                 self.status.invalid = true;
-                return Err(Error::ALPM_ERR_DB_INVALID_SIG);
+                return Err(Error::DatabaseNotInvalidSig);
             }
         }
 
@@ -784,16 +784,16 @@ impl Database {
         let dbpath;
 
         if self.status.invalid {
-            return Err(Error::ALPM_ERR_DB_INVALID);
+            return Err(Error::DatabaseNotInvalid);
         }
         if self.status.missing {
-            return Err(Error::ALPM_ERR_DB_NOT_FOUND);
+            return Err(Error::DatabaseNotFound);
         }
 
         dbpath = self.path()?;
 
         dbdir = match fs::read_dir(dbpath) {
-            Err(_e) => return Err(Error::ALPM_ERR_DB_OPEN),
+            Err(_e) => return Err(Error::DatabaseOpen),
             Ok(d) => d,
         };
         self.status.exists = true;
@@ -912,7 +912,7 @@ impl Database {
                         }
                     }
                     _ => {
-                        return Err(Error::ALPM_ERR_DB_OPEN);
+                        return Err(Error::DatabaseOpen);
                     }
                 }
             }
@@ -934,7 +934,7 @@ impl Database {
                             } else {
                                 self.status.valid = false;
                                 self.status.invalid = true;
-                                return Err(Error::ALPM_ERR_DB_VERSION);
+                                return Err(Error::DatabaseVersion);
                             }
                         }
                         Err(_e) => panic!(),
@@ -944,7 +944,7 @@ impl Database {
                 if self.local_db_add_version(&dbpath).is_err() {
                     self.status.valid = false;
                     self.status.invalid = true;
-                    return Err(Error::ALPM_ERR_DB_VERSION);
+                    return Err(Error::DatabaseVersion);
                 }
 
                 self.status.valid = true;
@@ -962,7 +962,7 @@ impl Database {
             Err(e) => {
                 self.status.valid = false;
                 self.status.invalid = true;
-                return Err(Error::ALPM_ERR_DB_VERSION);
+                return Err(Error::DatabaseVersion);
             }
             Ok(v) => v,
         };
@@ -970,7 +970,7 @@ impl Database {
         if version != ALPM_LOCAL_DB_VERSION {
             self.status.valid = false;
             self.status.invalid = true;
-            return Err(Error::ALPM_ERR_DB_VERSION);
+            return Err(Error::DatabaseVersion);
         }
 
         self.status.valid = true;
@@ -982,7 +982,7 @@ impl Database {
         match std::fs::create_dir(dbpath) {
             Err(e) => {
                 eprintln!("could not create directory {}: {}", dbpath, e);
-                return Err(Error::ALPM_ERR_DB_CREATE);
+                return Err(Error::DatabaseCreate);
             }
             _ => {}
         }
@@ -1135,7 +1135,7 @@ impl Database {
     pub fn get_groupcache_mut(&mut self) -> &mut Vec<Group> {
         if self.status.valid {
             unimplemented!();
-            // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
+            // RET_ERR(db->handle, DatabaseNotInvalid, NULL);
         }
 
         if self.status.grpcache {
@@ -1197,7 +1197,7 @@ impl Database {
     pub fn get_groupcache(&self) -> &Vec<Group> {
         if self.status.valid {
             unimplemented!();
-            // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
+            // RET_ERR(db->handle, DatabaseNotInvalid, NULL);
         }
 
         if self.status.grpcache {
@@ -1224,11 +1224,11 @@ impl Database {
         if !self.status.valid {
             // debug!(
             //     "returning error {} from {} : {}\n",
-            //     ALPM_ERR_DB_INVALID,
+            //     DatabaseNotInvalid,
             //     __func__,
-            //     Error::ALPM_ERR_DB_INVALID
+            //     Error::DatabaseNotInvalid
             // );
-            return Err(Error::ALPM_ERR_DB_INVALID);
+            return Err(Error::DatabaseNotInvalid);
             // return None;
         }
 
@@ -1246,11 +1246,11 @@ impl Database {
         if !self.status.valid {
             // debug!(
             //     "returning error {} from {} : {}\n",
-            //     ALPM_ERR_DB_INVALID,
+            //     DatabaseNotInvalid,
             //     __func__,
-            //     Error::ALPM_ERR_DB_INVALID
+            //     Error::DatabaseNotInvalid
             // );
-            return Err(Error::ALPM_ERR_DB_INVALID);
+            return Err(Error::DatabaseNotInvalid);
             // return None;
         }
 
@@ -1434,7 +1434,7 @@ impl Database {
 
     pub fn path(&self) -> Result<String> {
         if self._path == "" {
-            Err(Error::no_db_path)
+            Err(Error::NoDbPath)
         } else {
             Ok(self._path.clone())
         }
@@ -1445,7 +1445,7 @@ impl Database {
             // let dbpath = &handle.dbpathhandle;
             if dbpath == "" {
                 eprintln!("database path is undefined");
-                return Err(Error::ALPM_ERR_DB_OPEN);
+                return Err(Error::DatabaseOpen);
             }
 
             if self.status.local {

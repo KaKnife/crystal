@@ -64,8 +64,8 @@ pub fn alpm_remove_pkg(trans: &mut Transaction, pkg: &Package) -> Result<i32> {
 
     if alpm_pkg_find(&mut trans.remove, &pkgname).is_some() {
         // unimplemented!();
-        // RET_ERR!(handle, errno_t::ALPM_ERR_TRANS_DUP_TARGET, -1);
-        return Err(Error::ALPM_ERR_TRANS_DUP_TARGET);
+        // RET_ERR!(handle, errno_t::TransactionDupTarget, -1);
+        return Err(Error::TransactionDupTarget);
     }
 
     // _alpm_log(handle, ALPM_LOG_DEBUG, "adding package %s to the transaction remove list\n",

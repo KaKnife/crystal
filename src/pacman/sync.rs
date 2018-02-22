@@ -717,7 +717,7 @@ pub fn sync_prepare_execute(config: &Config, handle: &mut Handle) -> std::result
             // == -1 {
             error!("failed to prepare transaction ({})", err);
             match err {
-                Error::ALPM_ERR_PKG_INVALID_ARCH => {
+                Error::PkgInvalidArch => {
                     for pkg in data {
                         unimplemented!();
                         // colon_printf(_("package %s does not have a valid architecture\n"), pkg);

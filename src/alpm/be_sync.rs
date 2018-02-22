@@ -110,7 +110,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
     /* attempt to grab a lock */
     if handle.handle_lock().is_err() {
         // umask(oldmask);
-        return Err(Error::ALPM_ERR_HANDLE_LOCK);
+        return Err(Error::HandleLock);
     }
     {
         let dbext = handle.get_dbext();

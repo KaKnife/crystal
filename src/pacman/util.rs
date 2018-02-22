@@ -87,7 +87,7 @@ pub fn trans_init(
 fn trans_init_error(err: Error) {
     eprintln!("failed to init transaction ({})", err.alpm_strerror());
     match err {
-        Error::ALPM_ERR_HANDLE_LOCK => {
+        Error::HandleLock => {
             unimplemented!();
             // const char *lockfile = alpm_option_get_lockfile(config.handle);
             // let lockfile = alpm_option_get_lockfile(config.handle);
