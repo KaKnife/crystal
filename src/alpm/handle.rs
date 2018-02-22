@@ -521,8 +521,8 @@ impl alpm_handle_t {
 
     ///Check the package conflicts in a database
     ///* `pkglist` the list of packages to check
-    ///* returns an alpm_list_t of alpm_conflict_t
-    pub fn alpm_checkconflicts(&self, pkglist: &Vec<pkg_t>) -> Vec<alpm_conflict_t> {
+    ///* returns an alpm_list_t of conflict_t
+    pub fn alpm_checkconflicts(&self, pkglist: &Vec<pkg_t>) -> Vec<conflict_t> {
         unimplemented!();
         // CHECK_HANDLE(handle, return NULL);
         // return _alpm_innerconflicts(handle, pkglist);
@@ -2358,7 +2358,7 @@ impl alpm_handle_t {
             // 		deps = _alpm_innerconflicts(handle, trans->add);
             //
             // 		for(i = deps; i; i = i->next) {
-            // 			alpm_conflict_t *conflict = i->data;
+            // 			conflict_t *conflict = i->data;
             // 			pkg_t *rsync, *sync, *sync1, *sync2;
             //
             // 			/* have we already removed one of the conflicting targets? */
@@ -2385,7 +2385,7 @@ impl alpm_handle_t {
             // 				handle->pm_errno = ALPM_ERR_CONFLICTING_DEPS;
             // 				ret = -1;
             // 				if(data) {
-            // 					alpm_conflict_t *newconflict = _alpm_conflict_dup(conflict);
+            // 					conflict_t *newconflict = _alpm_conflict_dup(conflict);
             // 					if(newconflict) {
             // 						*data = alpm_list_add(*data, newconflict);
             // 					}
@@ -2422,7 +2422,7 @@ impl alpm_handle_t {
             // 				.remove = 0,
             // 				.conflict = i->data
             // 			};
-            // 			alpm_conflict_t *conflict = i->data;
+            // 			conflict_t *conflict = i->data;
             // 			int found = 0;
             //
             // 			/* if conflict->package2 (the local package) is not elected for removal,
@@ -2455,7 +2455,7 @@ impl alpm_handle_t {
             // 				handle->pm_errno = ALPM_ERR_CONFLICTING_DEPS;
             // 				ret = -1;
             // 				if(data) {
-            // 					alpm_conflict_t *newconflict = _alpm_conflict_dup(conflict);
+            // 					conflict_t *newconflict = _alpm_conflict_dup(conflict);
             // 					if(newconflict) {
             // 						*data = alpm_list_add(*data, newconflict);
             // 					}
