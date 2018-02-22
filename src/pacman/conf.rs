@@ -1237,7 +1237,7 @@ fn process_siglevel(
     }
 
     /* ensure we have sig checking ability and are actually turning it on */
-    if !(alpm_capabilities().ALPM_CAPABILITY_SIGNATURES && level.ALPM_SIG_PACKAGE
+    if !(alpm::capabilities().ALPM_CAPABILITY_SIGNATURES && level.ALPM_SIG_PACKAGE
         || level.ALPM_SIG_DATABASE)
     {
         eprintln!(

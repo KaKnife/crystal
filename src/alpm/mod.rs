@@ -1654,7 +1654,7 @@ pub struct alpm_caps {
 
 // const char *alpm_version(void);
 // /* Return a bitfield of capabilities using values from 'enum alpm_caps'
-// int alpm_capabilities(void);
+// int capabilities(void);
 //
 // void alpm_fileconflict_free(fileconflict_t *conflict);
 // void alpm_depmissing_free(depmissing_t *miss);
@@ -1796,7 +1796,7 @@ pub fn initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
 // }
 
 /// Get the capabilities of the library.
-pub fn alpm_capabilities() -> alpm_caps {
+pub fn capabilities() -> alpm_caps {
     return alpm_caps::default();
     // 	return 0
     // #ifdef ENABLE_NLS
