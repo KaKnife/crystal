@@ -26,7 +26,7 @@ use super::alpm::*;
 /// * return - 0 on success, 1 on failure
 fn change_install_reason(
     targets: Vec<String>,
-    config: &mut config_t,
+    config: &mut Config,
     handle: &mut Handle,
 ) -> i32 {
     let db_local: &Database;
@@ -99,7 +99,7 @@ fn change_install_reason(
 }
 
 fn check_db_missing_deps(
-    config: &conf::config_t,
+    config: &conf::Config,
     pkglist: &mut Vec<Package>,
     handle: &mut Handle,
 ) -> i32 {
@@ -113,7 +113,7 @@ fn check_db_missing_deps(
     return ret;
 }
 
-fn check_db_local_files(config: &conf::config_t, handle: &mut Handle) -> i32 {
+fn check_db_local_files(config: &conf::Config, handle: &mut Handle) -> i32 {
     use std::fs;
     let dbpath: &String;
     let mut ret: i32 = 0;
@@ -160,7 +160,7 @@ fn check_db_local_files(config: &conf::config_t, handle: &mut Handle) -> i32 {
 
 fn check_db_local_package_conflicts(
     pkglist: &Vec<Package>,
-    config: &conf::config_t,
+    config: &conf::Config,
     handle: &mut Handle,
 ) -> i32 {
     let mut ret: i32 = 0;
@@ -176,15 +176,15 @@ fn check_db_local_package_conflicts(
     return ret;
 }
 
-struct fileitem {
-    file: alpm_file_t,
+struct FileItem {
+    file: File,
     pkg: Package,
 }
 
-// fn fileitem_cmp(const void *p1, const void *p2): i32
+// fn FileItem_cmp(const void *p1, const void *p2): i32
 // {
-// 	const struct fileitem * fi1 = p1;
-// 	const struct fileitem * fi2 = p2;
+// 	const struct FileItem * fi1 = p1;
+// 	const struct FileItem * fi2 = p2;
 // 	return strcmp(fi1->file->name, fi2->file->name);
 // }
 
@@ -194,10 +194,10 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<Package>) -> i32 {
     let mut ret = 0;
     // // 	size_t list_size = 4096;
     // // 	size_t offset = 0, j;
-    // // 	struct fileitem *all_files;
-    // // 	struct fileitem *prev_fileitem = NULL;
+    // // 	struct FileItem *all_files;
+    // // 	struct FileItem *prev_FileItem = NULL;
     // //
-    // // 	all_files = malloc(list_size * sizeof(struct fileitem));
+    // // 	all_files = malloc(list_size * sizeof(struct FileItem));
     // let all_files = Vec::new();
     // //
     for pkg in pkglist {
@@ -213,23 +213,23 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<Package>) -> i32 {
         //         }
         //
         //         /* we can finally add it to the list */
-        //         all_files.push(fileitem{file:file, pkg:pkg.clone()});
+        //         all_files.push(FileItem{file:file, pkg:pkg.clone()});
         //     }
     }
     //
     // 	/* now sort the list so we can find duplicates */
-    // 	qsort(all_files, offset, sizeof(struct fileitem), fileitem_cmp);
+    // 	qsort(all_files, offset, sizeof(struct FileItem), FileItem_cmp);
     //
     // 	/* do a 'uniq' style check on the list */
     // 	for(j = 0; j < offset; j++) {
-    // 		struct fileitem *fileitem = all_files + j;
-    // 		if(prev_fileitem && fileitem_cmp(prev_fileitem, fileitem) == 0) {
+    // 		struct FileItem *FileItem = all_files + j;
+    // 		if(prev_FileItem && FileItem_cmp(prev_FileItem, FileItem) == 0) {
     // 			pm_printf(ALPM_LOG_ERROR, "file owned by '%s' and '%s': '%s'\n",
-    // 					alpm_pkg_get_name(prev_fileitem->pkg),
-    // 					alpm_pkg_get_name(fileitem->pkg),
-    // 					fileitem->file->name);
+    // 					alpm_pkg_get_name(prev_FileItem->pkg),
+    // 					alpm_pkg_get_name(FileItem->pkg),
+    // 					FileItem->file->name);
     // 		}
-    // 		prev_fileitem = fileitem;
+    // 		prev_FileItem = FileItem;
     // 	}
     //
     // 	free(all_files);
@@ -239,7 +239,7 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<Package>) -> i32 {
 /// Check 'local' package database for consistency
 ///
 /// * return - 0 on success, >=1 on failure
-fn check_db_local(config: &mut config_t, handle: &mut Handle) -> i32 {
+fn check_db_local(config: &mut Config, handle: &mut Handle) -> i32 {
     let mut ret: i32 = 0;
     let mut pkglist: Vec<Package>;
     let handle_clone = &handle.clone();
@@ -263,7 +263,7 @@ fn check_db_local(config: &mut config_t, handle: &mut Handle) -> i32 {
 /// Check 'sync' package databases for consistency
 ///
 /// * return - 0 on success, >=1 on failure
-fn check_db_sync(config: &mut config_t, handle: &mut Handle) -> i32 {
+fn check_db_sync(config: &mut Config, handle: &mut Handle) -> i32 {
     let mut syncpkglist = Vec::new();
     let handle_clone = &handle.clone();
 
@@ -287,7 +287,7 @@ fn check_db_sync(config: &mut config_t, handle: &mut Handle) -> i32 {
 
 pub fn pacman_database(
     targets: Vec<String>,
-    config: &mut config_t,
+    config: &mut Config,
     handle: &mut Handle,
 ) -> std::result::Result<(), i32> {
     let mut ret: i32 = 0;

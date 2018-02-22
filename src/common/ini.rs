@@ -53,15 +53,15 @@ use super::*;
  * @note Parsing will immediately stop if the callback returns non-zero.
  */
 
-pub type ini_parser_fn =
-    Fn(&String, i32, &String, &Option<String>, &Option<String>, &mut section_t, &mut config_t)
+pub type IniParserFn =
+    Fn(&String, i32, &String, &Option<String>, &Option<String>, &mut Section, &mut Config)
         -> i32;
 
 pub fn parse_ini(
     file: &String,
-    cb: &ini_parser_fn,
-    data: &mut section_t,
-    config: &mut config_t,
+    cb: &IniParserFn,
+    data: &mut Section,
+    config: &mut Config,
 ) -> i32 {
     // char line[PATH_MAX], *section_name = NULL;
     let mut section_name = String::new();

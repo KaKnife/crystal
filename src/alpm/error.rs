@@ -20,19 +20,19 @@ use super::*;
  */
 
 // impl alpm_handle_t {
-//     pub fn alpm_errno(&self) -> errno_t {
+//     pub fn alpm_errno(&self) -> Error {
 //         self.pm_errno
 //     }
 // }
 
 
-impl Default for errno_t {
-    fn default() -> Self {
-        errno_t::ALPM_ERR_OK
-    }
-}
+// impl Default for Error {
+//     fn default() -> Self {
+//         Error::ALPM_ERR_OK
+//     }
+// }
 use std::fmt;
-impl fmt::Display for errno_t {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.alpm_strerror())
     }
@@ -40,10 +40,10 @@ impl fmt::Display for errno_t {
 
 /// Error Codes
 #[derive(Debug, Copy, Clone)]
-pub enum errno_t {
-    ALPM_ERR_OK = 0,
-    ALPM_ERR_MEMORY,
-    ALPM_ERR_SYSTEM,
+pub enum Error {
+    // Ok = 0,
+    Memory,
+    System,
     ALPM_ERR_BADPERMS,
     ALPM_ERR_NOT_A_FILE,
     ALPM_ERR_NOT_A_DIR,
@@ -109,9 +109,9 @@ pub enum errno_t {
     ALPM_ERR_GPGME,
 }
 
-impl errno_t {
+impl Error {
     pub fn alpm_strerror(&self) -> String {
-        use self::errno_t::*;
+        use self::Error::*;
         match self {
 		/* System */
 		 &ALPM_ERR_MEMORY=>

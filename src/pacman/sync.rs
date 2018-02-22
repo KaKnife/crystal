@@ -22,7 +22,7 @@ use super::package::*;
 use super::util::*;
 use super::alpm;
 use super::alpm::*;
-use super::conf::config_t;
+use super::conf::Config;
 use super::util::check_syncdbs;
 
 fn unlink_verbose(pathname: &String, ignore_missing: bool) -> i32 {
@@ -104,7 +104,7 @@ fn sync_cleandb(dbpath: String, handle: &mut Handle) -> i32 {
     return ret;
 }
 
-fn sync_cleandb_all(config: &config_t, handle: &mut Handle) -> i32 {
+fn sync_cleandb_all(config: &Config, handle: &mut Handle) -> i32 {
     let syncdbpath;
     let mut ret = 0;
     {
@@ -283,7 +283,7 @@ fn sync_cleancache(level: i32) -> i32 {
 fn sync_search(
     syncs: &mut Vec<Database>,
     targets: &Vec<String>,
-    config: &config_t,
+    config: &Config,
     handle: &mut Handle,
 ) -> bool {
     let mut found = 0;
@@ -608,7 +608,7 @@ fn process_target(target: &String, error: i32) -> i32 {
     {
         let mut db: Database;
         let dbname: &String;
-        let mut usage: alpm_db_usage_t = alpm_db_usage_t::default();
+        let mut usage: DatabaseUsage = DatabaseUsage::default();
 
         // *targname = '\0';
         // targname++;
@@ -652,7 +652,7 @@ fn process_target(target: &String, error: i32) -> i32 {
 
 fn sync_trans(
     targets: &Vec<String>,
-    config: &mut config_t,
+    config: &mut Config,
     handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     let mut retval = 0;
@@ -689,7 +689,7 @@ fn sync_trans(
     sync_prepare_execute(config, handle)
 }
 
-fn print_broken_dep(miss: &depmissing_t) {
+fn print_broken_dep(miss: &DepMissing) {
     unimplemented!();
     // 	char *depstring = alpm_dep_compute_string(miss->depend);
     // 	alpm_list_t *trans_add = alpm_trans_get_add(config->handle);
@@ -711,7 +711,7 @@ fn print_broken_dep(miss: &depmissing_t) {
 }
 
 pub fn sync_prepare_execute(
-    config: &config_t,
+    config: &Config,
     handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     unimplemented!();
@@ -724,7 +724,7 @@ pub fn sync_prepare_execute(
         Err(err) => {
             // == -1 {
             error!("failed to prepare transaction ({})", err);
-            use self::errno_t::*;
+            use self::Error::*;
             match err {
                 ALPM_ERR_PKG_INVALID_ARCH => {
                     for pkg in data {
@@ -850,7 +850,7 @@ pub fn sync_prepare_execute(
 
 pub fn pacman_sync(
     targets: Vec<String>,
-    config: &mut config_t,
+    config: &mut Config,
     handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     // 	alpm_list_t *sync_dbs = NULL;

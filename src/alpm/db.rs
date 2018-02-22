@@ -112,7 +112,7 @@ pub struct Database {
     pub treename: String,
     /// do not access directly, use _alpm_db_path(db) for lazy access
     pub _path: String,
-    pub pkgcache: alpm_pkghash_t,
+    pub pkgcache: PackageHash,
     grpcache: Vec<Group>,
     pub servers: Vec<String>,
     // ops: db_operations,
@@ -121,7 +121,7 @@ pub struct Database {
     /* bitfields for validity, local, loaded caches, etc. */
     pub status: dbstatus_t,
     pub SigLevel: SigLevel,
-    pub usage: alpm_db_usage_t,
+    pub usage: DatabaseUsage,
 }
 
 #[derive(Debug, Clone)]
@@ -142,7 +142,7 @@ impl Database {
             return Ok(true);
         }
         if self.status.DB_STATUS_INVALID {
-            return Err(errno_t::ALPM_ERR_DB_INVALID_SIG);
+            return Err(Error::ALPM_ERR_DB_INVALID_SIG);
         }
 
         let dbpath = match self._alpm_db_path() {
@@ -184,7 +184,7 @@ impl Database {
             let mut retry = 1;
             while retry != 0 {
                 retry = 0;
-                let siglist = alpm_siglist_t::default();
+                let siglist = SignatureList::default();
                 ret = _alpm_check_pgp_helper(
                     handle,
                     &dbpath,
@@ -209,7 +209,7 @@ impl Database {
             if ret != 0 {
                 self.status.DB_STATUS_VALID = false;
                 self.status.DB_STATUS_INVALID = true;
-                return Err(errno_t::ALPM_ERR_DB_INVALID_SIG);
+                return Err(Error::ALPM_ERR_DB_INVALID_SIG);
             }
         }
 
@@ -546,13 +546,13 @@ impl Database {
             Err(_) => {
                 debug!("database dir '{}' does not exist, creating it", path);
                 if std::fs::create_dir(&path).is_err() {
-                    return Err(errno_t::ALPM_ERR_SYSTEM);
+                    return Err(Error::System);
                 }
             }
             Ok(p) => if !p.is_dir() {
                 warn!("removing invalid database: {}", path);
                 if std::fs::remove_dir_all(&path).is_err() || std::fs::create_dir(&path).is_err() {
-                    return Err(errno_t::ALPM_ERR_SYSTEM);
+                    return Err(Error::System);
                 }
             },
         }
@@ -781,7 +781,7 @@ impl Database {
 
     pub fn local_db_populate(&mut self) -> Result<()> {
         use std::fs;
-        use self::errno_t::*;
+        use self::Error::*;
         let mut count = 0;
         let dbdir;
         let dbpath;
@@ -841,7 +841,7 @@ impl Database {
                     // 			continue;
                     // 		}
 
-                    pkg.origin = pkgfrom_t::ALPM_PKG_FROM_LOCALDB;
+                    pkg.origin = PackageFrom::ALPM_PKG_FROM_LOCALDB;
 
                     /* explicitly read with only 'BASE' data, accessors will handle the rest */
                     if self.local_db_read(&mut pkg, INFRQ_BASE) == -1 {
@@ -914,7 +914,7 @@ impl Database {
                         }
                     }
                     _ => {
-                        return Err(errno_t::ALPM_ERR_DB_OPEN);
+                        return Err(Error::ALPM_ERR_DB_OPEN);
                     }
                 }
             }
@@ -936,7 +936,7 @@ impl Database {
                             } else {
                                 self.status.DB_STATUS_VALID = false;
                                 self.status.DB_STATUS_INVALID = true;
-                                return Err(errno_t::ALPM_ERR_DB_VERSION);
+                                return Err(Error::ALPM_ERR_DB_VERSION);
                             }
                         }
                         Err(_e) => panic!(),
@@ -946,7 +946,7 @@ impl Database {
                 if self.local_db_add_version(&dbpath).is_err() {
                     self.status.DB_STATUS_VALID = false;
                     self.status.DB_STATUS_INVALID = true;
-                    return Err(errno_t::ALPM_ERR_DB_VERSION);
+                    return Err(Error::ALPM_ERR_DB_VERSION);
                 }
 
                 self.status.DB_STATUS_VALID = true;
@@ -964,7 +964,7 @@ impl Database {
             Err(e) => {
                 self.status.DB_STATUS_VALID = false;
                 self.status.DB_STATUS_INVALID = true;
-                return Err(errno_t::ALPM_ERR_DB_VERSION);
+                return Err(Error::ALPM_ERR_DB_VERSION);
             }
             Ok(v) => v,
         };
@@ -972,7 +972,7 @@ impl Database {
         if version != ALPM_LOCAL_DB_VERSION {
             self.status.DB_STATUS_VALID = false;
             self.status.DB_STATUS_INVALID = true;
-            return Err(errno_t::ALPM_ERR_DB_VERSION);
+            return Err(Error::ALPM_ERR_DB_VERSION);
         }
 
         self.status.DB_STATUS_VALID = true;
@@ -985,7 +985,7 @@ impl Database {
         match std::fs::create_dir(dbpath) {
             Err(e) => {
                 eprintln!("could not create directory {}: {}", dbpath, e);
-                return Err(errno_t::ALPM_ERR_DB_CREATE);
+                return Err(Error::ALPM_ERR_DB_CREATE);
             }
             _ => {}
         }
@@ -1054,7 +1054,7 @@ impl Database {
 
         /* Sanity checks */
         if url.len() == 0 {
-            return Err(errno_t::ALPM_ERR_WRONG_ARGS);
+            return Err(Error::ALPM_ERR_WRONG_ARGS);
         }
 
         newurl = sanitize_url(&url);
@@ -1078,7 +1078,7 @@ impl Database {
 
         /* Sanity checks */
         // ASSERT(db != NULL, return -1);
-        // self.handle.pm_errno = errno_t::ALPM_ERR_OK;
+        // self.handle.pm_errno = Error::ALPM_ERR_OK;
         // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
 
         newurl = sanitize_url(url);
@@ -1108,7 +1108,7 @@ impl Database {
     /// Get a group entry from a package database.
     pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&Group> {
         // if name.len() ==0{
-        //     return Err(errno_t::ALPM_ERR_WRONG_ARGS);
+        //     return Err(Error::ALPM_ERR_WRONG_ARGS);
         // }
 
         return self._alpm_db_get_groupfromcache(name);
@@ -1116,7 +1116,7 @@ impl Database {
 
     pub fn alpm_db_get_group_mut(&mut self, name: &String) -> Option<&mut Group> {
         // if name.len() ==0{
-        //     return Err(errno_t::ALPM_ERR_WRONG_ARGS);
+        //     return Err(Error::ALPM_ERR_WRONG_ARGS);
         // }
 
         return self._alpm_db_get_groupfromcache_mut(name);
@@ -1235,15 +1235,15 @@ impl Database {
         }
     }
 
-    fn _alpm_db_get_pkgcache_hash(&mut self) -> Result<&alpm_pkghash_t> {
+    fn _alpm_db_get_pkgcache_hash(&mut self) -> Result<&PackageHash> {
         if !self.status.DB_STATUS_VALID {
             // debug!(
             //     "returning error {} from {} : {}\n",
             //     ALPM_ERR_DB_INVALID,
             //     __func__,
-            //     errno_t::ALPM_ERR_DB_INVALID
+            //     Error::ALPM_ERR_DB_INVALID
             // );
-            return Err(errno_t::ALPM_ERR_DB_INVALID);
+            return Err(Error::ALPM_ERR_DB_INVALID);
             // return None;
         }
 
@@ -1257,15 +1257,15 @@ impl Database {
         return Ok(&self.pkgcache);
     }
 
-    fn _alpm_db_get_pkgcache_hash_mut(&mut self) -> Result<&mut alpm_pkghash_t> {
+    fn _alpm_db_get_pkgcache_hash_mut(&mut self) -> Result<&mut PackageHash> {
         if !self.status.DB_STATUS_VALID {
             // debug!(
             //     "returning error {} from {} : {}\n",
             //     ALPM_ERR_DB_INVALID,
             //     __func__,
-            //     errno_t::ALPM_ERR_DB_INVALID
+            //     Error::ALPM_ERR_DB_INVALID
             // );
-            return Err(errno_t::ALPM_ERR_DB_INVALID);
+            return Err(Error::ALPM_ERR_DB_INVALID);
             // return None;
         }
 
@@ -1489,7 +1489,7 @@ impl Database {
     }
 
     /// Sets the usage bitmask for a repo
-    pub fn alpm_db_set_usage(&mut self, usage: alpm_db_usage_t) {
+    pub fn alpm_db_set_usage(&mut self, usage: DatabaseUsage) {
         self.usage = usage;
     }
 
@@ -1505,7 +1505,7 @@ impl Database {
             // let dbpath = &handle.dbpathhandle;
             if dbpath == "" {
                 eprintln!("database path is undefined");
-                use self::errno_t::ALPM_ERR_DB_OPEN;
+                use self::Error::ALPM_ERR_DB_OPEN;
                 return Err(ALPM_ERR_DB_OPEN);
             }
 
@@ -1527,7 +1527,7 @@ impl Database {
         if !self.status.DB_STATUS_PKGCACHE {
             return;
         }
-        self.pkgcache = alpm_pkghash_t::default();
+        self.pkgcache = PackageHash::default();
         //
         // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
         // 			"freeing package cache for repository '{}'\n", db->treename);
@@ -1574,7 +1574,7 @@ impl Database {
     }
 
     /// Gets the usage bitmask for a repo */
-    pub fn alpm_db_get_usage(&self, usage: &mut alpm_db_usage_t) {
+    pub fn alpm_db_get_usage(&self, usage: &mut DatabaseUsage) {
         *usage = self.usage;
     }
 }

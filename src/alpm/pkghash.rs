@@ -33,7 +33,7 @@ use super::*;
  * by package name but also iteration over the packages.
  */
 #[derive(Debug, Default, Clone)]
-pub struct alpm_pkghash_t {
+pub struct PackageHash {
     /// data held by the hash table
     pub hash_table: Vec<Package>,
     /// head node of the hash table data in normal list format
@@ -109,10 +109,10 @@ const max_hash_load: f32 = 0.68;
 // static const double initial_hash_load = 0.58;
 //
 /* Allocate a hash table with space for at least "size" elements */
-pub fn _alpm_pkghash_create() -> alpm_pkghash_t {
+pub fn _alpm_pkghash_create() -> PackageHash {
     // unimplemented!();
     // 	alpm_pkghash_t *hash = NULL;
-    let hash = alpm_pkghash_t::default();
+    let hash = PackageHash::default();
     // 	unsigned int i, loopsize;
     //
     // 	CALLOC(hash, 1, sizeof(alpm_pkghash_t), return NULL);
@@ -279,7 +279,7 @@ pub fn _alpm_pkghash_create() -> alpm_pkghash_t {
 // 	free(hash);
 // }
 //
-impl alpm_pkghash_t {
+impl PackageHash {
     /* Expand the hash table size to the next increment and rebin the entries */
     fn rehash(&mut self) {
         unimplemented!();

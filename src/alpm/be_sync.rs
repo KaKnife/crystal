@@ -114,7 +114,7 @@ pub fn alpm_db_update(
     /* attempt to grab a lock */
     if handle._alpm_handle_lock().is_err() {
         // umask(oldmask);
-        return Err(errno_t::ALPM_ERR_HANDLE_LOCK);
+        return Err(Error::ALPM_ERR_HANDLE_LOCK);
     }
     {
         let dbext = handle.alpm_option_get_dbext();
@@ -203,7 +203,7 @@ pub fn alpm_db_update(
         // _alpm_log(handle, ALPM_LOG_DEBUG, "failed to sync db: %s\n",
         // 		alpm_strerror(handle->pm_errno));
     } else {
-        // handle.pm_errno = errno_t::ALPM_ERR_OK;
+        // handle.pm_errno = Error::ALPM_ERR_OK;
     }
 
     handle._alpm_handle_unlock().unwrap();

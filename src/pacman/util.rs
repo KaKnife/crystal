@@ -84,10 +84,10 @@ pub fn trans_init(
     return 0;
 }
 
-fn trans_init_error(err: errno_t) {
+fn trans_init_error(err: Error) {
     eprintln!("failed to init transaction ({})", err.alpm_strerror());
     match err {
-        errno_t::ALPM_ERR_HANDLE_LOCK => {
+        Error::ALPM_ERR_HANDLE_LOCK => {
             unimplemented!();
             // const char *lockfile = alpm_option_get_lockfile(config.handle);
             // let lockfile = alpm_option_get_lockfile(config.handle);
@@ -452,7 +452,7 @@ fn add_transaction_sizes_row<T>(rows: alpm_list_t<T>, label: String, size: i64) 
     // 	*rows = alpm_list_add(*rows, row);
 }
 
-pub fn string_display(title: &str, string: &String, cols: usize, config: &config_t) {
+pub fn string_display(title: &str, string: &String, cols: usize, config: &Config) {
     if title != "" {
         print!("{}{}{} ", config.colstr.title, title, config.colstr.nocolor);
     }
@@ -993,10 +993,10 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 // 	FREELIST(targets);
 // }
 
-fn pkg_get_size(pkg: &mut Package, config: &config_t, db: &mut Database) -> i64 {
+fn pkg_get_size(pkg: &mut Package, config: &Config, db: &mut Database) -> i64 {
     match config.op {
-        Some(PM_OP_SYNC) => pkg.alpm_pkg_download_size(),
-        Some(PM_OP_UPGRADE) => pkg.alpm_pkg_get_size(),
+        Some(Operations::SYNC) => pkg.alpm_pkg_download_size(),
+        Some(Operations::UPGRADE) => pkg.alpm_pkg_get_size(),
         _ => pkg.alpm_pkg_get_isize(db),
     }
 }
@@ -1004,9 +1004,9 @@ fn pkg_get_size(pkg: &mut Package, config: &config_t, db: &mut Database) -> i64 
 fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
     // alpm_list_t *servers;
     // char *string = NULL;
-    // use pkgfrom_t::*;
+    // use PackageFrom::*;
     match pkg.alpm_pkg_get_origin() {
-        pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+        PackageFrom::ALPM_PKG_FROM_SYNCDB => {
             if pkg.alpm_pkg_download_size() == 0 {
                 /* file is already in the package cache */
                 let pkgfile = pkg.alpm_pkg_get_filename();
@@ -1032,7 +1032,7 @@ fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
             /* fallthrough - for theoretical serverless repos */
             return pkg.alpm_pkg_get_filename();
         }
-        pkgfrom_t::ALPM_PKG_FROM_FILE => return pkg.alpm_pkg_get_filename(),
+        PackageFrom::ALPM_PKG_FROM_FILE => return pkg.alpm_pkg_get_filename(),
         _ => {
             unimplemented!();
             // pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));
@@ -1090,11 +1090,11 @@ pub fn humanize_size(bytes: i64, target_unit: char, precision: i8, label: &mut S
     val
 }
 
-// pub fn print_packages(packages: &Vec<Package>, config: &config_t)
+// pub fn print_packages(packages: &Vec<Package>, config: &Config)
 pub fn print_packages(
     packages: &mut Vec<Package>,
     print_format: &String,
-    config: &config_t,
+    config: &Config,
     handle: &mut Handle,
 ) {
     for pkg in packages {
@@ -1495,7 +1495,7 @@ pub fn print_packages(
 
 /* presents a prompt and gets a Y/N answer */
 // __attribute__((format(printf, 2, 0)))
-fn question(preset: bool, format: String, config: &config_t) -> bool {
+fn question(preset: bool, format: String, config: &Config) -> bool {
     use std::io;
     use std::io::Write;
     let mut response = String::new();
@@ -1563,11 +1563,11 @@ fn question(preset: bool, format: String, config: &config_t) -> bool {
     // return 0;
 }
 
-pub fn yesno(format: String, config: &config_t) -> bool {
+pub fn yesno(format: String, config: &Config) -> bool {
     question(true, format, config)
 }
 
-pub fn noyes(format: String, config: &config_t) -> bool {
+pub fn noyes(format: String, config: &Config) -> bool {
     question(false, format, config)
 }
 

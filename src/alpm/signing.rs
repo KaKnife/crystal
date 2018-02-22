@@ -750,7 +750,7 @@ pub fn _alpm_check_pgp_helper(
     optional: bool,
     marginal: bool,
     unknown: bool,
-    sigdata: &alpm_siglist_t,
+    sigdata: &SignatureList,
 ) -> i32 {
     unimplemented!();
     // 	alpm_siglist_t *siglist;
@@ -839,7 +839,7 @@ pub fn _alpm_check_pgp_helper(
 pub fn _alpm_process_siglist(
     handle: &Handle,
     identifier: &String,
-    siglist: &alpm_siglist_t,
+    siglist: &SignatureList,
     optional: bool,
     marginal: bool,
     unknown: bool,

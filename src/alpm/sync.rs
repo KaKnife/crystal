@@ -343,7 +343,7 @@ fn apply_deltas(handle: &Handle) -> i32 {
  *
  * @return 1 if file was removed, 0 otherwise
  */
-fn prompt_to_delete(handle: &Handle, filepath: &String, reason: errno_t) -> i32 {
+fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
     unimplemented!();
     // 	alpm_question_corrupted_t question = {
     // 		.type = ALPM_QUESTION_CORRUPTED_PKG,

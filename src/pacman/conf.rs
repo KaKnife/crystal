@@ -79,7 +79,7 @@ const OS_ARCH: &str = "x86";
 // #include "callback.h"
 
 #[derive(Default, Debug)]
-pub struct colstr_t {
+pub struct ColStr {
     pub colon: String,
     pub title: String,
     pub repo: String,
@@ -92,24 +92,24 @@ pub struct colstr_t {
 }
 
 #[derive(Default, Debug, Clone)]
-pub struct config_repo_t {
+pub struct ConfigRepo {
     name: String,
     servers: Vec<String>,
-    usage: alpm_db_usage_t,
+    usage: DatabaseUsage,
     SigLevel: SigLevel,
     SigLevel_mask: SigLevel,
 }
 
 #[derive(Default, Debug)]
-pub struct config_t {
-    pub op: Option<operations>,
+pub struct Config {
+    pub op: Option<Operations>,
     pub quiet: bool,
     pub verbose: u8,
     pub version: bool,
     pub help: bool,
     pub noconfirm: bool,
     pub noprogressbar: u8,
-    pub logmask: alpm::loglevel,
+    pub logmask: alpm::LogLevel,
     pub print: bool,
     pub checkspace: u8,
     pub usesyslog: u8,
@@ -172,7 +172,7 @@ pub struct config_t {
     /* When downloading, display the amount downloaded, rate, ETA, and percent
      * downloaded of the total download list */
     pub totaldownload: u8,
-    pub cleanmethod: clean_method,
+    pub cleanmethod: CleanMethod,
     pub holdpkg: Vec<String>,
     pub ignorepkg: Vec<String>,
     pub ignoregrp: Vec<String>,
@@ -188,26 +188,26 @@ pub struct config_t {
     pub explicit_removes: Vec<Package>,
 
     /* Color strings for output */
-    pub colstr: colstr_t,
-    pub repos: Vec<config_repo_t>,
+    pub colstr: ColStr,
+    pub repos: Vec<ConfigRepo>,
 }
 
 /* Operations */
 #[derive(Debug)]
-pub enum operations {
-    PM_OP_MAIN = 1,
-    PM_OP_REMOVE,
-    PM_OP_UPGRADE,
-    PM_OP_QUERY,
-    PM_OP_SYNC,
-    PM_OP_DEPTEST,
-    PM_OP_DATABASE,
-    PM_OP_FILES,
+pub enum Operations {
+    MAIN = 1,
+    REMOVE,
+    UPGRADE,
+    QUERY,
+    SYNC,
+    DEPTEST,
+    DATABASE,
+    FILES,
 }
 
 /// clean method
 #[derive(Debug, Default)]
-pub struct clean_method {
+pub struct CleanMethod {
     PM_CLEAN_KEEPINST: bool,
     PM_CLEAN_KEEPCUR: bool,
 }
@@ -280,12 +280,12 @@ fn invalid_opt(used: bool, opt1: &str, opt2: &str) {
 // 	}
 // }
 
-impl config_t {
-    pub fn new() -> config_t {
-        let mut newconfig = config_t::default();
+impl Config {
+    pub fn new() -> Config {
+        let mut newconfig = Config::default();
 
         /* defaults which may get overridden later */
-        newconfig.op = Some(operations::PM_OP_MAIN);
+        newconfig.op = Some(Operations::MAIN);
         newconfig.logmask.ALPM_LOG_ERROR = true;
         newconfig.logmask.ALPM_LOG_WARNING = true;
         newconfig.configfile = String::from(CONFFILE); //TODO: implement this
@@ -315,17 +315,17 @@ impl config_t {
         if self.sysroot != "" {
             return true;
         }
-        use pacman::conf::operations::*;
+        use pacman::conf::Operations::*;
         match self.op {
-            Some(PM_OP_DATABASE) => return self.op_q_check == 0,
-            Some(PM_OP_UPGRADE) | Some(PM_OP_REMOVE) => return self.print,
-            Some(PM_OP_SYNC) => {
+            Some(DATABASE) => return self.op_q_check == 0,
+            Some(UPGRADE) | Some(REMOVE) => return self.print,
+            Some(SYNC) => {
                 return self.op_s_clean != 0 || self.op_s_sync != 0
                     || (self.group == 0 && self.op_s_info == 0 && self.op_q_list == 0
                         && self.op_s_search == 0 && self.print)
             }
 
-            Some(PM_OP_FILES) => return self.op_s_sync != 0,
+            Some(FILES) => return self.op_s_sync != 0,
             _ => return false,
         }
     }
@@ -431,29 +431,29 @@ impl config_t {
             cleanup(0);
         }
 
-        use self::operations::*;
+        use self::Operations::*;
         match &self.op {
-            &Some(PM_OP_DATABASE) => {
+            &Some(DATABASE) => {
                 self.parsearg_database(&matches);
                 self.checkargs_database();
             }
-            &Some(PM_OP_QUERY) => {
+            &Some(QUERY) => {
                 self.parsearg_query(&matches);
                 self.checkargs_query();
             }
-            &Some(PM_OP_REMOVE) => {
+            &Some(REMOVE) => {
                 self.parsearg_remove(&matches);
                 self.checkargs_remove();
             }
-            &Some(PM_OP_SYNC) => {
+            &Some(SYNC) => {
                 self.parsearg_sync(&matches);
                 self.checkargs_sync();
             }
-            &Some(PM_OP_UPGRADE) => {
+            &Some(UPGRADE) => {
                 self.parsearg_upgrade(&matches);
                 self.checkargs_upgrade();
             }
-            &Some(PM_OP_FILES) => {
+            &Some(FILES) => {
                 self.parsearg_files(&matches);
                 self.checkargs_files();
             }
@@ -481,48 +481,48 @@ impl config_t {
      */
     // fn parsearg_op(int opt, int dryrun) . i64
     fn parsearg_op(&mut self, opts: &getopts::Matches) -> i64 {
-        use self::operations::*;
+        use self::Operations::*;
         /* operations */
         if opts.opt_present("D") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(PM_OP_MAIN) => Some(PM_OP_DATABASE),
+                Some(MAIN) => Some(DATABASE),
                 _ => None,
             }
         } else if opts.opt_present("F") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(PM_OP_MAIN) => Some(PM_OP_FILES),
+                Some(MAIN) => Some(FILES),
                 _ => None,
             };
         } else if opts.opt_present("Q") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(PM_OP_MAIN) => Some(PM_OP_QUERY),
+                Some(MAIN) => Some(QUERY),
                 _ => None,
             };
         } else if opts.opt_present("R") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(PM_OP_MAIN) => Some(PM_OP_REMOVE),
+                Some(MAIN) => Some(REMOVE),
                 _ => None,
             };
         } else if opts.opt_present("S") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(PM_OP_MAIN) => Some(PM_OP_SYNC),
+                Some(MAIN) => Some(SYNC),
                 _ => None,
             };
         } else if opts.opt_present("T") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(PM_OP_MAIN) => Some(PM_OP_DEPTEST),
+                Some(MAIN) => Some(Operations::DEPTEST),
                 _ => None,
             };
         } else if opts.opt_present("U") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(PM_OP_MAIN) => Some(operations::PM_OP_UPGRADE),
+                Some(MAIN) => Some(Operations::UPGRADE),
                 _ => None,
             };
         } else if opts.opt_present("V") {
@@ -1101,7 +1101,7 @@ fn get_filename(url: &String) -> String {
 // 	return ret;
 // }
 
-impl config_t {
+impl Config {
     pub fn config_set_arch(&mut self, arch: &String) -> i32 {
         if arch == "auto" {
             // struct utsname un;
@@ -1270,7 +1270,7 @@ pub fn process_cleanmethods(
     values: Vec<String>,
     file: &String,
     linenum: i32,
-    config: &mut config_t,
+    config: &mut Config,
 ) -> i32 {
     for value in values {
         if value == "KeepInstalled" {
@@ -1311,7 +1311,7 @@ fn _parse_options(
     value: &Option<String>,
     file: &String,
     linenum: i32,
-    config: &mut config_t,
+    config: &mut Config,
 ) -> i32 {
     let key = match key {
         &Some(ref k) => k,
@@ -1509,7 +1509,7 @@ fn _add_mirror(db: &mut Database, value: &String, arch: &String) -> Result<()> {
 }
 
 fn register_repo(
-    repo: &mut config_repo_t,
+    repo: &mut ConfigRepo,
     config_handle: &mut Handle,
     config_siglevel: SigLevel,
     arch: &String,
@@ -1531,7 +1531,7 @@ fn register_repo(
     // debug!(
     //     "setting usage of {} for {} repository\n",
     //     if repo.usage.is_zero() {
-    //         alpm_db_usage_t {
+    //         DatabaseUsage {
     //             ALPM_DB_USAGE_ALL: true,
     //             ..Default::default()
     //         }
@@ -1575,7 +1575,7 @@ fn register_repo(
  * of our paths to live under the rootdir that was specified. Safe to call
  * multiple times (will only do anything the first time).
  */
-fn setup_libalpm(config: &mut config_t) -> Result<Handle> {
+fn setup_libalpm(config: &mut Config) -> Result<Handle> {
     let mut handle;
 
     debug!("setup_libalpm called");
@@ -1609,7 +1609,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<Handle> {
                 config.dbpath
             );
             match e {
-                errno_t::ALPM_ERR_DB_VERSION => {
+                Error::ALPM_ERR_DB_VERSION => {
                     eprintln!("try running pacman-db-upgrade");
                 }
                 _ => {}
@@ -1627,7 +1627,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<Handle> {
     // alpm_option_set_progresscb(handle, cb_progress);
 
     match config.op {
-        Some(operations::PM_OP_FILES) => {
+        Some(Operations::FILES) => {
             handle.alpm_option_set_dbext(&String::from(".files"));
         }
         _ => {}
@@ -1758,15 +1758,15 @@ fn setup_libalpm(config: &mut config_t) -> Result<Handle> {
 /// Allows parsing in advance of an entire config section before we start
 /// calling library methods.
 #[derive(Default, Debug)]
-pub struct section_t {
+pub struct Section {
     name: String,
-    repo: Option<config_repo_t>,
+    repo: Option<ConfigRepo>,
     depth: i32,
 }
 
 fn process_usage(
     values: &Vec<String>,
-    usage: &mut alpm_db_usage_t,
+    usage: &mut DatabaseUsage,
     file: &String,
     linenum: i32,
 ) -> std::result::Result<(), ()> {
@@ -1803,10 +1803,10 @@ fn _parse_repo(
     value: &Option<String>,
     file: &String,
     line: i32,
-    section: &mut section_t,
+    section: &mut Section,
 ) -> i32 {
     let mut ret = 0;
-    // 	config_repo_t *repo = section.repo;
+    // 	ConfigRepo *repo = section.repo;
     match (&mut section.repo, key) {
         (&mut Some(ref mut repo), &Some(ref key)) => {
             if key == "Server" {
@@ -1876,10 +1876,10 @@ fn _parse_repo(
 
 fn process_include(
     value: &Option<String>,
-    section: &mut section_t,
+    section: &mut Section,
     file: &String,
     linenum: i32,
-    config: &mut config_t,
+    config: &mut Config,
 ) -> i32 {
     let globret;
     let mut ret = 0;
@@ -1962,8 +1962,8 @@ fn _parse_directive(
     name: &String,
     key: &Option<String>,
     value: &Option<String>,
-    section: &mut section_t,
-    config: &mut config_t,
+    section: &mut Section,
+    config: &mut Config,
 ) -> i32 {
     match (key, value) {
         (&None, &None) => {
@@ -1972,7 +1972,7 @@ fn _parse_directive(
             if name == "options" {
                 section.repo = None;
             } else {
-                let mut repo = config_repo_t::default();
+                let mut repo = ConfigRepo::default();
                 repo.name = name.clone();
                 repo.SigLevel.ALPM_SIG_USE_DEFAULT = true;
                 section.repo = Some(repo.clone());
@@ -2011,10 +2011,10 @@ fn _parse_directive(
 ///
 /// - `file` - path to the config file
 /// - `returns` - 0 on success, non-zero on error
-pub fn parseconfig(file: &String, config: &mut config_t) -> Result<Handle> {
+pub fn parseconfig(file: &String, config: &mut Config) -> Result<Handle> {
     let ret;
     let handle;
-    let mut section = section_t::default();
+    let mut section = Section::default();
     debug!("config: attempting to read file {}", file);
     ret = parse_ini(file, &_parse_directive, &mut section, config);
     if ret != 0 {

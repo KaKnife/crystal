@@ -6,7 +6,7 @@ use std;
 use std::fs::File;
 // use std::io::Result;
 // use std::ffi::OsString;
-use self::errno_t::*;
+// use self::Error::*;
 use std::fs;
 use super::deps::find_dep_satisfier;
 /*
@@ -103,17 +103,17 @@ impl Handle {
 
     /// Initialize the transaction.
     pub fn alpm_trans_init(&mut self, flags: &TransactionFlag) -> Result<()> {
-        let mut trans: alpm_trans_t = alpm_trans_t::default();
+        let mut trans: Transaction = Transaction::default();
 
         /* lock db */
         if !flags.NOLOCK {
             if self._alpm_handle_lock().is_err() {
-                return Err(errno_t::ALPM_ERR_HANDLE_LOCK);
+                return Err(Error::ALPM_ERR_HANDLE_LOCK);
             }
         }
 
         trans.flags = flags.clone();
-        trans.state = alpm_transstate_t::STATE_INITIALIZED;
+        trans.state = AlpmTransstate::Initialized;
 
         self.trans = trans;
 
@@ -161,7 +161,7 @@ impl Handle {
             // if data {
             *data = invalid.clone();
             // }
-            return Err(errno_t::ALPM_ERR_PKG_INVALID_ARCH);
+            return Err(Error::ALPM_ERR_PKG_INVALID_ARCH);
         }
 
         if trans.add.is_empty() {
@@ -194,7 +194,7 @@ impl Handle {
             }
         }
 
-        trans.state = alpm_transstate_t::STATE_PREPARED;
+        trans.state = AlpmTransstate::PREPARED;
 
         return Ok(0);
     }
@@ -247,7 +247,7 @@ impl Handle {
         // 	if(trans->add == NULL) {
         // 		if(_alpm_remove_packages(handle, 1) == -1) {
         // 			/* pm_errno is set by _alpm_remove_packages() */
-        // 			errno_t save = handle->pm_errno;
+        // 			Error save = handle->pm_errno;
         // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
         // 			handle->pm_errno = save;
         // 			return -1;
@@ -255,7 +255,7 @@ impl Handle {
         // 	} else {
         // 		if(_alpm_sync_commit(handle) == -1) {
         // 			/* pm_errno is set by _alpm_sync_commit() */
-        // 			errno_t save = handle->pm_errno;
+        // 			Error save = handle->pm_errno;
         // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
         // 			handle->pm_errno = save;
         // 			return -1;
@@ -386,7 +386,7 @@ impl Handle {
         remw: Option<Vec<Package>>,
         upgrade: &mut Vec<Package>,
         reversedeps: i32,
-    ) -> Vec<depmissing_t> {
+    ) -> Vec<DepMissing> {
         unimplemented!();
         // 	alpm_list_t *i, *j;
         // 	alpm_list_t *dblist = NULL, *modified = NULL;
@@ -428,7 +428,7 @@ impl Handle {
             // );
 
             for mut depend in &tp.depends {
-                // depend_t *depend = j->data;
+                // Dependency *depend = j->data;
                 let orig_mod = depend.depmod.clone();
                 // if (nodepversion) {
                 //     depend.depmod = alpm_depmod_t::ALPM_DEP_MOD_ANY;
@@ -462,7 +462,7 @@ impl Handle {
             // 		for(i = dblist; i; i = i->next) {
             // 			Package *lp = i->data;
             // 			for(j = alpm_pkg_get_depends(lp); j; j = j->next) {
-            // 				depend_t *depend = j->data;
+            // 				Dependency *depend = j->data;
             // 				alpm_depmod_t orig_mod = depend->mod;
             // 				if(nodepversion) {
             // 					depend->mod = ALPM_DEP_MOD_ANY;
@@ -506,7 +506,7 @@ impl Handle {
     ///* returns a Package* satisfying depstring
     pub fn alpm_find_dbs_satisfier<T>(&self, dbs: &Vec<T>, depstring: &String) -> Option<Package> {
         unimplemented!();
-        // 	depend_t *dep;
+        // 	Dependency *dep;
         // 	Package *pkg;
         //
         // 	CHECK_HANDLE(handle, return NULL);
@@ -522,7 +522,7 @@ impl Handle {
     ///Check the package conflicts in a database
     ///* `pkglist` the list of packages to check
     ///* returns an alpm_list_t of conflict_t
-    pub fn alpm_checkconflicts(&self, pkglist: &Vec<Package>) -> Vec<conflict_t> {
+    pub fn alpm_checkconflicts(&self, pkglist: &Vec<Package>) -> Vec<Conflict> {
         unimplemented!();
         // CHECK_HANDLE(handle, return NULL);
         // return _alpm_innerconflicts(handle, pkglist);
@@ -555,7 +555,7 @@ impl Handle {
             Err(_e) => {
                 debug!("database dir '{}' does not exist, creating it", syncpath);
                 if fs::create_dir_all(&syncpath).is_err() {
-                    return Err(errno_t::ALPM_ERR_SYSTEM);
+                    return Err(Error::System);
                 }
             }
             Ok(m) => {
@@ -564,7 +564,7 @@ impl Handle {
                     if std::fs::remove_file(&syncpath).is_err()
                         || fs::create_dir_all(&syncpath).is_err()
                     {
-                        return Err(errno_t::ALPM_ERR_SYSTEM);
+                        return Err(Error::System);
                     }
                 }
             }
@@ -870,11 +870,11 @@ impl Handle {
     ) -> Result<Database> {
         /* ensure database name is unique */
         if treename == "local" {
-            return Err(errno_t::ALPM_ERR_DB_NOT_NULL);
+            return Err(Error::ALPM_ERR_DB_NOT_NULL);
         }
         for d in &self.dbs_sync {
             if treename == &d.treename {
-                return Err(errno_t::ALPM_ERR_DB_NOT_NULL);
+                return Err(Error::ALPM_ERR_DB_NOT_NULL);
             }
         }
 
@@ -898,14 +898,14 @@ impl Handle {
 
     /// Add a package to the transaction.
     pub fn alpm_add_pkg(&mut self, pkg: &mut Package) -> Result<()> {
-        let trans: &mut alpm_trans_t = &mut self.trans;
+        let trans: &mut Transaction = &mut self.trans;
         let pkgname: &String = &pkg.name;
         let pkgver: String = pkg.version.clone();
 
         debug!("adding package '{}'", pkgname);
 
         if alpm_pkg_find(&mut trans.add, &pkgname).is_some() {
-            return Err(errno_t::ALPM_ERR_TRANS_DUP_TARGET);
+            return Err(Error::ALPM_ERR_TRANS_DUP_TARGET);
         }
 
         match self.db_local._alpm_db_get_pkgfromcache(pkgname) {
@@ -1011,7 +1011,7 @@ impl Handle {
         /* loop through our package list adding/upgrading one at a time */
         for newpkg in &self.trans.add {
             match &self.trans.state {
-                &alpm_transstate_t::STATE_INTERRUPTED => {
+                &AlpmTransstate::Initialized => {
                     return ret;
                 }
                 _ => {}
@@ -1019,10 +1019,10 @@ impl Handle {
 
             if self.commit_single_pkg(&newpkg, pkg_current, pkg_count) != 0 {
                 /* something screwed up on the commit, abort the trans */
-                self.trans.state = alpm_transstate_t::STATE_INTERRUPTED;
+                self.trans.state = AlpmTransstate::Initialized;
                 /* running ldconfig at this point could possibly screw system */
                 skip_ldconfig = true;
-                ret = Err(errno_t::ALPM_ERR_TRANS_ABORT);
+                ret = Err(Error::ALPM_ERR_TRANS_ABORT);
             }
 
             pkg_current += 1;
@@ -1682,7 +1682,7 @@ impl Handle {
         // 	char *newhookdir;
         let newhookdir = match std::fs::canonicalize(hookdir) {
             Err(_) => {
-                return Err(ALPM_ERR_MEMORY);
+                return Err(Error::Memory);
             }
             Ok(h) => h,
         };
@@ -1736,7 +1736,7 @@ impl Handle {
         //
         let newcachedir = match std::fs::canonicalize(cachedir) {
             Err(_) => {
-                return Err(ALPM_ERR_MEMORY);
+                return Err(Error::Memory);
             }
             Ok(n) => n.into_os_string(),
         };
@@ -1775,7 +1775,7 @@ impl Handle {
 
     pub fn alpm_option_set_logfile(&mut self, logfile: &String) -> Result<i32> {
         if logfile == "" {
-            return Err(ALPM_ERR_WRONG_ARGS);
+            return Err(Error::ALPM_ERR_WRONG_ARGS);
         }
 
         self.logfile = logfile.clone();
@@ -1907,10 +1907,10 @@ impl Handle {
     // 	return _alpm_option_strlist_rem(handle, &(handle->overwrite_files), glob);
     // }
 
-    pub fn alpm_option_add_assumeinstalled(&mut self, dep: &depend_t) {
+    pub fn alpm_option_add_assumeinstalled(&mut self, dep: &Dependency) {
         use std::hash::{Hash, Hasher};
-        let mut depcpy = depend_t::default();
-        let mut hasher = sdbm_hasher::default();
+        let mut depcpy = Dependency::default();
+        let mut hasher = SdbmHasher::default();
         /* fill in name_hash in case dep was built by hand */
         dep.name.hash(&mut hasher);
         depcpy.name_hash = hasher.finish();
@@ -1935,8 +1935,8 @@ impl Handle {
     //
     // static int assumeinstalled_cmp(const void *d1, const void *d2)
     // {
-    // 	const depend_t *dep1 = d1;
-    // 	const depend_t *dep2 = d2;
+    // 	const Dependency *dep1 = d1;
+    // 	const Dependency *dep2 = d2;
     //
     // 	if(dep1->name_hash != dep2->name_hash
     // 			|| strcmp(dep1->name, dep2->name) != 0) {
@@ -1956,9 +1956,9 @@ impl Handle {
     // 	return -1;
     // }
 
-    pub fn alpm_option_remove_assumeinstalled(&self, dep: &depend_t) -> i32 {
+    pub fn alpm_option_remove_assumeinstalled(&self, dep: &Dependency) -> i32 {
         unimplemented!();
-        // depend_t *vdata = NULL;
+        // Dependency *vdata = NULL;
 
         // self.assumeinstalled = alpm_list_remove(handle->assumeinstalled, dep,
         // &assumeinstalled_cmp, (void **)&vdata);
@@ -1976,7 +1976,7 @@ impl Handle {
 
     pub fn alpm_option_set_deltaratio(&mut self, ratio: f64) -> Result<()> {
         if ratio < 0.0 || ratio > 2.0 {
-            return Err(ALPM_ERR_WRONG_ARGS);
+            return Err(Error::ALPM_ERR_WRONG_ARGS);
         }
         self.deltaratio = ratio;
         Ok(())
@@ -2032,7 +2032,7 @@ impl Handle {
         /*level != 0 &&*/
         level.ALPM_SIG_USE_DEFAULT {
             // RET_ERR!(self, ALPM_ERR_WRONG_ARGS, -1);
-            return Err(ALPM_ERR_WRONG_ARGS);
+            return Err(Error::ALPM_ERR_WRONG_ARGS);
         }
 
         return Ok(0);
@@ -2233,7 +2233,7 @@ impl Handle {
 
         for spkg in &trans.add {
             match spkg.origin {
-                pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+                PackageFrom::ALPM_PKG_FROM_SYNCDB => {
                     from_sync = true;
                     break;
                 }
@@ -2372,8 +2372,8 @@ impl Handle {
             // 					conflict->package1, conflict->package2);
             //
             // 			/* if sync1 provides sync2, we remove sync2 from the targets, and vice versa */
-            // 			alpm_depend_t *dep1 = alpm_dep_from_string(conflict->package1);
-            // 			alpm_depend_t *dep2 = alpm_dep_from_string(conflict->package2);
+            // 			alpm_Dependency *dep1 = alpm_dep_from_string(conflict->package1);
+            // 			alpm_Dependency *dep2 = alpm_dep_from_string(conflict->package2);
             // 			if(_alpm_depcmp(sync1, dep2)) {
             // 				rsync = sync2;
             // 				sync = sync1;
@@ -2548,13 +2548,13 @@ pub fn _alpm_set_directory_option(
     if must_exist {
         match std::fs::metadata(&path) {
             Ok(ref f) if f.is_dir() => {}
-            _ => return Err(ALPM_ERR_NOT_A_DIR),
+            _ => return Err(Error::ALPM_ERR_NOT_A_DIR),
         }
         match std::fs::canonicalize(&path) {
             Ok(p) => {
                 *storage = p.into_os_string().into_string().unwrap();
             }
-            Err(_) => return Err(ALPM_ERR_NOT_A_DIR),
+            Err(_) => return Err(Error::ALPM_ERR_NOT_A_DIR),
         }
     } else {
         *storage = canonicalize_path(&path);
@@ -2593,7 +2593,7 @@ pub struct Handle {
     pub db_local: Database,      //// local db pointer */
     pub dbs_sync: Vec<Database>, /* List of (Database *) */
     // 	FILE *logstream;        /* log file stream pointer */
-    pub trans: alpm_trans_t,
+    pub trans: Transaction,
     //
     // #ifdef HAVE_LIBCURL
     // 	/* libcurl handle */
@@ -2634,7 +2634,7 @@ pub struct Handle {
     /// List of groups to ignore */
     ignoregroup: Vec<String>,
     ///List of virtual packages used to satisfy dependencies
-    assumeinstalled: Vec<depend_t>,
+    assumeinstalled: Vec<Dependency>,
 
     /* options */
     /// Architecture of packages we should allow */
@@ -2652,7 +2652,7 @@ pub struct Handle {
                                   // 	                                       upgrade operations */
     //
     // 	/* error code */
-    // pub pm_errno: errno_t,
+    // pub pm_errno: Error,
 
     /* lock file descriptor */
     lockfd: Option<File>,
@@ -2708,7 +2708,7 @@ impl Clone for Handle {
             SigLevel: self.SigLevel,
             localfileSigLevel: self.localfileSigLevel,
             remotefileSigLevel: self.remotefileSigLevel,
-            // pub pm_errno: errno_t,
+            // pub pm_errno: Error,
             lockfd: None,
             // 	int delta_regex_compiled;
             // 	regex_t delta_regex;

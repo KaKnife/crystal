@@ -179,7 +179,7 @@ pub fn make_aligned_titles() {
 /** Turn a depends list into a text list.
  * @param deps a list with items of type depend_t
  */
-fn deplist_display(title: &str, deps: &Vec<depend_t>, cols: usize) {
+fn deplist_display(title: &str, deps: &Vec<Dependency>, cols: usize) {
 	let mut text = Vec::new();
 	for dep in deps {
 		text.push(dep.alpm_dep_compute_string());
@@ -220,7 +220,7 @@ fn deplist_display(title: &str, deps: &Vec<depend_t>, cols: usize) {
 pub fn dump_pkg_full(
 	pkg: &mut Package,
 	extra: bool,
-	config: &config_t,
+	config: &Config,
 	db_local: &mut Database,
 	dbs_sync: &mut Vec<Database>,
 ) {
@@ -229,7 +229,7 @@ pub fn dump_pkg_full(
 	// time_t bdate, idate;
 	let bdate;
 	let idate;
-	// pkgfrom_t from;
+	// PackageFrom from;
 	let from;
 	let reason;
 	// double size;
@@ -290,7 +290,7 @@ pub fn dump_pkg_full(
 	}
 
 	match (&from, extra) {
-		(&pkgfrom_t::ALPM_PKG_FROM_LOCALDB, _) | (_, true) => {
+		(&PackageFrom::ALPM_PKG_FROM_LOCALDB, _) | (_, true) => {
 			/* compute this here so we don't get a pause in the middle of output */
 			requiredby = pkg.alpm_pkg_compute_requiredby(db_local, dbs_sync);
 			optionalfor = pkg.alpm_pkg_compute_optionalfor(db_local, dbs_sync);
@@ -301,7 +301,7 @@ pub fn dump_pkg_full(
 	let cols = getcols();
 	/* actual output */
 	// match from {
-	// 	pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+	// 	PackageFrom::ALPM_PKG_FROM_SYNCDB => {
 	// 		string_display(T_REPOSITORY, alpm_db_get_name(alpm_pkg_get_db(pkg)), cols, config)
 	// 	}
 	// 	_ => {}
@@ -323,7 +323,7 @@ pub fn dump_pkg_full(
 	// optdeplist_display(pkg, cols);
 
 	match from {
-		pkgfrom_t::ALPM_PKG_FROM_LOCALDB if extra => {
+		PackageFrom::ALPM_PKG_FROM_LOCALDB if extra => {
 			// list_display(T_REQUIRED_BY, requiredby, cols);
 			// list_display(T_OPTIONAL_FOR, optionalfor, cols);
 		}
@@ -334,10 +334,10 @@ pub fn dump_pkg_full(
 
 	size = humanize_size(pkg.alpm_pkg_get_size(), '\0', 2, &mut label);
 	match from {
-		pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+		PackageFrom::ALPM_PKG_FROM_SYNCDB => {
 			println!("{} {} {}", T_DOWNLOAD_SIZE, size, label);
 		}
-		pkgfrom_t::ALPM_PKG_FROM_FILE => {
+		PackageFrom::ALPM_PKG_FROM_FILE => {
 			println!("{} {} {}", T_COMPRESSED_SIZE, size, label);
 		}
 		_ => {}
@@ -353,7 +353,7 @@ pub fn dump_pkg_full(
 	string_display(T_PACKAGER, &pkg.alpm_pkg_get_packager(db_local), cols, config);
 	// string_display(T_BUILD_DATE, bdatestr, cols);
 	match from {
-		pkgfrom_t::ALPM_PKG_FROM_LOCALDB => {
+		PackageFrom::ALPM_PKG_FROM_LOCALDB => {
 			// string_display(T_INSTALL_DATE, idatestr, cols, config);
 			// string_display(T_INSTALL_REASON, reason, cols, config);
 		}
@@ -365,14 +365,14 @@ pub fn dump_pkg_full(
 		String::from("No")
 	};
 	match from {
-		pkgfrom_t::ALPM_PKG_FROM_FILE | pkgfrom_t::ALPM_PKG_FROM_LOCALDB => {
+		PackageFrom::ALPM_PKG_FROM_FILE | PackageFrom::ALPM_PKG_FROM_LOCALDB => {
 			string_display(T_INSTALL_SCRIPT, &has_scriptlet, cols, config);
 		}
 		_ => {}
 	}
 
 	match from {
-		pkgfrom_t::ALPM_PKG_FROM_SYNCDB if extra => {
+		PackageFrom::ALPM_PKG_FROM_SYNCDB if extra => {
 			unimplemented!();
 			let base64_sig = pkg.alpm_pkg_get_base64_sig();
 			let mut keys = Vec::new();
@@ -398,7 +398,7 @@ pub fn dump_pkg_full(
 
 	/* Print additional package info if info flag passed more than once */
 	match from {
-		pkgfrom_t::ALPM_PKG_FROM_FILE => {
+		PackageFrom::ALPM_PKG_FROM_FILE => {
 			unimplemented!();
 			// 		alpm_siglist_t siglist;
 			// 		int err = alpm_pkg_check_pgp_signature(pkg, &siglist);
@@ -412,7 +412,7 @@ pub fn dump_pkg_full(
 			// 		}
 			// 		alpm_siglist_cleanup(&siglist);
 		}
-		pkgfrom_t::ALPM_PKG_FROM_LOCALDB if extra => {
+		PackageFrom::ALPM_PKG_FROM_LOCALDB if extra => {
 			unimplemented!();
 			// pkg.dump_pkg_backups();
 		}
@@ -568,7 +568,7 @@ pub fn dump_pkg_search(
 	db: &mut Database,
 	targets: &Vec<String>,
 	show_status: i32,
-	colstr: &colstr_t,
+	colstr: &ColStr,
 	handle: &Handle,
 	quiet: bool,
 ) -> i32 {

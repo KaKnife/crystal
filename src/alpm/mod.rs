@@ -46,11 +46,11 @@ pub use self::db::Database;
 pub use self::deps::alpm_dep_from_string;
 pub use self::be_sync::alpm_db_update;
 pub use self::deps::alpm_find_satisfier;
-pub use self::error::errno_t;
+pub use self::error::Error;
 
 const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
 
-pub type Result<T> = std::result::Result<T, errno_t>;
+pub type Result<T> = std::result::Result<T, self::Error>;
 
 // /*
 //  * alpm.h
@@ -92,7 +92,7 @@ pub type Result<T> = std::result::Result<T, errno_t>;
 type __Handle = Handle;
 type __Database = Database;
 type __Package = Package;
-type __alpm_trans_t = alpm_trans_t;
+type __alpm_trans_t = Transaction;
 type alpm_time_t = i64;
 
 /// Package install reasons.
@@ -118,15 +118,15 @@ impl From<u8> for pkgreason_t {
     }
 }
 
-impl Default for pkgfrom_t {
+impl Default for PackageFrom {
     fn default() -> Self {
-        pkgfrom_t::ALPM_PKG_FROM_FILE
+        PackageFrom::ALPM_PKG_FROM_FILE
     }
 }
 
 /// Location a package object was loaded from.
 #[derive(Debug, Clone)]
-pub enum pkgfrom_t {
+pub enum PackageFrom {
     ALPM_PKG_FROM_FILE = 1,
     ALPM_PKG_FROM_LOCALDB,
     ALPM_PKG_FROM_SYNCDB,
@@ -143,7 +143,7 @@ pub enum pkgvalidation_t {
 
 /// Types of version constraints in dependency specs.
 #[derive(Debug, Clone)]
-pub enum depmod_t {
+pub enum Depmod {
     /// No version constraint
     ALPM_DEP_MOD_ANY = 1,
     /// Test version equality (package=x.y.z)
@@ -158,9 +158,9 @@ pub enum depmod_t {
     ALPM_DEP_MOD_LT,
 }
 
-impl Default for depmod_t {
+impl Default for Depmod {
     fn default() -> Self {
-        depmod_t::ALPM_DEP_MOD_ANY
+        Depmod::ALPM_DEP_MOD_ANY
     }
 }
 
@@ -283,15 +283,15 @@ impl Default for sigstatus_t {
 
 /// PGP signature verification status return codes
 #[derive(Debug, Clone)]
-enum sigvalidity_t {
-    ALPM_SIGVALIDITY_FULL,
-    ALPM_SIGVALIDITY_MARGINAL,
-    ALPM_SIGVALIDITY_NEVER,
-    ALPM_SIGVALIDITY_UNKNOWN,
+enum SigValidity {
+    Full,
+    Marginal,
+    Never,
+    Unknown,
 }
-impl Default for sigvalidity_t {
+impl Default for SigValidity {
     fn default() -> Self {
-        sigvalidity_t::ALPM_SIGVALIDITY_UNKNOWN
+        SigValidity::Unknown
     }
 }
 
@@ -299,33 +299,33 @@ impl Default for sigvalidity_t {
 
 /// Dependency
 #[derive(Debug, Clone, Default)]
-pub struct depend_t {
+pub struct Dependency {
     pub name: String,
     pub version: String,
     desc: String,
     name_hash: u64,
-    depmod: depmod_t,
+    depmod: Depmod,
 }
 
 /// Missing dependency
-pub struct depmissing_t {
+pub struct DepMissing {
     pub target: String,
-    pub depend: depend_t,
+    pub depend: Dependency,
     /// this is used only in the case of a remove dependency error
     pub causingpkg: String,
 }
 
 /// Conflict
-pub struct conflict_t {
+pub struct Conflict {
     // unsigned long package1_hash;
     // unsigned long package2_hash;
     pub package1: String,
     pub package2: String,
-    // depend_t *reason;
+    // Dependency *reason;
 }
 
 /// File conflict
-struct fileconflict_t {
+struct FileConflict {
     target: String,
     ttype: fileconflicttype_t, //used to be type
     file: String,
@@ -342,7 +342,7 @@ pub struct Group {
 }
 
 /// Package upgrade delta
-struct _alpm_delta_t {
+struct Delta {
     // /// filename of the delta patch
     // delta: String,
     // /// md5sum of the delta file
@@ -358,14 +358,14 @@ struct _alpm_delta_t {
 }
 
 /// File in a package
-pub struct alpm_file_t {
+pub struct File {
 	// char *name;
 	// off_t size;
 	// mode_t mode;
 }
 
 /// Package filelist container
-struct alpm_filelist_t {
+struct FileList {
 	// size_t count;
 	// alpm_file_t *files;
 }
@@ -378,7 +378,7 @@ struct Backup {
 }
 
 #[derive(Debug, Clone, Default)]
-struct alpm_pgpkey_t {
+struct PgpKey {
     // void *data;
     fingerprint: String,
     uid: String,
@@ -394,18 +394,18 @@ struct alpm_pgpkey_t {
 /// Signature result. Contains the key, status, and validity of a given
 /// signature.
 #[derive(Debug, Clone, Default)]
-struct alpm_sigresult_t {
-    key: alpm_pgpkey_t,
+struct SignatureResult {
+    key: PgpKey,
     status: sigstatus_t,
-    validity: sigvalidity_t,
+    validity: SigValidity,
 }
 
 /// Signature list. Contains the number of signatures found and a pointer to an
 /// array of results. The array is of size count.
 #[derive(Debug, Clone, Default)]
-pub struct alpm_siglist_t {
+pub struct SignatureList {
     count: usize,
-    results: alpm_sigresult_t,
+    results: SignatureResult,
 }
 
 //Hooks
@@ -419,7 +419,7 @@ pub struct alpm_siglist_t {
 
 /// Logging Levels
 #[derive(Debug, Default)]
-pub struct loglevel {
+pub struct LogLevel {
     pub ALPM_LOG_ERROR: bool,    //    = 1,
     pub ALPM_LOG_WARNING: bool,  //  = (1 << 1),
     pub ALPM_LOG_DEBUG: bool,    //    = (1 << 2),
@@ -428,107 +428,107 @@ pub struct loglevel {
 
 // type alpm_cb_log = (alpm_loglevel_t, String, va_list);
 
-/// Type of events.
-enum alpm_event_type_t {
-    /// Dependencies will be computed for a package.
-    ALPM_EVENT_CHECKDEPS_START = 1,
-    /// Dependencies were computed for a package.
-    ALPM_EVENT_CHECKDEPS_DONE,
-    /// File conflicts will be computed for a package.
-    ALPM_EVENT_FILECONFLICTS_START,
-    /// File conflicts were computed for a package.
-    ALPM_EVENT_FILECONFLICTS_DONE,
-    /// Dependencies will be resolved for target package.
-    ALPM_EVENT_RESOLVEDEPS_START,
-    /// Dependencies were resolved for target package.
-    ALPM_EVENT_RESOLVEDEPS_DONE,
-    /// Inter-conflicts will be checked for target package.
-    ALPM_EVENT_INTERCONFLICTS_START,
-    /// Inter-conflicts were checked for target package.
-    ALPM_EVENT_INTERCONFLICTS_DONE,
-    /// Processing the package transaction is starting.
-    ALPM_EVENT_TRANSACTION_START,
-    /// Processing the package transaction is finished.
-    ALPM_EVENT_TRANSACTION_DONE,
-    /// Package will be installed/upgraded/downgraded/re-installed/removed; See
-    /// alpm_event_package_operation_t for arguments.
-    ALPM_EVENT_PACKAGE_OPERATION_START,
-    /// Package was installed/upgraded/downgraded/re-installed/removed; See
-    /// alpm_event_package_operation_t for arguments.
-    ALPM_EVENT_PACKAGE_OPERATION_DONE,
-    /// Target package's integrity will be checked.
-    ALPM_EVENT_INTEGRITY_START,
-    /// Target package's integrity was checked.
-    ALPM_EVENT_INTEGRITY_DONE,
-    /// Target package will be loaded.
-    ALPM_EVENT_LOAD_START,
-    /// Target package is finished loading.
-    ALPM_EVENT_LOAD_DONE,
-    /// Target delta's integrity will be checked.
-    ALPM_EVENT_DELTA_INTEGRITY_START,
-    /// Target delta's integrity was checked.
-    ALPM_EVENT_DELTA_INTEGRITY_DONE,
-    /// Deltas will be applied to packages.
-    ALPM_EVENT_DELTA_PATCHES_START,
-    /// Deltas were applied to packages.
-    ALPM_EVENT_DELTA_PATCHES_DONE,
-    /// Delta patch will be applied to target package; See
-    /// alpm_event_delta_patch_t for arguments..
-    ALPM_EVENT_DELTA_PATCH_START,
-    /// Delta patch was applied to target package.
-    ALPM_EVENT_DELTA_PATCH_DONE,
-    /// Delta patch failed to apply to target package.
-    ALPM_EVENT_DELTA_PATCH_FAILED,
-    /// Scriptlet has printed information; See alpm_event_scriptlet_info_t for
-    /// arguments.
-    ALPM_EVENT_SCRIPTLET_INFO,
-    /// Files will be downloaded from a repository.
-    ALPM_EVENT_RETRIEVE_START,
-    /// Files were downloaded from a repository.
-    ALPM_EVENT_RETRIEVE_DONE,
-    /// Not all files were successfully downloaded from a repository.
-    ALPM_EVENT_RETRIEVE_FAILED,
-    /// A file will be downloaded from a repository; See alpm_event_pkgdownload_t
-    /// for arguments
-    ALPM_EVENT_PKGDOWNLOAD_START,
-    /// A file was downloaded from a repository; See alpm_event_pkgdownload_t
-    /// for arguments
-    ALPM_EVENT_PKGDOWNLOAD_DONE,
-    /// A file failed to be downloaded from a repository; See
-    /// alpm_event_pkgdownload_t for arguments
-    ALPM_EVENT_PKGDOWNLOAD_FAILED,
-    /// Disk space usage will be computed for a package.
-    ALPM_EVENT_DISKSPACE_START,
-    /// Disk space usage was computed for a package.
-    ALPM_EVENT_DISKSPACE_DONE,
-    /// An optdepend for another package is being removed; See
-    /// alpm_event_optdep_removal_t for arguments.
-    ALPM_EVENT_OPTDEP_REMOVAL,
-    /// A configured repository database is missing; See
-    /// alpm_event_database_missing_t for arguments.
-    ALPM_EVENT_DATABASE_MISSING,
-    /// Checking keys used to create signatures are in keyring.
-    ALPM_EVENT_KEYRING_START,
-    /// Keyring checking is finished.
-    ALPM_EVENT_KEYRING_DONE,
-    /// Downloading missing keys into keyring.
-    ALPM_EVENT_KEY_DOWNLOAD_START,
-    /// Key downloading is finished.
-    ALPM_EVENT_KEY_DOWNLOAD_DONE,
-    /// A .pacnew file was created; See alpm_event_pacnew_created_t for arguments.
-    ALPM_EVENT_PACNEW_CREATED,
-    /// A .pacsave file was created; See alpm_event_pacsave_created_t for
-    /// arguments
-    ALPM_EVENT_PACSAVE_CREATED,
-    /// Processing hooks will be started.
-    ALPM_EVENT_HOOK_START,
-    /// Processing hooks is finished.
-    ALPM_EVENT_HOOK_DONE,
-    /// A hook is starting
-    ALPM_EVENT_HOOK_RUN_START,
-    /// A hook has finished running
-    ALPM_EVENT_HOOK_RUN_DONE,
-}
+// /// Type of events.
+// enum alpm_event_type_t {
+//     /// Dependencies will be computed for a package.
+//     ALPM_EVENT_CHECKDEPS_START = 1,
+//     /// Dependencies were computed for a package.
+//     ALPM_EVENT_CHECKDEPS_DONE,
+//     /// File conflicts will be computed for a package.
+//     ALPM_EVENT_FILECONFLICTS_START,
+//     /// File conflicts were computed for a package.
+//     ALPM_EVENT_FILECONFLICTS_DONE,
+//     /// Dependencies will be resolved for target package.
+//     ALPM_EVENT_RESOLVEDEPS_START,
+//     /// Dependencies were resolved for target package.
+//     ALPM_EVENT_RESOLVEDEPS_DONE,
+//     /// Inter-conflicts will be checked for target package.
+//     ALPM_EVENT_INTERCONFLICTS_START,
+//     /// Inter-conflicts were checked for target package.
+//     ALPM_EVENT_INTERCONFLICTS_DONE,
+//     /// Processing the package transaction is starting.
+//     ALPM_EVENT_TRANSACTION_START,
+//     /// Processing the package transaction is finished.
+//     ALPM_EVENT_TRANSACTION_DONE,
+//     /// Package will be installed/upgraded/downgraded/re-installed/removed; See
+//     /// alpm_event_package_operation_t for arguments.
+//     ALPM_EVENT_PACKAGE_OPERATION_START,
+//     /// Package was installed/upgraded/downgraded/re-installed/removed; See
+//     /// alpm_event_package_operation_t for arguments.
+//     ALPM_EVENT_PACKAGE_OPERATION_DONE,
+//     /// Target package's integrity will be checked.
+//     ALPM_EVENT_INTEGRITY_START,
+//     /// Target package's integrity was checked.
+//     ALPM_EVENT_INTEGRITY_DONE,
+//     /// Target package will be loaded.
+//     ALPM_EVENT_LOAD_START,
+//     /// Target package is finished loading.
+//     ALPM_EVENT_LOAD_DONE,
+//     /// Target delta's integrity will be checked.
+//     ALPM_EVENT_DELTA_INTEGRITY_START,
+//     /// Target delta's integrity was checked.
+//     ALPM_EVENT_DELTA_INTEGRITY_DONE,
+//     /// Deltas will be applied to packages.
+//     ALPM_EVENT_DELTA_PATCHES_START,
+//     /// Deltas were applied to packages.
+//     ALPM_EVENT_DELTA_PATCHES_DONE,
+//     /// Delta patch will be applied to target package; See
+//     /// alpm_event_delta_patch_t for arguments..
+//     ALPM_EVENT_DELTA_PATCH_START,
+//     /// Delta patch was applied to target package.
+//     ALPM_EVENT_DELTA_PATCH_DONE,
+//     /// Delta patch failed to apply to target package.
+//     ALPM_EVENT_DELTA_PATCH_FAILED,
+//     /// Scriptlet has printed information; See alpm_event_scriptlet_info_t for
+//     /// arguments.
+//     ALPM_EVENT_SCRIPTLET_INFO,
+//     /// Files will be downloaded from a repository.
+//     ALPM_EVENT_RETRIEVE_START,
+//     /// Files were downloaded from a repository.
+//     ALPM_EVENT_RETRIEVE_DONE,
+//     /// Not all files were successfully downloaded from a repository.
+//     ALPM_EVENT_RETRIEVE_FAILED,
+//     /// A file will be downloaded from a repository; See alpm_event_pkgdownload_t
+//     /// for arguments
+//     ALPM_EVENT_PKGDOWNLOAD_START,
+//     /// A file was downloaded from a repository; See alpm_event_pkgdownload_t
+//     /// for arguments
+//     ALPM_EVENT_PKGDOWNLOAD_DONE,
+//     /// A file failed to be downloaded from a repository; See
+//     /// alpm_event_pkgdownload_t for arguments
+//     ALPM_EVENT_PKGDOWNLOAD_FAILED,
+//     /// Disk space usage will be computed for a package.
+//     ALPM_EVENT_DISKSPACE_START,
+//     /// Disk space usage was computed for a package.
+//     ALPM_EVENT_DISKSPACE_DONE,
+//     /// An optdepend for another package is being removed; See
+//     /// alpm_event_optdep_removal_t for arguments.
+//     ALPM_EVENT_OPTDEP_REMOVAL,
+//     /// A configured repository database is missing; See
+//     /// alpm_event_database_missing_t for arguments.
+//     ALPM_EVENT_DATABASE_MISSING,
+//     /// Checking keys used to create signatures are in keyring.
+//     ALPM_EVENT_KEYRING_START,
+//     /// Keyring checking is finished.
+//     ALPM_EVENT_KEYRING_DONE,
+//     /// Downloading missing keys into keyring.
+//     ALPM_EVENT_KEY_DOWNLOAD_START,
+//     /// Key downloading is finished.
+//     ALPM_EVENT_KEY_DOWNLOAD_DONE,
+//     /// A .pacnew file was created; See alpm_event_pacnew_created_t for arguments.
+//     ALPM_EVENT_PACNEW_CREATED,
+//     /// A .pacsave file was created; See alpm_event_pacsave_created_t for
+//     /// arguments
+//     ALPM_EVENT_PACSAVE_CREATED,
+//     /// Processing hooks will be started.
+//     ALPM_EVENT_HOOK_START,
+//     /// Processing hooks is finished.
+//     ALPM_EVENT_HOOK_DONE,
+//     /// A hook is starting
+//     ALPM_EVENT_HOOK_RUN_START,
+//     /// A hook has finished running
+//     ALPM_EVENT_HOOK_RUN_DONE,
+// }
 
 // typedef struct _alpm_event_any_t {
 // 	/// Type of event.
@@ -565,7 +565,7 @@ enum alpm_event_type_t {
 // 	/// Package with the optdep.
 // 	Package *pkg;
 // 	/// Optdep being removed.
-// 	depend_t *optdep;
+// 	Dependency *optdep;
 // } alpm_event_optdep_removal_t;
 
 // typedef struct _alpm_event_delta_patch_t {
@@ -743,7 +743,7 @@ enum alpm_event_type_t {
 // 	/// List of Package* as possible providers.
 // 	alpm_list_t *providers;
 // 	/// What providers provide for.
-// 	depend_t *depend;
+// 	Dependency *depend;
 // } alpm_question_select_provider_t;
 
 // typedef struct _alpm_question_import_key_t {
@@ -811,7 +811,8 @@ enum alpm_event_type_t {
 /// * localpath - the directory to which the file should be downloaded
 /// * force - whether to force an update, even if the file is the same
 /// * return - 0 on success, 1 if the file exists and is identical, -1 on error.
-type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
+// type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
+type FetchCallback = fn(&String, &String, i32) -> i32;
 
 // /// Fetch a remote pkg.
 //  * @param handle the context handle
@@ -1064,7 +1065,7 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 // alpm_list_t *alpm_db_search(Database *db, const alpm_list_t *needles);
 
 #[derive(Default, Debug, Clone, Copy)]
-pub struct alpm_db_usage_t {
+pub struct DatabaseUsage {
     pub ALPM_DB_USAGE_SYNC: bool,
     pub ALPM_DB_USAGE_SEARCH: bool,
     pub ALPM_DB_USAGE_INSTALL: bool,
@@ -1072,7 +1073,7 @@ pub struct alpm_db_usage_t {
     pub ALPM_DB_USAGE_ALL: bool,
 }
 
-impl alpm_db_usage_t {
+impl DatabaseUsage {
     pub fn is_zero(&self) -> bool {
         !(self.ALPM_DB_USAGE_SYNC && self.ALPM_DB_USAGE_SEARCH && self.ALPM_DB_USAGE_INSTALL
             && self.ALPM_DB_USAGE_UPGRADE && self.ALPM_DB_USAGE_ALL)
@@ -1081,14 +1082,14 @@ impl alpm_db_usage_t {
 
 // /// Sets the usage of a database.
 //  * @param db pointer to the package database to set the status for
-//  * @param usage a bitmask of alpm_db_usage_t values
+//  * @param usage a bitmask of DatabaseUsage values
 //  * @return 0 on success, or -1 on error
 //
 // int alpm_db_set_usage(Database *db, int usage);
 //
 // /// Gets the usage of a database.
 //  * @param db pointer to the package database to get the status of
-//  * @param usage pointer to an alpm_db_usage_t to store db's status
+//  * @param usage pointer to an DatabaseUsage to store db's status
 //  * @return 0 on success, or -1 on error
 //
 // int alpm_db_get_usage(Database *db, int *usage);
@@ -1198,9 +1199,9 @@ impl alpm_db_usage_t {
 // const char *alpm_pkg_get_version(Package *pkg);
 //
 // /// Returns the origin of the package.
-//  * @return an pkgfrom_t constant, -1 on error
+//  * @return an PackageFrom constant, -1 on error
 //
-// pkgfrom_t alpm_pkg_get_origin(Package *pkg);
+// PackageFrom alpm_pkg_get_origin(Package *pkg);
 //
 // /// Returns the package description.
 //  * @param pkg a pointer to package
@@ -1283,39 +1284,39 @@ impl alpm_db_usage_t {
 //
 // alpm_list_t *alpm_pkg_get_groups(Package *pkg);
 //
-// /// Returns the list of package dependencies as depend_t.
+// /// Returns the list of package dependencies as Dependency.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of depend_t structures.
+//  * @return a reference to an internal list of Dependency structures.
 //
 // alpm_list_t *alpm_pkg_get_depends(Package *pkg);
 //
 // /// Returns the list of package optional dependencies.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of depend_t structures.
+//  * @return a reference to an internal list of Dependency structures.
 //
 // alpm_list_t *alpm_pkg_get_optdepends(Package *pkg);
 //
 // /// Returns a list of package check dependencies
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of depend_t structures.
+//  * @return a reference to an internal list of Dependency structures.
 //
 // alpm_list_t *alpm_pkg_get_checkdepends(Package *pkg);
 //
 // /// Returns a list of package make dependencies
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of depend_t structures.
+//  * @return a reference to an internal list of Dependency structures.
 //
 // alpm_list_t *alpm_pkg_get_makedepends(Package *pkg);
 //
 // /// Returns the list of packages conflicting with pkg.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of depend_t structures.
+//  * @return a reference to an internal list of Dependency structures.
 //
 // alpm_list_t *alpm_pkg_get_conflicts(Package *pkg);
 //
 // /// Returns the list of packages provided by pkg.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of depend_t structures.
+//  * @return a reference to an internal list of Dependency structures.
 //
 // alpm_list_t *alpm_pkg_get_provides(Package *pkg);
 //
@@ -1327,7 +1328,7 @@ impl alpm_db_usage_t {
 //
 // /// Returns the list of packages to be replaced by pkg.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of depend_t structures.
+//  * @return a reference to an internal list of Dependency structures.
 //
 // alpm_list_t *alpm_pkg_get_replaces(Package *pkg);
 //
@@ -1624,10 +1625,10 @@ pub struct TransactionFlag {
 //  * @param dep a dependency info structure
 //  * @return a formatted string, e.g. "glibc>=2.12"
 //
-// char *alpm_dep_compute_string(const depend_t *dep);
+// char *alpm_dep_compute_string(const Dependency *dep);
 //
 
-// depend_t *alpm_dep_from_string(const char *depstring);
+// Dependency *alpm_dep_from_string(const char *depstring);
 
 // /* checksums
 // char *alpm_compute_md5sum(const char *filename);
@@ -1684,7 +1685,7 @@ pub struct Capabilities {
 /// * `dbpath` the absolute path to the libalpm database
 /// * returns a context handle on success, or error
 pub fn initialize(root: &String, dbpath: &String) -> Result<Handle> {
-    let myerr = errno_t::default();
+    // let myerr = errno_t::default();
     let lf = "db.lck";
     let hookdir;
     let mut myhandle = Handle::_alpm_handle_new();

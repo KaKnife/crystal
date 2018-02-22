@@ -21,28 +21,28 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-impl Default for alpm_transstate_t {
+impl Default for AlpmTransstate {
     fn default() -> Self {
-        alpm_transstate_t::STATE_IDLE
+        AlpmTransstate::Idle
     }
 }
 #[derive(Debug, Clone)]
-pub enum alpm_transstate_t {
-    STATE_IDLE = 0,
-    STATE_INITIALIZED,
-    STATE_PREPARED,
-    STATE_DOWNLOADING,
-    STATE_COMMITING,
-    STATE_COMMITED,
-    STATE_INTERRUPTED,
+pub enum AlpmTransstate {
+    Idle = 0,
+    Initialized,
+    PREPARED,
+    DOWNLOADING,
+    COMMITING,
+    COMMITED,
+    INTERRUPTED,
 }
 
 #[derive(Default, Debug, Clone)]
 /* Transaction */
-pub struct alpm_trans_t {
+pub struct Transaction {
     /* bitfield of TransactionFlag flags */
     pub flags: TransactionFlag,
-    pub state: alpm_transstate_t,
+    pub state: AlpmTransstate,
     pub unresolvable: Vec<Package>, /* list of (Package *) */
     pub add: Vec<Package>,          /* list of (Package *) */
     pub remove: Vec<Package>,       /* list of (Package *) */

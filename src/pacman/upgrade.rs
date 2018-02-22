@@ -37,7 +37,7 @@ use super::*;
 /// * return - Ok(()) on success, Err(()) on failure
 pub fn pacman_upgrade(
     mut targets: Vec<String>,
-    config: &mut config_t,
+    config: &mut Config,
     handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     let mut retval = Ok(());

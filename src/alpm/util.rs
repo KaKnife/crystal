@@ -1207,14 +1207,14 @@ pub fn _alpm_splitname(target: &String) -> std::result::Result<(String, String, 
     // 		}
     // 	}
     use std::hash::Hash;
-    let mut hasher = sdbm_hasher::default();
+    let mut hasher = SdbmHasher::default();
     name.hash(&mut hasher);
     let name_hash = hasher.finish();
     return Ok((name, version, name_hash));
 }
 
 #[derive(Default)]
-pub struct sdbm_hasher {
+pub struct SdbmHasher {
     // /** Hash the given string to an unsigned long value.
     //  * This is the standard sdbm hashing algorithm.
     //  * @param str string to hash
@@ -1237,7 +1237,7 @@ pub struct sdbm_hasher {
     hash: std::num::Wrapping<u64>,
 }
 use std::hash::Hasher;
-impl Hasher for sdbm_hasher {
+impl Hasher for SdbmHasher {
     fn finish(&self) -> u64 {
         self.hash.0
     }

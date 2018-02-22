@@ -22,10 +22,10 @@ use self::remove::*;
 use self::util::*;
 use self::database::*;
 use self::conf::*;
-use self::operations::*;
+use self::Operations::*;
 
-pub use self::conf::config_t;
-pub use self::conf::section_t;
+pub use self::conf::Config;
+pub use self::conf::Section;
 
 use super::*;
 use super::common::*;
@@ -138,7 +138,7 @@ use std;
 // 	char const *const str_opr  = _("operation");
 //
 // 	/* please limit your strings to 80 characters in width */
-// 	if(op == PM_OP_MAIN) {
+// 	if(op == MAIN) {
 // 		printf("%s:  %s <%s> [...]\n", str_usg, myname, str_opr);
 // 		printf(_("operations:\n"));
 // 		printf("    %s {-h --help}\n", myname);
@@ -153,7 +153,7 @@ use std;
 // 		printf(_("\nuse '%s {-h --help}' with an operation for available options\n"),
 // 				myname);
 // 	} else {
-// 		if(op == PM_OP_REMOVE) {
+// 		if(op == REMOVE) {
 // 			printf("%s:  %s {-R --remove} [%s] <%s>\n", str_usg, myname, str_opt, str_pkg);
 // 			printf("%s:\n", str_opt);
 // 			addlist(_("  -c, --cascade        remove packages and all packages that depend on them\n"));
@@ -161,11 +161,11 @@ use std;
 // 			addlist(_("  -s, --recursive      remove unnecessary dependencies\n"
 // 			          "                       (-ss includes explicitly installed dependencies)\n"));
 // 			addlist(_("  -u, --unneeded       remove unneeded packages\n"));
-// 		} else if(op == PM_OP_UPGRADE) {
+// 		} else if(op == UPGRADE) {
 // 			printf("%s:  %s {-U --upgrade} [%s] <%s>\n", str_usg, myname, str_opt, str_file);
 // 			addlist(_("      --needed         do not reinstall up to date packages\n"));
 // 			printf("%s:\n", str_opt);
-// 		} else if(op == PM_OP_QUERY) {
+// 		} else if(op == QUERY) {
 // 			printf("%s:  %s {-Q --query} [%s] [%s]\n", str_usg, myname, str_opt, str_pkg);
 // 			printf("%s:\n", str_opt);
 // 			addlist(_("  -c, --changelog      view the changelog of a package\n"));
@@ -184,7 +184,7 @@ use std;
 // 			addlist(_("  -t, --unrequired     list packages not (optionally) required by any\n"
 // 			          "                       package (-tt to ignore optdepends) [filter]\n"));
 // 			addlist(_("  -u, --upgrades       list outdated packages [filter]\n"));
-// 		} else if(op == PM_OP_SYNC) {
+// 		} else if(op == SYNC) {
 // 			printf("%s:  %s {-S --sync} [%s] [%s]\n", str_usg, myname, str_opt, str_pkg);
 // 			printf("%s:\n", str_opt);
 //	addlist(_("  -c, --clean          remove old packages from cache directory (-cc for all)\n"));
@@ -363,7 +363,7 @@ fn cleanup(ret: i32) {
 pub fn main() {
     let argv: Vec<String> = env::args().collect();
     let mut ret: i32 = 0;
-    let mut config: config_t;
+    let mut config: Config;
     let mut handle: Handle;
     let myuid: u32 = unsafe { libc::getuid() }; //uid_t myuid = getuid();
     let pm_targets: Vec<String>;
@@ -377,7 +377,7 @@ pub fn main() {
     setuseragent();
 
     /* init config data */
-    config = config_t::new();
+    config = Config::new();
 
     // install_soft_interrupt_handler();
 
@@ -527,31 +527,31 @@ pub fn main() {
     /* start the requested operation */
     // unimplemented!("Done with parsing");
     match &config.op {
-        &Some(PM_OP_DATABASE) => match pacman_database(pm_targets, &mut config,&mut handle) {
+        &Some(DATABASE) => match pacman_database(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(PM_OP_REMOVE) => match pacman_remove(pm_targets, &mut config,&mut handle) {
+        &Some(REMOVE) => match pacman_remove(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(PM_OP_UPGRADE) => match pacman_upgrade(pm_targets, &mut config,&mut handle) {
+        &Some(UPGRADE) => match pacman_upgrade(pm_targets, &mut config,&mut handle) {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(PM_OP_QUERY) => match pacman_query(pm_targets, &mut config,&mut handle) {
+        &Some(QUERY) => match pacman_query(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(PM_OP_SYNC) => match pacman_sync(pm_targets, &mut config, &mut handle) {
+        &Some(SYNC) => match pacman_sync(pm_targets, &mut config, &mut handle) {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(PM_OP_DEPTEST) => match pacman_deptest(pm_targets, &mut config,&mut handle) {
+        &Some(DEPTEST) => match pacman_deptest(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        // &Some(PM_OP_FILES) => match pacman_files(pm_targets, &mut config) {
+        // &Some(FILES) => match pacman_files(pm_targets, &mut config) {
         //     Err(e) => (ret = e),
         //     _ => {}
         // },

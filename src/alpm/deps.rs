@@ -36,7 +36,7 @@ use super::*;
 // #include "handle.h"
 // #include "trans.h"
 
-// void SYMEXPORT alpm_dep_free(depend_t *dep)
+// void SYMEXPORT alpm_dep_free(Dependency *dep)
 // {
 // 	ASSERT(dep != NULL, return);
 // 	FREE(dep->name);
@@ -45,7 +45,7 @@ use super::*;
 // 	FREE(dep);
 // }
 //
-// static alpm_depmissing_t *depmiss_new(const char *target, depend_t *dep,
+// static alpm_depmissing_t *depmiss_new(const char *target, Dependency *dep,
 // 		const char *causingpkg)
 // {
 // 	alpm_depmissing_t *miss;
@@ -84,7 +84,7 @@ use super::*;
 // 	return 0;
 // }
 
-pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &depend_t) -> Option<&'a Package> {
+pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &Dependency) -> Option<&'a Package> {
     // alpm_list_t *i;
 
     for pkg in pkgs {
@@ -286,7 +286,7 @@ fn _alpm_sortbydeps<T>(
  * @return a Package* satisfying depstring
  */
 pub fn alpm_find_satisfier<'a>(pkgs: &'a Vec<Package>, depstring: &String) -> Option<&'a Package> {
-    // depend_t *dep = alpm_dep_from_string(depstring);
+    // Dependency *dep = alpm_dep_from_string(depstring);
     let dep = &alpm_dep_from_string(depstring);
     // if(!dep) {
     // 	return NULL;
@@ -295,17 +295,17 @@ pub fn alpm_find_satisfier<'a>(pkgs: &'a Vec<Package>, depstring: &String) -> Op
     return pkg;
 }
 
-pub fn dep_vercmp(version1: &String, depmod: &depmod_t, version2: &String) -> bool {
+pub fn dep_vercmp(version1: &String, depmod: &Depmod, version2: &String) -> bool {
     // int equal = 0;
     let cmp = alpm_pkg_vercmp(version1, version2);
     // use pkgfrom_t::*;
     match depmod {
-        &depmod_t::ALPM_DEP_MOD_ANY => true,
-        &depmod_t::ALPM_DEP_MOD_EQ => cmp == 0,
-        &depmod_t::ALPM_DEP_MOD_GE => cmp >= 0,
-        &depmod_t::ALPM_DEP_MOD_LE => cmp <= 0,
-        &depmod_t::ALPM_DEP_MOD_LT => cmp < 0,
-        &depmod_t::ALPM_DEP_MOD_GT => cmp > 0,
+        &Depmod::ALPM_DEP_MOD_ANY => true,
+        &Depmod::ALPM_DEP_MOD_EQ => cmp == 0,
+        &Depmod::ALPM_DEP_MOD_GE => cmp >= 0,
+        &Depmod::ALPM_DEP_MOD_LE => cmp <= 0,
+        &Depmod::ALPM_DEP_MOD_LT => cmp < 0,
+        &Depmod::ALPM_DEP_MOD_GT => cmp > 0,
         // _ => true,
     }
 }
@@ -313,9 +313,9 @@ pub fn dep_vercmp(version1: &String, depmod: &depmod_t, version2: &String) -> bo
 /// Return a newly allocated dependency information parsed from a string
 /// * `depstring` - a formatted string, e.g. "glibc=2.12"
 /// * return - a dependency info structure
-pub fn alpm_dep_from_string(depstring: &String) -> depend_t {
+pub fn alpm_dep_from_string(depstring: &String) -> Dependency {
     unimplemented!()
-    // 	depend_t *depend;
+    // 	Dependency *depend;
     // 	const char *ptr, *version, *desc;
     // 	size_t deplen;
     //
@@ -323,7 +323,7 @@ pub fn alpm_dep_from_string(depstring: &String) -> depend_t {
     // 		return NULL;
     // 	}
     //
-    // 	CALLOC(depend, 1, sizeof(depend_t), return NULL);
+    // 	CALLOC(depend, 1, sizeof(Dependency), return NULL);
     //
     // 	/* Note the extra space in ": " to avoid matching the epoch */
     // 	if((desc = strstr(depstring, ": ")) != NULL) {
@@ -380,29 +380,29 @@ pub fn alpm_dep_from_string(depstring: &String) -> depend_t {
     // 	return NULL;
 }
 
-impl depend_t {
+impl Dependency {
     /**
      * @param dep dependency to check against the provision list
      * @param provisions provision list
      * @return 1 if provider is found, 0 otherwise
      */
-    pub fn _alpm_depcmp_provides(&self, provisions: &Vec<depend_t>) -> bool {
+    pub fn _alpm_depcmp_provides(&self, provisions: &Vec<Dependency>) -> bool {
         let satisfy = false;
         // alpm_list_t * i;
 
         /* check provisions, name and version if available */
         for provision in provisions {
-            // depend_t *provision = i->data;
+            // Dependency *provision = i->data;
 
             match self.depmod {
-                depmod_t::ALPM_DEP_MOD_ANY => {
+                Depmod::ALPM_DEP_MOD_ANY => {
                     /* any version will satisfy the requirement */
                     return provision.name_hash == self.name_hash && provision.name == self.name;
                 }
                 _ => {}
             }
             match provision.depmod {
-                depmod_t::ALPM_DEP_MOD_EQ => {
+                Depmod::ALPM_DEP_MOD_EQ => {
                     /* provision specifies a version, so try it out */
                     return provision.name_hash == self.name_hash && provision.name == self.name
                         && dep_vercmp(&provision.version, &self.depmod, &self.version);
@@ -414,10 +414,10 @@ impl depend_t {
         return satisfy;
     }
 
-    // depend_t *_alpm_dep_dup(const depend_t *dep)
+    // Dependency *_alpm_dep_dup(const Dependency *dep)
     // {
-    // 	depend_t *newdep;
-    // 	CALLOC(newdep, 1, sizeof(depend_t), return NULL);
+    // 	Dependency *newdep;
+    // 	CALLOC(newdep, 1, sizeof(Dependency), return NULL);
     //
     // 	STRDUP(newdep->name, dep->name, goto error);
     // 	STRDUP(newdep->version, dep->version, goto error);
@@ -526,7 +526,7 @@ impl depend_t {
     //  *        an error code without prompting
     //  * @return the resolved package
     //  **/
-    // static Package *resolvedep(Handle *handle, depend_t *dep,
+    // static Package *resolvedep(Handle *handle, Dependency *dep,
     // 		alpm_list_t *dbs, alpm_list_t *excluding, int prompt)
     // {
     // 	alpm_list_t *i, *j;
@@ -693,7 +693,7 @@ impl depend_t {
     //
     // 	for(j = deps; j; j = j->next) {
     // 		alpm_depmissing_t *miss = j->data;
-    // 		depend_t *missdep = miss->depend;
+    // 		Dependency *missdep = miss->depend;
     // 		/* check if one of the packages in the [*packages] list already satisfies
     // 		 * this dependency */
     // 		if(find_dep_satisfier(*packages, missdep)) {
@@ -741,7 +741,7 @@ impl depend_t {
     // 	return ret;
     // }
 
-    /// Reverse of splitdep; make a dep string from a depend_t struct.
+    /// Reverse of splitdep; make a dep string from a Dependency struct.
     /// returns a string-formatted dependency with operator if necessary
     pub fn alpm_dep_compute_string(&self) -> String {
         unimplemented!();
