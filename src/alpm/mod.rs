@@ -99,20 +99,20 @@ type alpm_time_t = i64;
 #[derive(Debug, Clone)]
 pub enum PackageReason {
     /// Explicitly requested by the user.
-    ALPM_PKG_REASON_EXPLICIT = 0,
+    Explicit = 0,
     /// Installed as a dependency for another package.
-    ALPM_PKG_REASON_DEPEND = 1,
+    Dependency = 1,
 }
 impl Default for PackageReason {
     fn default() -> Self {
-        PackageReason::ALPM_PKG_REASON_EXPLICIT
+        PackageReason::Explicit
     }
 }
 impl From<u8> for PackageReason {
     fn from(n: u8) -> PackageReason {
         match n {
-            0 => PackageReason::ALPM_PKG_REASON_EXPLICIT,
-            1 => PackageReason::ALPM_PKG_REASON_DEPEND,
+            0 => PackageReason::Explicit,
+            1 => PackageReason::Dependency,
             _ => unimplemented!(),
         }
     }
@@ -120,47 +120,47 @@ impl From<u8> for PackageReason {
 
 impl Default for PackageFrom {
     fn default() -> Self {
-        PackageFrom::ALPM_PKG_FROM_FILE
+        PackageFrom::File
     }
 }
 
 /// Location a package object was loaded from.
 #[derive(Debug, Clone)]
 pub enum PackageFrom {
-    ALPM_PKG_FROM_FILE = 1,
-    ALPM_PKG_FROM_LOCALDB,
-    ALPM_PKG_FROM_SYNCDB,
+    File = 1,
+    LocalDatabase,
+    SyncDatabase,
 }
 
 /// Method used to validate a package.
 pub enum PackageValidation {
-    ALPM_PKG_VALIDATION_UNKNOWN = 0,
-    ALPM_PKG_VALIDATION_NONE = (1 << 0),
-    ALPM_PKG_VALIDATION_MD5SUM = (1 << 1),
-    ALPM_PKG_VALIDATION_SHA256SUM = (1 << 2),
-    ALPM_PKG_VALIDATION_SIGNATURE = (1 << 3),
+    Unkown = 0,
+    None = (1 << 0),
+    MD5Sum = (1 << 1),
+    SHA256Sum = (1 << 2),
+    Signature = (1 << 3),
 }
 
 /// Types of version constraints in dependency specs.
 #[derive(Debug, Clone)]
 pub enum Depmod {
     /// No version constraint
-    ALPM_DEP_MOD_ANY = 1,
+    Any = 1,
     /// Test version equality (package=x.y.z)
-    ALPM_DEP_MOD_EQ,
+    EQ,
     /// Test for at least a version (package>=x.y.z)
-    ALPM_DEP_MOD_GE,
+    GE,
     /// Test for at most a version (package<=x.y.z)
-    ALPM_DEP_MOD_LE,
+    LE,
     /// Test for greater than some version (package>x.y.z)
-    ALPM_DEP_MOD_GT,
+    GT,
     /// Test for less than some version (package<x.y.z)
-    ALPM_DEP_MOD_LT,
+    LT,
 }
 
 impl Default for Depmod {
     fn default() -> Self {
-        Depmod::ALPM_DEP_MOD_ANY
+        Depmod::Any
     }
 }
 
@@ -169,8 +169,8 @@ impl Default for Depmod {
 /// another target in the transaction.
 #[derive(Debug)]
 enum FileConflictType {
-    ALPM_FILECONFLICT_TARGET = 1,
-    ALPM_FILECONFLICT_FILESYSTEM,
+    Target = 1,
+    Filesystem,
 }
 
 /// PGP signature verification options
@@ -1504,7 +1504,7 @@ pub struct TransactionFlag {
     /// Modify database but do not commit changes to the filesystem.
     pub db_only: bool,
     /* (1 << 7) flag can go here */
-    /// Use ALPM_PKG_REASON_DEPEND when installing packages.
+    /// Use Depend when installing packages.
     pub all_deps: bool,
     /// Only download packages and do not actually install.
     pub download_only: bool,
@@ -1515,7 +1515,7 @@ pub struct TransactionFlag {
     /* (1 << 12) flag can go here */
     /// Do not install a package if it is already installed and up to date.
     pub needed: bool,
-    /// Use ALPM_PKG_REASON_EXPLICIT when installing packages.
+    /// Use Explicit when installing packages.
     pub all_explicit: bool,
     /// Do not remove a package if it is needed by another one.
     pub unneeded: bool,

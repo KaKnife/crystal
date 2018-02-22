@@ -283,9 +283,9 @@ fn is_unrequired(pkg: &Package, level: u8, db_local: &mut Database, dbs_sync: &m
 fn filter(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
     match pkg.alpm_pkg_get_reason(handle.alpm_get_localdb_mut()) {
         /* check if this package was installed as a dependency */
-        &PackageReason::ALPM_PKG_REASON_DEPEND if config.op_q_explicit != 0 => return 0,
+        &PackageReason::Dependency if config.op_q_explicit != 0 => return 0,
         /* check if this package was explicitly installed */
-        &PackageReason::ALPM_PKG_REASON_EXPLICIT if config.op_q_deps != 0 => return 0,
+        &PackageReason::Explicit if config.op_q_deps != 0 => return 0,
         _ => {}
     }
     /* check if this pkg is or isn't in a sync DB */

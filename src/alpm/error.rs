@@ -44,11 +44,11 @@ pub enum Error {
     // Ok = 0,
     Memory,
     System,
-    ALPM_ERR_BADPERMS,
-    ALPM_ERR_NOT_A_FILE,
-    ALPM_ERR_NOT_A_DIR,
-    ALPM_ERR_WRONG_ARGS,
-    ALPM_ERR_DISK_SPACE,
+    BadPerms,
+    NotAFile,
+    NotADirectory,
+    WrongArgs,
+    DiskSpace,
     /* Interface */
     ALPM_ERR_HANDLE_NULL,
     ALPM_ERR_HANDLE_NOT_NULL,
@@ -90,23 +90,23 @@ pub enum Error {
     ALPM_ERR_PKG_INVALID_ARCH,
     ALPM_ERR_PKG_REPO_NOT_FOUND,
     /* Signatures */
-    ALPM_ERR_SIG_MISSING,
-    ALPM_ERR_SIG_INVALID,
+    SigMissing,
+    SigInvalid,
     /* Deltas */
-    ALPM_ERR_DLT_INVALID,
-    ALPM_ERR_DLT_PATCHFAILED,
+    DltInvalid,
+    DltPatchFailed,
     /* Dependencies */
-    ALPM_ERR_UNSATISFIED_DEPS,
-    ALPM_ERR_CONFLICTING_DEPS,
-    ALPM_ERR_FILE_CONFLICTS,
+    UnsatisfiedDeps,
+    ConflictingDeps,
+    FileConflicts,
     /* Misc */
-    ALPM_ERR_RETRIEVE,
-    ALPM_ERR_INVALID_REGEX,
+    Retrive,
+    InvalidRegex,
     /* External library errors */
-    ALPM_ERR_LIBARCHIVE,
-    ALPM_ERR_LIBCURL,
-    ALPM_ERR_EXTERNAL_DOWNLOAD,
-    ALPM_ERR_GPGME,
+    LibArchive,
+    LibCurl,
+    Download,
+    GpgMe,
 }
 
 impl Error {
@@ -118,15 +118,15 @@ impl Error {
 			return String::from("out of memory!"),
 		 &System=>
 			return String::from("unexpected system error"),
-		 &ALPM_ERR_BADPERMS=>
+		 &BadPerms=>
 			return String::from("permission denied"),
-		 &ALPM_ERR_NOT_A_FILE=>
+		 &NotAFile=>
 			return String::from("could not find or read file"),
-		 &ALPM_ERR_NOT_A_DIR=>
+		 &NotADirectory=>
 			return String::from("could not find or read directory"),
-		 &ALPM_ERR_WRONG_ARGS=>
+		 &WrongArgs=>
 			return String::from("wrong or NULL argument passed"),
-		 &ALPM_ERR_DISK_SPACE=>
+		 &DiskSpace=>
 			return String::from("not enough free disk space"),
 		/* Interface */
 		 &ALPM_ERR_HANDLE_NULL=>
@@ -204,35 +204,35 @@ impl Error {
 		 &ALPM_ERR_PKG_REPO_NOT_FOUND=>
 			return String::from("could not find repository for target"),
 		/* Signatures */
-		 &ALPM_ERR_SIG_MISSING=>
+		 &SigMissing=>
 			return String::from("missing PGP signature"),
-		 &ALPM_ERR_SIG_INVALID=>
+		 &SigInvalid=>
 			return String::from("invalid PGP signature"),
 		/* Deltas */
-		 &ALPM_ERR_DLT_INVALID=>
+		 &DltInvalid=>
 			return String::from("invalid or corrupted delta"),
-		 &ALPM_ERR_DLT_PATCHFAILED=>
+		 &DltPatchFailed=>
 			return String::from("delta patch failed"),
 		/* Dependencies */
-		 &ALPM_ERR_UNSATISFIED_DEPS=>
+		 &UnsatisfiedDeps=>
 			return String::from("could not satisfy dependencies"),
-		 &ALPM_ERR_CONFLICTING_DEPS=>
+		 &ConflictingDeps=>
 			return String::from("conflicting dependencies"),
-		 &ALPM_ERR_FILE_CONFLICTS=>
+		 &FileConflicts=>
 			return String::from("conflicting files"),
 		/* Miscellaenous */
-		 &ALPM_ERR_RETRIEVE=>
+		 &Retrive=>
 			return String::from("failed to retrieve some files"),
-		 &ALPM_ERR_INVALID_REGEX=>String::from("invalid regular expression"),
+		 &InvalidRegex=>String::from("invalid regular expression"),
 		/* Errors from external libraries- our own wrapper error */
-		 &ALPM_ERR_LIBARCHIVE=>
+		 &LibArchive=>
 			/* it would be nice to use archive_error_string() here, but that
 			 * requires the archive struct, so we can't. Just use a generic
 			 * error string instead. */
 			return String::from("libarchive error"),
-		 &ALPM_ERR_LIBCURL=> String::from("download library error"),
-		 &ALPM_ERR_GPGME=> String::from("gpgme error"),
-		 &ALPM_ERR_EXTERNAL_DOWNLOAD=> String::from("error invoking external downloader"),
+		 &LibCurl=> String::from("download library error"),
+		 &GpgMe=> String::from("gpgme error"),
+		 &Download=> String::from("error invoking external downloader"),
 		/* Unknown error! */
 		_=> String::from("unexpected error"),
 	}

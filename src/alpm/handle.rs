@@ -143,7 +143,7 @@ impl Handle {
         //
         // 	/* Sanity checks */
         // 	CHECK_HANDLE(handle, return -1);
-        // 	ASSERT(data != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+        // 	ASSERT(data != NULL, RET_ERR(handle, WrongArgs, -1));
         //
         let mut trans = self.trans.clone();
         //
@@ -510,7 +510,7 @@ impl Handle {
         // 	Package *pkg;
         //
         // 	CHECK_HANDLE(handle, return NULL);
-        // 	ASSERT(dbs, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
+        // 	ASSERT(dbs, RET_ERR(handle, WrongArgs, NULL));
         //
         // 	dep = alpm_dep_from_string(depstring);
         // 	ASSERT(dep, return NULL);
@@ -533,12 +533,12 @@ impl Handle {
 
         // #ifndef HAVE_LIBGPGME
         // 	if(level != ALPM_SIG_USE_DEFAULT) {
-        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
+        // 		RET_ERR(handle, WrongArgs, NULL);
         // 	}
         // #endif
 
         let mut db = Database::_alpm_db_new(treename, false);
-        db.ops_type = db_ops_type::sync;
+        db.ops_type = DbOpsType::Sync;
         // db->ops = &sync_db_ops;
         // db.handle = handle;
         db.siglevel = level;
@@ -589,7 +589,7 @@ impl Handle {
         // 	size_t files_size = 0;
         //
         // 	if(pkgfile == NULL || strlen(pkgfile) == 0) {
-        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL);
+        // 		RET_ERR(handle, WrongArgs, NULL);
         // 	}
         //
         // 	fd = _alpm_open_archive(handle, pkgfile, &st, &archive, ALPM_ERR_PKG_OPEN);
@@ -762,7 +762,7 @@ impl Handle {
         // 	char *sigpath;
         //
         // 	CHECK_HANDLE(handle, return -1);
-        // 	ASSERT(pkg != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+        // 	ASSERT(pkg != NULL, RET_ERR(handle, WrongArgs, -1));
         //
         // 	sigpath = _alpm_sigpath(handle, filename);
         // 	if(sigpath && !_alpm_access(handle, NULL, sigpath, R_OK)) {
@@ -887,7 +887,7 @@ impl Handle {
 
         db = Database::_alpm_db_new(&String::from("local"), true);
         // db.ops = &local_db_ops;
-        db.ops_type = db_ops_type::local;
+        db.ops_type = DbOpsType::Local;
         db.usage.all = true;
         db.create_path(&self.dbpath, &self.dbext)?;
         db.local_db_validate()?;
@@ -940,7 +940,7 @@ impl Handle {
         }
 
         /* add the package to the transaction */
-        pkg.reason = PackageReason::ALPM_PKG_REASON_EXPLICIT;
+        pkg.reason = PackageReason::Explicit;
         debug!(
             "adding package {}-{} to the transaction add list\n",
             pkgname, pkgver
@@ -1373,7 +1373,7 @@ impl Handle {
         // 	if(trans->flags & ALPM_TRANS_FLAG_ALLDEPS) {
         // 		newpkg->reason = ALPM_PKG_REASON_DEPEND;*
         // 	} else if(trans->flags & ALPM_TRANS_FLAG_ALLEXPLICIT) {
-        // 		newpkg->reason = ALPM_PKG_REASON_EXPLICIT;
+        // 		newpkg->reason = Explicit;
         // 	}
 
         // 	if(oldpkg) {
@@ -1713,7 +1713,7 @@ impl Handle {
     // 	char *vdata = NULL;
     // 	char *newhookdir;
     // 	CHECK_HANDLE(handle, return -1);
-    // 	ASSERT(hookdir != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+    // 	ASSERT(hookdir != NULL, RET_ERR(handle, WrongArgs, -1));
     //
     // 	newhookdir = canonicalize_path(hookdir);
     // 	if(!newhookdir) {
@@ -1758,7 +1758,7 @@ impl Handle {
     // 	char *vdata = NULL;
     // 	char *newcachedir;
     // 	CHECK_HANDLE(handle, return -1);
-    // 	ASSERT(cachedir != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
+    // 	ASSERT(cachedir != NULL, RET_ERR(handle, WrongArgs, -1));
     //
     // 	newcachedir = canonicalize_path(cachedir);
     // 	if(!newcachedir) {
@@ -1775,7 +1775,7 @@ impl Handle {
 
     pub fn alpm_option_set_logfile(&mut self, logfile: &String) -> Result<i32> {
         if logfile == "" {
-            return Err(Error::ALPM_ERR_WRONG_ARGS);
+            return Err(Error::WrongArgs);
         }
 
         self.logfile = logfile.clone();
@@ -1976,7 +1976,7 @@ impl Handle {
 
     pub fn alpm_option_set_deltaratio(&mut self, ratio: f64) -> Result<()> {
         if ratio < 0.0 || ratio > 2.0 {
-            return Err(Error::ALPM_ERR_WRONG_ARGS);
+            return Err(Error::WrongArgs);
         }
         self.deltaratio = ratio;
         Ok(())
@@ -2013,7 +2013,7 @@ impl Handle {
         self.siglevel = level.clone();
         // #else
         // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
-        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
+        // 		RET_ERR(handle, WrongArgs, -1);
         // 	}
         // #endif
         return 0;
@@ -2031,8 +2031,8 @@ impl Handle {
         } else if
         /*level != 0 &&*/
         level.use_default {
-            // RET_ERR!(self, ALPM_ERR_WRONG_ARGS, -1);
-            return Err(Error::ALPM_ERR_WRONG_ARGS);
+            // RET_ERR!(self, WrongArgs, -1);
+            return Err(Error::WrongArgs);
         }
 
         return Ok(0);
@@ -2053,7 +2053,7 @@ impl Handle {
         self.remotefilesiglevel = level;
         // #else
         // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
-        // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
+        // 		RET_ERR(handle, WrongArgs, -1);
         // 	}
         // #endif
         // 	return 0;
@@ -2233,7 +2233,7 @@ impl Handle {
 
         for spkg in &trans.add {
             match spkg.origin {
-                PackageFrom::ALPM_PKG_FROM_SYNCDB => {
+                PackageFrom::SyncDatabase => {
                     from_sync = true;
                     break;
                 }
@@ -2548,13 +2548,13 @@ pub fn _alpm_set_directory_option(
     if must_exist {
         match std::fs::metadata(&path) {
             Ok(ref f) if f.is_dir() => {}
-            _ => return Err(Error::ALPM_ERR_NOT_A_DIR),
+            _ => return Err(Error::NotADirectory),
         }
         match std::fs::canonicalize(&path) {
             Ok(p) => {
                 *storage = p.into_os_string().into_string().unwrap();
             }
-            Err(_) => return Err(Error::ALPM_ERR_NOT_A_DIR),
+            Err(_) => return Err(Error::NotADirectory),
         }
     } else {
         *storage = canonicalize_path(&path);

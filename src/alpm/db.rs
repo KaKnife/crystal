@@ -82,7 +82,7 @@ pub const INFRQ_ERROR: i32 = (1 << 30);
 
 /// Database status. Bitflags. */
 #[derive(Debug, Clone, Default)]
-pub struct dbstatus_t {
+pub struct DbStatus {
     pub valid: bool,
     pub invalid: bool,
     pub exists: bool,
@@ -116,23 +116,23 @@ pub struct Database {
     grpcache: Vec<Group>,
     pub servers: Vec<String>,
     // ops: db_operations,
-    pub ops_type: db_ops_type, //I created this to deturmine if it is local or other stuff
+    pub ops_type: DbOpsType, //I created this to deturmine if it is local or other stuff
 
     /* bitfields for validity, local, loaded caches, etc. */
-    pub status: dbstatus_t,
+    pub status: DbStatus,
     pub siglevel: SigLevel,
     pub usage: DatabaseUsage,
 }
 
 #[derive(Debug, Clone)]
-pub enum db_ops_type {
-    unknown,
-    local,
-    sync,
+pub enum DbOpsType {
+    Unknown,
+    Local,
+    Sync,
 }
-impl Default for db_ops_type {
+impl Default for DbOpsType {
     fn default() -> Self {
-        db_ops_type::unknown
+        DbOpsType::Unknown
     }
 }
 
@@ -841,7 +841,7 @@ impl Database {
                     // 			continue;
                     // 		}
 
-                    pkg.origin = PackageFrom::ALPM_PKG_FROM_LOCALDB;
+                    pkg.origin = PackageFrom::LocalDatabase;
 
                     /* explicitly read with only 'BASE' data, accessors will handle the rest */
                     if self.local_db_read(&mut pkg, INFRQ_BASE) == -1 {
@@ -1017,9 +1017,9 @@ impl Database {
 
     fn validate(&mut self, handle: &Handle) -> Result<bool> {
         match self.ops_type {
-            db_ops_type::local => self.local_db_validate(),
-            db_ops_type::sync => self.sync_db_validate(handle),
-            db_ops_type::unknown => unimplemented!(),
+            DbOpsType::Local => self.local_db_validate(),
+            DbOpsType::Sync => self.sync_db_validate(handle),
+            DbOpsType::Unknown => unimplemented!(),
         }
     }
 
@@ -1054,7 +1054,7 @@ impl Database {
 
         /* Sanity checks */
         if url.len() == 0 {
-            return Err(Error::ALPM_ERR_WRONG_ARGS);
+            return Err(Error::WrongArgs);
         }
 
         newurl = sanitize_url(&url);
@@ -1079,7 +1079,7 @@ impl Database {
         /* Sanity checks */
         // ASSERT(db != NULL, return -1);
         // self.handle.pm_errno = Error::ALPM_ERR_OK;
-        // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
+        // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, WrongArgs, -1));
 
         newurl = sanitize_url(url);
         // if(!newurl) {
@@ -1108,7 +1108,7 @@ impl Database {
     /// Get a group entry from a package database.
     pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&Group> {
         // if name.len() ==0{
-        //     return Err(Error::ALPM_ERR_WRONG_ARGS);
+        //     return Err(Error::WrongArgs);
         // }
 
         return self._alpm_db_get_groupfromcache(name);
@@ -1116,7 +1116,7 @@ impl Database {
 
     pub fn alpm_db_get_group_mut(&mut self, name: &String) -> Option<&mut Group> {
         // if name.len() ==0{
-        //     return Err(Error::ALPM_ERR_WRONG_ARGS);
+        //     return Err(Error::WrongArgs);
         // }
 
         return self._alpm_db_get_groupfromcache_mut(name);
@@ -1298,7 +1298,7 @@ impl Database {
 
     pub fn populate(&mut self) -> Result<()> {
         match self.ops_type {
-            db_ops_type::local => self.local_db_populate(),
+            DbOpsType::Local => self.local_db_populate(),
             _ => unimplemented!(),
         }
     }
@@ -1352,7 +1352,7 @@ impl Database {
         // ASSERT(db != NULL, return NULL);
         // db->handle->pm_errno = ALPM_ERR_OK;
         // ASSERT(name != NULL && strlen(name) != 0,
-        // 		RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, NULL));
+        // 		RET_ERR(db->handle, WrongArgs, NULL));
         //
         // pkg = _alpm_db_get_pkgfromcache(db, name);
         // if(!pkg) {
@@ -1629,8 +1629,8 @@ fn sanitize_url(url: &String) -> String {
 // 		free(newpkg->origin_data.file);
 // 	}
 // 	newpkg->origin = (db->status & LOCAL)
-// 		? ALPM_PKG_FROM_LOCALDB
-// 		: ALPM_PKG_FROM_SYNCDB;
+// 		? LocalDatabase
+// 		: SyncDatabase;
 // 	newpkg->origin_data.db = db;
 // 	db->pkgcache = _alpm_pkghash_add_sorted(db->pkgcache, newpkg);
 //

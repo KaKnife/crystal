@@ -197,7 +197,7 @@ fn deplist_display(title: &str, deps: &Vec<Dependency>, cols: usize) {
 // 	for(i = alpm_pkg_get_optdepends(pkg); i; i = alpm_list_next(i)) {
 // 		depend_t *optdep = i->data;
 // 		char *depstring = alpm_dep_compute_string(optdep);
-// 		if(alpm_pkg_get_origin(pkg) == ALPM_PKG_FROM_LOCALDB) {
+// 		if(alpm_pkg_get_origin(pkg) == LocalDatabase) {
 // 			if(alpm_find_satisfier(alpm_db_get_pkgcache(localdb), optdep->name)) {
 // 				const char *installed = _(" [installed]");
 // 				depstring = realloc(depstring, strlen(depstring) + strlen(installed) + 1);
@@ -265,23 +265,23 @@ pub fn dump_pkg_full(
 	}
 
 	reason = match pkg.alpm_pkg_get_reason(db_local) {
-		&PackageReason::ALPM_PKG_REASON_EXPLICIT => "Explicitly installed",
-		&PackageReason::ALPM_PKG_REASON_DEPEND => "Installed as a dependency for another package",
+		&PackageReason::Explicit => "Explicitly installed",
+		&PackageReason::Dependency => "Installed as a dependency for another package",
 		// _ => "Unknown",
 	};
 
 	let v = pkg.alpm_pkg_get_validation(db_local);
 	if v != 0 {
-		if v & PackageValidation::ALPM_PKG_VALIDATION_NONE as i32 != 0 {
+		if v & PackageValidation::None as i32 != 0 {
 			validation.push(String::from("None"));
 		} else {
-			if v & PackageValidation::ALPM_PKG_VALIDATION_MD5SUM as i32 != 0 {
+			if v & PackageValidation::MD5Sum as i32 != 0 {
 				validation.push(String::from("MD5 Sum"));
 			}
-			if v & PackageValidation::ALPM_PKG_VALIDATION_SHA256SUM as i32 != 0 {
+			if v & PackageValidation::SHA256Sum as i32 != 0 {
 				validation.push(String::from("SHA-256 Sum"));
 			}
-			if v & PackageValidation::ALPM_PKG_VALIDATION_SIGNATURE as i32 != 0 {
+			if v & PackageValidation::Signature as i32 != 0 {
 				validation.push(String::from("Signature"));
 			}
 		}
@@ -290,7 +290,7 @@ pub fn dump_pkg_full(
 	}
 
 	match (&from, extra) {
-		(&PackageFrom::ALPM_PKG_FROM_LOCALDB, _) | (_, true) => {
+		(&PackageFrom::LocalDatabase, _) | (_, true) => {
 			/* compute this here so we don't get a pause in the middle of output */
 			requiredby = pkg.alpm_pkg_compute_requiredby(db_local, dbs_sync);
 			optionalfor = pkg.alpm_pkg_compute_optionalfor(db_local, dbs_sync);
@@ -301,7 +301,7 @@ pub fn dump_pkg_full(
 	let cols = getcols();
 	/* actual output */
 	// match from {
-	// 	PackageFrom::ALPM_PKG_FROM_SYNCDB => {
+	// 	PackageFrom::SyncDatabase => {
 	// 		string_display(T_REPOSITORY, alpm_db_get_name(alpm_pkg_get_db(pkg)), cols, config)
 	// 	}
 	// 	_ => {}
@@ -323,7 +323,7 @@ pub fn dump_pkg_full(
 	// optdeplist_display(pkg, cols);
 
 	match from {
-		PackageFrom::ALPM_PKG_FROM_LOCALDB if extra => {
+		PackageFrom::LocalDatabase if extra => {
 			// list_display(T_REQUIRED_BY, requiredby, cols);
 			// list_display(T_OPTIONAL_FOR, optionalfor, cols);
 		}
@@ -334,10 +334,10 @@ pub fn dump_pkg_full(
 
 	size = humanize_size(pkg.alpm_pkg_get_size(), '\0', 2, &mut label);
 	match from {
-		PackageFrom::ALPM_PKG_FROM_SYNCDB => {
+		PackageFrom::SyncDatabase => {
 			println!("{} {} {}", T_DOWNLOAD_SIZE, size, label);
 		}
-		PackageFrom::ALPM_PKG_FROM_FILE => {
+		PackageFrom::File => {
 			println!("{} {} {}", T_COMPRESSED_SIZE, size, label);
 		}
 		_ => {}
@@ -353,7 +353,7 @@ pub fn dump_pkg_full(
 	string_display(T_PACKAGER, &pkg.alpm_pkg_get_packager(db_local), cols, config);
 	// string_display(T_BUILD_DATE, bdatestr, cols);
 	match from {
-		PackageFrom::ALPM_PKG_FROM_LOCALDB => {
+		PackageFrom::LocalDatabase => {
 			// string_display(T_INSTALL_DATE, idatestr, cols, config);
 			// string_display(T_INSTALL_REASON, reason, cols, config);
 		}
@@ -365,14 +365,14 @@ pub fn dump_pkg_full(
 		String::from("No")
 	};
 	match from {
-		PackageFrom::ALPM_PKG_FROM_FILE | PackageFrom::ALPM_PKG_FROM_LOCALDB => {
+		PackageFrom::File | PackageFrom::LocalDatabase => {
 			string_display(T_INSTALL_SCRIPT, &has_scriptlet, cols, config);
 		}
 		_ => {}
 	}
 
 	match from {
-		PackageFrom::ALPM_PKG_FROM_SYNCDB if extra => {
+		PackageFrom::SyncDatabase if extra => {
 			unimplemented!();
 			let base64_sig = pkg.alpm_pkg_get_base64_sig();
 			let mut keys = Vec::new();
@@ -398,7 +398,7 @@ pub fn dump_pkg_full(
 
 	/* Print additional package info if info flag passed more than once */
 	match from {
-		PackageFrom::ALPM_PKG_FROM_FILE => {
+		PackageFrom::File => {
 			unimplemented!();
 			// 		alpm_siglist_t siglist;
 			// 		int err = alpm_pkg_check_pgp_signature(pkg, &siglist);
@@ -412,7 +412,7 @@ pub fn dump_pkg_full(
 			// 		}
 			// 		alpm_siglist_cleanup(&siglist);
 		}
-		PackageFrom::ALPM_PKG_FROM_LOCALDB if extra => {
+		PackageFrom::LocalDatabase if extra => {
 			unimplemented!();
 			// pkg.dump_pkg_backups();
 		}

@@ -1006,7 +1006,7 @@ fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
     // char *string = NULL;
     // use PackageFrom::*;
     match pkg.alpm_pkg_get_origin() {
-        PackageFrom::ALPM_PKG_FROM_SYNCDB => {
+        PackageFrom::SyncDatabase => {
             if pkg.alpm_pkg_download_size() == 0 {
                 /* file is already in the package cache */
                 let pkgfile = pkg.alpm_pkg_get_filename();
@@ -1032,7 +1032,7 @@ fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
             /* fallthrough - for theoretical serverless repos */
             return pkg.alpm_pkg_get_filename();
         }
-        PackageFrom::ALPM_PKG_FROM_FILE => return pkg.alpm_pkg_get_filename(),
+        PackageFrom::File => return pkg.alpm_pkg_get_filename(),
         _ => {
             unimplemented!();
             // pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));

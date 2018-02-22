@@ -117,7 +117,7 @@ pub fn alpm_db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -
 
         for server in db.servers.clone() {
             let mut final_db_url: String = String::new();
-            let mut payload: dload_payload = dload_payload::default();
+            let mut payload: DownloadPayload = DownloadPayload::default();
             let mut sig_ret: i32 = 0;
 
             /* set hard upper limit of 25MiB */

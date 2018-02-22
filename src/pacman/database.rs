@@ -40,10 +40,10 @@ fn change_install_reason(
 
     if config.flags.all_deps {
         /* --asdeps */
-        reason = PackageReason::ALPM_PKG_REASON_DEPEND;
+        reason = PackageReason::Dependency;
     } else if config.flags.all_explicit {
         /* --asexplicit */
-        reason = PackageReason::ALPM_PKG_REASON_EXPLICIT;
+        reason = PackageReason::Explicit;
     } else {
         eprintln!("no install reason specified (use -h for help)");
         return 1;
@@ -73,7 +73,7 @@ fn change_install_reason(
                     ret = 1;
                 } else if !config.quiet {
                     match reason {
-                        PackageReason::ALPM_PKG_REASON_DEPEND => {
+                        PackageReason::Dependency => {
                             println!(
                                 "{}: install reason has been set to 'installed as dependency'",
                                 pkgname

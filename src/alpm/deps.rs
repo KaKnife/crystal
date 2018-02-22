@@ -300,12 +300,12 @@ pub fn dep_vercmp(version1: &String, depmod: &Depmod, version2: &String) -> bool
     let cmp = alpm_pkg_vercmp(version1, version2);
     // use pkgfrom_t::*;
     match depmod {
-        &Depmod::ALPM_DEP_MOD_ANY => true,
-        &Depmod::ALPM_DEP_MOD_EQ => cmp == 0,
-        &Depmod::ALPM_DEP_MOD_GE => cmp >= 0,
-        &Depmod::ALPM_DEP_MOD_LE => cmp <= 0,
-        &Depmod::ALPM_DEP_MOD_LT => cmp < 0,
-        &Depmod::ALPM_DEP_MOD_GT => cmp > 0,
+        &Depmod::Any => true,
+        &Depmod::EQ => cmp == 0,
+        &Depmod::GE => cmp >= 0,
+        &Depmod::LE => cmp <= 0,
+        &Depmod::LT => cmp < 0,
+        &Depmod::GT => cmp > 0,
         // _ => true,
     }
 }
@@ -340,28 +340,28 @@ pub fn alpm_dep_from_string(depstring: &String) -> Dependency {
     // 	 * increment the ptr accordingly so we can copy the right strings. */
     // 	if((ptr = memchr(depstring, '<', deplen))) {
     // 		if(ptr[1] == '=') {
-    // 			depend->mod = ALPM_DEP_MOD_LE;
+    // 			depend->mod = LE;
     // 			version = ptr + 2;
     // 		} else {
-    // 			depend->mod = ALPM_DEP_MOD_LT;
+    // 			depend->mod = LT;
     // 			version = ptr + 1;
     // 		}
     // 	} else if((ptr = memchr(depstring, '>', deplen))) {
     // 		if(ptr[1] == '=') {
-    // 			depend->mod = ALPM_DEP_MOD_GE;
+    // 			depend->mod = GE;
     // 			version = ptr + 2;
     // 		} else {
-    // 			depend->mod = ALPM_DEP_MOD_GT;
+    // 			depend->mod = GT;
     // 			version = ptr + 1;
     // 		}
     // 	} else if((ptr = memchr(depstring, '=', deplen))) {
     // 		/* Note: we must do =,<,> checks after <=, >= checks */
-    // 		depend->mod = ALPM_DEP_MOD_EQ;
+    // 		depend->mod = EQ;
     // 		version = ptr + 1;
     // 	} else {
     // 		/* no version specified, set ptr to end of string and version to NULL */
     // 		ptr = depstring + deplen;
-    // 		depend->mod = ALPM_DEP_MOD_ANY;
+    // 		depend->mod = ANY;
     // 		depend->version = NULL;
     // 		version = NULL;
     // 	}
@@ -395,14 +395,14 @@ impl Dependency {
             // Dependency *provision = i->data;
 
             match self.depmod {
-                Depmod::ALPM_DEP_MOD_ANY => {
+                Depmod::Any => {
                     /* any version will satisfy the requirement */
                     return provision.name_hash == self.name_hash && provision.name == self.name;
                 }
                 _ => {}
             }
             match provision.depmod {
-                Depmod::ALPM_DEP_MOD_EQ => {
+                Depmod::EQ => {
                     /* provision specifies a version, so try it out */
                     return provision.name_hash == self.name_hash && provision.name == self.name
                         && dep_vercmp(&provision.version, &self.depmod, &self.version);
@@ -758,22 +758,22 @@ impl Dependency {
         // 	}
         //
         // 	switch(dep->mod) {
-        // 		case ALPM_DEP_MOD_ANY:
+        // 		case ANY:
         // 			opr = "";
         // 			break;
-        // 		case ALPM_DEP_MOD_GE:
+        // 		case GE:
         // 			opr = ">=";
         // 			break;
-        // 		case ALPM_DEP_MOD_LE:
+        // 		case LE:
         // 			opr = "<=";
         // 			break;
-        // 		case ALPM_DEP_MOD_EQ:
+        // 		case EQ:
         // 			opr = "=";
         // 			break;
-        // 		case ALPM_DEP_MOD_LT:
+        // 		case LT:
         // 			opr = "<";
         // 			break;
-        // 		case ALPM_DEP_MOD_GT:
+        // 		case GT:
         // 			opr = ">";
         // 			break;
         // 		default:
@@ -781,7 +781,7 @@ impl Dependency {
         // 			break;
         // 	}
         //
-        // 	if(dep->mod != ALPM_DEP_MOD_ANY && dep->version) {
+        // 	if(dep->mod != ANY && dep->version) {
         // 		ver = dep->version;
         // 	} else {
         // 		ver = "";
@@ -796,7 +796,7 @@ impl Dependency {
         // 	}
         //
         // 	/* we can always compute len and print the string like this because opr
-        // 	 * and ver will be empty when ALPM_DEP_MOD_ANY is the depend type. the
+        // 	 * and ver will be empty when ANY is the depend type. the
         // 	 * reassignments above also ensure we do not do a strlen(NULL). */
         // 	len = strlen(name) + strlen(opr) + strlen(ver)
         // 		+ strlen(desc_delim) + strlen(desc) + 1;

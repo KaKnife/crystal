@@ -50,7 +50,7 @@ use super::*;
 // #include "handle.h"
 
 #[derive(Default, Debug)]
-pub struct dload_payload {
+pub struct DownloadPayload {
     // Handle *handle;
     // const char *tempfile_openmode;
     pub remote_name: String,
@@ -612,7 +612,7 @@ pub struct dload_payload {
 // }
 // #endif
 //
-impl dload_payload {
+impl DownloadPayload {
     /** Download a file given by a URL to a local directory.
      * Does not overwrite an existing file if the download fails.
      * @param payload the payload context

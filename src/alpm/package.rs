@@ -176,7 +176,7 @@ fn alpm_pkg_checkmd5sum(pkg: &Package) -> i64 {
 
     /* We only inspect packages from sync repositories */
     match pkg.origin {
-        PackageFrom::ALPM_PKG_FROM_SYNCDB => {}
+        PackageFrom::SyncDatabase => {}
         _ => { /*RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1))*/ }
     }
     unimplemented!();
@@ -376,7 +376,7 @@ impl Package {
 
     pub fn alpm_pkg_get_desc(&mut self, db: &mut Database) -> &String {
         match self.alpm_pkg_get_origin() {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_desc(db),
+            PackageFrom::LocalDatabase => self._cache_get_desc(db),
             _ => unimplemented!(),
         }
         // return self.ops.get_desc(self);
@@ -384,7 +384,7 @@ impl Package {
 
     pub fn alpm_pkg_get_url(&mut self, db: &mut Database) -> &String {
         match self.alpm_pkg_get_origin() {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_url(db),
+            PackageFrom::LocalDatabase => self._cache_get_url(db),
             _ => unimplemented!(),
         }
         // return self.ops.get_url(self);
@@ -392,21 +392,21 @@ impl Package {
 
     pub fn alpm_pkg_get_builddate(&mut self, db: &mut Database) -> alpm_time_t {
         match self.alpm_pkg_get_origin() {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_builddate(db),
+            PackageFrom::LocalDatabase => self._cache_get_builddate(db),
             _ => unimplemented!(),
         }
     }
 
     pub fn alpm_pkg_get_installdate(&mut self, db: &mut Database) -> alpm_time_t {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_installdate(db),
+            PackageFrom::LocalDatabase => self._cache_get_installdate(db),
             _ => unimplemented!(),
         }
     }
 
     pub fn alpm_pkg_get_packager(&mut self, db: &mut Database) -> &String {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_packager(db),
+            PackageFrom::LocalDatabase => self._cache_get_packager(db),
             _ => unimplemented!(),
         }
         // 	return pkg->ops->get_packager(pkg);
@@ -426,7 +426,7 @@ impl Package {
 
     pub fn alpm_pkg_get_arch(&mut self, db: &mut Database) -> &String {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_arch(db),
+            PackageFrom::LocalDatabase => self._cache_get_arch(db),
             _ => unimplemented!(),
         }
         // return self.ops.get_arch(self);
@@ -438,7 +438,7 @@ impl Package {
 
     pub fn alpm_pkg_get_isize(&mut self, db: &mut Database) -> i64 {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_isize(db),
+            PackageFrom::LocalDatabase => self._cache_get_isize(db),
             _ => unimplemented!(),
         }
         // return self.ops.get_isize(pkg);
@@ -446,7 +446,7 @@ impl Package {
 
     fn get_reason(&mut self, db: &mut Database) -> &PackageReason {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_reason(db),
+            PackageFrom::LocalDatabase => self._cache_get_reason(db),
             _ => unimplemented!(),
         }
     }
@@ -458,14 +458,14 @@ impl Package {
 
     pub fn alpm_pkg_get_validation(&mut self, db: &mut Database) -> i32 {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_validation(db),
+            PackageFrom::LocalDatabase => self._cache_get_validation(db),
             _ => unimplemented!(),
         }
     }
 
     pub fn alpm_pkg_get_licenses(&mut self, db: &mut Database) -> &Vec<String> {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_licenses(db),
+            PackageFrom::LocalDatabase => self._cache_get_licenses(db),
             _ => unimplemented!(),
         }
         // 	return pkg->ops->get_licenses(pkg);
@@ -473,7 +473,7 @@ impl Package {
 
     pub fn alpm_pkg_get_groups(&mut self, db: &mut Database) -> &Vec<String> {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_groups(db),
+            PackageFrom::LocalDatabase => self._cache_get_groups(db),
             _ => unimplemented!(),
         }
         // 	return pkg->ops->get_groups(pkg);
@@ -485,7 +485,7 @@ impl Package {
 
     pub fn alpm_pkg_get_optdepends(&mut self, db: &mut Database) -> &Vec<Dependency> {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_optdepends(db),
+            PackageFrom::LocalDatabase => self._cache_get_optdepends(db),
             _ => unimplemented!(),
         }
         // return pkg->ops->get_optdepends(pkg);
@@ -503,7 +503,7 @@ impl Package {
 
     pub fn alpm_pkg_get_conflicts(&mut self, db: &mut Database) -> &Vec<Dependency> {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_conflicts(db),
+            PackageFrom::LocalDatabase => self._cache_get_conflicts(db),
             _ => unimplemented!(),
         }
         // return pkg->ops->get_conflicts(pkg);
@@ -511,7 +511,7 @@ impl Package {
 
     pub fn alpm_pkg_get_provides(&mut self, db: &mut Database) -> &Vec<Dependency> {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_provides(db),
+            PackageFrom::LocalDatabase => self._cache_get_provides(db),
             _ => unimplemented!(),
         }
         // return pkg->ops->get_provides(pkg);
@@ -519,7 +519,7 @@ impl Package {
 
     pub fn alpm_pkg_get_replaces(&mut self, db: &mut Database) -> &Vec<Dependency> {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_replaces(db),
+            PackageFrom::LocalDatabase => self._cache_get_replaces(db),
             _ => unimplemented!(),
         }
         // return pkg->ops->get_replaces(pkg);
@@ -589,7 +589,7 @@ impl Package {
 
     pub fn alpm_pkg_has_scriptlet(&mut self, db: &mut Database) -> i32 {
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_has_scriptlet(db),
+            PackageFrom::LocalDatabase => self._cache_has_scriptlet(db),
             _ => unimplemented!(),
         }
         // 	return pkg->ops->has_scriptlet(pkg);
@@ -631,14 +631,14 @@ impl Package {
         // 	ASSERT(pkg != NULL, return NULL);
         // 	pkg->handle->pm_errno = ALPM_ERR_OK;
         match self.origin {
-            PackageFrom::ALPM_PKG_FROM_FILE => {
+            PackageFrom::File => {
                 /* The sane option; search locally for things that require this. */
                 self.find_requiredby(db_local, &mut reqs, optional);
             }
-            PackageFrom::ALPM_PKG_FROM_LOCALDB => {
+            PackageFrom::LocalDatabase => {
                 self.find_requiredby(db_local, &mut reqs, optional);
             }
-            PackageFrom::ALPM_PKG_FROM_SYNCDB => {
+            PackageFrom::SyncDatabase => {
                 for db in dbs_sync {
                     // db = i->data;
                     self.find_requiredby(db, &mut reqs, optional);
@@ -766,7 +766,7 @@ impl Package {
         // 	/* internal */
         // 	newpkg->infolevel = pkg->infolevel;
         // 	newpkg->origin = pkg->origin;
-        // 	if(newpkg->origin == ALPM_PKG_FROM_FILE) {
+        // 	if(newpkg->origin == File) {
         // 		STRDUP(newpkg->origin_data.file, pkg->origin_data.file, goto cleanup);
         // 	} else {
         // 		newpkg->origin_data.db = pkg->origin_data.db;
@@ -1035,7 +1035,7 @@ impl Package {
     pub fn alpm_pkg_set_reason(&self, reason: &PackageReason) -> i32 {
         unimplemented!();
         // 	ASSERT(pkg != NULL, return -1);
-        // 	ASSERT(pkg->origin == ALPM_PKG_FROM_LOCALDB,
+        // 	ASSERT(pkg->origin == LocalDatabase,
         // 			RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1));
         // 	ASSERT(pkg->origin_data.db == pkg->handle->db_local,
         // 			RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1));
@@ -1067,7 +1067,7 @@ impl Package {
         // 	alpm_handle_t *handle = newpkg.handle;
         // 	int ret = 0;
         //
-        // 	if(newpkg.origin != ALPM_PKG_FROM_SYNCDB) {
+        // 	if(newpkg.origin != SyncDatabase) {
         // 		newpkg.infolevel |= INFRQ_DSIZE;
         // 		newpkg.download_size = 0;
         // 		return 0;
