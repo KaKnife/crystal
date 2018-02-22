@@ -100,6 +100,7 @@ pub enum Error {
     LibCurl,
     Download,
     GpgMe,
+    GroupNotFound,
 }
 
 impl Error {
@@ -227,6 +228,8 @@ impl Error {
 		 &GpgMe=> String::from("gpgme error"),
 		 &Download=> String::from("error invoking external downloader"),
          &Error::no_db_path => String::from("no database path"),
+         &Error::GroupNotFound=>
+			return String::from("could not find or read group"),
 		/* Unknown error! */
 		// _=> String::from("unexpected error"),
 	}

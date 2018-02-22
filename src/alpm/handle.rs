@@ -536,11 +536,10 @@ impl Handle {
         // 	}
         // #endif
 
-        let mut db = Database::_alpm_db_new(treename, false);
-        db.ops_type = DbOpsType::Sync;
+        let mut db = Database::new(treename, false,DbOpsType::Sync);
         // db->ops = &sync_db_ops;
         // db.handle = handle;
-        db.siglevel = level;
+        db.set_siglevel(level);
         db.create_path(&self.dbpath, &self.dbext);
         db.sync_db_validate(self);
 
@@ -868,7 +867,7 @@ impl Handle {
             return Err(Error::ALPM_ERR_DB_NOT_NULL);
         }
         for d in &self.dbs_sync {
-            if treename == &d.treename {
+            if treename == d.get_name() {
                 return Err(Error::ALPM_ERR_DB_NOT_NULL);
             }
         }
@@ -880,10 +879,9 @@ impl Handle {
         let mut db;
         debug!("registering local database");
 
-        db = Database::_alpm_db_new(&String::from("local"), true);
+        db = Database::new(&String::from("local"), true, DbOpsType::Local);
         // db.ops = &local_db_ops;
-        db.ops_type = DbOpsType::Local;
-        db.usage.all = true;
+        db.get_usage_mut().all = true;
         db.create_path(&self.dbpath, &self.dbext)?;
         db.local_db_validate()?;
 
@@ -903,7 +901,7 @@ impl Handle {
             return Err(Error::ALPM_ERR_TRANS_DUP_TARGET);
         }
 
-        match self.db_local._alpm_db_get_pkgfromcache(pkgname) {
+        match self.db_local.get_pkgfromcache(pkgname) {
             Some(local) => {
                 let localpkgname: &String = &local.name;
                 let localpkgver: &String = &local.version;
@@ -2177,7 +2175,7 @@ impl Handle {
         // 		EVENT(handle, &event);
         //
         // 		_alpm_log(handle, ALPM_LOG_DEBUG, "looking for unsatisfied dependencies\n");
-        // 		lp = alpm_checkdeps(handle, _alpm_db_get_pkgcache(db), trans->remove, NULL, 1);
+        // 		lp = alpm_checkdeps(handle, _get_pkgcache(db), trans->remove, NULL, 1);
         // 		if(lp != NULL) {
         //
         // 			if(trans->flags & ALPM_TRANS_FLAG_CASCADE) {
@@ -2282,7 +2280,7 @@ impl Handle {
             //
             // 		/* Compute the fake local database for resolvedeps (partial fix for the
             // 		 * phonon/qt issue) */
-            // 		localpkgs = alpm_list_diff(_alpm_db_get_pkgcache(handle->db_local),
+            // 		localpkgs = alpm_list_diff(_get_pkgcache(handle->db_local),
             // 				trans->add, _alpm_pkg_cmp);
             //
             // 		/* Resolve packages in the transaction one at a time, in addition
@@ -2453,7 +2451,7 @@ impl Handle {
             // 			if(question.remove) {
             // 				/* append to the removes list */
             // 				Package *sync = alpm_pkg_find(trans->add, conflict->package1);
-            // 				Package *local = _alpm_db_get_pkgfromcache(handle->db_local, conflict->package2);
+            // 				Package *local = _get_pkgfromcache(handle->db_local, conflict->package2);
             // 				debug!("electing '{}' for removal\n", conflict->package2);
             // 				sync->removes = alpm_list_add(sync->removes, local);
             // 			} else { /* abort */
@@ -2496,7 +2494,7 @@ impl Handle {
         if !trans.flags.no_deps {
             debug!("checking dependencies");
             unimplemented!();
-            // 		deps = alpm_checkdeps(handle, _alpm_db_get_pkgcache(handle->db_local),
+            // 		deps = alpm_checkdeps(handle, _get_pkgcache(handle->db_local),
             // 				trans->remove, trans->add, 1);
             // 		if(deps) {
             // 			handle->pm_errno = ALPM_ERR_UNSATISFIED_DEPS;
@@ -2514,7 +2512,7 @@ impl Handle {
 
         for spkg in &trans.add {
             /* update download size field */
-            let lpkg = self.db_local.alpm_db_get_pkg(&spkg.name);
+            let lpkg = self.db_local.get_pkg(&spkg.name);
             if spkg.compute_download_size() < 0 {
                 return -1;
             }

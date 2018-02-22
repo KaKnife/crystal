@@ -86,7 +86,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
     // 	mode_t oldmask;
     let siglevel;
 
-    if !db.usage.sync {
+    if !db.get_usage().sync {
         return Ok(0);
     }
 
@@ -105,7 +105,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
     /* make sure we have a sane umask */
     // 	oldmask = umask(0022);
 
-    siglevel = db.alpm_db_get_siglevel();
+    siglevel = db.get_siglevel();
 
     /* attempt to grab a lock */
     if handle.handle_lock().is_err() {
@@ -115,7 +115,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
     {
         let dbext = handle.get_dbext();
 
-        for server in db.servers.clone() {
+        for server in db.get_servers() {
             let mut final_db_url: String = String::new();
             let mut payload: DownloadPayload = DownloadPayload::default();
             let mut sig_ret: i32 = 0;
@@ -124,7 +124,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
             payload.max_size = 25 * 1024 * 1024;
 
             /* print server + filename into a buffer */
-            payload.fileurl = format!("{}/{}{}", server, db.treename, dbext);
+            payload.fileurl = format!("{}/{}{}", server, db.get_name(), dbext);
             payload.force = force;
             payload.unlink_on_fail = 1;
 
@@ -135,7 +135,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
             if ret != -1 && updated && siglevel.database {
                 /* an existing sig file is no good at this point */
                 {
-                    let dbpath = &db._alpm_db_path().ok();
+                    let dbpath = &db.path().ok();
                     let sigpath = match handle._sigpath(dbpath) {
                         Some(s) => s,
                         None => {
@@ -157,7 +157,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
                 if final_db_url != "" {
                     payload.fileurl = format!("{}.sig", final_db_url);
                 } else {
-                    payload.fileurl = format!("{}/{}{}.sig", server, db.treename, dbext);
+                    payload.fileurl = format!("{}/{}{}.sig", server, db.get_name(), dbext);
                 }
 
                 payload.force = true;
@@ -179,7 +179,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
     }
     if updated {
         /* Cache needs to be rebuilt */
-        db._alpm_db_free_pkgcache();
+        db.free_pkgcache();
 
         /* clear all status flags regarding validity/existence */
         db.status.valid = false;

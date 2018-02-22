@@ -597,7 +597,7 @@ impl Package {
 
     fn find_requiredby(&self, db: &mut Database, reqs: &mut Vec<String>, optional: i8) {
         let mut db_clone = db.clone();
-        for cachepkg in db._alpm_db_get_pkgcache_mut().unwrap() {
+        for cachepkg in db.get_pkgcache_mut().unwrap() {
             let j;
             let cachepkgname = cachepkg.name.clone();
 

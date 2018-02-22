@@ -93,7 +93,7 @@ fn sync_cleandb(dbpath: String, handle: &mut Handle) -> i32 {
         }
 
         for db in syncdbs {
-            found = *db.alpm_db_get_name() == dbname;
+            found = *db.get_name() == dbname;
         }
 
         /* We have a file that doesn't match any syncdb. */
@@ -378,12 +378,12 @@ fn sync_info(mut syncs: Vec<Database>, targets: &Vec<String>) -> std::result::Re
             }
 
             for db in &mut syncs {
-                if repo != "" && repo != db.alpm_db_get_name() {
+                if repo != "" && repo != db.get_name() {
                     continue;
                 }
                 founddb = true;
 
-                for pkg in db.alpm_db_get_pkgcache().unwrap() {
+                for pkg in db.get_pkgcache().unwrap() {
                     if pkg.alpm_pkg_get_name() == pkgstr {
                         unimplemented!();
                         // dump_pkg_full(pkg, config.op_s_info > 1);
@@ -404,7 +404,7 @@ fn sync_info(mut syncs: Vec<Database>, targets: &Vec<String>) -> std::result::Re
         }
     } else {
         for db in &mut syncs {
-            for pkg in db.alpm_db_get_pkgcache() {
+            for pkg in db.get_pkgcache() {
                 unimplemented!();
                 // dump_pkg_full(pkg, config.op_s_info > 1);
             }

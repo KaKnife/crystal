@@ -198,7 +198,7 @@ fn deplist_display(title: &str, deps: &Vec<Dependency>, cols: usize) {
 // 		depend_t *optdep = i->data;
 // 		char *depstring = alpm_dep_compute_string(optdep);
 // 		if(alpm_pkg_get_origin(pkg) == LocalDatabase) {
-// 			if(alpm_find_satisfier(alpm_db_get_pkgcache(localdb), optdep->name)) {
+// 			if(alpm_find_satisfier(get_pkgcache(localdb), optdep->name)) {
 // 				const char *installed = _(" [installed]");
 // 				depstring = realloc(depstring, strlen(depstring) + strlen(installed) + 1);
 // 				strcpy(depstring + strlen(depstring), installed);
@@ -545,7 +545,7 @@ pub fn dump_pkg_changelog(pkg: &Package) {
 // {
 // 	const char *pkgname = alpm_pkg_get_name(pkg);
 // 	const char *pkgver = alpm_pkg_get_version(pkg);
-// 	Package *lpkg = alpm_db_get_pkg(db_local, pkgname);
+// 	Package *lpkg = get_pkg(db_local, pkgname);
 // 	if(lpkg) {
 // 		const char *lpkgver = alpm_pkg_get_version(lpkg);
 // 		const colstr_t *colstr = &config->colstr;
@@ -590,10 +590,10 @@ pub fn dump_pkg_search(
 
 	/* if we have a targets list, search for packages matching it */
 	if !targets.is_empty() {
-		searchlist = db.alpm_db_search(targets).clone();
+		searchlist = db.search(targets).clone();
 		freelist = 1;
 	} else {
-		searchlist = db.alpm_db_get_pkgcache().unwrap().clone();
+		searchlist = db.get_pkgcache().unwrap().clone();
 		freelist = 0;
 	}
 	if searchlist.is_empty() {
@@ -613,7 +613,7 @@ pub fn dump_pkg_search(
 			print!(
 				"{}{}/{}{} {}{}{}",
 				colstr.repo,
-				db.alpm_db_get_name(),
+				db.get_name(),
 				colstr.title,
 				pkg.alpm_pkg_get_name(),
 				colstr.version,

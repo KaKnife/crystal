@@ -1,5 +1,3 @@
-use super::*;
-use super::be_local::ALPM_LOCAL_DB_VERSION;
 /*
  *  db.h
  *
@@ -43,10 +41,9 @@ use super::be_local::ALPM_LOCAL_DB_VERSION;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+use super::*;
+use super::be_local::ALPM_LOCAL_DB_VERSION;
 
-// #ifndef ALPM_DB_H
-// #define ALPM_DB_H
-//
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>
@@ -109,19 +106,19 @@ pub struct DbStatus {
 #[derive(Debug, Default, Clone)]
 pub struct Database {
     // handle: Handle,
-    pub treename: String,
-    /// do not access directly, use _alpm_db_path(db) for lazy access
-    pub _path: String,
+    treename: String,
+    /// do not access directly, use path(db) for lazy access
+    _path: String,
     pub pkgcache: PackageHash,
     grpcache: Vec<Group>,
-    pub servers: Vec<String>,
+    servers: Vec<String>,
     // ops: db_operations,
-    pub ops_type: DbOpsType, //I created this to deturmine if it is local or other stuff
+    ops_type: DbOpsType, //I created this to deturmine if it is local or other stuff
 
     /* bitfields for validity, local, loaded caches, etc. */
     pub status: DbStatus,
-    pub siglevel: SigLevel,
-    pub usage: DatabaseUsage,
+    siglevel: SigLevel,
+    usage: DatabaseUsage,
 }
 
 #[derive(Debug, Clone)]
@@ -145,7 +142,7 @@ impl Database {
             return Err(Error::ALPM_ERR_DB_INVALID_SIG);
         }
 
-        let dbpath = match self._alpm_db_path() {
+        let dbpath = match self.path() {
             Ok(d) => d,
             Err(e) => {
                 return Err(e);
@@ -177,7 +174,7 @@ impl Database {
 
         /* this takes into account the default verification level if UNKNOWN
          * was assigned to this db */
-        let siglevel = self.alpm_db_get_siglevel();
+        let siglevel = self.get_siglevel();
 
         if siglevel.database {
             let mut ret = 0;
@@ -268,7 +265,7 @@ impl Database {
 
         /* DESC */
         if inforeq & INFRQ_DESC != 0 && (info.infolevel & INFRQ_DESC) == 0 {
-            let path = self._alpm_local_db_pkgpath(info, &String::from("desc"));
+            let path = self.local_db_pkgpath(info, &String::from("desc"));
             let mut fp = match std::fs::File::open(&path) {
                 Ok(f) => f,
                 Err(e) => {
@@ -459,7 +456,7 @@ impl Database {
         /* FILES */
         if inforeq & INFRQ_FILES != 0 && (info.infolevel & INFRQ_FILES) == 0 {
             unimplemented!();
-            let path = self._alpm_local_db_pkgpath(info, &String::from("desc"));
+            let path = self.local_db_pkgpath(info, &String::from("desc"));
             let mut fp = match std::fs::File::open(&path) {
                 Ok(f) => f,
                 Err(e) => {
@@ -521,7 +518,7 @@ impl Database {
 
         /* INSTALL */
         if inforeq & INFRQ_SCRIPTLET != 0 && (info.infolevel & INFRQ_SCRIPTLET) == 0 {
-            let path = self._alpm_local_db_pkgpath(info, &String::from("install"));
+            let path = self.local_db_pkgpath(info, &String::from("install"));
             use std::path::Path;
             let install_path = Path::new(&path);
             if install_path.exists() {
@@ -540,8 +537,8 @@ impl Database {
         // 	return -1;
     }
 
-    pub fn checkdbdir(&self) -> Result<()> {
-        let path = self._alpm_db_path().unwrap();
+    fn checkdbdir(&self) -> Result<()> {
+        let path = self.path().unwrap();
         match std::fs::metadata(&path) {
             Err(_) => {
                 debug!("database dir '{}' does not exist, creating it", path);
@@ -559,14 +556,14 @@ impl Database {
         return Ok(());
     }
 
-    pub fn _alpm_local_db_prepare(&self, info: &Package) -> i32 {
+    fn local_db_prepare(&self, info: &Package) -> i32 {
         let pkgpath;
 
         if self.checkdbdir().is_err() {
             return -1;
         }
 
-        pkgpath = self._alpm_local_db_pkgpath(info, &String::new());
+        pkgpath = self.local_db_pkgpath(info, &String::new());
 
         match std::fs::create_dir(&pkgpath) {
             Err(e) => {
@@ -578,7 +575,7 @@ impl Database {
         0
     }
 
-    pub fn _alpm_local_db_write(&self, info: &Package, inforeq: i32) -> i32 {
+    fn local_db_write(&self, info: &Package, inforeq: i32) -> i32 {
         unimplemented!();
         // 	FILE *fp = NULL;
         // 	mode_t oldmask;
@@ -734,7 +731,7 @@ impl Database {
         // 	return retval;
     }
 
-    fn _alpm_local_db_remove(&self, info: &Package) -> i32 {
+    fn local_db_remove(&self, info: &Package) -> i32 {
         unimplemented!();
         // 	int ret = 0;
         // 	DIR *dirp;
@@ -780,7 +777,7 @@ impl Database {
     }
 
     /*True Mut*/
-    pub fn local_db_populate(&mut self) -> Result<()> {
+    fn local_db_populate(&mut self) -> Result<()> {
         use std::fs;
         let mut count = 0;
         let dbdir;
@@ -793,7 +790,7 @@ impl Database {
             return Err(Error::ALPM_ERR_DB_NOT_FOUND);
         }
 
-        dbpath = self._alpm_db_path()?;
+        dbpath = self.path()?;
 
         dbdir = match fs::read_dir(dbpath) {
             Err(_e) => return Err(Error::ALPM_ERR_DB_OPEN),
@@ -886,7 +883,7 @@ impl Database {
             return Ok(false);
         }
 
-        dbpath = match self._alpm_db_path() {
+        dbpath = match self.path() {
             Ok(d) => d,
             Err(e) => {
                 return Err(e);
@@ -1006,11 +1003,11 @@ impl Database {
     }
 
     /* Note: the return value must be freed by the caller */
-    fn _alpm_local_db_pkgpath(&self, info: &Package, filename: &String) -> String {
+    fn local_db_pkgpath(&self, info: &Package, filename: &String) -> String {
         let pkgpath: String;
         let dbpath: String;
 
-        dbpath = self._alpm_db_path().unwrap();
+        dbpath = self.path().unwrap();
         pkgpath = format!("{}{}-{}/{}", dbpath, info.name, info.version, filename);
         return pkgpath;
     }
@@ -1023,25 +1020,13 @@ impl Database {
         }
     }
 
-    // /// Helper function for alpm_db_unregister{_all}
-    fn _alpm_db_unregister(&self) {
-        unimplemented!();
-        // {
-        // 	if(db == NULL) {
-        // 		return;
-        // 	}
-        //
-        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "unregistering database '{}'", db->treename);
-        // 	_alpm_db_free(db);
-    }
-
     /// Get the serverlist of a database.
-    pub fn alpm_db_get_servers(&self) -> &Vec<String> {
+    pub fn get_servers(&self) -> &Vec<String> {
         &self.servers
     }
 
     /// Set the serverlist of a database.
-    fn alpm_db_set_servers(&mut self, servers: Vec<String>) {
+    fn set_servers(&mut self, servers: Vec<String>) {
         self.servers = servers;
     }
 
@@ -1049,7 +1034,7 @@ impl Database {
     /// db database pointer
     /// url url of the server
     /// return - 0 on success, -1 on error (pm_errno is set accordingly)
-    pub fn alpm_db_add_server(&mut self, url: &String) -> Result<()> {
+    pub fn add_server(&mut self, url: &String) -> Result<()> {
         let newurl;
 
         /* Sanity checks */
@@ -1071,7 +1056,7 @@ impl Database {
     /// url url of the server
     /// return - 0 on success, 1 on server not present,
     /// -1 on error (pm_errno is set accordingly)
-    fn alpm_db_remove_server(&mut self, url: &String) -> i32 {
+    fn remove_server(&mut self, url: &String) -> i32 {
         let newurl;
         // let vdata;
         // let ret = 1;
@@ -1106,51 +1091,48 @@ impl Database {
     }
 
     /// Get a group entry from a package database.
-    pub fn alpm_db_get_group(&self, name: &String) -> Option<&Group> {
+    pub fn get_group(&self, name: &String) -> Result<&Group> {
+        return self.get_groupfromcache(name);
+    }
+
+    pub fn get_group_mut(&mut self, name: &String) -> Result<&mut Group> {
         // if name.len() ==0{
         //     return Err(Error::WrongArgs);
         // }
 
-        return self._alpm_db_get_groupfromcache(name);
+        return self.get_groupfromcache_mut(name);
     }
 
-    pub fn alpm_db_get_group_mut(&mut self, name: &String) -> Option<&mut Group> {
-        // if name.len() ==0{
-        //     return Err(Error::WrongArgs);
-        // }
-
-        return self._alpm_db_get_groupfromcache_mut(name);
-    }
-
-    fn _alpm_db_get_groupfromcache(&self, target: &String) -> Option<&Group> {
+    fn get_groupfromcache(&self, target: &String) -> Result<&Group> {
         if target.len() == 0 {
-            return None;
+            return return Err(Error::WrongArgs);;
         }
 
-        for info in self._alpm_db_get_groupcache() {
+        for info in self.get_groupcache() {
             if info.name == *target {
-                return Some(info);
+                return Ok(info);
             }
         }
 
-        return None;
+        return Err(Error::GroupNotFound);
     }
 
-    fn _alpm_db_get_groupfromcache_mut(&mut self, target: &String) -> Option<&mut Group> {
+    fn get_groupfromcache_mut(&mut self, target: &String) -> Result<&mut Group> {
         if target.len() == 0 {
-            return None;
+            return return Err(Error::WrongArgs);;
         }
 
-        for info in self._alpm_db_get_groupcache_mut() {
+        for info in self.get_groupcache_mut() {
             if info.name == *target {
-                return Some(info);
+                return Ok(info);
             }
         }
 
-        return None;
+        return Err(Error::GroupNotFound);
     }
 
-    fn _alpm_db_get_groupcache_mut(&mut self) -> &mut Vec<Group> {
+    /// Get the group cache of a package database.
+    pub fn get_groupcache_mut(&mut self) -> &mut Vec<Group> {
         if self.status.valid {
             unimplemented!();
             // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
@@ -1163,21 +1145,7 @@ impl Database {
         return &mut self.grpcache;
     }
 
-    fn _alpm_db_get_groupcache(&self) -> &Vec<Group> {
-        if self.status.valid {
-            unimplemented!();
-            // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
-        }
-
-        if self.status.grpcache {
-            self.load_grpcache();
-        }
-
-        return &self.grpcache;
-    }
-
-    /* Returns a new group cache from db.
-     */
+    /// Returns a new group cache from db.
     fn load_grpcache(&self) -> i32 {
         unimplemented!();
         // alpm_list_t *lp;
@@ -1226,17 +1194,21 @@ impl Database {
     }
 
     /// Get the group cache of a package database.
-    pub fn alpm_db_get_groupcache(&self) -> &Vec<Group> {
-        return self._alpm_db_get_groupcache();
+    pub fn get_groupcache(&self) -> &Vec<Group> {
+        if self.status.valid {
+            unimplemented!();
+            // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
+        }
+
+        if self.status.grpcache {
+            self.load_grpcache();
+        }
+
+        return &self.grpcache;
     }
 
-    /// Get the group cache of a package database.
-    pub fn alpm_db_get_groupcache_mut(&mut self) -> &mut Vec<Group> {
-        return self._alpm_db_get_groupcache_mut();
-    }
-
-    pub fn _alpm_db_get_pkgfromcache(&mut self, target: &String) -> Option<Package> {
-        let pkgcache = self._alpm_db_get_pkgcache_hash();
+    pub fn get_pkgfromcache(&mut self, target: &String) -> Option<Package> {
+        let pkgcache = self.get_pkgcache_hash();
         match pkgcache {
             Err(_) => {
                 return None;
@@ -1248,7 +1220,7 @@ impl Database {
         }
     }
 
-    fn _alpm_db_get_pkgcache_hash(&mut self) -> Result<&PackageHash> {
+    fn get_pkgcache_hash(&mut self) -> Result<&PackageHash> {
         if !self.status.valid {
             // debug!(
             //     "returning error {} from {} : {}\n",
@@ -1270,7 +1242,7 @@ impl Database {
         return Ok(&self.pkgcache);
     }
 
-    fn _alpm_db_get_pkgcache_hash_mut(&mut self) -> Result<&mut PackageHash> {
+    fn get_pkgcache_hash_mut(&mut self) -> Result<&mut PackageHash> {
         if !self.status.valid {
             // debug!(
             //     "returning error {} from {} : {}\n",
@@ -1316,50 +1288,13 @@ impl Database {
         }
     }
 
-    /* Unregister a package database. */
-    // int SYMEXPORT alpm_db_unregister(Database *db)
-    // {
-    // 	int found = 0;
-    // 	Handle *handle;
-    //
-    // 	/* Sanity checks */
-    // 	ASSERT(db != NULL, return -1);
-    // 	/* Do not unregister a database if a transaction is on-going */
-    // 	handle = db->handle;
-    // 	handle->pm_errno = ALPM_ERR_OK;
-    // 	ASSERT(handle->trans == NULL, RET_ERR(handle, ALPM_ERR_TRANS_NOT_NULL, -1));
-    //
-    // 	if(db == handle->db_local) {
-    // 		handle->db_local = NULL;
-    // 		found = 1;
-    // 	} else {
-    // 		/* Warning : this function shouldn't be used to unregister all sync
-    // 		 * databases by walking through the list returned by
-    // 		 * alpm_get_syncdbs, because the db is removed from that list here.
-    // 		 */
-    // 		void *data;
-    // 		handle->dbs_sync = alpm_list_remove(handle->dbs_sync,
-    // 				db, _alpm_db_cmp, &data);
-    // 		if(data) {
-    // 			found = 1;
-    // 		}
-    // 	}
-    //
-    // 	if(!found) {
-    // 		RET_ERR(handle, ALPM_ERR_DB_NOT_FOUND, -1);
-    // 	}
-    //
-    // 	db->ops->unregister(db);
-    // 	return 0;
-    // }
-
     /// Check the validity of a database.
-    pub fn alpm_db_get_valid(&mut self, handle: &mut Handle) -> Result<bool> {
+    pub fn get_valid(&mut self, handle: &mut Handle) -> Result<bool> {
         self.validate(handle)
     }
 
     /// Get a package entry from a package database. */
-    pub fn alpm_db_get_pkg(&self, name: &String) -> Option<&Package> {
+    pub fn get_pkg(&self, name: &String) -> Option<&Package> {
         unimplemented!()
         // Package *pkg;
         // ASSERT(db != NULL, return NULL);
@@ -1374,23 +1309,13 @@ impl Database {
         // return pkg;
     }
 
-    /// Get the package cache of a package database.
-    pub fn alpm_db_get_pkgcache(&mut self) -> Result<&Vec<Package>> {
-        return self._alpm_db_get_pkgcache();
-    }
-
-    /// Get the package cache of a package database.
-    pub fn alpm_db_get_pkgcache_mut(&mut self) -> Result<&mut Vec<Package>> {
-        return self._alpm_db_get_pkgcache_mut();
-    }
-
     /// Get the name of a package database. */
-    pub fn alpm_db_get_name(&self) -> &String {
+    pub fn get_name(&self) -> &String {
         return &self.treename;
     }
 
     /// Get the signature verification level for a database. */
-    pub fn alpm_db_get_siglevel(&self) -> SigLevel {
+    pub fn get_siglevel(&self) -> SigLevel {
         if self.siglevel.use_default {
             unimplemented!();
         // return self.handle.SigLevel;
@@ -1399,14 +1324,13 @@ impl Database {
         }
     }
 
-    /// Searches a database. */
-    // pub fn alpm_db_search(&self, needles: &Vec<Package>) -> alpm_list_t {
-    pub fn alpm_db_search(&self, needles: &Vec<String>) -> &Vec<Package> {
-        return self._alpm_db_search(needles);
+    pub fn set_siglevel(&mut self, level: SigLevel) {
+        self.siglevel = level;
     }
 
-    // pub fn _alpm_db_search(&self, needles: &Vec<Package>) -> alpm_list_t {
-    pub fn _alpm_db_search(&self, needles: &Vec<String>) -> &Vec<Package> {
+    /// Searches a database.
+    // pub fn alpm_db_search(&self, needles: &Vec<Package>) -> alpm_list_t {
+    pub fn search(&self, needles: &Vec<String>) -> &Vec<Package> {
         unimplemented!();
         // 	const alpm_list_t *i, *j, *k;
         // 	alpm_list_t *ret = NULL;
@@ -1487,26 +1411,28 @@ impl Database {
         // 	return ret;
     }
 
-    pub fn _alpm_db_get_pkgcache(&mut self) -> Result<&Vec<Package>> {
-        match self._alpm_db_get_pkgcache_hash_mut() {
+    /// Get the package cache of a package database.
+    pub fn get_pkgcache(&mut self) -> Result<&Vec<Package>> {
+        match self.get_pkgcache_hash_mut() {
             Err(e) => Err(e),
             Ok(hash) => Ok(&mut hash.list),
         }
     }
 
-    pub fn _alpm_db_get_pkgcache_mut(&mut self) -> Result<&mut Vec<Package>> {
-        match self._alpm_db_get_pkgcache_hash_mut() {
+    /// Get the package cache of a package database.
+    pub fn get_pkgcache_mut(&mut self) -> Result<&mut Vec<Package>> {
+        match self.get_pkgcache_hash_mut() {
             Err(e) => Err(e),
             Ok(hash) => Ok(&mut hash.list),
         }
     }
 
     /// Sets the usage bitmask for a repo
-    pub fn alpm_db_set_usage(&mut self, usage: DatabaseUsage) {
+    pub fn set_usage(&mut self, usage: DatabaseUsage) {
         self.usage = usage;
     }
 
-    pub fn _alpm_db_path(&self) -> Result<String> {
+    pub fn path(&self) -> Result<String> {
         if self._path == "" {
             Err(Error::no_db_path)
         } else {
@@ -1536,44 +1462,24 @@ impl Database {
         Ok(())
     }
 
-    pub fn _alpm_db_free_pkgcache(&mut self) {
+    pub fn free_pkgcache(&mut self) {
         if !self.status.pkgcache {
             return;
         }
         self.pkgcache = PackageHash::default();
-        //
-        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
-        // 			"freeing package cache for repository '{}'\n", db->treename);
-        //
-        // 	if(db->pkgcache) {
-        // 		alpm_list_free_inner(db->pkgcache->list,
-        // 				(alpm_list_fn_free)_alpm_pkg_free);
-        // 		_alpm_pkghash_free(db->pkgcache);
-        // 	}
+        debug!("freeing package cache for repository '{}'", self.treename);
         self.status.pkgcache = false;
-
         self.free_groupcache();
     }
 
     pub fn free_groupcache(&mut self) {
-        // 	alpm_list_t *lg;
-        //
-        // 	if(db == NULL || !(db->status & GRPCACHE)) {
-        // 		return;
-        // 	}
-        //
-        // 	_alpm_log(db->handle, ALPM_LOG_DEBUG,
-        // 			"freeing group cache for repository '{}'", db->treename);
-        //
-        // 	for(lg = db->grpcache; lg; lg = lg->next) {
-        // 		_alpm_group_free(lg->data);
-        // 		lg->data = NULL;
-        // 	}
-        // 	FREELIST(db->grpcache);
-        self.status.grpcache = false;
+        if self.status.grpcache {
+            debug!("freeing group cache for repository '{}'", self.treename);
+            self.status.grpcache = false;
+        }
     }
 
-    pub fn _alpm_db_new(treename: &String, is_local: bool) -> Self {
+    pub fn new(treename: &String, is_local: bool, op_type: DbOpsType) -> Self {
         let mut db = Self::default();
         db.treename = treename.clone();
         if is_local {
@@ -1582,13 +1488,18 @@ impl Database {
             db.status.local = false;
         }
         db.usage.all = true;
-
+        db.ops_type = op_type;
         return db;
     }
 
     /// Gets the usage bitmask for a repo */
-    pub fn alpm_db_get_usage(&self, usage: &mut DatabaseUsage) {
-        *usage = self.usage;
+    pub fn get_usage(&self) -> &DatabaseUsage {
+        &self.usage
+    }
+
+    /// Gets the usage bitmask for a repo */
+    pub fn get_usage_mut(&mut self) -> &mut DatabaseUsage {
+        &mut self.usage
     }
 }
 

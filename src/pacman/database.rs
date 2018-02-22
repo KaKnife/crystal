@@ -52,7 +52,7 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
 
     db_local = handle.get_localdb();
     for pkgname in targets {
-        match db_local.alpm_db_get_pkg(&pkgname) {
+        match db_local.get_pkg(&pkgname) {
             None => {
                 eprintln!(
                     "could not set install reason for package {} ()",
@@ -247,7 +247,7 @@ fn check_db_local(config: &mut Config, handle: &mut Handle) -> i32 {
     {
         let db: &mut Database;
         db = handle.get_localdb_mut();
-        pkglist = db.alpm_db_get_pkgcache().unwrap().clone();
+        pkglist = db.get_pkgcache().unwrap().clone();
     }
     ret += check_db_missing_deps(config, &mut pkglist, handle);
     ret += check_db_local_package_conflicts(&pkglist, config, handle);
@@ -265,14 +265,14 @@ fn check_db_sync(config: &mut Config, handle: &mut Handle) -> i32 {
 
     for mut db in &mut handle.dbs_sync {
         let mut pkglist: Vec<Package>;
-        pkglist = db.alpm_db_get_pkgcache().unwrap().clone();
+        pkglist = db.get_pkgcache().unwrap().clone();
         syncpkglist.append(&mut pkglist);
     }
 
     // match config.handle.dbs_sync {
     //     Some(ref mut dblist) => for mut db in dblist {
     //         let mut pkglist: Vec<Package>;
-    //         pkglist = db.alpm_db_get_pkgcache();
+    //         pkglist = db.get_pkgcache();
     //         syncpkglist.append(&mut pkglist);
     //     },
     //     _ => unimplemented!(),

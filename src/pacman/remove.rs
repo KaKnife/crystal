@@ -26,7 +26,7 @@ fn fnmatch_cmp(pattern: &String, string: &String) -> std::cmp::Ordering {
 }
 
 fn remove_target(target: String, config: &mut Config, handle:&mut Handle) -> i32 {
-    match handle.db_local.alpm_db_get_pkg(&target) {
+    match handle.db_local.get_pkg(&target) {
         Some(pkg) => {
             match alpm_remove_pkg(&mut handle.trans, &pkg) {
                 Err(err) => {
@@ -51,10 +51,10 @@ fn remove_target(target: String, config: &mut Config, handle:&mut Handle) -> i32
     }
 
     /* fallback to group */
-    let grp = handle.db_local.alpm_db_get_group(&target);
+    let grp = handle.db_local.get_group(&target);
 
     match grp {
-        Some(grp) => {
+        Ok(grp) => {
             for pkg in &grp.packages {
                 match alpm_remove_pkg(&mut handle.trans, &pkg) {
                     Err(e) => {
@@ -69,7 +69,7 @@ fn remove_target(target: String, config: &mut Config, handle:&mut Handle) -> i32
             }
             return 0;
         }
-        None => {
+        Err(_) => {
             eprintln!("target not found: {}", target);
             return -1;
         }

@@ -1474,7 +1474,7 @@ fn _parse_options(
 }
 
 fn _add_mirror(db: &mut Database, value: &String, arch: &String) -> Result<()> {
-    let dbname = db.alpm_db_get_name().clone();
+    let dbname = db.get_name().clone();
     /* let's attempt a replacement for the current repo */
     let temp = value.replace("$repo", &dbname);
     /* let's attempt a replacement for the arch */
@@ -1493,7 +1493,7 @@ fn _add_mirror(db: &mut Database, value: &String, arch: &String) -> Result<()> {
         server = temp;
     }
 
-    match db.alpm_db_add_server(&server) {
+    match db.add_server(&server) {
         Err(e) => {
             error!(
                 "could not add server URL to database '{}': {} ({})",
@@ -1541,7 +1541,7 @@ fn register_repo(
     if repo.usage.is_zero() {
         repo.usage.all = true;
     }
-    db.alpm_db_set_usage(repo.usage);
+    db.set_usage(repo.usage);
 
     for value in &repo.servers {
         // char *value = i.data;

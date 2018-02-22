@@ -136,7 +136,7 @@ pub fn alpm_sync_sysupgrade(handle: &mut Handle, enable_downgrade: bool) -> Resu
     // 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
     //
     debug!("checking for package upgrades");
-    for lpkg in handle.db_local._alpm_db_get_pkgcache().unwrap() {
+    for lpkg in handle.db_local.get_pkgcache().unwrap() {
         if alpm_pkg_find(&mut trans.remove, &lpkg.name).is_some() {
             debug!("{} is marked for removal -- skipping", lpkg.name);
             continue;
@@ -152,7 +152,7 @@ pub fn alpm_sync_sysupgrade(handle: &mut Handle, enable_downgrade: bool) -> Resu
             // Database *sdb = j.data;
             // alpm_list_t *replacers;
 
-            if !sdb.usage.upgrade {
+            if !sdb.get_usage().upgrade {
                 continue;
             }
             unimplemented!();

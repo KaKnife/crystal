@@ -26,7 +26,7 @@ pub fn pacman_deptest(targets: Vec<String>, config: &mut Config, handle:&mut Han
 
     for target in targets {
         // unimplemented!();
-        if alpm_find_satisfier(&localdb.alpm_db_get_pkgcache().unwrap(), &target).is_none() {
+        if alpm_find_satisfier(&localdb.get_pkgcache().unwrap(), &target).is_none() {
             deps.push(target);
         }
     }

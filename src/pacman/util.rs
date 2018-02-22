@@ -125,11 +125,11 @@ pub fn check_syncdbs(
     }
     if check_valid {
         for mut db in handle.dbs_sync.clone() {
-            match db.alpm_db_get_valid(handle) {
+            match db.get_valid(handle) {
                 Err(e) => {
                     eprintln!(
                         "database '{}' is not valid ({})",
-                        db.treename,
+                        db.get_name(),
                         e.alpm_strerror()
                     );
                     ret = Err(());
@@ -153,13 +153,13 @@ pub fn sync_syncdbs(
             Err(e) => {
                 eprintln!(
                     "failed to update {} ({})",
-                    db.alpm_db_get_name(),
+                    db.get_name(),
                     e.alpm_strerror()
                 );
                 success = Err(());
             }
             Ok(1) => {
-                println!(" {} is up to date", db.alpm_db_get_name());
+                println!(" {} is up to date", db.get_name());
             }
             _ => {}
         }

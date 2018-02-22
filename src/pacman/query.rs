@@ -157,7 +157,7 @@ fn query_fileowner(targets: &Vec<String>) -> i32 {
     // 	}
     //
     // 	db_local = alpm_get_localdb(config.handle);
-    // 	packages = alpm_db_get_pkgcache(db_local);
+    // 	packages = get_pkgcache(db_local);
     //
     // 	for(t = targets; t; t = alpm_list_next(t)) {
     // 		char *filename = NULL;
@@ -254,7 +254,7 @@ fn pkg_get_locality(pkg: &Package, handle: &Handle) -> u8 {
     let sync_dbs = handle.get_syncdbs();
 
     for data in sync_dbs {
-        if data.alpm_db_get_pkg(pkgname).is_some() {
+        if data.get_pkg(pkgname).is_some() {
             return PKG_LOCALITY_NATIVE;
         }
     }
@@ -392,7 +392,7 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i
     let op_q_deps = config.op_q_deps;
 
     if targets.is_empty() {
-        for grp in db_local.alpm_db_get_groupcache_mut() {
+        for grp in db_local.get_groupcache_mut() {
             for pkg in &mut grp.packages {
                 if filter(pkg, config, handle_clone) == 0 {
                     continue;
@@ -402,8 +402,8 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i
         }
     } else {
         for grpname in targets {
-            match db_local.alpm_db_get_group_mut(grpname) {
-                Some(grp) => for ref mut data in &mut grp.packages {
+            match db_local.get_group_mut(grpname) {
+                Ok(grp) => for ref mut data in &mut grp.packages {
                     if filter(data, config, handle_clone) == 0 {
                         continue;
                     }
@@ -413,7 +413,7 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i
                         println!("{}", data.alpm_pkg_get_name());
                     }
                 },
-                None => {
+                Err(_) => {
                     error!("group '{}' was not found", grpname);
                     ret += 1;
                 }
@@ -477,7 +477,7 @@ pub fn pacman_query(
             return Err(1);
         }
 
-        match db_local.alpm_db_get_pkgcache_mut() {
+        match db_local.get_pkgcache_mut() {
             Ok(d) => for mut pkg in d {
                 if filter(pkg, config, handle_clone) != 0 {
                     let value = display(&mut pkg, config, handle_clone);
@@ -523,9 +523,9 @@ pub fn pacman_query(
             }
         } else {
             unimplemented!();
-            // pkg = match db_local_tmp.alpm_db_get_pkg(&strname) {
+            // pkg = match db_local_tmp.get_pkg(&strname) {
             //     None => {
-            //         match alpm::alpm_find_satisfier(db_local.alpm_db_get_pkgcache().unwrap(), &strname){
+            //         match alpm::alpm_find_satisfier(db_local.get_pkgcache().unwrap(), &strname){
             //             None => {
             //                 error!("package '{}' was not found", strname);
             //                 unimplemented!();
