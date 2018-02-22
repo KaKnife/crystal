@@ -1733,55 +1733,46 @@ pub fn initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
     return Ok(myhandle);
 }
 
-// /// Release the library.
-//  * Disconnects from the database, removes handle and lockfile
-//  * This should be the last alpm call you make.
-//  * After this returns, handle should be considered invalid and cannot be reused
-//  * in any way.
-//  * @param myhandle the context handle
-//  * @return 0 on success, -1 on error
-//
-// int SYMEXPORT alpm_release(alpm_handle_t *myhandle)
-// {
-// 	int ret = 0;
-// 	alpm_db_t *db;
-//
-// 	CHECK_HANDLE(myhandle, return -1);
-//
-// 	/* close local database
-// 	db = myhandle->db_local;
-// 	if(db) {
-// 		db->ops->unregister(db);
-// 		myhandle->db_local = NULL;
-// 	}
-//
-// 	if(alpm_unregister_all_syncdbs(myhandle) == -1) {
-// 		ret = -1;
-// 	}
-//
-// 	_alpm_handle_unlock(myhandle);
-// 	_alpm_handle_free(myhandle);
-//
-// #ifdef HAVE_LIBCURL
-// 	curl_global_cleanup();
-// #endif
-//
-// 	return ret;
-// }
-//
-// /// @}
-//
-// /// @defgroup alpm_misc Miscellaneous Functions
-//  * @brief Various libalpm functions
-//
-//
-// /// Get the version of library.
-//  * @return the library version, e.g. "6.0.4"
-//  *
-// const char SYMEXPORT *alpm_version(void)
-// {
-// 	return LIB_VERSION;
-// }
+/// Release the library.
+/// Disconnects from the database, removes handle and lockfile
+/// This should be the last alpm call you make.
+/// After this returns, handle should be considered invalid and cannot be reused
+/// in any way.
+/// * `myhandle` the context handle
+/// * returns 0 on success, -1 on error
+pub fn alpm_release(myhandle: alpm_handle_t) -> i32 {
+    unimplemented!();
+    // 	int ret = 0;
+    // 	alpm_db_t *db;
+    //
+    // 	CHECK_HANDLE(myhandle, return -1);
+    //
+    // 	/* close local database
+    // 	db = myhandle->db_local;
+    // 	if(db) {
+    // 		db->ops->unregister(db);
+    // 		myhandle->db_local = NULL;
+    // 	}
+    //
+    // 	if(alpm_unregister_all_syncdbs(myhandle) == -1) {
+    // 		ret = -1;
+    // 	}
+    //
+    // 	_alpm_handle_unlock(myhandle);
+    // 	_alpm_handle_free(myhandle);
+    //
+    // #ifdef HAVE_LIBCURL
+    // 	curl_global_cleanup();
+    // #endif
+    //
+    // 	return ret;
+}
+
+/// Get the version of library.
+pub fn alpm_version() -> String {
+    unimplemented!();
+    // return LIB_VERSION;
+}
 
 /// Get the capabilities of the library.
 pub fn capabilities() -> Capabilities {
