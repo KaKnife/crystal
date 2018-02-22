@@ -43,9 +43,9 @@ pub struct alpm_trans_t {
     /* bitfield of alpm_transflag_t flags */
     pub flags: alpm_transflag_t,
     pub state: alpm_transstate_t,
-    pub unresolvable: Vec<pkg_t>, /* list of (pkg_t *) */
-    pub add: Vec<pkg_t>,          /* list of (pkg_t *) */
-    pub remove: Vec<pkg_t>,       /* list of (pkg_t *) */
+    pub unresolvable: Vec<Package>, /* list of (Package *) */
+    pub add: Vec<Package>,          /* list of (Package *) */
+    pub remove: Vec<Package>,       /* list of (Package *) */
     pub skip_remove: Vec<String>,      /* list of (char *) */
 }
 

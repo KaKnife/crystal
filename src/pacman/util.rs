@@ -956,8 +956,8 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 // static int pkg_cmp(const void *p1, const void *p2)
 // {
 // 	/* explicit cast due to (un)necessary removal of const */
-// 	pkg_t *pkg1 = (pkg_t *)p1;
-// 	pkg_t *pkg2 = (pkg_t *)p2;
+// 	Package *pkg1 = (Package *)p1;
+// 	Package *pkg2 = (Package *)p2;
 // 	return strcmp(alpm_pkg_get_name(pkg1), alpm_pkg_get_name(pkg2));
 // }
 //
@@ -967,7 +967,7 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 // 	Database *db_local = alpm_get_localdb(config->handle);
 //
 // 	for(i = alpm_trans_get_add(config->handle); i; i = alpm_list_next(i)) {
-// 		pkg_t *pkg = i->data;
+// 		Package *pkg = i->data;
 // 		pm_target_t *targ = calloc(1, sizeof(pm_target_t));
 // 		if(!targ) return;
 // 		targ->install = pkg;
@@ -978,7 +978,7 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 // 		targets = alpm_list_add(targets, targ);
 // 	}
 // 	for(i = alpm_trans_get_remove(config->handle); i; i = alpm_list_next(i)) {
-// 		pkg_t *pkg = i->data;
+// 		Package *pkg = i->data;
 // 		pm_target_t *targ = calloc(1, sizeof(pm_target_t));
 // 		if(!targ) return;
 // 		targ->remove = pkg;
@@ -993,7 +993,7 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 // 	FREELIST(targets);
 // }
 
-fn pkg_get_size(pkg: &mut pkg_t, config: &config_t, db: &mut Database) -> off_t {
+fn pkg_get_size(pkg: &mut Package, config: &config_t, db: &mut Database) -> off_t {
     match config.op {
         Some(PM_OP_SYNC) => pkg.alpm_pkg_download_size(),
         Some(PM_OP_UPGRADE) => pkg.alpm_pkg_get_size(),
@@ -1001,7 +1001,7 @@ fn pkg_get_size(pkg: &mut pkg_t, config: &config_t, db: &mut Database) -> off_t 
     }
 }
 
-fn pkg_get_location(pkg: &pkg_t, handle: &alpm_handle_t) -> String {
+fn pkg_get_location(pkg: &Package, handle: &alpm_handle_t) -> String {
     // alpm_list_t *servers;
     // char *string = NULL;
     // use pkgfrom_t::*;
@@ -1090,9 +1090,9 @@ pub fn humanize_size(bytes: off_t, target_unit: char, precision: i8, label: &mut
     val
 }
 
-// pub fn print_packages(packages: &Vec<pkg_t>, config: &config_t)
+// pub fn print_packages(packages: &Vec<Package>, config: &config_t)
 pub fn print_packages(
-    packages: &mut Vec<pkg_t>,
+    packages: &mut Vec<Package>,
     print_format: &String,
     config: &config_t,
     handle: &mut alpm_handle_t,
@@ -1180,7 +1180,7 @@ pub fn print_packages(
 // 	return optstring;
 // }
 //
-// void display_new_optdepends(pkg_t *oldpkg, pkg_t *newpkg)
+// void display_new_optdepends(Package *oldpkg, Package *newpkg)
 // {
 // 	alpm_list_t *i, *old, *new, *optdeps, *optstrings = NULL;
 //
@@ -1204,7 +1204,7 @@ pub fn print_packages(
 // 	FREELIST(optstrings);
 // }
 //
-// void display_optdepends(pkg_t *pkg)
+// void display_optdepends(Package *pkg)
 // {
 // 	alpm_list_t *i, *optdeps, *optstrings = NULL;
 //
@@ -1245,7 +1245,7 @@ pub fn print_packages(
 // 	unsigned short cols = getcols();
 //
 // 	for(i = pkglist; i; i = i->next) {
-// 		pkg_t *pkg = i->data;
+// 		Package *pkg = i->data;
 // 		Database *db = alpm_pkg_get_db(pkg);
 //
 // 		if(!dbname) {

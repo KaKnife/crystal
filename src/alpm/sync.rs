@@ -48,7 +48,7 @@ use super::*;
 // #include "diskspace.h"
 // #include "signing.h"
 
-// static alpm_list_t *check_replacers(alpm_handle_t *handle, pkg_t *lpkg,
+// static alpm_list_t *check_replacers(alpm_handle_t *handle, Package *lpkg,
 // 		Database *sdb)
 // {
 // 	/* 2. search for replacers in sdb */
@@ -59,7 +59,7 @@ use super::*;
 // 			lpkg->name, sdb->treename);
 // 	for(k = _alpm_db_get_pkgcache(sdb); k; k = k->next) {
 // 		int found = 0;
-// 		pkg_t *spkg = k->data;
+// 		Package *spkg = k->data;
 // 		alpm_list_t *l;
 // 		for(l = alpm_pkg_get_replaces(spkg); l; l = l->next) {
 // 			alpm_depend_t *replace = l->data;
@@ -77,7 +77,7 @@ use super::*;
 // 				.newpkg = spkg,
 // 				.newdb = sdb
 // 			};
-// 			pkg_t *tpkg;
+// 			Package *tpkg;
 // 			/* check IgnorePkg/IgnoreGroup */
 // 			if(alpm_pkg_should_ignore(handle, spkg)
 // 					|| alpm_pkg_should_ignore(handle, lpkg)) {
@@ -163,7 +163,7 @@ pub fn alpm_sync_sysupgrade(handle: &mut alpm_handle_t, enable_downgrade: bool) 
             // 	/* jump to next local package */
             // 	// break;
             // } else {
-            // 	// 				pkg_t *spkg = _alpm_db_get_pkgfromcache(sdb, lpkg.name);
+            // 	// 				Package *spkg = _alpm_db_get_pkgfromcache(sdb, lpkg.name);
             // 	// 				if(spkg) {
             // 	// 					if(check_literal(handle, lpkg, spkg, enable_downgrade)) {
             // 	// 						trans.add = alpm_list_add(trans.add, spkg);
@@ -183,8 +183,8 @@ pub fn alpm_sync_sysupgrade(handle: &mut alpm_handle_t, enable_downgrade: bool) 
 /// IgnorePkg is also handled.
 /// @param dbs the list of Database
 /// @param name the name of the group
-/// @return the list of pkg_t * (caller is responsible for alpm_list_free)
-pub fn alpm_find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<pkg_t> {
+/// @return the list of Package * (caller is responsible for alpm_list_free)
+pub fn alpm_find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<Package> {
     unimplemented!();
     // 	alpm_list_t *i, *j, *pkgs = NULL, *ignorelist = NULL;
     //
@@ -197,13 +197,13 @@ pub fn alpm_find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<pkg_t> {
     // 		}
     //
     // 		for(j = grp.packages; j; j = j.next) {
-    // 			pkg_t *pkg = j.data;
+    // 			Package *pkg = j.data;
     //
     // 			if(alpm_pkg_find(ignorelist, pkg.name)) {
     // 				continue;
     // 			}
     // 			if(alpm_pkg_should_ignore(db.handle, pkg)) {
-    // 				alpm_question_install_ignorepkg_t question = {
+    // 				alpm_question_install_ignorePackage question = {
     // 					.type = ALPM_QUESTION_INSTALL_IGNOREPKG,
     // 					.install = 0,
     // 					.pkg = pkg
@@ -248,7 +248,7 @@ fn apply_deltas(handle: &alpm_handle_t) -> i32 {
     // 	alpm_event_delta_patch_t event;
     //
     // 	for(i = trans->add; i; i = i->next) {
-    // 		pkg_t *spkg = i->data;
+    // 		Package *spkg = i->data;
     // 		alpm_list_t *delta_path = spkg->delta_path;
     // 		alpm_list_t *dlts = NULL;
     //
@@ -414,7 +414,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	alpm_handle_t *handle = repo->handle;
 //
 // 	for(i = handle->trans->add; i; i = i->next) {
-// 		pkg_t *spkg = i->data;
+// 		Package *spkg = i->data;
 //
 // 		if(spkg->origin != ALPM_PKG_FROM_FILE && repo == spkg->origin_data.db) {
 // 			alpm_list_t *delta_path = spkg->delta_path;
@@ -506,7 +506,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 		off_t total_size = (off_t)0;
 // 		/* sum up the download size for each package and store total */
 // 		for(i = handle->trans->add; i; i = i->next) {
-// 			pkg_t *spkg = i->data;
+// 			Package *spkg = i->data;
 // 			total_size += spkg->download_size;
 // 		}
 // 		handle->totaldlcb(total_size);
@@ -562,7 +562,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	}
 //
 // 	for(i = handle->trans->add; i; i = i->next) {
-// 		pkg_t *pkg = i->data;
+// 		Package *pkg = i->data;
 // 		pkg->infolevel &= ~INFRQ_DSIZE;
 // 		pkg->download_size = 0;
 // 	}
@@ -588,7 +588,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	numtargs = alpm_list_count(handle->trans->add);
 //
 // 	for(i = handle->trans->add; i; i = i->next, current++) {
-// 		pkg_t *pkg = i->data;
+// 		Package *pkg = i->data;
 // 		int level;
 //
 // 		int percent = (current * 100) / numtargs;
@@ -656,7 +656,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 		size_t total, uint64_t total_bytes)
 // {
 // 	struct validity {
-// 		pkg_t *pkg;
+// 		Package *pkg;
 // 		char *path;
 // 		alpm_siglist_t *siglist;
 // 		int siglevel;
@@ -751,7 +751,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 //
 // 	for(i = handle->trans->add; i; i = i->next, current++) {
 // 		int error = 0;
-// 		pkg_t *spkg = i->data;
+// 		Package *spkg = i->data;
 // 		char *filepath;
 // 		int percent = (int)(((double)current_bytes / total_bytes) * 100);
 //
@@ -769,7 +769,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 		_alpm_log(handle, ALPM_LOG_DEBUG,
 // 				"replacing pkgcache entry with package file for target {}\n",
 // 				spkg->name);
-// 		pkg_t *pkgfile =_alpm_pkg_load_internal(handle, filepath, 1);
+// 		Package *pkgfile =_alpm_pkg_load_internal(handle, filepath, 1);
 // 		if(!pkgfile) {
 // 			debug!("failed to load pkgfile internal\n");
 // 			error = 1;
@@ -855,7 +855,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	/* get the total size of all packages so we can adjust the progress bar more
 // 	 * realistically if there are small and huge packages involved */
 // 	for(i = trans->add; i; i = i->next) {
-// 		pkg_t *spkg = i->data;
+// 		Package *spkg = i->data;
 // 		if(spkg->origin != ALPM_PKG_FROM_FILE) {
 // 			total_bytes += spkg->size;
 // 		}

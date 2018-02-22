@@ -182,7 +182,7 @@ fn sync_cleancache(level: i32) -> i32 {
     // 		while((ent = readdir(dir)) != NULL) {
     // 			char path[PATH_MAX];
     // 			int delete = 1;
-    // 			pkg_t *localpkg = NULL, *pkg = NULL;
+    // 			Package *localpkg = NULL, *pkg = NULL;
     // 			const char *local_name, *local_version;
     //
     // 			if(strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0) {
@@ -450,7 +450,7 @@ fn sync_list(syncs: &mut Vec<Database>, targets: &Vec<String>) -> std::result::R
     // 		Database *db = i->data;
     //
     // 		for(j = alpm_db_get_pkgcache(db); j; j = alpm_list_next(j)) {
-    // 			pkg_t *pkg = j->data;
+    // 			Package *pkg = j->data;
     //
     // 			if(!config->quiet) {
     // 				const colstr_t *colstr = &config->colstr;
@@ -484,7 +484,7 @@ fn get_db(dbname: &String) -> Database {
     // 	return NULL;
 }
 
-fn process_pkg(pkg: &pkg_t) -> i32 {
+fn process_pkg(pkg: &Package) -> i32 {
     unimplemented!();
     // 	int ret = alpm_add_pkg(config->handle, pkg);
     //
@@ -541,7 +541,7 @@ fn process_group<T>(dbs: Vec<T>, group: &String, error: i32) -> i32 {
     // 			goto cleanup;
     // 		}
     // 		for(i = pkgs, n = 0; i; i = alpm_list_next(i)) {
-    // 			pkg_t *pkg = i->data;
+    // 			Package *pkg = i->data;
     //
     // 			if(array[n++] == 0) {
     // 				continue;
@@ -556,7 +556,7 @@ fn process_group<T>(dbs: Vec<T>, group: &String, error: i32) -> i32 {
     // 		free(array);
     // 	} else {
     // 		for(i = pkgs; i; i = alpm_list_next(i)) {
-    // 			pkg_t *pkg = i->data;
+    // 			Package *pkg = i->data;
     //
     // 			if(process_pkg(pkg) == 1) {
     // 				ret = 1;
@@ -576,7 +576,7 @@ fn process_targname<T>(
     error: i32,
     handle: &mut alpm_handle_t,
 ) -> i32 {
-    let pkg: Option<pkg_t> = handle.alpm_find_dbs_satisfier(&dblist, targname);
+    let pkg: Option<Package> = handle.alpm_find_dbs_satisfier(&dblist, targname);
 
     /* skip ignored packages when user says no */
     // match config.handle.alpm_errno() {
@@ -693,7 +693,7 @@ fn print_broken_dep(miss: &depmissing_t) {
     unimplemented!();
     // 	char *depstring = alpm_dep_compute_string(miss->depend);
     // 	alpm_list_t *trans_add = alpm_trans_get_add(config->handle);
-    // 	pkg_t *pkg;
+    // 	Package *pkg;
     // 	if(miss->causingpkg == NULL) {
     // 		/* package being installed/upgraded has unresolved dependency */
     // 		colon_printf(_("unable to satisfy dependency '%s' required by %s\n"),

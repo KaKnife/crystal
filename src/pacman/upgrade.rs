@@ -79,7 +79,7 @@ pub fn pacman_upgrade(
     println!("loading packages...");
     /* add targets to the created transaction */
     for (n, targ) in targets.clone().iter().enumerate() {
-        let mut pkg = pkg_t::default();
+        let mut pkg = Package::default();
         let siglevel;
 
         if file_is_remote[n] {

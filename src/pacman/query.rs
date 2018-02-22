@@ -81,7 +81,7 @@ const LOCAL_PREFIX: &str = "local/";
 // 	return -1;
 // }
 
-fn print_query_fileowner(filename: &String, info: &pkg_t, config: &config_t) {
+fn print_query_fileowner(filename: &String, info: &Package, config: &config_t) {
     if !config.quiet {
         let colstr = &config.colstr;
         println!(
@@ -249,7 +249,7 @@ fn query_search(targets: &Vec<String>, config: &config_t, handle: &mut alpm_hand
     );
 }
 
-fn pkg_get_locality(pkg: &pkg_t, handle: &alpm_handle_t) -> u8 {
+fn pkg_get_locality(pkg: &Package, handle: &alpm_handle_t) -> u8 {
     let pkgname = &pkg.alpm_pkg_get_name();
     // alpm_list_t *j;
     let sync_dbs = handle.alpm_get_syncdbs()
@@ -267,7 +267,7 @@ fn pkg_get_locality(pkg: &pkg_t, handle: &alpm_handle_t) -> u8 {
     return PKG_LOCALITY_FOREIGN;
 }
 
-fn is_unrequired(pkg: &pkg_t, level: u8, db_local: &mut Database, dbs_sync: &mut Vec<Database>) -> bool {
+fn is_unrequired(pkg: &Package, level: u8, db_local: &mut Database, dbs_sync: &mut Vec<Database>) -> bool {
     let mut requiredby = pkg.alpm_pkg_compute_requiredby(db_local, dbs_sync);
     if requiredby.is_empty() {
         if level == 1 {
@@ -280,7 +280,7 @@ fn is_unrequired(pkg: &pkg_t, level: u8, db_local: &mut Database, dbs_sync: &mut
     return false;
 }
 
-fn filter(pkg: &mut pkg_t, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+fn filter(pkg: &mut Package, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
     match pkg.alpm_pkg_get_reason(handle.alpm_get_localdb_mut()) {
         /* check if this package was installed as a dependency */
         &pkgreason_t::ALPM_PKG_REASON_DEPEND if config.op_q_explicit != 0 => return 0,
@@ -306,7 +306,7 @@ fn filter(pkg: &mut pkg_t, config: &config_t, handle: &mut alpm_handle_t) -> i32
     return 1;
 }
 
-fn display(pkg: &mut pkg_t, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+fn display(pkg: &mut Package, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
     let mut ret = 0;
 
     if config.op_q_info != 0 {
@@ -417,7 +417,7 @@ pub fn pacman_query(
     // 	int match = 0;
     let mut is_match = false;
     // 	alpm_list_t *i;
-    // 	pkg_t *pkg = NULL;
+    // 	Package *pkg = NULL;
     let mut pkg;
     // 	Database *db_local;
     let mut db_local;

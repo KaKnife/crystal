@@ -52,7 +52,7 @@ use super::*;
 /// except that the returned 'file stream' is from an archive.
 /// @param pkg the package (file) to read the changelog
 /// @return a 'file stream' to the package changelog
-fn _package_changelog_open(pkg: &pkg_t) {
+fn _package_changelog_open(pkg: &Package) {
     unimplemented!();
     // 	ASSERT(pkg != NULL, return NULL);
     //
@@ -102,7 +102,7 @@ fn _package_changelog_open(pkg: &pkg_t) {
 //  * @return the number of characters read, or 0 if there is no more data
 //  */
 // static size_t _package_changelog_read(void *ptr, size_t size,
-// 		const pkg_t UNUSED *pkg, void *fp)
+// 		const Package UNUSED *pkg, void *fp)
 // {
 // 	struct package_changelog *changelog = fp;
 // 	ssize_t sret = archive_read_data(changelog->archive, ptr, size);
@@ -121,7 +121,7 @@ fn _package_changelog_open(pkg: &pkg_t) {
 //  * @param fp a 'file stream' to the package changelog
 //  * @return whether closing the package changelog stream was successful
 //  */
-// static int _package_changelog_close(const pkg_t UNUSED *pkg, void *fp)
+// static int _package_changelog_close(const Package UNUSED *pkg, void *fp)
 // {
 // 	int ret;
 // 	struct package_changelog *changelog = fp;
@@ -151,13 +151,13 @@ fn _package_changelog_open(pkg: &pkg_t) {
 // }
 
 // /**
-//  * Parses the package description file for a package into a pkg_t struct.
+//  * Parses the package description file for a package into a Package struct.
 //  * @param archive the archive to read from, pointed at the .PKGINFO entry
-//  * @param newpkg an empty pkg_t struct to fill with package info
+//  * @param newpkg an empty Package struct to fill with package info
 //  *
 //  * @return 0 on success, -1 on error
 //  */
-// static int parse_descfile(alpm_handle_t *handle, struct archive *a, pkg_t *newpkg)
+// static int parse_descfile(alpm_handle_t *handle, struct archive *a, Package *newpkg)
 // {
 // 	char *ptr = NULL;
 // 	char *key = NULL;
@@ -270,7 +270,7 @@ fn _package_changelog_open(pkg: &pkg_t) {
 //  * @return 0 if package is fully valid, -1 and pm_errno otherwise
 //  */
 // int _alpm_pkg_validate_internal(alpm_handle_t *handle,
-// 		const char *pkgfile, pkg_t *syncpkg, int level,
+// 		const char *pkgfile, Package *syncpkg, int level,
 // 		alpm_siglist_t **sigdata, int *validation)
 // {
 // 	int has_sig;
@@ -362,7 +362,7 @@ fn _package_changelog_open(pkg: &pkg_t) {
 //  * @param path path to examine
 //  * @return 0 if path doesn't match any rule, 1 if it has been handled
 //  */
-// static int handle_simple_path(pkg_t *pkg, const char *path)
+// static int handle_simple_path(Package *pkg, const char *path)
 // {
 // 	if(strcmp(path, ".INSTALL") == 0) {
 // 		pkg->scriptlet = 1;
@@ -436,7 +436,7 @@ fn _package_changelog_open(pkg: &pkg_t) {
 //  * @param archive archive containing the mtree
 //  * @return 0 on success, <0 on error
 //  */
-// static int build_filelist_from_mtree(alpm_handle_t *handle, pkg_t *pkg, struct archive *archive)
+// static int build_filelist_from_mtree(alpm_handle_t *handle, Package *pkg, struct archive *archive)
 // {
 // 	int ret = 0;
 // 	size_t i;

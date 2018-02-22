@@ -184,8 +184,8 @@ pub struct config_t {
 
     /* our connection to libalpm */
     // pub handle: alpm_handle_t,
-    pub explicit_adds: Vec<pkg_t>,
-    pub explicit_removes: Vec<pkg_t>,
+    pub explicit_adds: Vec<Package>,
+    pub explicit_removes: Vec<Package>,
 
     /* Color strings for output */
     pub colstr: colstr_t,

@@ -190,7 +190,7 @@ fn deplist_display(title: &str, deps: &Vec<depend_t>, cols: usize) {
 // /** Turn a optdepends list into a text list.
 //  * @param optdeps a list with items of type depend_t
 //  */
-// static void optdeplist_display(pkg_t *pkg, unsigned short cols)
+// static void optdeplist_display(Package *pkg, unsigned short cols)
 // {
 // 	alpm_list_t *i, *text = NULL;
 // 	Database *localdb = alpm_get_localdb(config->handle);
@@ -218,7 +218,7 @@ fn deplist_display(title: &str, deps: &Vec<depend_t>, cols: usize) {
  * @param extra should we show extra information
  */
 pub fn dump_pkg_full(
-	pkg: &mut pkg_t,
+	pkg: &mut Package,
 	extra: bool,
 	config: &config_t,
 	db_local: &mut Database,
@@ -465,7 +465,7 @@ pub fn dump_pkg_full(
 //
 // /* Display list of backup files and their modification states
 //  */
-// void dump_pkg_backups(pkg_t *pkg)
+// void dump_pkg_backups(Package *pkg)
 // {
 // 	alpm_list_t *i;
 // 	const char *root = alpm_option_get_root(config->handle);
@@ -490,7 +490,7 @@ pub fn dump_pkg_full(
 
 /* List all files contained in a package
  */
-pub fn dump_pkg_files(pkg: &pkg_t, quiet: bool) {
+pub fn dump_pkg_files(pkg: &Package, quiet: bool) {
 	unimplemented!();
 	// 	const char *pkgname, *root;
 	// 	alpm_filelist_t *pkgfiles;
@@ -516,7 +516,7 @@ pub fn dump_pkg_files(pkg: &pkg_t, quiet: bool) {
 
 /* Display the changelog of a package
  */
-pub fn dump_pkg_changelog(pkg: &pkg_t) {
+pub fn dump_pkg_changelog(pkg: &Package) {
 	unimplemented!();
 	// 	void *fp = NULL;
 	//
@@ -541,11 +541,11 @@ pub fn dump_pkg_changelog(pkg: &pkg_t) {
 	// 	}
 }
 
-// void print_installed(Database *db_local, pkg_t *pkg)
+// void print_installed(Database *db_local, Package *pkg)
 // {
 // 	const char *pkgname = alpm_pkg_get_name(pkg);
 // 	const char *pkgver = alpm_pkg_get_version(pkg);
-// 	pkg_t *lpkg = alpm_db_get_pkg(db_local, pkgname);
+// 	Package *lpkg = alpm_db_get_pkg(db_local, pkgname);
 // 	if(lpkg) {
 // 		const char *lpkgver = alpm_pkg_get_version(lpkg);
 // 		const colstr_t *colstr = &config->colstr;
@@ -604,7 +604,7 @@ pub fn dump_pkg_search(
 	for pkg in searchlist {
 		// let grp;
 		// 		alpm_list_t *grp;
-		// 		pkg_t *pkg = i->data;
+		// 		Package *pkg = i->data;
 		//
 		if quiet {
 			print!("{}", pkg.alpm_pkg_get_name())

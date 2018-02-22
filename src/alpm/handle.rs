@@ -120,7 +120,7 @@ impl alpm_handle_t {
         Ok(())
     }
 
-    pub fn check_arch(&mut self, pkgs: &mut Vec<pkg_t>) -> Vec<String> {
+    pub fn check_arch(&mut self, pkgs: &mut Vec<Package>) -> Vec<String> {
         let mut invalid = Vec::new();
         let arch: &str = &self.arch;
         for pkg in pkgs {
@@ -309,7 +309,7 @@ impl alpm_handle_t {
         // 	targ_count = 1;
         //
         // 	for(targ = trans->remove; targ; targ = targ->next) {
-        // 		pkg_t *pkg = targ->data;
+        // 		Package *pkg = targ->data;
         //
         // 		if(trans->state == STATE_INTERRUPTED) {
         // 			return ret;
@@ -382,9 +382,9 @@ impl alpm_handle_t {
     /// * returns an alpm_list_t* of depmissing_t pointers.
     pub fn alpm_checkdeps(
         &self,
-        pkglist: Option<Vec<pkg_t>>,
-        remw: Option<Vec<pkg_t>>,
-        upgrade: &mut Vec<pkg_t>,
+        pkglist: Option<Vec<Package>>,
+        remw: Option<Vec<Package>>,
+        upgrade: &mut Vec<Package>,
         reversedeps: i32,
     ) -> Vec<depmissing_t> {
         unimplemented!();
@@ -403,7 +403,7 @@ impl alpm_handle_t {
         }
         if pkglist.is_some() {
             for pkg in pkglist.unwrap() {
-                // pkg_t *pkg = i->data;
+                // Package *pkg = i->data;
                 if alpm_pkg_find(upgrade, &pkg.name).is_some()
                     || alpm_pkg_find(&mut rem, &pkg.name).is_some()
                 {
@@ -418,7 +418,7 @@ impl alpm_handle_t {
 
         /* look for unsatisfied dependencies of the upgrade list */
         for ref mut tp in &*upgrade {
-            // pkg_t *tp = i->data;
+            // Package *tp = i->data;
             // _alpm_log(
             //     handle,
             //     ALPM_LOG_DEBUG,
@@ -460,14 +460,14 @@ impl alpm_handle_t {
             // 		/* reversedeps handles the backwards dependencies, ie,
             // 		 * the packages listed in the requiredby field. */
             // 		for(i = dblist; i; i = i->next) {
-            // 			pkg_t *lp = i->data;
+            // 			Package *lp = i->data;
             // 			for(j = alpm_pkg_get_depends(lp); j; j = j->next) {
             // 				depend_t *depend = j->data;
             // 				alpm_depmod_t orig_mod = depend->mod;
             // 				if(nodepversion) {
             // 					depend->mod = ALPM_DEP_MOD_ANY;
             // 				}
-            // 				pkg_t *causingpkg = find_dep_satisfier(modified, depend);
+            // 				Package *causingpkg = find_dep_satisfier(modified, depend);
             // 				/* we won't break this depend, if it is already broken, we ignore it */
             // 				/* 1. check upgrade list for satisfiers */
             // 				/* 2. check dblist for satisfiers */
@@ -503,11 +503,11 @@ impl alpm_handle_t {
     ///* `handle` the context handle
     ///* `dbs` an alpm_list_t* of Database where the satisfier will be searched
     ///* `depstring` package or provision name, versioned or not
-    ///* returns a pkg_t* satisfying depstring
-    pub fn alpm_find_dbs_satisfier<T>(&self, dbs: &Vec<T>, depstring: &String) -> Option<pkg_t> {
+    ///* returns a Package* satisfying depstring
+    pub fn alpm_find_dbs_satisfier<T>(&self, dbs: &Vec<T>, depstring: &String) -> Option<Package> {
         unimplemented!();
         // 	depend_t *dep;
-        // 	pkg_t *pkg;
+        // 	Package *pkg;
         //
         // 	CHECK_HANDLE(handle, return NULL);
         // 	ASSERT(dbs, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
@@ -522,7 +522,7 @@ impl alpm_handle_t {
     ///Check the package conflicts in a database
     ///* `pkglist` the list of packages to check
     ///* returns an alpm_list_t of conflict_t
-    pub fn alpm_checkconflicts(&self, pkglist: &Vec<pkg_t>) -> Vec<conflict_t> {
+    pub fn alpm_checkconflicts(&self, pkglist: &Vec<Package>) -> Vec<conflict_t> {
         unimplemented!();
         // CHECK_HANDLE(handle, return NULL);
         // return _alpm_innerconflicts(handle, pkglist);
@@ -573,18 +573,18 @@ impl alpm_handle_t {
         return Ok(syncpath);
     }
 
-    /// Load a package and create the corresponding pkg_t struct.
+    /// Load a package and create the corresponding Package struct.
     ///* `pkgfile` path to the package file
     ///* `full` whether to stop the load after metadata is read or continue
     ///through the full archive
-    fn _alpm_pkg_load_internal(&self, pkgfile: &String, full: i32) -> pkg_t {
+    fn _alpm_pkg_load_internal(&self, pkgfile: &String, full: i32) -> Package {
         unimplemented!();
         // 	int ret, fd;
         // 	int config = 0;
         // 	int hit_mtree = 0;
         // 	struct archive *archive;
         // 	struct archive_entry *entry;
-        // 	pkg_t *newpkg;
+        // 	Package *newpkg;
         // 	struct stat st;
         // 	size_t files_size = 0;
         //
@@ -755,7 +755,7 @@ impl alpm_handle_t {
         filename: &String,
         full: i32,
         level: &siglevel,
-        pkg: &pkg_t,
+        pkg: &Package,
     ) -> Result<i32> {
         unimplemented!();
         // 	int validation = 0;
@@ -821,7 +821,7 @@ impl alpm_handle_t {
     ///Test if a package should be ignored.
     ///Checks if the package is ignored via IgnorePkg, or if the package is
     ///in a group ignored via IgnoreGroup.
-    pub fn alpm_pkg_should_ignore(&self, pkg: &pkg_t) -> bool {
+    pub fn alpm_pkg_should_ignore(&self, pkg: &Package) -> bool {
         unimplemented!();
         // 	alpm_list_t *groups = NULL;
         //
@@ -897,7 +897,7 @@ impl alpm_handle_t {
     }
 
     /// Add a package to the transaction.
-    pub fn alpm_add_pkg(&mut self, pkg: &mut pkg_t) -> Result<()> {
+    pub fn alpm_add_pkg(&mut self, pkg: &mut Package) -> Result<()> {
         let trans: &mut alpm_trans_t = &mut self.trans;
         let pkgname: &String = &pkg.name;
         let pkgver: String = pkg.version.clone();
@@ -1051,7 +1051,7 @@ impl alpm_handle_t {
         &self,
         archive: &archive,
         entry: &archive_entry,
-        newpkg: &pkg_t,
+        newpkg: &Package,
         entryname: &String,
     ) -> i32 {
         unimplemented!();
@@ -1079,8 +1079,8 @@ impl alpm_handle_t {
         &self,
         archive: &archive,
         entry: &archive_entry,
-        newpkg: &pkg_t,
-        oldpkg: &pkg_t,
+        newpkg: &Package,
+        oldpkg: &Package,
     ) -> i32 {
         unimplemented!();
         // 	const char *entryname = archive_entry_pathname(entry);
@@ -1304,12 +1304,12 @@ impl alpm_handle_t {
         // 	return errors;
     }
 
-    pub fn commit_single_pkg(&self, newpkg: &pkg_t, pkg_current: usize, pkg_count: usize) -> i32 {
+    pub fn commit_single_pkg(&self, newpkg: &Package, pkg_current: usize, pkg_count: usize) -> i32 {
         unimplemented!();
         // 	int i, ret = 0, errors = 0;
         // 	int is_upgrade = 0;
-        let oldpkg: &Option<pkg_t>;
-        // 	pkg_t *oldpkg = NULL;
+        let oldpkg: &Option<Package>;
+        // 	Package *oldpkg = NULL;
         // 	Database *db = handle->db_local;
         // 	alpm_trans_t *trans = handle->trans;
         // 	alpm_progress_t progress = ALPM_PROGRESS_ADD_START;
@@ -2268,7 +2268,7 @@ impl alpm_handle_t {
             //
             // 		/* build remove list for resolvedeps */
             // 		for(i = trans.add; i; i = i.next) {
-            // 			pkg_t *spkg = i.data;
+            // 			Package *spkg = i.data;
             // 			for(j = spkg.removes; j; j = j.next) {
             // 				remove = alpm_list_add(remove, j->data);
             // 			}
@@ -2282,7 +2282,7 @@ impl alpm_handle_t {
             // 		/* Resolve packages in the transaction one at a time, in addition
             // 		   building up a list of packages which could not be resolved. */
             // 		for(i = trans->add; i; i = i->next) {
-            // 			pkg_t *pkg = i->data;
+            // 			Package *pkg = i->data;
             // 			if(_alpm_resolvedeps(handle, localpkgs, pkg, trans->add,
             // 						&resolved, remove, data) == -1) {
             // 				unresolvable = alpm_list_add(unresolvable, pkg);
@@ -2326,7 +2326,7 @@ impl alpm_handle_t {
             //
             // 		/* Set DEPEND reason for pulled packages */
             // 		for(i = resolved; i; i = i->next) {
-            // 			pkg_t *pkg = i->data;
+            // 			Package *pkg = i->data;
             // 			if(!alpm_pkg_find(trans->add, pkg->name)) {
             // 				pkg->reason = ALPM_PKG_REASON_DEPEND;
             // 			}
@@ -2359,7 +2359,7 @@ impl alpm_handle_t {
             //
             // 		for(i = deps; i; i = i->next) {
             // 			conflict_t *conflict = i->data;
-            // 			pkg_t *rsync, *sync, *sync1, *sync2;
+            // 			Package *rsync, *sync, *sync1, *sync2;
             //
             // 			/* have we already removed one of the conflicting targets? */
             // 			sync1 = alpm_pkg_find(trans->add, conflict->package1);
@@ -2431,7 +2431,7 @@ impl alpm_handle_t {
             // 				found = 1;
             // 			}
             // 			for(j = trans->add; j && !found; j = j->next) {
-            // 				pkg_t *spkg = j->data;
+            // 				Package *spkg = j->data;
             // 				if(alpm_pkg_find(spkg->removes, conflict->package2)) {
             // 					found = 1;
             // 				}
@@ -2446,8 +2446,8 @@ impl alpm_handle_t {
             // 			QUESTION(handle, &question);
             // 			if(question.remove) {
             // 				/* append to the removes list */
-            // 				pkg_t *sync = alpm_pkg_find(trans->add, conflict->package1);
-            // 				pkg_t *local = _alpm_db_get_pkgfromcache(handle->db_local, conflict->package2);
+            // 				Package *sync = alpm_pkg_find(trans->add, conflict->package1);
+            // 				Package *local = _alpm_db_get_pkgfromcache(handle->db_local, conflict->package2);
             // 				debug!("electing '{}' for removal\n", conflict->package2);
             // 				sync->removes = alpm_list_add(sync->removes, local);
             // 			} else { /* abort */
@@ -2473,11 +2473,11 @@ impl alpm_handle_t {
 
         /* Build trans->remove list */
         // 	for(i = trans->add; i; i = i->next) {
-        // 		pkg_t *spkg = i->data;
+        // 		Package *spkg = i->data;
         // 		for(j = spkg->removes; j; j = j->next) {
-        // 			pkg_t *rpkg = j->data;
+        // 			Package *rpkg = j->data;
         // 			if(!alpm_pkg_find(trans->remove, rpkg->name)) {
-        // 				pkg_t *copy;
+        // 				Package *copy;
         // 				debug!("adding '{}' to remove list\n", rpkg->name);
         // 				if(_alpm_pkg_dup(rpkg, &copy) == -1) {
         // 					return -1;

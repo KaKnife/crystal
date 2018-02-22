@@ -100,7 +100,7 @@ fn change_install_reason(
 
 fn check_db_missing_deps(
     config: &conf::config_t,
-    pkglist: &mut Vec<pkg_t>,
+    pkglist: &mut Vec<Package>,
     handle: &mut alpm_handle_t,
 ) -> i32 {
     let mut ret: i32 = 0;
@@ -159,7 +159,7 @@ fn check_db_local_files(config: &conf::config_t, handle: &mut alpm_handle_t) -> 
 }
 
 fn check_db_local_package_conflicts(
-    pkglist: &Vec<pkg_t>,
+    pkglist: &Vec<Package>,
     config: &conf::config_t,
     handle: &mut alpm_handle_t,
 ) -> i32 {
@@ -178,7 +178,7 @@ fn check_db_local_package_conflicts(
 
 struct fileitem {
     file: alpm_file_t,
-    pkg: pkg_t,
+    pkg: Package,
 }
 
 // fn fileitem_cmp(const void *p1, const void *p2): i32
@@ -188,7 +188,7 @@ struct fileitem {
 // 	return strcmp(fi1->file->name, fi2->file->name);
 // }
 
-fn check_db_local_filelist_conflicts(pkglist: &Vec<pkg_t>) -> i32 {
+fn check_db_local_filelist_conflicts(pkglist: &Vec<Package>) -> i32 {
     unimplemented!();
     // 	alpm_list_t *i;
     let mut ret = 0;
@@ -202,7 +202,7 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<pkg_t>) -> i32 {
     // //
     for pkg in pkglist {
         unimplemented!();
-        //     // 		pkg_t *pkg = i->data;
+        //     // 		Package *pkg = i->data;
         //     // alpm_filelist_t *filelist = alpm_pkg_get_files(pkg);
         // let filelist = pkg.alpm_pkg_get_files();
         // for file in filelist {
@@ -241,7 +241,7 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<pkg_t>) -> i32 {
 /// * return - 0 on success, >=1 on failure
 fn check_db_local(config: &mut config_t, handle: &mut alpm_handle_t) -> i32 {
     let mut ret: i32 = 0;
-    let mut pkglist: Vec<pkg_t>;
+    let mut pkglist: Vec<Package>;
     let handle_clone = &handle.clone();
 
     ret = check_db_local_files(&config, handle);
@@ -268,14 +268,14 @@ fn check_db_sync(config: &mut config_t, handle: &mut alpm_handle_t) -> i32 {
     let handle_clone = &handle.clone();
 
     for mut db in &mut handle.dbs_sync {
-        let mut pkglist: Vec<pkg_t>;
+        let mut pkglist: Vec<Package>;
         pkglist = db.alpm_db_get_pkgcache().unwrap().clone();
         syncpkglist.append(&mut pkglist);
     }
 
     // match config.handle.dbs_sync {
     //     Some(ref mut dblist) => for mut db in dblist {
-    //         let mut pkglist: Vec<pkg_t>;
+    //         let mut pkglist: Vec<Package>;
     //         pkglist = db.alpm_db_get_pkgcache();
     //         syncpkglist.append(&mut pkglist);
     //     },

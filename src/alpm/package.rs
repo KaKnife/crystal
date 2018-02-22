@@ -68,39 +68,39 @@ use super::deps::dep_vercmp;
 //  */
 // #[derive(Clone)]
 // struct pkg_operations {
-//     get_base: fn(&pkg_t) -> String,
-//     get_desc: fn(&pkg_t) -> String,
-//     get_url: fn(&pkg_t) -> String,
-//     get_builddate: fn(&pkg_t) -> alpm_time_t,
-//     get_installdate: fn(&pkg_t) -> alpm_time_t,
-//     // const char *(*get_packager) (pkg_t *);
-//     // const char *(*get_arch) (pkg_t *);
-//     // off_t (*get_isize) (pkg_t *);
-//     // pkgreason_t (*get_reason) (pkg_t *);
-//     // int (*get_validation) (pkg_t *);
-//     // int (*has_scriptlet) (pkg_t *);
+//     get_base: fn(&Package) -> String,
+//     get_desc: fn(&Package) -> String,
+//     get_url: fn(&Package) -> String,
+//     get_builddate: fn(&Package) -> alpm_time_t,
+//     get_installdate: fn(&Package) -> alpm_time_t,
+//     // const char *(*get_packager) (Package *);
+//     // const char *(*get_arch) (Package *);
+//     // off_t (*get_isize) (Package *);
+//     // pkgreason_t (*get_reason) (Package *);
+//     // int (*get_validation) (Package *);
+//     // int (*has_scriptlet) (Package *);
 //
-//     // alpm_list_t *(*get_licenses) (pkg_t *);
-//     // alpm_list_t *(*get_groups) (pkg_t *);
-//     // alpm_list_t *(*get_depends) (pkg_t *);
-//     // alpm_list_t *(*get_optdepends) (pkg_t *);
-//     // alpm_list_t *(*get_checkdepends) (pkg_t *);
-//     // alpm_list_t *(*get_makedepends) (pkg_t *);
-//     // alpm_list_t *(*get_conflicts) (pkg_t *);
-//     // alpm_list_t *(*get_provides) (pkg_t *);
-//     // alpm_list_t *(*get_replaces) (pkg_t *);
-//     // alpm_filelist_t *(*get_files) (pkg_t *);
-//     // alpm_list_t *(*get_backup) (pkg_t *);
+//     // alpm_list_t *(*get_licenses) (Package *);
+//     // alpm_list_t *(*get_groups) (Package *);
+//     // alpm_list_t *(*get_depends) (Package *);
+//     // alpm_list_t *(*get_optdepends) (Package *);
+//     // alpm_list_t *(*get_checkdepends) (Package *);
+//     // alpm_list_t *(*get_makedepends) (Package *);
+//     // alpm_list_t *(*get_conflicts) (Package *);
+//     // alpm_list_t *(*get_provides) (Package *);
+//     // alpm_list_t *(*get_replaces) (Package *);
+//     // alpm_filelist_t *(*get_files) (Package *);
+//     // alpm_list_t *(*get_backup) (Package *);
 //
-//     // void *(*changelog_open) (pkg_t *);
-//     // size_t (*changelog_read) (void *, size_t, const pkg_t *, void *);
-//     // int (*changelog_close) (const pkg_t *, void *);
+//     // void *(*changelog_open) (Package *);
+//     // size_t (*changelog_read) (void *, size_t, const Package *, void *);
+//     // int (*changelog_close) (const Package *, void *);
 //
-//     // struct archive *(*mtree_open) (pkg_t *);
-//     // int (*mtree_next) (const pkg_t *, struct archive *, struct archive_entry **);
-//     // int (*mtree_close) (const pkg_t *, struct archive *);
+//     // struct archive *(*mtree_open) (Package *);
+//     // int (*mtree_next) (const Package *, struct archive *, struct archive_entry **);
+//     // int (*mtree_close) (const Package *, struct archive *);
 //
-//     // int (*force_load) (pkg_t *);
+//     // int (*force_load) (Package *);
 // }
 
 // /** The standard package operations struct. get fields directly from the
@@ -111,7 +111,7 @@ use super::deps::dep_vercmp;
 // extern struct pkg_operations default_pkg_ops;
 type off_t = i64;
 #[derive(Default, Debug, Clone)]
-pub struct pkg_t {
+pub struct Package {
     pub name_hash: u64,
     pub filename: String,
     pub base: String,
@@ -147,7 +147,7 @@ pub struct pkg_t {
     pub delta_path: Vec<depend_t>,
     pub removes: Vec<depend_t>,
     /* in transaction targets only */
-    // pub oldpkg: Option<pkg_t>, /* in transaction targets only */
+    // pub oldpkg: Option<Package>, /* in transaction targets only */
 
     // pub ops: pkg_operations,
 
@@ -170,7 +170,7 @@ pub struct pkg_t {
 }
 
 /// Check the integrity (with md5) of a package from the sync cache.
-fn alpm_pkg_checkmd5sum(pkg: &pkg_t) -> i64 {
+fn alpm_pkg_checkmd5sum(pkg: &Package) -> i64 {
     let fpath: String;
     let retval = 0;
 
@@ -195,74 +195,74 @@ fn alpm_pkg_checkmd5sum(pkg: &pkg_t) -> i64 {
 //  * backend logic that needs lazy access, such as the local database through
 //  * a lazy-load cache. However, the defaults will work just fine for fully-
 //  * populated package structures. */
-// static const char *_pkg_get_base(pkg_t *pkg)        { return pkg->base; }
-// static const char *_pkg_get_desc(pkg_t *pkg)        { return pkg->desc; }
-// static const char *_pkg_get_url(pkg_t *pkg)         { return pkg->url; }
-// static alpm_time_t _pkg_get_builddate(pkg_t *pkg)   { return pkg->builddate; }
-// static alpm_time_t _pkg_get_installdate(pkg_t *pkg) { return pkg->installdate; }
-// static const char *_pkg_get_packager(pkg_t *pkg)    { return pkg->packager; }
-// static const char *_pkg_get_arch(pkg_t *pkg)        { return pkg->arch; }
-// static off_t _pkg_get_isize(pkg_t *pkg)             { return pkg->isize; }
-// static pkgreason_t _pkg_get_reason(pkg_t *pkg) { return pkg->reason; }
-// static int _pkg_get_validation(pkg_t *pkg) { return pkg->validation; }
-// static int _pkg_has_scriptlet(pkg_t *pkg)           { return pkg->scriptlet; }
+// static const char *_pkg_get_base(Package *pkg)        { return pkg->base; }
+// static const char *_pkg_get_desc(Package *pkg)        { return pkg->desc; }
+// static const char *_pkg_get_url(Package *pkg)         { return pkg->url; }
+// static alpm_time_t _pkg_get_builddate(Package *pkg)   { return pkg->builddate; }
+// static alpm_time_t _pkg_get_installdate(Package *pkg) { return pkg->installdate; }
+// static const char *_pkg_get_packager(Package *pkg)    { return pkg->packager; }
+// static const char *_pkg_get_arch(Package *pkg)        { return pkg->arch; }
+// static off_t _pkg_get_isize(Package *pkg)             { return pkg->isize; }
+// static pkgreason_t _pkg_get_reason(Package *pkg) { return pkg->reason; }
+// static int _pkg_get_validation(Package *pkg) { return pkg->validation; }
+// static int _pkg_has_scriptlet(Package *pkg)           { return pkg->scriptlet; }
 //
-// static alpm_list_t *_pkg_get_licenses(pkg_t *pkg)   { return pkg->licenses; }
-// static alpm_list_t *_pkg_get_groups(pkg_t *pkg)     { return pkg->groups; }
-// static alpm_list_t *_pkg_get_depends(pkg_t *pkg)    { return pkg->depends; }
-// static alpm_list_t *_pkg_get_optdepends(pkg_t *pkg) { return pkg->optdepends; }
-// static alpm_list_t *_pkg_get_checkdepends(pkg_t *pkg) { return pkg->checkdepends; }
-// static alpm_list_t *_pkg_get_makedepends(pkg_t *pkg) { return pkg->makedepends; }
-// static alpm_list_t *_pkg_get_conflicts(pkg_t *pkg)  { return pkg->conflicts; }
-// static alpm_list_t *_pkg_get_provides(pkg_t *pkg)   { return pkg->provides; }
-// static alpm_list_t *_pkg_get_replaces(pkg_t *pkg)   { return pkg->replaces; }
-// static alpm_filelist_t *_pkg_get_files(pkg_t *pkg)  { return &(pkg->files); }
-// static alpm_list_t *_pkg_get_backup(pkg_t *pkg)     { return pkg->backup; }
+// static alpm_list_t *_pkg_get_licenses(Package *pkg)   { return pkg->licenses; }
+// static alpm_list_t *_pkg_get_groups(Package *pkg)     { return pkg->groups; }
+// static alpm_list_t *_pkg_get_depends(Package *pkg)    { return pkg->depends; }
+// static alpm_list_t *_pkg_get_optdepends(Package *pkg) { return pkg->optdepends; }
+// static alpm_list_t *_pkg_get_checkdepends(Package *pkg) { return pkg->checkdepends; }
+// static alpm_list_t *_pkg_get_makedepends(Package *pkg) { return pkg->makedepends; }
+// static alpm_list_t *_pkg_get_conflicts(Package *pkg)  { return pkg->conflicts; }
+// static alpm_list_t *_pkg_get_provides(Package *pkg)   { return pkg->provides; }
+// static alpm_list_t *_pkg_get_replaces(Package *pkg)   { return pkg->replaces; }
+// static alpm_filelist_t *_pkg_get_files(Package *pkg)  { return &(pkg->files); }
+// static alpm_list_t *_pkg_get_backup(Package *pkg)     { return pkg->backup; }
 
-// static void *_pkg_changelog_open(pkg_t UNUSED *pkg)
+// static void *_pkg_changelog_open(Package UNUSED *pkg)
 // {
 // 	return NULL;
 // }
 
 // static size_t _pkg_changelog_read(void UNUSED *ptr, size_t UNUSED size,
-// 		const pkg_t UNUSED *pkg, UNUSED void *fp)
+// 		const Package UNUSED *pkg, UNUSED void *fp)
 // {
 // 	return 0;
 // }
 
-// static int _pkg_changelog_close(const pkg_t UNUSED *pkg,
+// static int _pkg_changelog_close(const Package UNUSED *pkg,
 // 		void UNUSED *fp)
 // {
 // 	return EOF;
 // }
 
-// static struct archive *_pkg_mtree_open(pkg_t UNUSED *pkg)
+// static struct archive *_pkg_mtree_open(Package UNUSED *pkg)
 // {
 // 	return NULL;
 // }
 
-// static int _pkg_mtree_next(const pkg_t UNUSED *pkg,
+// static int _pkg_mtree_next(const Package UNUSED *pkg,
 // 		struct archive UNUSED *archive, struct archive_entry UNUSED **entry)
 // {
 // 	return -1;
 // }
 
-// static int _pkg_mtree_close(const pkg_t UNUSED *pkg,
+// static int _pkg_mtree_close(const Package UNUSED *pkg,
 // 		struct archive UNUSED *archive)
 // {
 // 	return -1;
 // }
 
-// static int _pkg_force_load(pkg_t UNUSED *pkg) { return 0; }
+// static int _pkg_force_load(Package UNUSED *pkg) { return 0; }
 
-impl pkg_t {
+impl Package {
     /** Check for new version of pkg in sync repos
      * (only the first occurrence is considered in sync)
      */
-    pub fn alpm_sync_newversion(&self, dbs_sync: &Vec<Database>) -> Option<pkg_t> {
+    pub fn alpm_sync_newversion(&self, dbs_sync: &Vec<Database>) -> Option<Package> {
         unimplemented!();
         // 	alpm_list_t *i;
-        // 	pkg_t *spkg = NULL;
+        // 	Package *spkg = NULL;
         //
         // 	ASSERT(pkg != NULL, return NULL);
         // 	pkg->handle->pm_errno = ALPM_ERR_OK;
@@ -292,8 +292,8 @@ impl pkg_t {
         // 	return NULL;
         // }
         //
-        // static int check_literal(alpm_handle_t *handle, pkg_t *lpkg,
-        // 		pkg_t *spkg, int enable_downgrade)
+        // static int check_literal(alpm_handle_t *handle, Package *lpkg,
+        // 		Package *spkg, int enable_downgrade)
         // {
         // 	/* 1. literal was found in sdb */
         // 	int cmp = _alpm_pkg_compare_versions(spkg, lpkg);
@@ -573,7 +573,7 @@ impl pkg_t {
     // }
 
     /// Read entry from an open mtree file.
-    // int SYMEXPORT alpm_pkg_mtree_next(const pkg_t * pkg, struct archive *archive,
+    // int SYMEXPORT alpm_pkg_mtree_next(const Package * pkg, struct archive *archive,
     // 	struct archive_entry **entry)
     // {
     // 	ASSERT(pkg != NULL, return -1);
@@ -693,9 +693,9 @@ impl pkg_t {
     /// * `pkg` - the package to duplicate
     /// * `new_ptr` - location to store duplicated package pointer
     /// * returns 0 on success, -1 on fatal error, 1 on non-fatal error
-    pub fn _alpm_pkg_dup(&self) -> Result<pkg_t> {
+    pub fn _alpm_pkg_dup(&self) -> Result<Package> {
         unimplemented!();
-        // 	pkg_t *newpkg;
+        // 	Package *newpkg;
         // 	alpm_list_t *i;
         // 	int ret = 0;
         //
@@ -715,7 +715,7 @@ impl pkg_t {
         // 		pkg->handle->pm_errno = ALPM_ERR_PKG_INVALID;
         // 	}
         //
-        // 	CALLOC(newpkg, 1, sizeof(pkg_t), goto cleanup);
+        // 	CALLOC(newpkg, 1, sizeof(Package), goto cleanup);
         //
         // 	newpkg->name_hash = pkg->name_hash;
         // 	STRDUP(newpkg->filename, pkg->filename, goto cleanup);
@@ -783,7 +783,7 @@ impl pkg_t {
     }
 
     /// Is spkg an upgrade for localpkg?
-    pub fn _alpm_pkg_compare_versions(&self, localpkg: &pkg_t) -> i8 {
+    pub fn _alpm_pkg_compare_versions(&self, localpkg: &Package) -> i8 {
         alpm_pkg_vercmp(&self.version, &localpkg.version)
     }
 
@@ -914,7 +914,7 @@ impl pkg_t {
     ///@param fp a 'file stream' to the package changelog
     ///@return the number of characters read, or 0 if there is no more data
     // static size_t _cache_changelog_read(void *ptr, size_t size,
-    // 		const pkg_t UNUSED *pkg, void *fp)
+    // 		const Package UNUSED *pkg, void *fp)
     // {
     // 	return fread(ptr, 1, size, (FILE *)fp);
     // }
@@ -924,7 +924,7 @@ impl pkg_t {
     ///@param pkg the package that the changelog was read from
     ///@param fp a 'file stream' to the package changelog
     ///@return whether closing the package changelog stream was successful
-    // static int _cache_changelog_close(const pkg_t UNUSED *pkg, void *fp)
+    // static int _cache_changelog_close(const Package UNUSED *pkg, void *fp)
     // {
     // 	return fclose((FILE *)fp);
     // }
@@ -974,7 +974,7 @@ impl pkg_t {
     /// @param archive the archive structure reading from the mtree file
     /// @param entry an archive_entry to store the entry header information
     ///@return 0 if end of archive is reached, non-zero otherwise.
-    // static int _cache_mtree_next(const pkg_t UNUSED *pkg,
+    // static int _cache_mtree_next(const Package UNUSED *pkg,
     // 		struct archive *mtree, struct archive_entry **entry)
     // {
     // 	return archive_read_next_header(mtree, entry);
@@ -984,7 +984,7 @@ impl pkg_t {
     ///@param pkg the package that the mtree file was read from
     ///@param mtree the archive structure use for reading from the mtree file
     ///@return whether closing the package changelog stream was successful
-    // static int _cache_mtree_close(const pkg_t UNUSED *pkg,
+    // static int _cache_mtree_close(const Package UNUSED *pkg,
     // 		struct archive *mtree)
     // {
     // 	return _alpm_archive_read_free(mtree);
@@ -1132,35 +1132,35 @@ impl pkg_t {
 }
 
 use std::cmp;
-impl cmp::Ord for pkg_t {
+impl cmp::Ord for Package {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.name.cmp(&other.name)
     }
 }
-impl PartialOrd for pkg_t {
+impl PartialOrd for Package {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for pkg_t {
+impl PartialEq for Package {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
-impl Eq for pkg_t {}
+impl Eq for Package {}
 /// Helper function for comparing packages
-pub fn _alpm_pkg_cmp(pkg1: &pkg_t, pkg2: &pkg_t) -> std::cmp::Ordering {
+pub fn _alpm_pkg_cmp(pkg1: &Package, pkg2: &Package) -> std::cmp::Ordering {
     pkg1.name.cmp(&pkg2.name)
 }
 
 /// Find a package in a list by name.
 ///
-/// * `haystack` - a Vec of pkg_t
+/// * `haystack` - a Vec of Package
 /// * `needle` - the package name
 ///
 /// returns a pointer to the package if found or None
-pub fn alpm_pkg_find<'a>(haystack: &'a mut Vec<pkg_t>, needle: &String) -> Option<&'a pkg_t> {
+pub fn alpm_pkg_find<'a>(haystack: &'a mut Vec<Package>, needle: &String) -> Option<&'a Package> {
     haystack.sort();
     match haystack.binary_search_by_key(needle, |ref a| a.name.clone()) {
         Ok(i) => {

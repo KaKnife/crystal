@@ -219,7 +219,7 @@ impl Database {
         return Ok(true);
     }
 
-    pub fn local_db_read(&mut self, info: &mut pkg_t, inforeq: i32) -> i32 {
+    pub fn local_db_read(&mut self, info: &mut Package, inforeq: i32) -> i32 {
         enum NextLineType {
             None,
             Name,
@@ -559,7 +559,7 @@ impl Database {
         return Ok(());
     }
 
-    pub fn _alpm_local_db_prepare(&mut self, info: &pkg_t) -> i32 {
+    pub fn _alpm_local_db_prepare(&mut self, info: &Package) -> i32 {
         let pkgpath;
 
         if self.checkdbdir().is_err() {
@@ -578,7 +578,7 @@ impl Database {
         0
     }
 
-    pub fn _alpm_local_db_write(&self, info: &pkg_t, inforeq: i32) -> i32 {
+    pub fn _alpm_local_db_write(&self, info: &Package, inforeq: i32) -> i32 {
         unimplemented!();
         // 	FILE *fp = NULL;
         // 	mode_t oldmask;
@@ -734,7 +734,7 @@ impl Database {
         // 	return retval;
     }
 
-    fn _alpm_local_db_remove(&self, info: &pkg_t) -> i32 {
+    fn _alpm_local_db_remove(&self, info: &Package) -> i32 {
         unimplemented!();
         // 	int ret = 0;
         // 	DIR *dirp;
@@ -819,7 +819,7 @@ impl Database {
                         Err(_e) => {}
                     }
 
-                    pkg = pkg_t::default();
+                    pkg = Package::default();
                     /* split the db entry name */
                     {
                         let (name, version, name_hash) = match _alpm_splitname(&name) {
@@ -1006,7 +1006,7 @@ impl Database {
     }
 
     /* Note: the return value must be freed by the caller */
-    fn _alpm_local_db_pkgpath(&mut self, info: &pkg_t, filename: &String) -> String {
+    fn _alpm_local_db_pkgpath(&mut self, info: &Package, filename: &String) -> String {
         let pkgpath: String;
         let dbpath: String;
 
@@ -1176,7 +1176,7 @@ impl Database {
         //
         // for pkg in _alpm_db_get_pkgcache(&self) {
         //     // const alpm_list_t *i;
-        //     // pkg_t *pkg = lp->data;
+        //     // Package *pkg = lp->data;
         //
         //     for grpname in alpm_pkg_get_groups(pkg) {
         //         // const char *grpname = i->data;
@@ -1222,7 +1222,7 @@ impl Database {
         return self._alpm_db_get_groupcache();
     }
 
-    pub fn _alpm_db_get_pkgfromcache(&mut self, target: &String) -> Option<pkg_t> {
+    pub fn _alpm_db_get_pkgfromcache(&mut self, target: &String) -> Option<Package> {
         let pkgcache = self._alpm_db_get_pkgcache_hash();
         match pkgcache {
             Err(_) => {
@@ -1346,9 +1346,9 @@ impl Database {
     }
 
     /// Get a package entry from a package database. */
-    pub fn alpm_db_get_pkg(&self, name: &String) -> Option<&pkg_t> {
+    pub fn alpm_db_get_pkg(&self, name: &String) -> Option<&Package> {
         unimplemented!()
-        // pkg_t *pkg;
+        // Package *pkg;
         // ASSERT(db != NULL, return NULL);
         // db->handle->pm_errno = ALPM_ERR_OK;
         // ASSERT(name != NULL && strlen(name) != 0,
@@ -1362,12 +1362,12 @@ impl Database {
     }
 
     /// Get the package cache of a package database.
-    pub fn alpm_db_get_pkgcache(&mut self) -> Result<&Vec<pkg_t>> {
+    pub fn alpm_db_get_pkgcache(&mut self) -> Result<&Vec<Package>> {
         return self._alpm_db_get_pkgcache();
     }
 
     /// Get the package cache of a package database.
-    pub fn alpm_db_get_pkgcache_mut(&mut self) -> Result<&mut Vec<pkg_t>> {
+    pub fn alpm_db_get_pkgcache_mut(&mut self) -> Result<&mut Vec<Package>> {
         return self._alpm_db_get_pkgcache_mut();
     }
 
@@ -1387,13 +1387,13 @@ impl Database {
     }
 
     /// Searches a database. */
-    // pub fn alpm_db_search(&self, needles: &Vec<pkg_t>) -> alpm_list_t {
-    pub fn alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<pkg_t> {
+    // pub fn alpm_db_search(&self, needles: &Vec<Package>) -> alpm_list_t {
+    pub fn alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<Package> {
         return self._alpm_db_search(needles);
     }
 
-    // pub fn _alpm_db_search(&self, needles: &Vec<pkg_t>) -> alpm_list_t {
-    pub fn _alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<pkg_t> {
+    // pub fn _alpm_db_search(&self, needles: &Vec<Package>) -> alpm_list_t {
+    pub fn _alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<Package> {
         unimplemented!();
         // 	const alpm_list_t *i, *j, *k;
         // 	alpm_list_t *ret = NULL;
@@ -1421,7 +1421,7 @@ impl Database {
         // 		}
         //
         // 		for(j = list; j; j = j->next) {
-        // 			pkg_t *pkg = j->data;
+        // 			Package *pkg = j->data;
         // 			const char *matched = NULL;
         // 			const char *name = pkg->name;
         // 			const char *desc = alpm_pkg_get_desc(pkg);
@@ -1474,14 +1474,14 @@ impl Database {
         // 	return ret;
     }
 
-    pub fn _alpm_db_get_pkgcache(&mut self) -> Result<&Vec<pkg_t>> {
+    pub fn _alpm_db_get_pkgcache(&mut self) -> Result<&Vec<Package>> {
         match self._alpm_db_get_pkgcache_hash_mut() {
             Err(e) => Err(e),
             Ok(hash) => Ok(&mut hash.list),
         }
     }
 
-    pub fn _alpm_db_get_pkgcache_mut(&mut self) -> Result<&mut Vec<pkg_t>> {
+    pub fn _alpm_db_get_pkgcache_mut(&mut self) -> Result<&mut Vec<Package>> {
         match self._alpm_db_get_pkgcache_hash_mut() {
             Err(e) => Err(e),
             Ok(hash) => Ok(&mut hash.list),
@@ -1609,9 +1609,9 @@ fn sanitize_url(url: &String) -> String {
 // }
 
 // /* "duplicate" pkg then add it to pkgcache */
-// int _alpm_db_add_pkgincache(Database *db, pkg_t *pkg)
+// int _alpm_db_add_pkgincache(Database *db, Package *pkg)
 // {
-// 	pkg_t *newpkg = NULL;
+// 	Package *newpkg = NULL;
 //
 // 	if(db == NULL || pkg == NULL || !(db->status & DB_STATUS_PKGCACHE)) {
 // 		return -1;
@@ -1639,9 +1639,9 @@ fn sanitize_url(url: &String) -> String {
 // 	return 0;
 // }
 
-// int _alpm_db_remove_pkgfromcache(Database *db, pkg_t *pkg)
+// int _alpm_db_remove_pkgfromcache(Database *db, Package *pkg)
 // {
-// 	pkg_t *data = NULL;
+// 	Package *data = NULL;
 //
 // 	if(db == NULL || pkg == NULL || !(db->status & DB_STATUS_PKGCACHE)) {
 // 		return -1;
