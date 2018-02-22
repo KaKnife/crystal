@@ -325,7 +325,7 @@ pub struct conflict_t {
 }
 
 /// File conflict
-struct alpm_fileconflict_t {
+struct fileconflict_t {
     target: String,
     ttype: fileconflicttype_t, //used to be type
     file: String,
@@ -1656,7 +1656,7 @@ pub struct alpm_caps {
 // /* Return a bitfield of capabilities using values from 'enum alpm_caps'
 // int alpm_capabilities(void);
 //
-// void alpm_fileconflict_free(alpm_fileconflict_t *conflict);
+// void alpm_fileconflict_free(fileconflict_t *conflict);
 // void alpm_depmissing_free(depmissing_t *miss);
 // void alpm_conflict_free(alpm_conflict_t *conflict);
 //
