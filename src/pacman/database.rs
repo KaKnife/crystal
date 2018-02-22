@@ -24,11 +24,7 @@ use super::alpm::*;
 ///
 /// * `targets` - a list of packages (as strings) to modify
 /// * return - 0 on success, 1 on failure
-fn change_install_reason(
-    targets: Vec<String>,
-    config: &mut Config,
-    handle: &mut Handle,
-) -> i32 {
+fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut Handle) -> i32 {
     let db_local: &Database;
     let mut ret: i32 = 0;
     let reason: PackageReason;
@@ -54,7 +50,7 @@ fn change_install_reason(
         return 1;
     }
 
-    db_local = handle.alpm_get_localdb();
+    db_local = handle.get_localdb();
     for pkgname in targets {
         match db_local.alpm_db_get_pkg(&pkgname) {
             None => {
@@ -105,7 +101,7 @@ fn check_db_missing_deps(
 ) -> i32 {
     let mut ret: i32 = 0;
     /* check dependencies */
-    for miss in handle.alpm_checkdeps(None, None, pkglist, 0) {
+    for miss in handle.checkdeps(None, None, pkglist, 0) {
         let depstring: String = miss.depend.alpm_dep_compute_string();
         eprintln!("missing '{}' dependency for '{}'", depstring, miss.target);
         ret += 1;
@@ -120,7 +116,7 @@ fn check_db_local_files(config: &conf::Config, handle: &mut Handle) -> i32 {
     let dbdir: fs::ReadDir;
     let mut path: String;
 
-    dbpath = handle.alpm_option_get_dbpath();
+    dbpath = handle.get_dbpath();
     path = format!("{}local", dbpath);
     dbdir = match fs::read_dir(path) {
         Ok(d) => d,
@@ -165,7 +161,7 @@ fn check_db_local_package_conflicts(
 ) -> i32 {
     let mut ret: i32 = 0;
     /* check conflicts */
-    let data = handle.alpm_checkconflicts(&pkglist);
+    let data = handle.checkconflicts(&pkglist);
     for conflict in data {
         eprintln!(
             "'{}' conflicts with '{}'",
@@ -250,11 +246,11 @@ fn check_db_local(config: &mut Config, handle: &mut Handle) -> i32 {
     }
     {
         let db: &mut Database;
-        db = handle.alpm_get_localdb_mut();
+        db = handle.get_localdb_mut();
         pkglist = db.alpm_db_get_pkgcache().unwrap().clone();
     }
-    ret += check_db_missing_deps(config, &mut pkglist,handle);
-    ret += check_db_local_package_conflicts(&pkglist, config,handle);
+    ret += check_db_missing_deps(config, &mut pkglist, handle);
+    ret += check_db_local_package_conflicts(&pkglist, config, handle);
     ret += check_db_local_filelist_conflicts(&pkglist);
 
     ret

@@ -87,7 +87,7 @@ pub fn pacman_upgrade(
         } else {
             siglevel = handle.alpm_option_get_local_file_siglevel();
         }
-        pkg = match handle.alpm_pkg_load(targ, 1, &siglevel) {
+        pkg = match handle.pkg_load(targ, 1, &siglevel) {
             Err(e) => {
                 eprintln!("'{}': {}", targ, e);
                 retval = Err(());
@@ -95,7 +95,7 @@ pub fn pacman_upgrade(
             }
             Ok(p) => p.clone(),
         };
-        match handle.alpm_add_pkg(&mut pkg) {
+        match handle.add_pkg(&mut pkg) {
             Err(e) => {
                 eprintln!("'{}': {}", targ, e);
                 retval = Err(());

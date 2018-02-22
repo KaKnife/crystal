@@ -478,7 +478,7 @@ pub fn main() {
             cleanup(ret as i32);
             return;
         }
-        Ok(h) => h
+        Ok(h) => h,
     };
 
     /* noask is meant to be non-interactive */
@@ -496,22 +496,22 @@ pub fn main() {
     }
 
     if config.verbose > 0 {
-        println!("Root      : {}", handle.alpm_option_get_root());
+        println!("Root      : {}", handle.get_root());
         println!("Conf File : {}", config.configfile);
-        println!("DB Path   : {}", handle.alpm_option_get_dbpath());
+        println!("DB Path   : {}", handle.get_dbpath());
         print!("Cache Dirs: ");
-        for dir in handle.alpm_option_get_cachedirs() {
+        for dir in handle.option_get_cachedirs() {
             print!("{}  ", dir);
         }
         println!();
         print!("Hook Dirs : ");
-        for dir in handle.alpm_option_get_hookdirs() {
+        for dir in handle.get_hookdirs() {
             print!("{}  ", dir);
         }
         println!();
-        println!("Lock File : {}", handle.alpm_option_get_lockfile());
-        println!("Log File  : {}", handle.alpm_option_get_logfile());
-        println!("GPG Dir   : {}", handle.alpm_option_get_gpgdir());
+        println!("Lock File : {}", handle.get_lockfile());
+        println!("Log File  : {}", handle.option_get_logfile());
+        println!("GPG Dir   : {}", handle.option_get_gpgdir());
         print!("Targets   :");
         for target in &pm_targets {
             print!("{}  ", target);
@@ -527,19 +527,21 @@ pub fn main() {
     /* start the requested operation */
     // unimplemented!("Done with parsing");
     match &config.op {
-        &Some(Operations::Database) => match pacman_database(pm_targets, &mut config,&mut handle) {
+        &Some(Operations::Database) => {
+            match pacman_database(pm_targets, &mut config, &mut handle) {
+                Err(e) => (ret = e),
+                _ => {}
+            }
+        }
+        &Some(Operations::REMOVE) => match pacman_remove(pm_targets, &mut config, &mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(Operations::REMOVE) => match pacman_remove(pm_targets, &mut config,&mut handle) {
-            Err(e) => (ret = e),
-            _ => {}
-        },
-        &Some(Operations::UPGRADE) => match pacman_upgrade(pm_targets, &mut config,&mut handle) {
+        &Some(Operations::UPGRADE) => match pacman_upgrade(pm_targets, &mut config, &mut handle) {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(Operations::QUERY) => match pacman_query(pm_targets, &mut config,&mut handle) {
+        &Some(Operations::QUERY) => match pacman_query(pm_targets, &mut config, &mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
@@ -547,7 +549,7 @@ pub fn main() {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(Operations::DEPTEST) => match pacman_deptest(pm_targets, &mut config,&mut handle) {
+        &Some(Operations::DEPTEST) => match pacman_deptest(pm_targets, &mut config, &mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },

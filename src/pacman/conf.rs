@@ -1514,7 +1514,7 @@ fn register_repo(
 ) -> i32 {
     repo.siglevel = merge_siglevel(config_siglevel, repo.siglevel, repo.siglevel_mask);
 
-    let mut db = match config_handle.alpm_register_syncdb(&repo.name, repo.siglevel) {
+    let mut db = match config_handle.register_syncdb(&repo.name, repo.siglevel) {
         Err(e) => {
             eprintln!(
                 "could not register '{}' database ({})",
@@ -1626,7 +1626,7 @@ fn setup_libalpm(config: &mut Config) -> Result<Handle> {
 
     match config.op {
         Some(Operations::FILES) => {
-            handle.alpm_option_set_dbext(&String::from(".files"));
+            handle.set_dbext(&String::from(".files"));
         }
         _ => {}
     }
@@ -1634,7 +1634,7 @@ fn setup_libalpm(config: &mut Config) -> Result<Handle> {
     if config.logfile == "" {
         config.logfile = String::from(LOGFILE)
     };
-    match handle.alpm_option_set_logfile(&config.logfile) {
+    match handle.option_set_logfile(&config.logfile) {
         Err(e) => {
             eprintln!(
                 "problem setting logfile '{}' ({})",
@@ -1651,7 +1651,7 @@ fn setup_libalpm(config: &mut Config) -> Result<Handle> {
     if config.gpgdir == "" {
         config.gpgdir = String::from(GPGDIR);
     }
-    match handle.alpm_option_set_gpgdir(&config.gpgdir) {
+    match handle.option_set_gpgdir(&config.gpgdir) {
         Err(ret) => {
             eprintln!(
                 "problem setting gpgdir '{}' ({})",
@@ -1666,7 +1666,7 @@ fn setup_libalpm(config: &mut Config) -> Result<Handle> {
     /* Set user hook directory. This is not relative to rootdir, even if
      * rootdir is defined. Reasoning: hookdir contains configuration data. */
     if config.hookdirs.is_empty() {
-        match handle.alpm_option_add_hookdir(&String::from(HOOKDIR)) {
+        match handle.option_add_hookdir(&String::from(HOOKDIR)) {
             Err(e) => {
                 eprintln!(
                     "problem adding hookdir '{}' ({})",
@@ -1680,7 +1680,7 @@ fn setup_libalpm(config: &mut Config) -> Result<Handle> {
     } else {
         /* add hook directories 1-by-1 to avoid overwriting the system directory */
         for data in &config.hookdirs {
-            match handle.alpm_option_add_hookdir(data) {
+            match handle.option_add_hookdir(data) {
                 Err(e) => {
                     eprintln!("problem adding hookdir '{}' ({})", data, e.alpm_strerror());
                     return Err(e);
@@ -1692,12 +1692,12 @@ fn setup_libalpm(config: &mut Config) -> Result<Handle> {
 
     // 	/* add a default cachedir if one wasn't specified */
     if config.cachedirs.is_empty() {
-        handle.alpm_option_add_cachedir(&String::from(CACHEDIR))?;
+        handle.option_add_cachedir(&String::from(CACHEDIR))?;
     } else {
-        handle.alpm_option_set_cachedirs(&config.cachedirs)?;
+        handle.option_set_cachedirs(&config.cachedirs)?;
     }
 
-    handle.alpm_option_set_overwrite_files(&config.overwrite_files);
+    handle.option_set_overwrite_files(&config.overwrite_files);
 
     handle.alpm_option_set_default_siglevel(&config.siglevel);
 
@@ -1730,24 +1730,24 @@ fn setup_libalpm(config: &mut Config) -> Result<Handle> {
     //     alpm_option_set_totaldlcb(handle, cb_dl_total);
     // }
 
-    handle.alpm_option_set_arch(&config.arch);
+    handle.set_arch(&config.arch);
 
     handle.alpm_option_set_checkspace(config.checkspace as i32);
 
-    handle.alpm_option_set_usesyslog(config.usesyslog as i32);
-    handle.alpm_option_set_deltaratio(config.deltaratio)?;
-    handle.alpm_option_set_ignorepkgs(&config.ignorepkg);
+    handle.option_set_usesyslog(config.usesyslog as i32);
+    handle.set_deltaratio(config.deltaratio)?;
+    handle.option_set_ignorepkgs(&config.ignorepkg);
 
-    handle.alpm_option_set_ignoregroups(&config.ignoregrp);
-    handle.alpm_option_set_noupgrades(&config.noupgrade);
-    handle.alpm_option_set_noextracts(&config.noextract);
+    handle.option_set_ignoregroups(&config.ignoregrp);
+    handle.option_set_noupgrades(&config.noupgrade);
+    handle.option_set_noextracts(&config.noextract);
 
     handle.alpm_option_set_disable_dl_timeout(config.disable_dl_timeout as u16);
 
     for entry in &config.assumeinstalled {
         let dep = alpm_dep_from_string(&entry);
         debug!("parsed assume installed: {} {}", dep.name, dep.version,);
-        handle.alpm_option_add_assumeinstalled(&dep);
+        handle.option_add_assumeinstalled(&dep);
     }
 
     Ok(handle)

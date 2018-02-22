@@ -51,7 +51,7 @@ fn sync_cleandb(dbpath: String, handle: &mut Handle) -> i32 {
         }
     };
 
-    syncdbs = handle.alpm_get_syncdbs();
+    syncdbs = handle.get_syncdbs();
 
     /* step through the directory one file at a time */
     for entr in dir {
@@ -108,7 +108,7 @@ fn sync_cleandb_all(config: &Config, handle: &mut Handle) -> i32 {
     let syncdbpath;
     let mut ret = 0;
     {
-        let dbpath = handle.alpm_option_get_dbpath();
+        let dbpath = handle.get_dbpath();
         println!("Database directory: {}", dbpath);
         if !yesno(
             String::from("Do you want to remove unused repositories?"),
@@ -570,13 +570,8 @@ fn process_group<T>(dbs: Vec<T>, group: &String, error: i32) -> i32 {
     // 	return ret;
 }
 
-fn process_targname<T>(
-    dblist: Vec<T>,
-    targname: &String,
-    error: i32,
-    handle: &mut Handle,
-) -> i32 {
-    let pkg: Option<Package> = handle.alpm_find_dbs_satisfier(&dblist, targname);
+fn process_targname<T>(dblist: Vec<T>, targname: &String, error: i32, handle: &mut Handle) -> i32 {
+    let pkg: Option<Package> = handle.find_dbs_satisfier(&dblist, targname);
 
     /* skip ignored packages when user says no */
     // match config.handle.alpm_errno() {
@@ -710,17 +705,14 @@ fn print_broken_dep(miss: &DepMissing) {
     // 	free(depstring);
 }
 
-pub fn sync_prepare_execute(
-    config: &Config,
-    handle: &mut Handle,
-) -> std::result::Result<(), ()> {
+pub fn sync_prepare_execute(config: &Config, handle: &mut Handle) -> std::result::Result<(), ()> {
     unimplemented!();
     // 	alpm_list_t *i, *packages, *data = NULL;
     let retval = Ok(());
     let mut data = Vec::new();
 
     /* Step 2: "compute" the transaction based on targets and flags */
-    match handle.alpm_trans_prepare(&mut data) {
+    match handle.trans_prepare(&mut data) {
         Err(err) => {
             // == -1 {
             error!("failed to prepare transaction ({})", err);
@@ -877,7 +869,7 @@ pub fn pacman_sync(
 
     check_syncdbs(1, true, handle)?;
 
-    sync_dbs = handle.alpm_get_syncdbs().clone();
+    sync_dbs = handle.get_syncdbs().clone();
 
     if config.op_s_sync != 0 {
         /* grab a fresh package list */

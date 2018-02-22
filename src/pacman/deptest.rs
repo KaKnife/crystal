@@ -22,7 +22,7 @@ use super::*;
 pub fn pacman_deptest(targets: Vec<String>, config: &mut Config, handle:&mut Handle) -> std::result::Result<(), i32> {
     let mut deps: Vec<String> = Vec::new();
     let handle_clone = &handle.clone();
-    let localdb = handle.alpm_get_localdb_mut();
+    let localdb = handle.get_localdb_mut();
 
     for target in targets {
         // unimplemented!();

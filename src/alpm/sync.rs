@@ -930,7 +930,7 @@ fn _alpm_sync_commit(handle: &mut Handle) -> i32 {
     if !handle.trans.remove.is_empty() {
         debug!("removing conflicting and to-be-replaced packages");
         /* we want the frontend to be aware of commit details */
-        if handle._alpm_remove_packages(0) == -1 {
+        if handle._remove_packages(0) == -1 {
             error!("could not commit removal transaction");
             return -1;
         }
@@ -938,7 +938,7 @@ fn _alpm_sync_commit(handle: &mut Handle) -> i32 {
 
     /* install targets */
     debug!("installing packages");
-    if handle._alpm_upgrade_packages().is_err() {
+    if handle.upgrade_packages().is_err() {
         error!("could not commit transaction");
         return -1;
     }

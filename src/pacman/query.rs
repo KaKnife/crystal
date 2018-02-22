@@ -238,7 +238,7 @@ fn query_fileowner(targets: &Vec<String>) -> i32 {
 /// search the local database for a matching package
 fn query_search(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i32 {
     let tem_handle = &handle.clone();
-    let db_local: &mut Database = handle.alpm_get_localdb_mut();
+    let db_local: &mut Database = handle.get_localdb_mut();
     return dump_pkg_search(
         db_local,
         targets,
@@ -251,7 +251,7 @@ fn query_search(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> 
 
 fn pkg_get_locality(pkg: &Package, handle: &Handle) -> u8 {
     let pkgname = &pkg.alpm_pkg_get_name();
-    let sync_dbs = handle.alpm_get_syncdbs();
+    let sync_dbs = handle.get_syncdbs();
 
     for data in sync_dbs {
         if data.alpm_db_get_pkg(pkgname).is_some() {
@@ -280,7 +280,7 @@ fn is_unrequired(
 }
 
 fn filter(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
-    match pkg.alpm_pkg_get_reason(handle.alpm_get_localdb_mut()) {
+    match pkg.alpm_pkg_get_reason(handle.get_localdb_mut()) {
         /* check if this package was installed as a dependency */
         &PackageReason::Dependency if config.op_q_explicit != 0 => return 0,
         /* check if this package was explicitly installed */
@@ -303,7 +303,7 @@ fn filter(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
     }
     /* check if this pkg is outdated */
     if config.op_q_upgrade != 0
-        && pkg.alpm_sync_newversion(handle.alpm_get_syncdbs())
+        && pkg.alpm_sync_newversion(handle.get_syncdbs())
             .is_none()
     {
         return 0;
@@ -362,7 +362,7 @@ fn display(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
 
             if config.op_q_upgrade != 0 {
                 unimplemented!();
-                let newpkg = pkg.alpm_sync_newversion(handle.alpm_get_syncdbs()).unwrap();
+                let newpkg = pkg.alpm_sync_newversion(handle.get_syncdbs()).unwrap();
                 print!(
                     " . {}{}{}",
                     colstr.version,
@@ -370,7 +370,7 @@ fn display(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
                     colstr.nocolor
                 );
 
-                if handle.alpm_pkg_should_ignore(pkg) {
+                if handle.pkg_should_ignore(pkg) {
                     print!(" {}", "[ignored]");
                 }
             }
@@ -386,7 +386,7 @@ fn display(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
 fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i32 {
     let mut ret = 0;
     let handle_clone = &mut handle.clone();
-    let db_local: &mut Database = handle.alpm_get_localdb_mut();
+    let db_local: &mut Database = handle.get_localdb_mut();
 
     let op_q_explicit = config.op_q_explicit;
     let op_q_deps = config.op_q_deps;
@@ -466,7 +466,7 @@ pub fn pacman_query(
         }
     }
     // let handle_clone = &handle.clone();
-    db_local = handle.alpm_get_localdb_mut();
+    db_local = handle.get_localdb_mut();
 
     /* operations on all packages in the local DB
      * valid: no-op (plain -Q), list, info, check
@@ -513,7 +513,7 @@ pub fn pacman_query(
         /* strip leading part of "local/pkgname" */
         let strname = String::from(strname.trim_left_matches(LOCAL_PREFIX));
         if config.op_q_isfile != 0 {
-            pkg = match handle_clone.alpm_pkg_load(&strname, 1, &SigLevel::default()) {
+            pkg = match handle_clone.pkg_load(&strname, 1, &SigLevel::default()) {
                 Ok(pkg) => pkg,
                 Err(e) => {
                     error!("could not load package '{}': {}", strname, e);

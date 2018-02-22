@@ -79,7 +79,7 @@ pub struct ArchiveEntry {}
 
 impl Handle {
     /// Run ldconfig in a chroot. Returns 0 on success, 1 on error
-    pub fn _alpm_ldconfig(&self) -> i32 {
+    fn ldconfig(&self) -> i32 {
         use std::fs::metadata;
         let mut line: String;
 
@@ -101,12 +101,12 @@ impl Handle {
     }
 
     /// Initialize the transaction.
-    pub fn alpm_trans_init(&mut self, flags: &TransactionFlag) -> Result<()> {
+    pub fn trans_init(&mut self, flags: &TransactionFlag) -> Result<()> {
         let mut trans: Transaction = Transaction::default();
 
         /* lock db */
         if !flags.no_lock {
-            if self._alpm_handle_lock().is_err() {
+            if self.handle_lock().is_err() {
                 return Err(Error::ALPM_ERR_HANDLE_LOCK);
             }
         }
@@ -119,7 +119,7 @@ impl Handle {
         Ok(())
     }
 
-    pub fn check_arch(&mut self, pkgs: &mut Vec<Package>) -> Vec<String> {
+    fn check_arch(&mut self, pkgs: &mut Vec<Package>) -> Vec<String> {
         let mut invalid = Vec::new();
         let arch: &str = &self.arch;
         for pkg in pkgs {
@@ -135,8 +135,8 @@ impl Handle {
         return invalid;
     }
 
-    /** Prepare a transaction. */
-    pub fn alpm_trans_prepare(&mut self, data: &mut Vec<String>) -> Result<i32> {
+    /// Prepare a transaction.
+    pub fn trans_prepare(&mut self, data: &mut Vec<String>) -> Result<i32> {
         unimplemented!();
         // 	alpm_trans_t *trans;
         //
@@ -164,13 +164,13 @@ impl Handle {
         }
 
         if trans.add.is_empty() {
-            if self._alpm_remove_prepare(data) == -1 {
+            if self.remove_prepare(data) == -1 {
                 /* pm_errno is set by _alpm_remove_prepare() */
                 // return -1;
                 unimplemented!();
             }
         } else {
-            if self._alpm_sync_prepare(data) == -1 {
+            if self.sync_prepare(data) == -1 {
                 /* pm_errno is set by _alpm_sync_prepare() */
                 // return -1;
                 unimplemented!();
@@ -198,8 +198,8 @@ impl Handle {
         return Ok(0);
     }
 
-    /** Commit a transaction. */
-    pub fn alpm_trans_commit<T>(&self, data: &Vec<T>) -> i32 {
+    /// Commit a transaction.
+    pub fn trans_commit<T>(&self, data: &Vec<T>) -> i32 {
         unimplemented!();
         // 	alpm_trans_t *trans;
         // 	alpm_event_any_t event;
@@ -277,7 +277,7 @@ impl Handle {
 
     /// Interrupt a transaction.
     /// note: Safe to call from inside signal handlers.
-    pub fn alpm_trans_interrupt(&self) {
+    pub fn trans_interrupt(&self) {
         // 	alpm_trans_t *trans;
         //
         // 	/* Sanity checks */
@@ -297,7 +297,7 @@ impl Handle {
     ///@param handle the context handle
     ///@param run_ldconfig whether to run ld_config after removing the packages
     ///@return 0 on success, -1 if errors occurred while removing files
-    pub fn _alpm_remove_packages(&self, run_ldconfig: i32) -> i32 {
+    pub fn _remove_packages(&self, run_ldconfig: i32) -> i32 {
         unimplemented!();
         // 	alpm_list_t *targ;
         // 	size_t pkg_count, targ_count;
@@ -333,8 +333,8 @@ impl Handle {
         // 	return ret;
     }
 
-    /** Release a transaction. */
-    pub fn alpm_trans_release(&self) -> Result<i32> {
+    /// Release a transaction.
+    pub fn trans_release(&self) -> Result<i32> {
         unimplemented!();
         // 	alpm_trans_t *trans;
         //
@@ -361,7 +361,7 @@ impl Handle {
     ///Form a signature path given a file path.
     ///Caller must free the result.
     ///`path` - the full path to a file.
-    pub fn _alpm_sigpath(&self, path: &Option<String>) -> Option<String> {
+    pub fn _sigpath(&self, path: &Option<String>) -> Option<String> {
         match path {
             &None => None,
             &Some(ref path) => Some(format!("{}.sig", path)),
@@ -379,7 +379,7 @@ impl Handle {
     /// * `upgrade` an alpm_list_t* of packages to be upgraded (remove-then-upgrade)
     /// * `reversedeps` handles the backward dependencies
     /// * returns an alpm_list_t* of depmissing_t pointers.
-    pub fn alpm_checkdeps(
+    pub fn checkdeps(
         &self,
         pkglist: Option<Vec<Package>>,
         remw: Option<Vec<Package>>,
@@ -503,7 +503,7 @@ impl Handle {
     ///* `dbs` an alpm_list_t* of Database where the satisfier will be searched
     ///* `depstring` package or provision name, versioned or not
     ///* returns a Package* satisfying depstring
-    pub fn alpm_find_dbs_satisfier<T>(&self, dbs: &Vec<T>, depstring: &String) -> Option<Package> {
+    pub fn find_dbs_satisfier<T>(&self, dbs: &Vec<T>, depstring: &String) -> Option<Package> {
         unimplemented!();
         // 	Dependency *dep;
         // 	Package *pkg;
@@ -521,13 +521,13 @@ impl Handle {
     ///Check the package conflicts in a database
     ///* `pkglist` the list of packages to check
     ///* returns an alpm_list_t of conflict_t
-    pub fn alpm_checkconflicts(&self, pkglist: &Vec<Package>) -> Vec<Conflict> {
+    pub fn checkconflicts(&self, pkglist: &Vec<Package>) -> Vec<Conflict> {
         unimplemented!();
         // CHECK_HANDLE(handle, return NULL);
         // return _alpm_innerconflicts(handle, pkglist);
     }
 
-    pub fn _alpm_db_register_sync(&mut self, treename: &String, level: SigLevel) -> Database {
+    pub fn _db_register_sync(&mut self, treename: &String, level: SigLevel) -> Database {
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "registering sync database '%s'\n", treename);
 
         // #ifndef HAVE_LIBGPGME
@@ -576,7 +576,7 @@ impl Handle {
     ///* `pkgfile` path to the package file
     ///* `full` whether to stop the load after metadata is read or continue
     ///through the full archive
-    fn _alpm_pkg_load_internal(&self, pkgfile: &String, full: i32) -> Package {
+    fn pkg_load_internal(&self, pkgfile: &String, full: i32) -> Package {
         unimplemented!();
         // 	int ret, fd;
         // 	int config = 0;
@@ -749,7 +749,7 @@ impl Handle {
         // 	return st.st_size;
     }
 
-    pub fn alpm_pkg_load(
+    pub fn pkg_load(
         &self,
         filename: &String,
         full: i32,
@@ -820,7 +820,7 @@ impl Handle {
     ///Test if a package should be ignored.
     ///Checks if the package is ignored via IgnorePkg, or if the package is
     ///in a group ignored via IgnoreGroup.
-    pub fn alpm_pkg_should_ignore(&self, pkg: &Package) -> bool {
+    pub fn pkg_should_ignore(&self, pkg: &Package) -> bool {
         unimplemented!();
         // 	alpm_list_t *groups = NULL;
         //
@@ -841,7 +841,7 @@ impl Handle {
     }
 
     /// Unregister all package databases.
-    pub fn alpm_unregister_all_syncdbs(&self) -> i32 {
+    pub fn unregister_all_syncdbs(&self) -> i32 {
         unimplemented!();
         // 	alpm_list_t *i;
         // 	Database *db;
@@ -862,11 +862,7 @@ impl Handle {
     }
 
     /// Register a sync database of packages.
-    pub fn alpm_register_syncdb(
-        &mut self,
-        treename: &String,
-        siglevel: SigLevel,
-    ) -> Result<Database> {
+    pub fn register_syncdb(&mut self, treename: &String, siglevel: SigLevel) -> Result<Database> {
         /* ensure database name is unique */
         if treename == "local" {
             return Err(Error::ALPM_ERR_DB_NOT_NULL);
@@ -877,10 +873,10 @@ impl Handle {
             }
         }
 
-        Ok(self._alpm_db_register_sync(&treename, siglevel))
+        Ok(self._db_register_sync(&treename, siglevel))
     }
 
-    pub fn _alpm_db_register_local(&mut self) -> Result<&Database> {
+    pub fn _db_register_local(&mut self) -> Result<&Database> {
         let mut db;
         debug!("registering local database");
 
@@ -896,7 +892,7 @@ impl Handle {
     }
 
     /// Add a package to the transaction.
-    pub fn alpm_add_pkg(&mut self, pkg: &mut Package) -> Result<()> {
+    pub fn add_pkg(&mut self, pkg: &mut Package) -> Result<()> {
         let trans: &mut Transaction = &mut self.trans;
         let pkgname: &String = &pkg.name;
         let pkgver: String = pkg.version.clone();
@@ -994,7 +990,7 @@ impl Handle {
         // 	return 0;
     }
 
-    pub fn _alpm_upgrade_packages(&mut self) -> Result<()> {
+    pub fn upgrade_packages(&mut self) -> Result<()> {
         let mut skip_ldconfig: bool = false;
         let mut ret: Result<()> = Ok(());
         let pkg_count: usize;
@@ -1029,7 +1025,7 @@ impl Handle {
 
         if !skip_ldconfig {
             /* run ldconfig if it exists */
-            self._alpm_ldconfig();
+            self.ldconfig();
         }
 
         ret
@@ -1553,55 +1549,71 @@ impl Handle {
         // 	return ret;
     }
 
-    pub fn alpm_option_get_root(&self) -> String {
-        return self.root.clone();
+    pub fn get_root(&self) -> &String {
+        &self.root
     }
 
-    pub fn alpm_option_get_hookdirs(&self) -> Vec<String> {
-        self.hookdirs.clone()
+    pub fn get_root_mut(&mut self) -> &mut String {
+        &mut self.root
     }
 
-    pub fn alpm_option_get_dbpath(&self) -> &String {
+    pub fn get_hookdirs(&self) -> &Vec<String> {
+        &self.hookdirs
+    }
+
+    pub fn get_hookdirs_mut(&mut self) -> &mut Vec<String> {
+        &mut self.hookdirs
+    }
+
+    pub fn get_dbpath(&self) -> &String {
         return &self.dbpath;
     }
 
-    pub fn alpm_option_get_cachedirs(&self) -> Vec<String> {
+    pub fn get_dbpath_mut(&mut self) -> &mut String {
+        return &mut self.dbpath;
+    }
+
+    pub fn option_get_cachedirs(&self) -> Vec<String> {
         return self.cachedirs.clone();
     }
 
-    pub fn alpm_option_get_logfile(&self) -> String {
-        self.logfile.clone()
+    pub fn option_get_logfile(&self) -> &String {
+        &self.logfile
     }
 
-    pub fn alpm_option_get_lockfile(&self) -> String {
-        self.lockfile.clone()
+    pub fn get_lockfile(&self) -> &String {
+        &self.lockfile
     }
 
-    pub fn alpm_option_get_gpgdir(&self) -> String {
+    pub fn get_lockfile_mut(&mut self) -> &mut String {
+        &mut self.lockfile
+    }
+
+    pub fn option_get_gpgdir(&self) -> String {
         self.gpgdir.clone()
     }
 
-    pub fn alpm_option_get_usesyslog(&self) -> i32 {
+    pub fn option_get_usesyslog(&self) -> i32 {
         return self.usesyslog;
     }
 
-    pub fn alpm_option_get_noupgrades(&self) -> &Vec<String> {
+    pub fn option_get_noupgrades(&self) -> &Vec<String> {
         &self.noupgrade
     }
 
-    pub fn alpm_option_get_noextracts(&self) -> &Vec<String> {
+    pub fn option_get_noextracts(&self) -> &Vec<String> {
         &self.noextract
     }
 
-    pub fn alpm_option_get_ignorepkgs(&self) -> &Vec<String> {
+    pub fn option_get_ignorepkgs(&self) -> &Vec<String> {
         &self.ignorepkg
     }
 
-    pub fn alpm_option_get_ignoregroups(&self) -> &Vec<String> {
+    pub fn option_get_ignoregroups(&self) -> &Vec<String> {
         &self.ignoregroup
     }
 
-    pub fn alpm_option_get_overwrite_files(&self) -> &Vec<String> {
+    pub fn option_get_overwrite_files(&self) -> &Vec<String> {
         &self.overwrite_files
     }
 
@@ -1629,7 +1641,7 @@ impl Handle {
     // 	return handle->checkspace;
     // }
 
-    pub fn alpm_option_get_dbext(&self) -> &String {
+    pub fn get_dbext(&self) -> &String {
         &self.dbext
     }
 
@@ -1677,7 +1689,7 @@ impl Handle {
     // 	return 0;
     // }
 
-    pub fn alpm_option_add_hookdir(&mut self, hookdir: &String) -> Result<i32> {
+    pub fn option_add_hookdir(&mut self, hookdir: &String) -> Result<i32> {
         // 	char *newhookdir;
         let newhookdir = match std::fs::canonicalize(hookdir) {
             Err(_) => {
@@ -1727,7 +1739,7 @@ impl Handle {
     // 	return 0;
     // }
 
-    pub fn alpm_option_add_cachedir(&mut self, cachedir: &String) -> Result<i32> {
+    pub fn option_add_cachedir(&mut self, cachedir: &String) -> Result<i32> {
         // 	char *newcachedir;
         //
         /* don't stat the cachedir yet, as it may not even be needed. we can
@@ -1744,10 +1756,10 @@ impl Handle {
         return Ok(0);
     }
 
-    pub fn alpm_option_set_cachedirs(&mut self, cachedirs: &Vec<String>) -> Result<i32> {
+    pub fn option_set_cachedirs(&mut self, cachedirs: &Vec<String>) -> Result<i32> {
         // 	alpm_list_t *i;
         for dir in cachedirs {
-            self.alpm_option_add_cachedir(&dir)?;
+            self.option_add_cachedir(&dir)?;
         }
         return Ok(0);
     }
@@ -1772,7 +1784,7 @@ impl Handle {
     // 	return 0;
     // }
 
-    pub fn alpm_option_set_logfile(&mut self, logfile: &String) -> Result<i32> {
+    pub fn option_set_logfile(&mut self, logfile: &String) -> Result<i32> {
         if logfile == "" {
             return Err(Error::WrongArgs);
         }
@@ -1789,7 +1801,7 @@ impl Handle {
         return Ok(0);
     }
 
-    pub fn alpm_option_set_gpgdir(&mut self, gpgdir: &String) -> Result<()> {
+    pub fn option_set_gpgdir(&mut self, gpgdir: &String) -> Result<()> {
         match _alpm_set_directory_option(gpgdir, &mut self.gpgdir, false) {
             Err(err) => return Err(err),
             Ok(_) => Ok(()),
@@ -1797,7 +1809,7 @@ impl Handle {
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "option 'gpgdir' = %s\n", handle->gpgdir);
     }
 
-    pub fn alpm_option_set_usesyslog(&mut self, usesyslog: i32) {
+    pub fn option_set_usesyslog(&mut self, usesyslog: i32) {
         self.usesyslog = usesyslog;
     }
 
@@ -1810,7 +1822,7 @@ impl Handle {
     // 	return 0;
     // }
 
-    fn _alpm_option_strlist_set(&self, list: &mut Vec<String>, newlist: &Vec<String>) {
+    fn option_strlist_set(&self, list: &mut Vec<String>, newlist: &Vec<String>) {
         *list = newlist.clone();
     }
 
@@ -1831,7 +1843,7 @@ impl Handle {
     // 	return _alpm_option_strlist_add(handle, &(handle->noupgrade), pkg);
     // }
 
-    pub fn alpm_option_set_noupgrades(&mut self, noupgrade: &Vec<String>) {
+    pub fn option_set_noupgrades(&mut self, noupgrade: &Vec<String>) {
         self.noupgrade = noupgrade.clone()
     }
 
@@ -1850,7 +1862,7 @@ impl Handle {
     // 	return _alpm_option_strlist_add(handle, &(handle->noextract), path);
     // }
 
-    pub fn alpm_option_set_noextracts(&mut self, noextract: &Vec<String>) {
+    pub fn option_set_noextracts(&mut self, noextract: &Vec<String>) {
         self.noextract = noextract.clone();
     }
 
@@ -1869,7 +1881,7 @@ impl Handle {
     // 	return _alpm_option_strlist_add(handle, &(handle->ignorepkg), pkg);
     // }
 
-    pub fn alpm_option_set_ignorepkgs(&mut self, ignorepkgs: &Vec<String>) {
+    pub fn option_set_ignorepkgs(&mut self, ignorepkgs: &Vec<String>) {
         self.ignorepkg = ignorepkgs.clone();
     }
 
@@ -1883,7 +1895,7 @@ impl Handle {
     // 	return _alpm_option_strlist_add(handle, &(handle->ignoregroup), grp);
     // }
 
-    pub fn alpm_option_set_ignoregroups(&mut self, ignoregrps: &Vec<String>) {
+    pub fn option_set_ignoregroups(&mut self, ignoregrps: &Vec<String>) {
         self.ignoregroup = ignoregrps.clone();
     }
 
@@ -1897,7 +1909,7 @@ impl Handle {
     // 	return _alpm_option_strlist_add(handle, &(handle->overwrite_files), glob);
     // }
 
-    pub fn alpm_option_set_overwrite_files(&mut self, globs: &Vec<String>) {
+    pub fn option_set_overwrite_files(&mut self, globs: &Vec<String>) {
         self.overwrite_files = globs.clone();
     }
 
@@ -1906,7 +1918,7 @@ impl Handle {
     // 	return _alpm_option_strlist_rem(handle, &(handle->overwrite_files), glob);
     // }
 
-    pub fn alpm_option_add_assumeinstalled(&mut self, dep: &Dependency) {
+    pub fn option_add_assumeinstalled(&mut self, dep: &Dependency) {
         use std::hash::{Hash, Hasher};
         let mut depcpy = Dependency::default();
         let mut hasher = SdbmHasher::default();
@@ -1955,7 +1967,7 @@ impl Handle {
     // 	return -1;
     // }
 
-    pub fn alpm_option_remove_assumeinstalled(&self, dep: &Dependency) -> i32 {
+    pub fn remove_assumeinstalled(&self, dep: &Dependency) -> i32 {
         unimplemented!();
         // Dependency *vdata = NULL;
 
@@ -1969,11 +1981,11 @@ impl Handle {
         // return 0;
     }
 
-    pub fn alpm_option_set_arch(&mut self, arch: &String) {
+    pub fn set_arch(&mut self, arch: &String) {
         self.arch = arch.clone();
     }
 
-    pub fn alpm_option_set_deltaratio(&mut self, ratio: f64) -> Result<()> {
+    pub fn set_deltaratio(&mut self, ratio: f64) -> Result<()> {
         if ratio < 0.0 || ratio > 2.0 {
             return Err(Error::WrongArgs);
         }
@@ -1981,15 +1993,15 @@ impl Handle {
         Ok(())
     }
 
-    pub fn alpm_get_localdb(&self) -> &Database {
+    pub fn get_localdb(&self) -> &Database {
         return &self.db_local;
     }
 
-    pub fn alpm_get_localdb_mut(&mut self) -> &mut Database {
+    pub fn get_localdb_mut(&mut self) -> &mut Database {
         return &mut self.db_local;
     }
 
-    pub fn alpm_get_syncdbs(&self) -> &Vec<Database> {
+    pub fn get_syncdbs(&self) -> &Vec<Database> {
         return &self.dbs_sync;
     }
 
@@ -2001,7 +2013,7 @@ impl Handle {
         self.checkspace = checkspace;
     }
 
-    pub fn alpm_option_set_dbext(&mut self, dbext: &String) {
+    pub fn set_dbext(&mut self, dbext: &String) {
         self.dbext = dbext.clone();
 
         // _alpm_log(handle, ALPM_LOG_DEBUG, "option 'dbext' = %s\n", handle->dbext);
@@ -2075,7 +2087,7 @@ impl Handle {
         return 0;
     }
 
-    pub fn _alpm_handle_new() -> Handle {
+    pub fn handle_new() -> Handle {
         let mut handle = Handle::default();
         handle.deltaratio = 0.0;
         handle.lockfd = None;
@@ -2084,7 +2096,7 @@ impl Handle {
     }
 
     /// Lock the database
-    pub fn _alpm_handle_lock(&mut self) -> std::io::Result<()> {
+    pub fn handle_lock(&mut self) -> std::io::Result<()> {
         assert!(self.lockfile != "");
         assert!(self.lockfd.is_none());
 
@@ -2098,7 +2110,7 @@ impl Handle {
     }
 
     /// Remove the database lock file
-    pub fn alpm_unlock(&mut self) -> std::io::Result<()> {
+    pub fn unlock(&mut self) -> std::io::Result<()> {
         // ASSERT(handle->lockfile != NULL, return 0);
         // ASSERT(handle->lockfd >= 0, return 0);
 
@@ -2112,8 +2124,8 @@ impl Handle {
         return Ok(());
     }
 
-    pub fn _alpm_handle_unlock(&mut self) -> std::io::Result<()> {
-        match self.alpm_unlock() {
+    pub fn handle_unlock(&mut self) -> std::io::Result<()> {
+        match self.unlock() {
             Err(e) => {
                 eprintln!("{}", e);
                 return Err(e);
@@ -2137,19 +2149,14 @@ impl Handle {
         return Ok(());
     }
 
-    /**
-     * @brief Transaction preparation for remove actions.
-     *
-     * This functions takes a pointer to a alpm_list_t which will be
-     * filled with a list of depmissing_t* objects representing
-     * the packages blocking the transaction.
-     *
-     * @param handle the context handle
-     * @param data a pointer to an alpm_list_t* to fill
-     *
-     * @return 0 on success, -1 on error
-     */
-    fn _alpm_remove_prepare(&self, data: &Vec<String>) -> i32 {
+    /// Transaction preparation for remove actions.
+    /// This functions takes a pointer to a alpm_list_t which will be
+    /// filled with a list of depmissing_t* objects representing
+    /// the packages blocking the transaction.
+    /// * `handle` the context handle
+    /// *`data` a pointer to an alpm_list_t* to fill
+    /// * return 0 on success, -1 on error
+    fn remove_prepare(&self, data: &Vec<String>) -> i32 {
         unimplemented!();
         // 	alpm_list_t *lp;
         // 	alpm_trans_t *trans = handle->trans;
@@ -2217,7 +2224,7 @@ impl Handle {
         // 	return 0;
     }
 
-    fn _alpm_sync_prepare(&self, data: &Vec<String>) -> i32 {
+    fn sync_prepare(&self, data: &Vec<String>) -> i32 {
         // 	alpm_list_t *i, *j;
         // 	alpm_list_t *deps = NULL;
         // 	alpm_list_t *unresolvable = NULL;
@@ -2588,9 +2595,11 @@ pub fn _alpm_set_directory_option(
 
 #[derive(Default, Debug)]
 pub struct Handle {
-    // 	/* internal usage */
-    pub db_local: Database,      //// local db pointer */
-    pub dbs_sync: Vec<Database>, /* List of (Database *) */
+    /* internal usage */
+    /// local db pointer
+    pub db_local: Database,
+    /// List of Databases
+    pub dbs_sync: Vec<Database>,
     // 	FILE *logstream;        /* log file stream pointer */
     pub trans: Transaction,
     //
@@ -2614,13 +2623,13 @@ pub struct Handle {
     // 	alpm_cb_progress progresscb;
 
     	/* filesystem paths */
-    pub root: String,             /* Root path, default '/' */
-    pub dbpath: String,           /* Base path to pacman's DBs */
+    root: String,                 /* Root path, default '/' */
+    dbpath: String,               /* Base path to pacman's DBs */
     logfile: String,              /* Name of the log file */
-    pub lockfile: String,         /* Name of the lock file */
+    lockfile: String,             /* Name of the lock file */
     gpgdir: String,               /* Directory where GnuPG files are stored */
     cachedirs: Vec<String>,       /* Paths to pacman cache directories */
-    pub hookdirs: Vec<String>,    /* Paths to hook directories */
+    hookdirs: Vec<String>,        /* Paths to hook directories */
     overwrite_files: Vec<String>, /* Paths that may be overwritten */
 
     /* package lists */
@@ -2636,22 +2645,23 @@ pub struct Handle {
     assumeinstalled: Vec<Dependency>,
 
     /* options */
-    /// Architecture of packages we should allow */
+    /// Architecture of packages we should allow
     arch: String,
+    /// Download deltas if possible; a ratio value
     deltaratio: f64,
-    /// Download deltas if possible; a ratio value */
-    usesyslog: i32, /* Use syslog instead of logfile? */
+    /// Use syslog instead of logfile?
+    usesyslog: i32,
     /* TODO move to frontend */
-    checkspace: i32,    /* Check disk space before installing */
-    pub dbext: String,  /* Sync DB extension */
-    siglevel: SigLevel, /* Default signature verification level */
-    localfilesiglevel: SigLevel, /* Signature verification level for local file
-                        // 	                                       upgrade operations */
-    remotefilesiglevel: SigLevel, /* Signature verification level for remote file
-                                  // 	                                       upgrade operations */
-    //
-    // 	/* error code */
-    // pub pm_errno: Error,
+    /// Check disk space before installing
+    checkspace: i32,
+    /// Sync DB extension
+    dbext: String,
+    /// Default signature verification level
+    siglevel: SigLevel,
+    /// Signature verification level for local file upgrade operations
+    localfilesiglevel: SigLevel,
+    /// Signature verification level for remote file upgrade operations */
+    remotefilesiglevel: SigLevel,
 
     /* lock file descriptor */
     lockfd: Option<File>,

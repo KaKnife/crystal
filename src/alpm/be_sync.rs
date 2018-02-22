@@ -79,7 +79,7 @@ use std::fs;
  * @return 0 on success, -1 on error (pm_errno is set accordingly), 1 if up to
  * to date
  */
-pub fn alpm_db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Result<i8> {
+pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Result<i8> {
     let syncpath;
     let mut updated = false;
     let mut ret = -1;
@@ -108,12 +108,12 @@ pub fn alpm_db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -
     siglevel = db.alpm_db_get_siglevel();
 
     /* attempt to grab a lock */
-    if handle._alpm_handle_lock().is_err() {
+    if handle.handle_lock().is_err() {
         // umask(oldmask);
         return Err(Error::ALPM_ERR_HANDLE_LOCK);
     }
     {
-        let dbext = handle.alpm_option_get_dbext();
+        let dbext = handle.get_dbext();
 
         for server in db.servers.clone() {
             let mut final_db_url: String = String::new();
@@ -136,7 +136,7 @@ pub fn alpm_db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -
                 /* an existing sig file is no good at this point */
                 {
                     let dbpath = &db._alpm_db_path().ok();
-                    let sigpath = match handle._alpm_sigpath(dbpath) {
+                    let sigpath = match handle._sigpath(dbpath) {
                         Some(s) => s,
                         None => {
                             ret = -1;
@@ -202,7 +202,7 @@ pub fn alpm_db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -
         // handle.pm_errno = Error::ALPM_ERR_OK;
     }
 
-    handle._alpm_handle_unlock().unwrap();
+    handle.handle_unlock().unwrap();
     // umask(oldmask);
     if ret == 1 || ret == 0 {
         Ok(ret as i8)

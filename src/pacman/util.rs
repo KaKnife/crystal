@@ -73,7 +73,7 @@ pub fn trans_init(
         Err(e) => panic!(),
     }
 
-    match handle.alpm_trans_init(flags) {
+    match handle.trans_init(flags) {
         Err(e) => {
             trans_init_error(e);
             return -1;
@@ -102,7 +102,7 @@ fn trans_init_error(err: Error) {
 }
 
 pub fn trans_release(handle: &Handle) -> bool {
-    match handle.alpm_trans_release() {
+    match handle.trans_release() {
         Err(e) => {
             eprintln!("failed to release transaction: {}", e.alpm_strerror());
             return false;
@@ -148,7 +148,7 @@ pub fn sync_syncdbs(
 ) -> std::result::Result<(), ()> {
     let mut success = Ok(());
     for mut db in syncs {
-        let ret = alpm_db_update(level >= 2, &mut db, handle);
+        let ret = db_update(level >= 2, &mut db, handle);
         match ret {
             Err(e) => {
                 eprintln!(
@@ -1011,7 +1011,7 @@ fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
                 /* file is already in the package cache */
                 let pkgfile = pkg.alpm_pkg_get_filename();
                 // struct stat buf;
-                for item in handle.alpm_option_get_cachedirs() {
+                for item in handle.option_get_cachedirs() {
                     let _path = format!("{}{}", item, pkgfile);
                     unimplemented!();
                     // if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
@@ -1114,7 +1114,7 @@ pub fn print_packages(
         /* %s : size */
         if string.contains("%s") {
             // 	char *size;
-            let size = format!("{}", pkg_get_size(pkg, config, handle.alpm_get_localdb_mut()));
+            let size = format!("{}", pkg_get_size(pkg, config, handle.get_localdb_mut()));
             string.replace("%s", &size);
             // 	free(size);
             // 	free(temp);

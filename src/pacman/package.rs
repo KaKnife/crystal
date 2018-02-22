@@ -585,7 +585,7 @@ pub fn dump_pkg_search(
 	// let colstr = &config.colstr;
 	//
 	if show_status != 0 {
-		db_local = handle.alpm_get_localdb();
+		db_local = handle.get_localdb();
 	}
 
 	/* if we have a targets list, search for packages matching it */

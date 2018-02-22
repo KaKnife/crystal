@@ -44,7 +44,7 @@ pub use self::package::Package;
 pub use self::handle::Handle;
 pub use self::db::Database;
 pub use self::deps::alpm_dep_from_string;
-pub use self::be_sync::alpm_db_update;
+pub use self::be_sync::db_update;
 pub use self::deps::alpm_find_satisfier;
 pub use self::error::Error;
 
@@ -194,20 +194,14 @@ impl std::ops::BitOr for SigLevel {
     fn bitor(self, rhs: Self) -> Self {
         let mut new = SigLevel::default();
         new.package = self.package | rhs.package;
-        new.package_optional =
-            self.package_optional | rhs.package_optional;
-        new.package_marginal_ok =
-            self.package_marginal_ok | rhs.package_marginal_ok;
-        new.package_unknown_ok =
-            self.package_unknown_ok | rhs.package_unknown_ok;
+        new.package_optional = self.package_optional | rhs.package_optional;
+        new.package_marginal_ok = self.package_marginal_ok | rhs.package_marginal_ok;
+        new.package_unknown_ok = self.package_unknown_ok | rhs.package_unknown_ok;
 
         new.database = self.database | rhs.database;
-        new.database_optional =
-            self.database_optional | rhs.database_optional;
-        new.database_marginal_ok =
-            self.database_marginal_ok | rhs.database_marginal_ok;
-        new.database_unknown_ok =
-            self.database_unknown_ok | rhs.database_unknown_ok;
+        new.database_optional = self.database_optional | rhs.database_optional;
+        new.database_marginal_ok = self.database_marginal_ok | rhs.database_marginal_ok;
+        new.database_unknown_ok = self.database_unknown_ok | rhs.database_unknown_ok;
 
         new.use_default = self.use_default | rhs.use_default;
         new
@@ -218,20 +212,14 @@ impl std::ops::BitAnd for SigLevel {
     fn bitand(self, rhs: Self) -> Self {
         let mut new = SigLevel::default();
         new.package = self.package & rhs.package;
-        new.package_optional =
-            self.package_optional & rhs.package_optional;
-        new.package_marginal_ok =
-            self.package_marginal_ok & rhs.package_marginal_ok;
-        new.package_unknown_ok =
-            self.package_unknown_ok & rhs.package_unknown_ok;
+        new.package_optional = self.package_optional & rhs.package_optional;
+        new.package_marginal_ok = self.package_marginal_ok & rhs.package_marginal_ok;
+        new.package_unknown_ok = self.package_unknown_ok & rhs.package_unknown_ok;
 
         new.database = self.database & rhs.database;
-        new.database_optional =
-            self.database_optional & rhs.database_optional;
-        new.database_marginal_ok =
-            self.database_marginal_ok & rhs.database_marginal_ok;
-        new.database_unknown_ok =
-            self.database_unknown_ok & rhs.database_unknown_ok;
+        new.database_optional = self.database_optional & rhs.database_optional;
+        new.database_marginal_ok = self.database_marginal_ok & rhs.database_marginal_ok;
+        new.database_unknown_ok = self.database_unknown_ok & rhs.database_unknown_ok;
 
         new.use_default = self.use_default & rhs.use_default;
         new
@@ -257,11 +245,9 @@ impl std::ops::Not for SigLevel {
 }
 impl SigLevel {
     pub fn not_zero(&self) -> bool {
-        !(self.package || self.package_optional
-            || self.package_marginal_ok || self.package_unknown_ok
-            || self.database || self.database_optional
-            || self.database_marginal_ok || self.database_unknown_ok
-            || self.use_default)
+        !(self.package || self.package_optional || self.package_marginal_ok
+            || self.package_unknown_ok || self.database || self.database_optional
+            || self.database_marginal_ok || self.database_unknown_ok || self.use_default)
     }
 }
 
@@ -1075,8 +1061,7 @@ pub struct DatabaseUsage {
 
 impl DatabaseUsage {
     pub fn is_zero(&self) -> bool {
-        !(self.sync && self.search && self.install
-            && self.upgrade && self.all)
+        !(self.sync && self.search && self.install && self.upgrade && self.all)
     }
 }
 
@@ -1688,24 +1673,24 @@ pub fn initialize(root: &String, dbpath: &String) -> Result<Handle> {
     // let myerr = errno_t::default();
     let lf = "db.lck";
     let hookdir;
-    let mut myhandle = Handle::_alpm_handle_new();
+    let mut myhandle = Handle::handle_new();
 
-    _alpm_set_directory_option(root, &mut myhandle.root, true)?;
-    _alpm_set_directory_option(dbpath, &mut myhandle.dbpath, true)?;
+    _alpm_set_directory_option(root, myhandle.get_root_mut(), true)?;
+    _alpm_set_directory_option(dbpath, myhandle.get_dbpath_mut(), true)?;
 
     /* to concatenate myhandle->root (ends with a slash) with SYSHOOKDIR (starts
      * with a slash) correctly, we skip SYSHOOKDIR[0]; the regular +1 therefore
      * disappears from the allocation */
-    hookdir = format!("{}{}", myhandle.root, SYSHOOKDIR);
-    myhandle.hookdirs = Vec::new();
-    myhandle.hookdirs.push(hookdir);
+    hookdir = format!("{}{}", myhandle.get_root(), SYSHOOKDIR);
+    *myhandle.get_hookdirs_mut() = Vec::new();
+    myhandle.get_hookdirs_mut().push(hookdir);
 
     /* set default database extension */
-    myhandle.dbext = String::from(".db");
+    myhandle.set_dbext(&String::from(".db"));
 
-    myhandle.lockfile = format!("{}{}", myhandle.alpm_option_get_dbpath(), lf);
+    *myhandle.get_lockfile_mut() = format!("{}{}", myhandle.get_dbpath(), lf);
 
-    myhandle._alpm_db_register_local()?;
+    myhandle._db_register_local()?;
 
     // #ifdef ENABLE_NLS
     // 	bindtextdomain("libalpm", LOCALEDIR);
