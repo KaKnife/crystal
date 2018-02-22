@@ -364,7 +364,7 @@ pub fn main() {
     let argv: Vec<String> = env::args().collect();
     let mut ret: i32 = 0;
     let mut config: config_t;
-    let mut handle: alpm_handle_t;
+    let mut handle: Handle;
     let myuid: u32 = unsafe { libc::getuid() }; //uid_t myuid = getuid();
     let pm_targets: Vec<String>;
 

@@ -101,7 +101,7 @@ pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &depend_t) -> Option<
 //  * Returns a list of vertices (one vertex = one package)
 //  * (used by alpm_sortbydeps)
 //  */
-// static alpm_list_t *dep_graph_init(alpm_handle_t *handle,
+// static alpm_list_t *dep_graph_init(Handle *handle,
 // 		alpm_list_t *targets, alpm_list_t *ignore)
 // {
 // 	alpm_list_t *i, *j;
@@ -158,7 +158,7 @@ pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &depend_t) -> Option<
 // 	return vertices;
 // }
 //
-// static void _alpm_warn_dep_cycle(alpm_handle_t *handle, alpm_list_t *targets,
+// static void _alpm_warn_dep_cycle(Handle *handle, alpm_list_t *targets,
 // 		alpm_graph_t *ancestor, alpm_graph_t *vertex, int reverse)
 // {
 // 	/* vertex depends on and is required by ancestor */
@@ -211,7 +211,7 @@ pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &depend_t) -> Option<
  *
  */
 fn _alpm_sortbydeps<T>(
-    handle: alpm_handle_t,
+    handle: Handle,
     targets: &mut Vec<T>,
     ignore: &Vec<T>,
     reverse: i32,
@@ -526,7 +526,7 @@ impl depend_t {
     //  *        an error code without prompting
     //  * @return the resolved package
     //  **/
-    // static Package *resolvedep(alpm_handle_t *handle, depend_t *dep,
+    // static Package *resolvedep(Handle *handle, depend_t *dep,
     // 		alpm_list_t *dbs, alpm_list_t *excluding, int prompt)
     // {
     // 	alpm_list_t *i, *j;
@@ -664,7 +664,7 @@ impl depend_t {
     //  *         unresolvable dependency, in which case the [*packages] list will be
     //  *         unmodified by this function
     //  */
-    // int _alpm_resolvedeps(alpm_handle_t *handle, alpm_list_t *localpkgs,
+    // int _alpm_resolvedeps(Handle *handle, alpm_list_t *localpkgs,
     // 		Package *pkg, alpm_list_t *preferred, alpm_list_t **packages,
     // 		alpm_list_t *rem, alpm_list_t **data)
     // {

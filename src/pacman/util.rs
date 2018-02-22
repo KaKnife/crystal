@@ -66,7 +66,7 @@ use super::alpm::*;
 pub fn trans_init(
     flags: &alpm::alpm_transflag_t,
     check_valid: bool,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> i32 {
     match check_syncdbs(0, check_valid, handle) {
         Ok(_) => {}
@@ -101,7 +101,7 @@ fn trans_init_error(err: errno_t) {
     }
 }
 
-pub fn trans_release(handle: &alpm_handle_t) -> bool {
+pub fn trans_release(handle: &Handle) -> bool {
     match handle.alpm_trans_release() {
         Err(e) => {
             eprintln!("failed to release transaction: {}", e.alpm_strerror());
@@ -116,7 +116,7 @@ pub fn trans_release(handle: &alpm_handle_t) -> bool {
 pub fn check_syncdbs(
     need_repos: usize,
     check_valid: bool,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     let mut ret = Ok(());
     if handle.dbs_sync.len() == 0 && need_repos != 0 {
@@ -144,7 +144,7 @@ pub fn check_syncdbs(
 pub fn sync_syncdbs(
     level: i32,
     syncs: &mut Vec<Database>,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     let mut success = Ok(());
     for mut db in syncs {
@@ -1001,7 +1001,7 @@ fn pkg_get_size(pkg: &mut Package, config: &config_t, db: &mut Database) -> off_
     }
 }
 
-fn pkg_get_location(pkg: &Package, handle: &alpm_handle_t) -> String {
+fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
     // alpm_list_t *servers;
     // char *string = NULL;
     // use pkgfrom_t::*;
@@ -1095,7 +1095,7 @@ pub fn print_packages(
     packages: &mut Vec<Package>,
     print_format: &String,
     config: &config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) {
     for pkg in packages {
         if print_format == "" {

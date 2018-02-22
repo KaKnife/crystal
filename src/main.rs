@@ -1,9 +1,14 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
+#![allow(unreachable_patterns)]
 #![allow(unused_variables)]
 #![allow(unused_mut)]
+#![allow(unused_assignments)]
+#![allow(unused_imports)]
+#![allow(unused_must_use)]
 pub mod pacman;
 pub mod common;
 pub mod alpm;

@@ -267,7 +267,7 @@ pub fn dump_pkg_full(
 	reason = match pkg.alpm_pkg_get_reason(db_local) {
 		&pkgreason_t::ALPM_PKG_REASON_EXPLICIT => "Explicitly installed",
 		&pkgreason_t::ALPM_PKG_REASON_DEPEND => "Installed as a dependency for another package",
-		_ => "Unknown",
+		// _ => "Unknown",
 	};
 
 	let v = pkg.alpm_pkg_get_validation(db_local);
@@ -569,7 +569,7 @@ pub fn dump_pkg_search(
 	targets: &Vec<String>,
 	show_status: i32,
 	colstr: &colstr_t,
-	handle: &alpm_handle_t,
+	handle: &Handle,
 	quiet: bool,
 ) -> i32 {
 	unimplemented!();

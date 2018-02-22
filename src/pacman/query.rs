@@ -236,7 +236,7 @@ fn query_fileowner(targets: &Vec<String>) -> i32 {
 }
 
 /// search the local database for a matching package
-fn query_search(targets: &Vec<String>, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+fn query_search(targets: &Vec<String>, config: &config_t, handle: &mut Handle) -> i32 {
     let tem_handle = &handle.clone();
     let db_local: &mut Database = handle.alpm_get_localdb_mut();
     return dump_pkg_search(
@@ -249,7 +249,7 @@ fn query_search(targets: &Vec<String>, config: &config_t, handle: &mut alpm_hand
     );
 }
 
-fn pkg_get_locality(pkg: &Package, handle: &alpm_handle_t) -> u8 {
+fn pkg_get_locality(pkg: &Package, handle: &Handle) -> u8 {
     let pkgname = &pkg.alpm_pkg_get_name();
     // alpm_list_t *j;
     let sync_dbs = handle.alpm_get_syncdbs()
@@ -280,7 +280,7 @@ fn is_unrequired(pkg: &Package, level: u8, db_local: &mut Database, dbs_sync: &m
     return false;
 }
 
-fn filter(pkg: &mut Package, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+fn filter(pkg: &mut Package, config: &config_t, handle: &mut Handle) -> i32 {
     match pkg.alpm_pkg_get_reason(handle.alpm_get_localdb_mut()) {
         /* check if this package was installed as a dependency */
         &pkgreason_t::ALPM_PKG_REASON_DEPEND if config.op_q_explicit != 0 => return 0,
@@ -306,7 +306,7 @@ fn filter(pkg: &mut Package, config: &config_t, handle: &mut alpm_handle_t) -> i
     return 1;
 }
 
-fn display(pkg: &mut Package, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+fn display(pkg: &mut Package, config: &config_t, handle: &mut Handle) -> i32 {
     let mut ret = 0;
 
     if config.op_q_info != 0 {
@@ -366,7 +366,7 @@ fn display(pkg: &mut Package, config: &config_t, handle: &mut alpm_handle_t) -> 
     return ret;
 }
 
-fn query_group(targets: &Vec<String>, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+fn query_group(targets: &Vec<String>, config: &config_t, handle: &mut Handle) -> i32 {
     let mut ret = 0;
     let handle_clone = &mut handle.clone();
     let db_local: &mut Database = handle.alpm_get_localdb_mut();
@@ -409,7 +409,7 @@ fn query_group(targets: &Vec<String>, config: &config_t, handle: &mut alpm_handl
 pub fn pacman_query(
     targets: Vec<String>,
     config: &mut config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> std::result::Result<(), i32> {
     // 	int ret = 0;
     let mut ret = Ok(());

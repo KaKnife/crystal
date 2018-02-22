@@ -38,7 +38,7 @@ use super::*;
 pub fn pacman_upgrade(
     mut targets: Vec<String>,
     config: &mut config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     let mut retval = Ok(());
     let mut file_is_remote: Vec<bool>;

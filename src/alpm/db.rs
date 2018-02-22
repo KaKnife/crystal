@@ -108,19 +108,19 @@ pub struct dbstatus_t {
 /// Database
 #[derive(Debug, Default, Clone)]
 pub struct Database {
-    // handle: alpm_handle_t,
+    // handle: Handle,
     pub treename: String,
     /// do not access directly, use _alpm_db_path(db) for lazy access
     pub _path: String,
     pub pkgcache: alpm_pkghash_t,
-    grpcache: Vec<group_t>,
+    grpcache: Vec<Group>,
     pub servers: Vec<String>,
     // ops: db_operations,
     pub ops_type: db_ops_type, //I created this to deturmine if it is local or other stuff
 
     /* bitfields for validity, local, loaded caches, etc. */
     pub status: dbstatus_t,
-    pub siglevel: siglevel,
+    pub SigLevel: SigLevel,
     pub usage: alpm_db_usage_t,
 }
 
@@ -137,7 +137,7 @@ impl Default for db_ops_type {
 }
 
 impl Database {
-    pub fn sync_db_validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
+    pub fn sync_db_validate(&mut self, handle: &Handle) -> Result<bool> {
         if self.status.DB_STATUS_VALID || self.status.DB_STATUS_MISSING {
             return Ok(true);
         }
@@ -177,9 +177,9 @@ impl Database {
 
         /* this takes into account the default verification level if UNKNOWN
          * was assigned to this db */
-        let siglevel = self.alpm_db_get_siglevel();
+        let SigLevel = self.alpm_db_get_siglevel();
 
-        if siglevel.ALPM_SIG_DATABASE {
+        if SigLevel.ALPM_SIG_DATABASE {
             let mut ret = 0;
             let mut retry = 1;
             while retry != 0 {
@@ -189,9 +189,9 @@ impl Database {
                     handle,
                     &dbpath,
                     None,
-                    siglevel.ALPM_SIG_DATABASE_OPTIONAL,
-                    siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
-                    siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
+                    SigLevel.ALPM_SIG_DATABASE_OPTIONAL,
+                    SigLevel.ALPM_SIG_DATABASE_MARGINAL_OK,
+                    SigLevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
                     &siglist,
                 );
                 if ret != 0 {
@@ -199,9 +199,9 @@ impl Database {
                         &handle,
                         &self.treename,
                         &siglist,
-                        siglevel.ALPM_SIG_DATABASE_OPTIONAL,
-                        siglevel.ALPM_SIG_DATABASE_MARGINAL_OK,
-                        siglevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
+                        SigLevel.ALPM_SIG_DATABASE_OPTIONAL,
+                        SigLevel.ALPM_SIG_DATABASE_MARGINAL_OK,
+                        SigLevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
                     );
                 }
             }
@@ -1015,7 +1015,7 @@ impl Database {
         return pkgpath;
     }
 
-    fn validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
+    fn validate(&mut self, handle: &Handle) -> Result<bool> {
         match self.ops_type {
             db_ops_type::local => self.local_db_validate(),
             db_ops_type::sync => self.sync_db_validate(handle),
@@ -1106,7 +1106,7 @@ impl Database {
     }
 
     /// Get a group entry from a package database.
-    pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&group_t> {
+    pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&Group> {
         // if name.len() ==0{
         //     return Err(errno_t::ALPM_ERR_WRONG_ARGS);
         // }
@@ -1114,7 +1114,7 @@ impl Database {
         return self._alpm_db_get_groupfromcache(name);
     }
 
-    pub fn alpm_db_get_group_mut(&mut self, name: &String) -> Option<&mut group_t> {
+    pub fn alpm_db_get_group_mut(&mut self, name: &String) -> Option<&mut Group> {
         // if name.len() ==0{
         //     return Err(errno_t::ALPM_ERR_WRONG_ARGS);
         // }
@@ -1122,7 +1122,7 @@ impl Database {
         return self._alpm_db_get_groupfromcache_mut(name);
     }
 
-    fn _alpm_db_get_groupfromcache(&mut self, target: &String) -> Option<&group_t> {
+    fn _alpm_db_get_groupfromcache(&mut self, target: &String) -> Option<&Group> {
         if target.len() == 0 {
             return None;
         }
@@ -1136,7 +1136,7 @@ impl Database {
         return None;
     }
 
-    fn _alpm_db_get_groupfromcache_mut(&mut self, target: &String) -> Option<&mut group_t> {
+    fn _alpm_db_get_groupfromcache_mut(&mut self, target: &String) -> Option<&mut Group> {
         if target.len() == 0 {
             return None;
         }
@@ -1150,7 +1150,7 @@ impl Database {
         return None;
     }
 
-    fn _alpm_db_get_groupcache(&mut self) -> &mut Vec<group_t> {
+    fn _alpm_db_get_groupcache(&mut self) -> &mut Vec<Group> {
         if self.status.DB_STATUS_VALID {
             unimplemented!();
             // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
@@ -1213,12 +1213,12 @@ impl Database {
     }
 
     /// Get the group cache of a package database.
-    pub fn alpm_db_get_groupcache(&mut self) -> &Vec<group_t> {
+    pub fn alpm_db_get_groupcache(&mut self) -> &Vec<Group> {
         return self._alpm_db_get_groupcache();
     }
 
     /// Get the group cache of a package database.
-    pub fn alpm_db_get_groupcache_mut(&mut self) -> &mut Vec<group_t> {
+    pub fn alpm_db_get_groupcache_mut(&mut self) -> &mut Vec<Group> {
         return self._alpm_db_get_groupcache();
     }
 
@@ -1307,7 +1307,7 @@ impl Database {
     // int SYMEXPORT alpm_db_unregister(Database *db)
     // {
     // 	int found = 0;
-    // 	alpm_handle_t *handle;
+    // 	Handle *handle;
     //
     // 	/* Sanity checks */
     // 	ASSERT(db != NULL, return -1);
@@ -1341,7 +1341,7 @@ impl Database {
     // }
 
     /// Check the validity of a database.
-    pub fn alpm_db_get_valid(&mut self, handle: &mut alpm_handle_t) -> Result<bool> {
+    pub fn alpm_db_get_valid(&mut self, handle: &mut Handle) -> Result<bool> {
         self.validate(handle)
     }
 
@@ -1377,12 +1377,12 @@ impl Database {
     }
 
     /// Get the signature verification level for a database. */
-    pub fn alpm_db_get_siglevel(&self) -> siglevel {
-        if self.siglevel.ALPM_SIG_USE_DEFAULT {
+    pub fn alpm_db_get_siglevel(&self) -> SigLevel {
+        if self.SigLevel.ALPM_SIG_USE_DEFAULT {
             unimplemented!();
-        // return self.handle.siglevel;
+        // return self.handle.SigLevel;
         } else {
-            return self.siglevel;
+            return self.SigLevel;
         }
     }
 

@@ -17,7 +17,7 @@ pub mod pkghash;
 pub mod be_sync;
 pub mod signing;
 pub mod alpm_list;
-use self::alpm_list::*;
+// use self::alpm_list::*;
 use self::signing::*;
 // use self::be_sync::*;
 use self::pkghash::*;
@@ -41,7 +41,7 @@ pub use self::sync::alpm_sync_sysupgrade;
 pub use self::remove::alpm_remove_pkg;
 pub use self::package::Package;
 pub use self::handle::alpm_list_t;
-pub use self::handle::alpm_handle_t;
+pub use self::handle::Handle;
 pub use self::db::Database;
 pub use self::deps::alpm_dep_from_string;
 pub use self::be_sync::alpm_db_update;
@@ -89,7 +89,7 @@ pub type Result<T> = std::result::Result<T, errno_t>;
 
 /* Opaque Structures */
 
-type __alpm_handle_t = alpm_handle_t;
+type __Handle = Handle;
 type __Database = Database;
 type __Package = Package;
 type __alpm_trans_t = alpm_trans_t;
@@ -175,7 +175,7 @@ enum fileconflicttype_t {
 
 /// PGP signature verification options
 #[derive(Default, Clone, Debug, Copy)]
-pub struct siglevel {
+pub struct SigLevel {
     pub ALPM_SIG_PACKAGE: bool,
     pub ALPM_SIG_PACKAGE_OPTIONAL: bool,
     pub ALPM_SIG_PACKAGE_MARGINAL_OK: bool,
@@ -189,10 +189,10 @@ pub struct siglevel {
     pub ALPM_SIG_USE_DEFAULT: bool,
 }
 use std;
-impl std::ops::BitOr for siglevel {
+impl std::ops::BitOr for SigLevel {
     type Output = Self;
     fn bitor(self, rhs: Self) -> Self {
-        let mut new = siglevel::default();
+        let mut new = SigLevel::default();
         new.ALPM_SIG_PACKAGE = self.ALPM_SIG_PACKAGE | rhs.ALPM_SIG_PACKAGE;
         new.ALPM_SIG_PACKAGE_OPTIONAL =
             self.ALPM_SIG_PACKAGE_OPTIONAL | rhs.ALPM_SIG_PACKAGE_OPTIONAL;
@@ -213,10 +213,10 @@ impl std::ops::BitOr for siglevel {
         new
     }
 }
-impl std::ops::BitAnd for siglevel {
+impl std::ops::BitAnd for SigLevel {
     type Output = Self;
     fn bitand(self, rhs: Self) -> Self {
-        let mut new = siglevel::default();
+        let mut new = SigLevel::default();
         new.ALPM_SIG_PACKAGE = self.ALPM_SIG_PACKAGE & rhs.ALPM_SIG_PACKAGE;
         new.ALPM_SIG_PACKAGE_OPTIONAL =
             self.ALPM_SIG_PACKAGE_OPTIONAL & rhs.ALPM_SIG_PACKAGE_OPTIONAL;
@@ -237,10 +237,10 @@ impl std::ops::BitAnd for siglevel {
         new
     }
 }
-impl std::ops::Not for siglevel {
+impl std::ops::Not for SigLevel {
     type Output = Self;
     fn not(self) -> Self {
-        let mut new = siglevel::default();
+        let mut new = SigLevel::default();
         new.ALPM_SIG_PACKAGE = self.ALPM_SIG_PACKAGE;
         new.ALPM_SIG_PACKAGE_OPTIONAL = self.ALPM_SIG_PACKAGE_OPTIONAL;
         new.ALPM_SIG_PACKAGE_MARGINAL_OK = self.ALPM_SIG_PACKAGE_MARGINAL_OK;
@@ -255,7 +255,7 @@ impl std::ops::Not for siglevel {
         new
     }
 }
-impl siglevel {
+impl SigLevel {
     pub fn not_zero(&self) -> bool {
         !(self.ALPM_SIG_PACKAGE || self.ALPM_SIG_PACKAGE_OPTIONAL
             || self.ALPM_SIG_PACKAGE_MARGINAL_OK || self.ALPM_SIG_PACKAGE_UNKNOWN_OK
@@ -332,9 +332,9 @@ struct fileconflict_t {
     ctarget: String,
 }
 
-/// Package group
+/// Package group. aka alpm_group_t
 #[derive(Debug, Clone)]
-pub struct group_t {
+pub struct Group {
     /// group name
     pub name: String,
     /// list of packages
@@ -370,11 +370,12 @@ struct alpm_filelist_t {
 	// alpm_file_t *files;
 }
 
-// /// Local package or package file backup entry
-// typedef struct _alpm_backup_t {
-// 	char *name;
-// 	char *hash;
-// } alpm_backup_t;
+/// Local package or package file backup entry
+// aka _alpm_backup_t oralpm_backup_t
+struct Backup {
+    name: String,
+    hash: String,
+}
 
 #[derive(Debug, Clone, Default)]
 struct alpm_pgpkey_t {
@@ -817,7 +818,7 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * @param url URL of the package to download
 //  * @return the downloaded filepath on success, NULL on error
 //
-// char *alpm_fetch_pkgurl(alpm_handle_t *handle, const char *url);
+// char *alpm_fetch_pkgurl(Handle *handle, const char *url);
 
 // /// @addtogroup alpm_api_options Options
 //  * Libalpm option getters and setters
@@ -825,97 +826,97 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //
 //
 // /// Returns the callback used for logging.
-// alpm_cb_log alpm_option_get_logcb(alpm_handle_t *handle);
+// alpm_cb_log alpm_option_get_logcb(Handle *handle);
 // /// Sets the callback used for logging.
-// int alpm_option_set_logcb(alpm_handle_t *handle, alpm_cb_log cb);
+// int alpm_option_set_logcb(Handle *handle, alpm_cb_log cb);
 //
 // /// Returns the callback used to report download progress.
-// alpm_cb_download alpm_option_get_dlcb(alpm_handle_t *handle);
+// alpm_cb_download alpm_option_get_dlcb(Handle *handle);
 // /// Sets the callback used to report download progress.
-// int alpm_option_set_dlcb(alpm_handle_t *handle, alpm_cb_download cb);
+// int alpm_option_set_dlcb(Handle *handle, alpm_cb_download cb);
 //
 // /// Returns the downloading callback.
-// alpm_cb_fetch alpm_option_get_fetchcb(alpm_handle_t *handle);
+// alpm_cb_fetch alpm_option_get_fetchcb(Handle *handle);
 // /// Sets the downloading callback.
-// int alpm_option_set_fetchcb(alpm_handle_t *handle, alpm_cb_fetch cb);
+// int alpm_option_set_fetchcb(Handle *handle, alpm_cb_fetch cb);
 //
 // /// Returns the callback used to report total download size.
-// alpm_cb_totaldl alpm_option_get_totaldlcb(alpm_handle_t *handle);
+// alpm_cb_totaldl alpm_option_get_totaldlcb(Handle *handle);
 // /// Sets the callback used to report total download size.
-// int alpm_option_set_totaldlcb(alpm_handle_t *handle, alpm_cb_totaldl cb);
+// int alpm_option_set_totaldlcb(Handle *handle, alpm_cb_totaldl cb);
 //
 // /// Returns the callback used for events.
-// alpm_cb_event alpm_option_get_eventcb(alpm_handle_t *handle);
+// alpm_cb_event alpm_option_get_eventcb(Handle *handle);
 // /// Sets the callback used for events.
-// int alpm_option_set_eventcb(alpm_handle_t *handle, alpm_cb_event cb);
+// int alpm_option_set_eventcb(Handle *handle, alpm_cb_event cb);
 //
 // /// Returns the callback used for questions.
-// alpm_cb_question alpm_option_get_questioncb(alpm_handle_t *handle);
+// alpm_cb_question alpm_option_get_questioncb(Handle *handle);
 // /// Sets the callback used for questions.
-// int alpm_option_set_questioncb(alpm_handle_t *handle, alpm_cb_question cb);
+// int alpm_option_set_questioncb(Handle *handle, alpm_cb_question cb);
 //
 // /// Returns the callback used for operation progress.
-// alpm_cb_progress alpm_option_get_progresscb(alpm_handle_t *handle);
+// alpm_cb_progress alpm_option_get_progresscb(Handle *handle);
 // /// Sets the callback used for operation progress.
-// int alpm_option_set_progresscb(alpm_handle_t *handle, alpm_cb_progress cb);
+// int alpm_option_set_progresscb(Handle *handle, alpm_cb_progress cb);
 //
 // /// Returns the root of the destination filesystem. Read-only.
-// const char *alpm_option_get_root(alpm_handle_t *handle);
+// const char *alpm_option_get_root(Handle *handle);
 //
 // /// Returns the path to the database directory. Read-only.
-// const char *alpm_option_get_dbpath(alpm_handle_t *handle);
+// const char *alpm_option_get_dbpath(Handle *handle);
 //
 // /// Get the name of the database lock file. Read-only.
-// const char *alpm_option_get_lockfile(alpm_handle_t *handle);
+// const char *alpm_option_get_lockfile(Handle *handle);
 //
 // /// @name Accessors to the list of package cache directories.
 //  * @{
 //
-// alpm_list_t *alpm_option_get_cachedirs(alpm_handle_t *handle);
-// int alpm_option_set_cachedirs(alpm_handle_t *handle, alpm_list_t *cachedirs);
-// int alpm_option_add_cachedir(alpm_handle_t *handle, const char *cachedir);
-// int alpm_option_remove_cachedir(alpm_handle_t *handle, const char *cachedir);
+// alpm_list_t *alpm_option_get_cachedirs(Handle *handle);
+// int alpm_option_set_cachedirs(Handle *handle, alpm_list_t *cachedirs);
+// int alpm_option_add_cachedir(Handle *handle, const char *cachedir);
+// int alpm_option_remove_cachedir(Handle *handle, const char *cachedir);
 // /// @}
 //
 // /// @name Accessors to the list of package hook directories.
 //  * @{
 //
-// alpm_list_t *alpm_option_get_hookdirs(alpm_handle_t *handle);
-// int alpm_option_set_hookdirs(alpm_handle_t *handle, alpm_list_t *hookdirs);
-// int alpm_option_add_hookdir(alpm_handle_t *handle, const char *hookdir);
-// int alpm_option_remove_hookdir(alpm_handle_t *handle, const char *hookdir);
+// alpm_list_t *alpm_option_get_hookdirs(Handle *handle);
+// int alpm_option_set_hookdirs(Handle *handle, alpm_list_t *hookdirs);
+// int alpm_option_add_hookdir(Handle *handle, const char *hookdir);
+// int alpm_option_remove_hookdir(Handle *handle, const char *hookdir);
 // /// @}
 //
-// alpm_list_t *alpm_option_get_overwrite_files(alpm_handle_t *handle);
-// int alpm_option_set_overwrite_files(alpm_handle_t *handle, alpm_list_t *globs);
-// int alpm_option_add_overwrite_file(alpm_handle_t *handle, const char *glob);
-// int alpm_option_remove_overwrite_file(alpm_handle_t *handle, const char *glob);
+// alpm_list_t *alpm_option_get_overwrite_files(Handle *handle);
+// int alpm_option_set_overwrite_files(Handle *handle, alpm_list_t *globs);
+// int alpm_option_add_overwrite_file(Handle *handle, const char *glob);
+// int alpm_option_remove_overwrite_file(Handle *handle, const char *glob);
 //
 // /// Returns the logfile name.
-// const char *alpm_option_get_logfile(alpm_handle_t *handle);
+// const char *alpm_option_get_logfile(Handle *handle);
 // /// Sets the logfile name.
-// int alpm_option_set_logfile(alpm_handle_t *handle, const char *logfile);
+// int alpm_option_set_logfile(Handle *handle, const char *logfile);
 //
 // /// Returns the path to libalpm's GnuPG home directory.
-// const char *alpm_option_get_gpgdir(alpm_handle_t *handle);
+// const char *alpm_option_get_gpgdir(Handle *handle);
 // /// Sets the path to libalpm's GnuPG home directory.
-// int alpm_option_set_gpgdir(alpm_handle_t *handle, const char *gpgdir);
+// int alpm_option_set_gpgdir(Handle *handle, const char *gpgdir);
 //
 // /// Returns whether to use syslog (0 is FALSE, TRUE otherwise).
-// int alpm_option_get_usesyslog(alpm_handle_t *handle);
+// int alpm_option_get_usesyslog(Handle *handle);
 // /// Sets whether to use syslog (0 is FALSE, TRUE otherwise).
-// int alpm_option_set_usesyslog(alpm_handle_t *handle, int usesyslog);
+// int alpm_option_set_usesyslog(Handle *handle, int usesyslog);
 //
 // /// @name Accessors to the list of no-upgrade files.
 //  * These functions modify the list of files which should
 //  * not be updated by package installation.
 //  * @{
 //
-// alpm_list_t *alpm_option_get_noupgrades(alpm_handle_t *handle);
-// int alpm_option_add_noupgrade(alpm_handle_t *handle, const char *path);
-// int alpm_option_set_noupgrades(alpm_handle_t *handle, alpm_list_t *noupgrade);
-// int alpm_option_remove_noupgrade(alpm_handle_t *handle, const char *path);
-// int alpm_option_match_noupgrade(alpm_handle_t *handle, const char *path);
+// alpm_list_t *alpm_option_get_noupgrades(Handle *handle);
+// int alpm_option_add_noupgrade(Handle *handle, const char *path);
+// int alpm_option_set_noupgrades(Handle *handle, alpm_list_t *noupgrade);
+// int alpm_option_remove_noupgrade(Handle *handle, const char *path);
+// int alpm_option_match_noupgrade(Handle *handle, const char *path);
 // /// @}
 //
 // /// @name Accessors to the list of no-extract files.
@@ -924,11 +925,11 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * not be upgraded by a sysupgrade operation.
 //  * @{
 //
-// alpm_list_t *alpm_option_get_noextracts(alpm_handle_t *handle);
-// int alpm_option_add_noextract(alpm_handle_t *handle, const char *path);
-// int alpm_option_set_noextracts(alpm_handle_t *handle, alpm_list_t *noextract);
-// int alpm_option_remove_noextract(alpm_handle_t *handle, const char *path);
-// int alpm_option_match_noextract(alpm_handle_t *handle, const char *path);
+// alpm_list_t *alpm_option_get_noextracts(Handle *handle);
+// int alpm_option_add_noextract(Handle *handle, const char *path);
+// int alpm_option_set_noextracts(Handle *handle, alpm_list_t *noextract);
+// int alpm_option_remove_noextract(Handle *handle, const char *path);
+// int alpm_option_match_noextract(Handle *handle, const char *path);
 // /// @}
 //
 // /// @name Accessors to the list of ignored packages.
@@ -936,10 +937,10 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * should be ignored by a sysupgrade.
 //  * @{
 //
-// alpm_list_t *alpm_option_get_ignorepkgs(alpm_handle_t *handle);
-// int alpm_option_add_ignorepkg(alpm_handle_t *handle, const char *pkg);
-// int alpm_option_set_ignorepkgs(alpm_handle_t *handle, alpm_list_t *ignorepkgs);
-// int alpm_option_remove_ignorepkg(alpm_handle_t *handle, const char *pkg);
+// alpm_list_t *alpm_option_get_ignorepkgs(Handle *handle);
+// int alpm_option_add_ignorepkg(Handle *handle, const char *pkg);
+// int alpm_option_set_ignorepkgs(Handle *handle, alpm_list_t *ignorepkgs);
+// int alpm_option_remove_ignorepkg(Handle *handle, const char *pkg);
 // /// @}
 //
 // /// @name Accessors to the list of ignored groups.
@@ -947,10 +948,10 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * should be ignored by a sysupgrade.
 //  * @{
 //
-// alpm_list_t *alpm_option_get_ignoregroups(alpm_handle_t *handle);
-// int alpm_option_add_ignoregroup(alpm_handle_t *handle, const char *grp);
-// int alpm_option_set_ignoregroups(alpm_handle_t *handle, alpm_list_t *ignoregrps);
-// int alpm_option_remove_ignoregroup(alpm_handle_t *handle, const char *grp);
+// alpm_list_t *alpm_option_get_ignoregroups(Handle *handle);
+// int alpm_option_add_ignoregroup(Handle *handle, const char *grp);
+// int alpm_option_set_ignoregroups(Handle *handle, alpm_list_t *ignoregrps);
+// int alpm_option_remove_ignoregroup(Handle *handle, const char *grp);
 // /// @}
 
 // /// @addtogroup alpm_api_databases Database Functions
@@ -964,7 +965,7 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * libalpm functions.
 //  * @return a reference to the local database
 //
-// Database *alpm_get_localdb(alpm_handle_t *handle);
+// Database *alpm_get_localdb(Handle *handle);
 //
 // /// Get the list of sync databases.
 //  * Returns a list of Database structures, one for each registered
@@ -972,7 +973,7 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * @param handle the context handle
 //  * @return a reference to an internal list of Database structures
 //
-// alpm_list_t *alpm_get_syncdbs(alpm_handle_t *handle);
+// alpm_list_t *alpm_get_syncdbs(Handle *handle);
 //
 // /// Register a sync database of packages.
 //  * @param handle the context handle
@@ -981,14 +982,14 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * database; note that this must be a '.sig' file type verification
 //  * @return an Database* on success (the value), NULL on error
 //
-// Database *alpm_register_syncdb(alpm_handle_t *handle, const char *treename,
+// Database *alpm_register_syncdb(Handle *handle, const char *treename,
 // 		int level);
 //
 // /// Unregister all package databases.
 //  * @param handle the context handle
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_unregister_all_syncdbs(alpm_handle_t *handle);
+// int alpm_unregister_all_syncdbs(Handle *handle);
 //
 // /// Unregister a package database.
 //  * @param db pointer to the package database to unregister
@@ -1113,7 +1114,7 @@ impl alpm_db_usage_t {
 //  * @param pkg address of the package pointer
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_pkg_load(alpm_handle_t *handle, const char *filename, int full,
+// int alpm_pkg_load(Handle *handle, const char *filename, int full,
 // 		int level, Package **pkg);
 //
 // /* Find a package in a list by name.
@@ -1161,7 +1162,7 @@ impl alpm_db_usage_t {
 //  * @param pkg the package to test
 //  * @return 1 if the package should be ignored, 0 otherwise
 //
-// int alpm_pkg_should_ignore(alpm_handle_t *handle, Package *pkg);
+// int alpm_pkg_should_ignore(Handle *handle, Package *pkg);
 //
 // /// @name Package Property Accessors
 //  * Any pointer returned by these functions points to internal structures
@@ -1463,7 +1464,7 @@ impl alpm_db_usage_t {
 // int alpm_decode_signature(const char *base64_data,
 // 		unsigned char **data, size_t *data_len);
 //
-// int alpm_extract_keyid(alpm_handle_t *handle, const char *identifier,
+// int alpm_extract_keyid(Handle *handle, const char *identifier,
 // 		const unsigned char *sig, const size_t len, alpm_list_t **keys);
 //
 // /*
@@ -1527,26 +1528,26 @@ pub struct alpm_transflag_t {
 //  * @param handle the context handle
 //  * @return the bitfield of transaction flags
 //
-// int alpm_trans_get_flags(alpm_handle_t *handle);
+// int alpm_trans_get_flags(Handle *handle);
 //
 // /// Returns a list of packages added by the transaction.
 //  * @param handle the context handle
 //  * @return a list of Package structures
 //
-// alpm_list_t *alpm_trans_get_add(alpm_handle_t *handle);
+// alpm_list_t *alpm_trans_get_add(Handle *handle);
 //
 // /// Returns the list of packages removed by the transaction.
 //  * @param handle the context handle
 //  * @return a list of Package structures
 //
-// alpm_list_t *alpm_trans_get_remove(alpm_handle_t *handle);
+// alpm_list_t *alpm_trans_get_remove(Handle *handle);
 //
 // /// Initialize the transaction.
 //  * @param handle the context handle
 //  * @param flags flags of the transaction (like nodeps, etc; see alpm_transflag_t)
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_trans_init(alpm_handle_t *handle, int flags);
+// int alpm_trans_init(Handle *handle, int flags);
 //
 // /// Prepare a transaction.
 //  * @param handle the context handle
@@ -1554,7 +1555,7 @@ pub struct alpm_transflag_t {
 //  * of depmissing_t objects is dumped (conflicting packages)
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_trans_prepare(alpm_handle_t *handle, alpm_list_t **data);
+// int alpm_trans_prepare(Handle *handle, alpm_list_t **data);
 //
 // /// Commit a transaction.
 //  * @param handle the context handle
@@ -1562,19 +1563,19 @@ pub struct alpm_transflag_t {
 //  * of an error can be dumped (i.e. list of conflicting files)
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_trans_commit(alpm_handle_t *handle, alpm_list_t **data);
+// int alpm_trans_commit(Handle *handle, alpm_list_t **data);
 //
 // /// Interrupt a transaction.
 //  * @param handle the context handle
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_trans_interrupt(alpm_handle_t *handle);
+// int alpm_trans_interrupt(Handle *handle);
 //
 // /// Release a transaction.
 //  * @param handle the context handle
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_trans_release(alpm_handle_t *handle);
+// int alpm_trans_release(Handle *handle);
 // /// @}
 //
 // /// @name Common Transactions
@@ -1585,7 +1586,7 @@ pub struct alpm_transflag_t {
 //  * @param enable_downgrade allow downgrading of packages if the remote version is lower
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_sync_sysupgrade(alpm_handle_t *handle, int enable_downgrade);
+// int alpm_sync_sysupgrade(Handle *handle, int enable_downgrade);
 //
 // /// Add a package to the transaction.
 //  * If the package was loaded by alpm_pkg_load(), it will be freed upon
@@ -1594,14 +1595,14 @@ pub struct alpm_transflag_t {
 //  * @param pkg the package to add
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_add_pkg(alpm_handle_t *handle, Package *pkg);
+// int alpm_add_pkg(Handle *handle, Package *pkg);
 //
 // /// Add a package removal action to the transaction.
 //  * @param handle the context handle
 //  * @param pkg the package to uninstall
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_remove_pkg(alpm_handle_t *handle, Package *pkg);
+// int alpm_remove_pkg(Handle *handle, Package *pkg);
 //
 // /// @}
 //
@@ -1611,13 +1612,13 @@ pub struct alpm_transflag_t {
 //  * @{
 //
 //
-// alpm_list_t *alpm_checkdeps(alpm_handle_t *handle, alpm_list_t *pkglist,
+// alpm_list_t *alpm_checkdeps(Handle *handle, alpm_list_t *pkglist,
 // 		alpm_list_t *remove, alpm_list_t *upgrade, int reversedeps);
 // Package *alpm_find_satisfier(alpm_list_t *pkgs, const char *depstring);
-// Package *alpm_find_dbs_satisfier(alpm_handle_t *handle,
+// Package *alpm_find_dbs_satisfier(Handle *handle,
 // 		alpm_list_t *dbs, const char *depstring);
 //
-// alpm_list_t *alpm_checkconflicts(alpm_handle_t *handle, alpm_list_t *pkglist);
+// alpm_list_t *alpm_checkconflicts(Handle *handle, alpm_list_t *pkglist);
 //
 // /// Returns a newly allocated string representing the dependency information.
 //  * @param dep a dependency info structure
@@ -1632,10 +1633,10 @@ pub struct alpm_transflag_t {
 // char *alpm_compute_md5sum(const char *filename);
 // char *alpm_compute_sha256sum(const char *filename);
 //
-// alpm_handle_t *initialize(const char *root, const char *dbpath,
+// Handle *initialize(const char *root, const char *dbpath,
 // 		errno_t *err);
-// int alpm_release(alpm_handle_t *handle);
-// int alpm_unlock(alpm_handle_t *handle);
+// int alpm_release(Handle *handle);
+// int alpm_unlock(Handle *handle);
 #[derive(Default)]
 // pub struct alpm_caps {
 pub struct Capabilities {
@@ -1682,11 +1683,11 @@ pub struct Capabilities {
 /// * `root` the root path for all filesystem operations
 /// * `dbpath` the absolute path to the libalpm database
 /// * returns a context handle on success, or error
-pub fn initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
+pub fn initialize(root: &String, dbpath: &String) -> Result<Handle> {
     let myerr = errno_t::default();
     let lf = "db.lck";
     let hookdir;
-    let mut myhandle = alpm_handle_t::_alpm_handle_new();
+    let mut myhandle = Handle::_alpm_handle_new();
 
     _alpm_set_directory_option(root, &mut myhandle.root, true)?;
     _alpm_set_directory_option(dbpath, &mut myhandle.dbpath, true)?;
@@ -1719,7 +1720,7 @@ pub fn initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
 /// in any way.
 /// * `myhandle` the context handle
 /// * returns 0 on success, -1 on error
-pub fn alpm_release(myhandle: alpm_handle_t) -> i32 {
+pub fn alpm_release(myhandle: Handle) -> i32 {
     unimplemented!();
     // 	int ret = 0;
     // 	Database *db;

@@ -39,7 +39,7 @@ fn unlink_verbose(pathname: &String, ignore_missing: bool) -> i32 {
     // 	return ret;
 }
 
-fn sync_cleandb(dbpath: String, handle: &mut alpm_handle_t) -> i32 {
+fn sync_cleandb(dbpath: String, handle: &mut Handle) -> i32 {
     let syncdbs;
     let mut ret = 0;
 
@@ -104,7 +104,7 @@ fn sync_cleandb(dbpath: String, handle: &mut alpm_handle_t) -> i32 {
     return ret;
 }
 
-fn sync_cleandb_all(config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+fn sync_cleandb_all(config: &config_t, handle: &mut Handle) -> i32 {
     let syncdbpath;
     let mut ret = 0;
     {
@@ -284,7 +284,7 @@ fn sync_search(
     syncs: &mut Vec<Database>,
     targets: &Vec<String>,
     config: &config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> bool {
     let mut found = 0;
 
@@ -574,7 +574,7 @@ fn process_targname<T>(
     dblist: Vec<T>,
     targname: &String,
     error: i32,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> i32 {
     let pkg: Option<Package> = handle.alpm_find_dbs_satisfier(&dblist, targname);
 
@@ -653,7 +653,7 @@ fn process_target(target: &String, error: i32) -> i32 {
 fn sync_trans(
     targets: &Vec<String>,
     config: &mut config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     let mut retval = 0;
 
@@ -712,7 +712,7 @@ fn print_broken_dep(miss: &depmissing_t) {
 
 pub fn sync_prepare_execute(
     config: &config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     unimplemented!();
     // 	alpm_list_t *i, *packages, *data = NULL;
@@ -851,7 +851,7 @@ pub fn sync_prepare_execute(
 pub fn pacman_sync(
     targets: Vec<String>,
     config: &mut config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> std::result::Result<(), ()> {
     // 	alpm_list_t *sync_dbs = NULL;
     let mut sync_dbs: Vec<Database>;

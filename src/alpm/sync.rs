@@ -48,7 +48,7 @@ use super::*;
 // #include "diskspace.h"
 // #include "signing.h"
 
-// static alpm_list_t *check_replacers(alpm_handle_t *handle, Package *lpkg,
+// static alpm_list_t *check_replacers(Handle *handle, Package *lpkg,
 // 		Database *sdb)
 // {
 // 	/* 2. search for replacers in sdb */
@@ -125,7 +125,7 @@ use super::*;
 // }
 
 /// Search for packages to upgrade and add them to the transaction.
-pub fn alpm_sync_sysupgrade(handle: &mut alpm_handle_t, enable_downgrade: bool) -> Result<i32> {
+pub fn alpm_sync_sysupgrade(handle: &mut Handle, enable_downgrade: bool) -> Result<i32> {
     let handle_clone = &handle.clone();
     let trans = &mut handle.trans;
 
@@ -238,7 +238,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<Package> {
  *
  * @return 0 if all delta files were able to be applied, 1 otherwise.
  */
-fn apply_deltas(handle: &alpm_handle_t) -> i32 {
+fn apply_deltas(handle: &Handle) -> i32 {
     unimplemented!();
     // 	alpm_list_t *i;
     // 	size_t deltas_found = 0;
@@ -343,7 +343,7 @@ fn apply_deltas(handle: &alpm_handle_t) -> i32 {
  *
  * @return 1 if file was removed, 0 otherwise
  */
-fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) -> i32 {
+fn prompt_to_delete(handle: &Handle, filepath: &String, reason: errno_t) -> i32 {
     unimplemented!();
     // 	alpm_question_corrupted_t question = {
     // 		.type = ALPM_QUESTION_CORRUPTED_PKG,
@@ -358,7 +358,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
     // 	return question.remove;
 }
 
-// static int validate_deltas(alpm_handle_t *handle, alpm_list_t *deltas)
+// static int validate_deltas(Handle *handle, alpm_list_t *deltas)
 // {
 // 	alpm_list_t *i, *errors = NULL;
 // 	alpm_event_t event;
@@ -396,7 +396,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	return 0;
 // }
 
-// static struct dload_payload *build_payload(alpm_handle_t *handle,
+// static struct dload_payload *build_payload(Handle *handle,
 // 		const char *filename, size_t size, alpm_list_t *servers)
 // {
 // 		struct dload_payload *payload;
@@ -411,7 +411,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // static int find_dl_candidates(Database *repo, alpm_list_t **files, alpm_list_t **deltas)
 // {
 // 	alpm_list_t *i;
-// 	alpm_handle_t *handle = repo->handle;
+// 	Handle *handle = repo->handle;
 //
 // 	for(i = handle->trans->add; i; i = i->next) {
 // 		Package *spkg = i->data;
@@ -454,7 +454,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	return 0;
 // }
 
-// static int download_single_file(alpm_handle_t *handle, struct dload_payload *payload,
+// static int download_single_file(Handle *handle, struct dload_payload *payload,
 // 		const char *cachedir)
 // {
 // 	alpm_event_pkgdownload_t event = {
@@ -489,7 +489,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	return -1;
 // }
 
-// static int download_files(alpm_handle_t *handle, alpm_list_t **deltas)
+// static int download_files(Handle *handle, alpm_list_t **deltas)
 // {
 // 	const char *cachedir;
 // 	alpm_list_t *i, *files = NULL;
@@ -576,7 +576,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // }
 
 // #ifdef HAVE_LIBGPGME
-// static int check_keyring(alpm_handle_t *handle)
+// static int check_keyring(Handle *handle)
 // {
 // 	size_t current = 0, numtargs;
 // 	alpm_list_t *i, *errors = NULL;
@@ -652,7 +652,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // }
 // #endif /* HAVE_LIBGPGME */
 
-// static int check_validity(alpm_handle_t *handle,
+// static int check_validity(Handle *handle,
 // 		size_t total, uint64_t total_bytes)
 // {
 // 	struct validity {
@@ -737,7 +737,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	return 0;
 // }
 
-// static int load_packages(alpm_handle_t *handle, alpm_list_t **data,
+// static int load_packages(Handle *handle, alpm_list_t **data,
 // 		size_t total, size_t total_bytes)
 // {
 // 	size_t current = 0, current_bytes = 0;
@@ -822,7 +822,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	return 0;
 // }
 
-// int _alpm_sync_load(alpm_handle_t *handle, alpm_list_t **data)
+// int _alpm_sync_load(Handle *handle, alpm_list_t **data)
 // {
 // 	alpm_list_t *i, *deltas = NULL;
 // 	size_t total = 0;
@@ -879,7 +879,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	return 0;
 // }
 
-// int _alpm_sync_check(alpm_handle_t *handle, alpm_list_t **data)
+// int _alpm_sync_check(Handle *handle, alpm_list_t **data)
 // {
 // 	alpm_trans_t *trans = handle->trans;
 // 	alpm_event_t event;
@@ -925,7 +925,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 	return 0;
 // }
 
-fn _alpm_sync_commit(handle: &mut alpm_handle_t) -> i32 {
+fn _alpm_sync_commit(handle: &mut Handle) -> i32 {
     /* remove conflicting and to-be-replaced packages */
     if !handle.trans.remove.is_empty() {
         debug!("removing conflicting and to-be-replaced packages");

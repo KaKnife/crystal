@@ -96,8 +96,8 @@ pub struct config_repo_t {
     name: String,
     servers: Vec<String>,
     usage: alpm_db_usage_t,
-    siglevel: siglevel,
-    siglevel_mask: siglevel,
+    SigLevel: SigLevel,
+    SigLevel_mask: SigLevel,
 }
 
 #[derive(Default, Debug)]
@@ -157,13 +157,13 @@ pub struct config_t {
     pub noask: bool,
     pub ask: u64,
     pub flags: alpm::alpm_transflag_t,
-    pub siglevel: siglevel,
-    pub localfilesiglevel: siglevel,
-    pub remotefilesiglevel: siglevel,
+    pub SigLevel: SigLevel,
+    pub localfileSigLevel: SigLevel,
+    pub remotefileSigLevel: SigLevel,
 
-    pub siglevel_mask: siglevel,
-    pub localfilesiglevel_mask: siglevel,
-    pub remotefilesiglevel_mask: siglevel,
+    pub SigLevel_mask: SigLevel,
+    pub localfileSigLevel_mask: SigLevel,
+    pub remotefileSigLevel_mask: SigLevel,
 
     /* conf file options */
     /* I Love Candy! */
@@ -183,7 +183,7 @@ pub struct config_t {
     pub xfercommand: String,
 
     /* our connection to libalpm */
-    // pub handle: alpm_handle_t,
+    // pub handle: Handle,
     pub explicit_adds: Vec<Package>,
     pub explicit_removes: Vec<Package>,
 
@@ -292,10 +292,10 @@ impl config_t {
         newconfig.deltaratio = 0.0;
         //TODO: implement this
         // if(alpm_capabilities() & ALPM_CAPABILITY_SIGNATURES) {
-        // 	newconfig.siglevel = ALPM_SIG_PACKAGE | ALPM_SIG_PACKAGE_OPTIONAL |
+        // 	newconfig.SigLevel = ALPM_SIG_PACKAGE | ALPM_SIG_PACKAGE_OPTIONAL |
         // 		ALPM_SIG_DATABASE | ALPM_SIG_DATABASE_OPTIONAL;
-        // 	newconfig.localfilesiglevel = ALPM_SIG_USE_DEFAULT;
-        // 	newconfig.remotefilesiglevel = ALPM_SIG_USE_DEFAULT;
+        // 	newconfig.localfileSigLevel = ALPM_SIG_USE_DEFAULT;
+        // 	newconfig.remotefileSigLevel = ALPM_SIG_USE_DEFAULT;
         // }
 
         newconfig.colstr.colon = String::from(":: ");
@@ -1124,8 +1124,8 @@ impl config_t {
 /// @return 0 on success, 1 on any parsing error
 fn process_siglevel(
     values: Vec<String>,
-    storage: &mut siglevel,
-    storage_mask: &mut siglevel,
+    storage: &mut SigLevel,
+    storage_mask: &mut SigLevel,
     file: &String,
     linenum: i32,
 ) -> i32 {
@@ -1255,10 +1255,10 @@ fn process_siglevel(
 }
 
 /// Merge the package entries of two signature verification levels.
-/// @param base initial siglevel
-/// @param over overriding siglevel
-/// @return merged siglevel
-pub fn merge_siglevel(base: siglevel, over: siglevel, mask: siglevel) -> siglevel {
+/// @param base initial SigLevel
+/// @param over overriding SigLevel
+/// @return merged SigLevel
+pub fn merge_siglevel(base: SigLevel, over: SigLevel, mask: SigLevel) -> SigLevel {
     return if mask.not_zero() {
         (over & mask) | (base & !mask)
     } else {
@@ -1430,8 +1430,8 @@ fn _parse_options(
                 setrepeatingoption(value, "SigLevel", &mut values);
                 if process_siglevel(
                     values,
-                    &mut config.siglevel,
-                    &mut config.siglevel_mask,
+                    &mut config.SigLevel,
+                    &mut config.SigLevel_mask,
                     file,
                     linenum,
                 ) != 0
@@ -1443,8 +1443,8 @@ fn _parse_options(
                 setrepeatingoption(value, "LocalFileSigLevel", &mut values);
                 if process_siglevel(
                     values,
-                    &mut config.localfilesiglevel,
-                    &mut config.localfilesiglevel_mask,
+                    &mut config.localfileSigLevel,
+                    &mut config.localfileSigLevel_mask,
                     file,
                     linenum,
                 ) != 0
@@ -1456,8 +1456,8 @@ fn _parse_options(
                 setrepeatingoption(value, "RemoteFileSigLevel", &mut values);
                 if process_siglevel(
                     values,
-                    &mut config.remotefilesiglevel,
-                    &mut config.remotefilesiglevel_mask,
+                    &mut config.remotefileSigLevel,
+                    &mut config.remotefileSigLevel_mask,
                     file,
                     linenum,
                 ) != 0
@@ -1510,13 +1510,13 @@ fn _add_mirror(db: &mut Database, value: &String, arch: &String) -> Result<()> {
 
 fn register_repo(
     repo: &mut config_repo_t,
-    config_handle: &mut alpm_handle_t,
-    config_siglevel: siglevel,
+    config_handle: &mut Handle,
+    config_siglevel: SigLevel,
     arch: &String,
 ) -> i32 {
-    repo.siglevel = merge_siglevel(config_siglevel, repo.siglevel, repo.siglevel_mask);
+    repo.SigLevel = merge_siglevel(config_siglevel, repo.SigLevel, repo.SigLevel_mask);
 
-    let mut db = match config_handle.alpm_register_syncdb(&repo.name, repo.siglevel) {
+    let mut db = match config_handle.alpm_register_syncdb(&repo.name, repo.SigLevel) {
         Err(e) => {
             eprintln!(
                 "could not register '{}' database ({})",
@@ -1575,7 +1575,7 @@ fn register_repo(
  * of our paths to live under the rootdir that was specified. Safe to call
  * multiple times (will only do anything the first time).
  */
-fn setup_libalpm(config: &mut config_t) -> Result<alpm_handle_t> {
+fn setup_libalpm(config: &mut config_t) -> Result<Handle> {
     let mut handle;
 
     debug!("setup_libalpm called");
@@ -1701,25 +1701,25 @@ fn setup_libalpm(config: &mut config_t) -> Result<alpm_handle_t> {
 
     handle.alpm_option_set_overwrite_files(&config.overwrite_files);
 
-    handle.alpm_option_set_default_siglevel(&config.siglevel);
+    handle.alpm_option_set_default_siglevel(&config.SigLevel);
 
-    config.localfilesiglevel = merge_siglevel(
-        config.siglevel,
-        config.localfilesiglevel,
-        config.localfilesiglevel_mask,
+    config.localfileSigLevel = merge_siglevel(
+        config.SigLevel,
+        config.localfileSigLevel,
+        config.localfileSigLevel_mask,
     );
-    config.remotefilesiglevel = merge_siglevel(
-        config.siglevel,
-        config.remotefilesiglevel,
-        config.remotefilesiglevel_mask,
+    config.remotefileSigLevel = merge_siglevel(
+        config.SigLevel,
+        config.remotefileSigLevel,
+        config.remotefileSigLevel_mask,
     );
 
-    handle.alpm_option_set_local_file_siglevel(config.localfilesiglevel)?;
+    handle.alpm_option_set_local_file_siglevel(config.localfileSigLevel)?;
 
-    handle.alpm_option_set_remote_file_siglevel(config.remotefilesiglevel);
+    handle.alpm_option_set_remote_file_siglevel(config.remotefileSigLevel);
 
     for mut data in &mut config.repos {
-        register_repo(&mut data, &mut handle, config.siglevel, &config.arch);
+        register_repo(&mut data, &mut handle, config.SigLevel, &config.arch);
     }
 
     // if config.xfercommand!="" {
@@ -1837,8 +1837,8 @@ fn _parse_repo(
                         if !values.is_empty() {
                             ret = process_siglevel(
                                 values,
-                                &mut repo.siglevel,
-                                &mut repo.siglevel_mask,
+                                &mut repo.SigLevel,
+                                &mut repo.SigLevel_mask,
                                 file,
                                 line,
                             );
@@ -1974,7 +1974,7 @@ fn _parse_directive(
             } else {
                 let mut repo = config_repo_t::default();
                 repo.name = name.clone();
-                repo.siglevel.ALPM_SIG_USE_DEFAULT = true;
+                repo.SigLevel.ALPM_SIG_USE_DEFAULT = true;
                 section.repo = Some(repo.clone());
                 config.repos.push(repo);
             }
@@ -2011,7 +2011,7 @@ fn _parse_directive(
 ///
 /// - `file` - path to the config file
 /// - `returns` - 0 on success, non-zero on error
-pub fn parseconfig(file: &String, config: &mut config_t) -> Result<alpm_handle_t> {
+pub fn parseconfig(file: &String, config: &mut config_t) -> Result<Handle> {
     let ret;
     let handle;
     let mut section = section_t::default();

@@ -51,7 +51,7 @@ use super::*;
 
 #[derive(Default, Debug)]
 pub struct dload_payload {
-    // alpm_handle_t *handle;
+    // Handle *handle;
     // const char *tempfile_openmode;
     pub remote_name: String,
     pub tempfile_name: String,
@@ -96,7 +96,7 @@ pub struct dload_payload {
 // 	return filepath;
 // }
 //
-// static CURL *get_libcurl_handle(alpm_handle_t *handle)
+// static CURL *get_libcurl_handle(Handle *handle)
 // {
 // 	if(!handle->curl) {
 // 		curl_global_init(CURL_GLOBAL_SSL);
@@ -275,7 +275,7 @@ pub struct dload_payload {
 // static void curl_set_handle_opts(struct dload_payload *payload,
 // 		CURL *curl, char *error_buffer)
 // {
-// 	alpm_handle_t *handle = payload->handle;
+// 	Handle *handle = payload->handle;
 // 	const char *useragent = getenv("HTTP_USER_AGENT");
 // 	struct stat st;
 //
@@ -398,7 +398,7 @@ pub struct dload_payload {
 // 	double remote_size, bytes_dl;
 // 	struct sigaction orig_sig_pipe, orig_sig_int;
 // 	/* shortcut to our handle within the payload */
-// 	alpm_handle_t *handle = payload->handle;
+// 	Handle *handle = payload->handle;
 // 	CURL *curl = get_libcurl_handle(handle);
 // 	handle->pm_errno = ALPM_ERR_OK;
 //
@@ -627,7 +627,7 @@ impl dload_payload {
         final_url: Option<&String>,
     ) -> i32 {
         unimplemented!();
-        // 	alpm_handle_t *handle = payload->handle;
+        // 	Handle *handle = payload->handle;
         //
         // if handle.fetchcb == NULL {
         // #ifdef HAVE_LIBCURL
@@ -656,7 +656,7 @@ impl dload_payload {
         self.fileurl = String::new();
     }
 }
-// static char *filecache_find_url(alpm_handle_t *handle, const char *url)
+// static char *filecache_find_url(Handle *handle, const char *url)
 // {
 // 	const char *filebase = strrchr(url, '/');
 //
@@ -672,7 +672,7 @@ impl dload_payload {
 // 	return _alpm_filecache_find(handle, filebase);
 // }
 
-impl alpm_handle_t {
+impl Handle {
     /** Fetch a remote pkg. */
     pub fn alpm_fetch_pkgurl(&self, url: &String) -> Result<String> {
         unimplemented!();

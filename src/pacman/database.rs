@@ -27,7 +27,7 @@ use super::alpm::*;
 fn change_install_reason(
     targets: Vec<String>,
     config: &mut config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> i32 {
     let db_local: &Database;
     let mut ret: i32 = 0;
@@ -101,7 +101,7 @@ fn change_install_reason(
 fn check_db_missing_deps(
     config: &conf::config_t,
     pkglist: &mut Vec<Package>,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> i32 {
     let mut ret: i32 = 0;
     /* check dependencies */
@@ -113,7 +113,7 @@ fn check_db_missing_deps(
     return ret;
 }
 
-fn check_db_local_files(config: &conf::config_t, handle: &mut alpm_handle_t) -> i32 {
+fn check_db_local_files(config: &conf::config_t, handle: &mut Handle) -> i32 {
     use std::fs;
     let dbpath: &String;
     let mut ret: i32 = 0;
@@ -161,7 +161,7 @@ fn check_db_local_files(config: &conf::config_t, handle: &mut alpm_handle_t) -> 
 fn check_db_local_package_conflicts(
     pkglist: &Vec<Package>,
     config: &conf::config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> i32 {
     let mut ret: i32 = 0;
     /* check conflicts */
@@ -239,7 +239,7 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<Package>) -> i32 {
 /// Check 'local' package database for consistency
 ///
 /// * return - 0 on success, >=1 on failure
-fn check_db_local(config: &mut config_t, handle: &mut alpm_handle_t) -> i32 {
+fn check_db_local(config: &mut config_t, handle: &mut Handle) -> i32 {
     let mut ret: i32 = 0;
     let mut pkglist: Vec<Package>;
     let handle_clone = &handle.clone();
@@ -263,7 +263,7 @@ fn check_db_local(config: &mut config_t, handle: &mut alpm_handle_t) -> i32 {
 /// Check 'sync' package databases for consistency
 ///
 /// * return - 0 on success, >=1 on failure
-fn check_db_sync(config: &mut config_t, handle: &mut alpm_handle_t) -> i32 {
+fn check_db_sync(config: &mut config_t, handle: &mut Handle) -> i32 {
     let mut syncpkglist = Vec::new();
     let handle_clone = &handle.clone();
 
@@ -288,7 +288,7 @@ fn check_db_sync(config: &mut config_t, handle: &mut alpm_handle_t) -> i32 {
 pub fn pacman_database(
     targets: Vec<String>,
     config: &mut config_t,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> std::result::Result<(), i32> {
     let mut ret: i32 = 0;
 

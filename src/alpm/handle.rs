@@ -31,42 +31,42 @@ use super::deps::find_dep_satisfier;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// alpm_cb_log SYMEXPORT alpm_option_get_logcb(alpm_handle_t *handle)
+// alpm_cb_log SYMEXPORT alpm_option_get_logcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->logcb;
 // }
 //
-// alpm_cb_download SYMEXPORT alpm_option_get_dlcb(alpm_handle_t *handle)
+// alpm_cb_download SYMEXPORT alpm_option_get_dlcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->dlcb;
 // }
 //
-// alpm_cb_fetch SYMEXPORT alpm_option_get_fetchcb(alpm_handle_t *handle)
+// alpm_cb_fetch SYMEXPORT alpm_option_get_fetchcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->fetchcb;
 // }
-// alpm_cb_totaldl SYMEXPORT alpm_option_get_totaldlcb(alpm_handle_t *handle)
+// alpm_cb_totaldl SYMEXPORT alpm_option_get_totaldlcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->totaldlcb;
 // }
 //
-// alpm_cb_event SYMEXPORT alpm_option_get_eventcb(alpm_handle_t *handle)
+// alpm_cb_event SYMEXPORT alpm_option_get_eventcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->eventcb;
 // }
 //
-// alpm_cb_question SYMEXPORT alpm_option_get_questioncb(alpm_handle_t *handle)
+// alpm_cb_question SYMEXPORT alpm_option_get_questioncb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->questioncb;
 // }
 //
-// alpm_cb_progress SYMEXPORT alpm_option_get_progresscb(alpm_handle_t *handle)
+// alpm_cb_progress SYMEXPORT alpm_option_get_progresscb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->progresscb;
@@ -78,7 +78,7 @@ pub type alpm_list_t<T> = Vec<T>;
 pub struct archive {}
 pub struct archive_entry {}
 
-impl alpm_handle_t {
+impl Handle {
     /// Run ldconfig in a chroot. Returns 0 on success, 1 on error
     pub fn _alpm_ldconfig(&self) -> i32 {
         use std::fs::metadata;
@@ -528,7 +528,7 @@ impl alpm_handle_t {
         // return _alpm_innerconflicts(handle, pkglist);
     }
 
-    pub fn _alpm_db_register_sync(&mut self, treename: &String, level: siglevel) -> Database {
+    pub fn _alpm_db_register_sync(&mut self, treename: &String, level: SigLevel) -> Database {
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "registering sync database '%s'\n", treename);
 
         // #ifndef HAVE_LIBGPGME
@@ -541,7 +541,7 @@ impl alpm_handle_t {
         db.ops_type = db_ops_type::sync;
         // db->ops = &sync_db_ops;
         // db.handle = handle;
-        db.siglevel = level;
+        db.SigLevel = level;
         db.create_path(&self.dbpath, &self.dbext);
         db.sync_db_validate(self);
 
@@ -754,7 +754,7 @@ impl alpm_handle_t {
         &self,
         filename: &String,
         full: i32,
-        level: &siglevel,
+        level: &SigLevel,
         pkg: &Package,
     ) -> Result<i32> {
         unimplemented!();
@@ -866,7 +866,7 @@ impl alpm_handle_t {
     pub fn alpm_register_syncdb(
         &mut self,
         treename: &String,
-        siglevel: siglevel,
+        SigLevel: SigLevel,
     ) -> Result<Database> {
         /* ensure database name is unique */
         if treename == "local" {
@@ -878,7 +878,7 @@ impl alpm_handle_t {
             }
         }
 
-        Ok(self._alpm_db_register_sync(&treename, siglevel))
+        Ok(self._alpm_db_register_sync(&treename, SigLevel))
     }
 
     pub fn _alpm_db_register_local(&mut self) -> Result<&Database> {
@@ -1657,21 +1657,21 @@ impl alpm_handle_t {
     // 	return 0;
     // }
 
-    // int SYMEXPORT alpm_option_set_eventcb(alpm_handle_t *handle, alpm_cb_event cb)
+    // int SYMEXPORT alpm_option_set_eventcb(Handle *handle, alpm_cb_event cb)
     // {
     // 	CHECK_HANDLE(handle, return -1);
     // 	handle->eventcb = cb;
     // 	return 0;
     // }
 
-    // int SYMEXPORT alpm_option_set_questioncb(alpm_handle_t *handle, alpm_cb_question cb)
+    // int SYMEXPORT alpm_option_set_questioncb(Handle *handle, alpm_cb_question cb)
     // {
     // 	CHECK_HANDLE(handle, return -1);
     // 	handle->questioncb = cb;
     // 	return 0;
     // }
 
-    // int SYMEXPORT alpm_option_set_progresscb(alpm_handle_t *handle, alpm_cb_progress cb)
+    // int SYMEXPORT alpm_option_set_progresscb(Handle *handle, alpm_cb_progress cb)
     // {
     // 	CHECK_HANDLE(handle, return -1);
     // 	handle->progresscb = cb;
@@ -1692,7 +1692,7 @@ impl alpm_handle_t {
         return Ok(0);
     }
 
-    // int SYMEXPORT alpm_option_set_hookdirs(alpm_handle_t *handle, alpm_list_t *hookdirs)
+    // int SYMEXPORT alpm_option_set_hookdirs(Handle *handle, alpm_list_t *hookdirs)
     // {
     // 	alpm_list_t *i;
     // 	CHECK_HANDLE(handle, return -1);
@@ -1708,7 +1708,7 @@ impl alpm_handle_t {
     // 	return 0;
     // }
     //
-    // int SYMEXPORT alpm_option_remove_hookdir(alpm_handle_t *handle, const char *hookdir)
+    // int SYMEXPORT alpm_option_remove_hookdir(Handle *handle, const char *hookdir)
     // {
     // 	char *vdata = NULL;
     // 	char *newhookdir;
@@ -1753,7 +1753,7 @@ impl alpm_handle_t {
         return Ok(0);
     }
 
-    // int SYMEXPORT alpm_option_remove_cachedir(alpm_handle_t *handle, const char *cachedir)
+    // int SYMEXPORT alpm_option_remove_cachedir(Handle *handle, const char *cachedir)
     // {
     // 	char *vdata = NULL;
     // 	char *newcachedir;
@@ -1802,7 +1802,7 @@ impl alpm_handle_t {
         self.usesyslog = usesyslog;
     }
 
-    // static int _alpm_option_strlist_add(alpm_handle_t *handle, alpm_list_t **list, const char *str)
+    // static int _alpm_option_strlist_add(Handle *handle, alpm_list_t **list, const char *str)
     // {
     // 	char *dup;
     // 	CHECK_HANDLE(handle, return -1);
@@ -1815,7 +1815,7 @@ impl alpm_handle_t {
         *list = newlist.clone();
     }
 
-    // static int _alpm_option_strlist_rem(alpm_handle_t *handle, alpm_list_t **list, const char *str)
+    // static int _alpm_option_strlist_rem(Handle *handle, alpm_list_t **list, const char *str)
     // {
     // 	char *vdata = NULL;
     // 	CHECK_HANDLE(handle, return -1);
@@ -1827,7 +1827,7 @@ impl alpm_handle_t {
     // 	return 0;
     // }
     //
-    // int SYMEXPORT alpm_option_add_noupgrade(alpm_handle_t *handle, const char *pkg)
+    // int SYMEXPORT alpm_option_add_noupgrade(Handle *handle, const char *pkg)
     // {
     // 	return _alpm_option_strlist_add(handle, &(handle->noupgrade), pkg);
     // }
@@ -1836,17 +1836,17 @@ impl alpm_handle_t {
         self.noupgrade = noupgrade.clone()
     }
 
-    // int SYMEXPORT alpm_option_remove_noupgrade(alpm_handle_t *handle, const char *pkg)
+    // int SYMEXPORT alpm_option_remove_noupgrade(Handle *handle, const char *pkg)
     // {
     // 	return _alpm_option_strlist_rem(handle, &(handle->noupgrade), pkg);
     // }
     //
-    // int SYMEXPORT alpm_option_match_noupgrade(alpm_handle_t *handle, const char *path)
+    // int SYMEXPORT alpm_option_match_noupgrade(Handle *handle, const char *path)
     // {
     // 	return _alpm_fnmatch_patterns(handle->noupgrade, path);
     // }
     //
-    // int SYMEXPORT alpm_option_add_noextract(alpm_handle_t *handle, const char *path)
+    // int SYMEXPORT alpm_option_add_noextract(Handle *handle, const char *path)
     // {
     // 	return _alpm_option_strlist_add(handle, &(handle->noextract), path);
     // }
@@ -1855,17 +1855,17 @@ impl alpm_handle_t {
         self.noextract = noextract.clone();
     }
 
-    // int SYMEXPORT alpm_option_remove_noextract(alpm_handle_t *handle, const char *path)
+    // int SYMEXPORT alpm_option_remove_noextract(Handle *handle, const char *path)
     // {
     // 	return _alpm_option_strlist_rem(handle, &(handle->noextract), path);
     // }
     //
-    // int SYMEXPORT alpm_option_match_noextract(alpm_handle_t *handle, const char *path)
+    // int SYMEXPORT alpm_option_match_noextract(Handle *handle, const char *path)
     // {
     // 	return _alpm_fnmatch_patterns(handle->noextract, path);
     // }
     //
-    // int SYMEXPORT alpm_option_add_ignorepkg(alpm_handle_t *handle, const char *pkg)
+    // int SYMEXPORT alpm_option_add_ignorepkg(Handle *handle, const char *pkg)
     // {
     // 	return _alpm_option_strlist_add(handle, &(handle->ignorepkg), pkg);
     // }
@@ -1874,12 +1874,12 @@ impl alpm_handle_t {
         self.ignorepkg = ignorepkgs.clone();
     }
 
-    // int SYMEXPORT alpm_option_remove_ignorepkg(alpm_handle_t *handle, const char *pkg)
+    // int SYMEXPORT alpm_option_remove_ignorepkg(Handle *handle, const char *pkg)
     // {
     // 	return _alpm_option_strlist_rem(handle, &(handle->ignorepkg), pkg);
     // }
     //
-    // int SYMEXPORT alpm_option_add_ignoregroup(alpm_handle_t *handle, const char *grp)
+    // int SYMEXPORT alpm_option_add_ignoregroup(Handle *handle, const char *grp)
     // {
     // 	return _alpm_option_strlist_add(handle, &(handle->ignoregroup), grp);
     // }
@@ -1888,12 +1888,12 @@ impl alpm_handle_t {
         self.ignoregroup = ignoregrps.clone();
     }
 
-    // int SYMEXPORT alpm_option_remove_ignoregroup(alpm_handle_t *handle, const char *grp)
+    // int SYMEXPORT alpm_option_remove_ignoregroup(Handle *handle, const char *grp)
     // {
     // 	return _alpm_option_strlist_rem(handle, &(handle->ignoregroup), grp);
     // }
     //
-    // int SYMEXPORT alpm_option_add_overwrite_file(alpm_handle_t *handle, const char *glob)
+    // int SYMEXPORT alpm_option_add_overwrite_file(Handle *handle, const char *glob)
     // {
     // 	return _alpm_option_strlist_add(handle, &(handle->overwrite_files), glob);
     // }
@@ -1902,7 +1902,7 @@ impl alpm_handle_t {
         self.overwrite_files = globs.clone();
     }
 
-    // int SYMEXPORT alpm_option_remove_overwrite_file(alpm_handle_t *handle, const char *glob)
+    // int SYMEXPORT alpm_option_remove_overwrite_file(Handle *handle, const char *glob)
     // {
     // 	return _alpm_option_strlist_rem(handle, &(handle->overwrite_files), glob);
     // }
@@ -1917,7 +1917,7 @@ impl alpm_handle_t {
         self.assumeinstalled.push(depcpy);
     }
 
-    // int SYMEXPORT alpm_option_set_assumeinstalled(alpm_handle_t *handle, alpm_list_t *deps)
+    // int SYMEXPORT alpm_option_set_assumeinstalled(Handle *handle, alpm_list_t *deps)
     // {
     // 	CHECK_HANDLE(handle, return -1);
     // 	if(handle->assumeinstalled) {
@@ -2008,9 +2008,9 @@ impl alpm_handle_t {
         // _alpm_log(handle, ALPM_LOG_DEBUG, "option 'dbext' = %s\n", handle->dbext);
     }
 
-    pub fn alpm_option_set_default_siglevel(&mut self, level: &siglevel) -> i32 {
+    pub fn alpm_option_set_default_siglevel(&mut self, level: &SigLevel) -> i32 {
         // #ifdef HAVE_LIBGPGME
-        self.siglevel = level.clone();
+        self.SigLevel = level.clone();
         // #else
         // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
         // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
@@ -2019,15 +2019,15 @@ impl alpm_handle_t {
         return 0;
     }
 
-    fn alpm_option_get_default_siglevel(&self) -> siglevel {
+    fn alpm_option_get_default_siglevel(&self) -> SigLevel {
         // CHECK_HANDLE(handle, return -1);
-        return self.siglevel;
+        return self.SigLevel;
     }
 
-    pub fn alpm_option_set_local_file_siglevel(&mut self, level: siglevel) -> Result<i32> {
+    pub fn alpm_option_set_local_file_siglevel(&mut self, level: SigLevel) -> Result<i32> {
         // CHECK_HANDLE(handle, return -1);
         if cfg!(HAVE_LIBGPGME) {
-            self.localfilesiglevel = level;
+            self.localfileSigLevel = level;
         } else if
         /*level != 0 &&*/
         level.ALPM_SIG_USE_DEFAULT {
@@ -2038,19 +2038,19 @@ impl alpm_handle_t {
         return Ok(0);
     }
 
-    pub fn alpm_option_get_local_file_siglevel(&self) -> siglevel {
+    pub fn alpm_option_get_local_file_siglevel(&self) -> SigLevel {
         // CHECK_HANDLE(handle, return -1);
-        if self.localfilesiglevel.ALPM_SIG_USE_DEFAULT {
-            return self.siglevel;
+        if self.localfileSigLevel.ALPM_SIG_USE_DEFAULT {
+            return self.SigLevel;
         } else {
-            return self.localfilesiglevel;
+            return self.localfileSigLevel;
         }
     }
 
-    pub fn alpm_option_set_remote_file_siglevel(&mut self, level: siglevel) {
+    pub fn alpm_option_set_remote_file_siglevel(&mut self, level: SigLevel) {
         // unimplemented!();
         // #ifdef HAVE_LIBGPGME
-        self.remotefilesiglevel = level;
+        self.remotefileSigLevel = level;
         // #else
         // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
         // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
@@ -2059,12 +2059,12 @@ impl alpm_handle_t {
         // 	return 0;
     }
 
-    pub fn alpm_option_get_remote_file_siglevel(&self) -> siglevel {
+    pub fn alpm_option_get_remote_file_siglevel(&self) -> SigLevel {
         // CHECK_HANDLE(handle, return -1);
-        if self.remotefilesiglevel.ALPM_SIG_USE_DEFAULT {
-            return self.siglevel;
+        if self.remotefileSigLevel.ALPM_SIG_USE_DEFAULT {
+            return self.SigLevel;
         } else {
-            return self.remotefilesiglevel;
+            return self.remotefileSigLevel;
         }
     }
 
@@ -2076,8 +2076,8 @@ impl alpm_handle_t {
         return 0;
     }
 
-    pub fn _alpm_handle_new() -> alpm_handle_t {
-        let mut handle = alpm_handle_t::default();
+    pub fn _alpm_handle_new() -> Handle {
+        let mut handle = Handle::default();
         handle.deltaratio = 0.0;
         handle.lockfd = None;
 
@@ -2588,7 +2588,7 @@ pub fn _alpm_set_directory_option(
 // } while(0)
 
 #[derive(Default, Debug)]
-pub struct alpm_handle_t {
+pub struct Handle {
     // 	/* internal usage */
     pub db_local: Database,      //// local db pointer */
     pub dbs_sync: Vec<Database>, /* List of (Database *) */
@@ -2645,10 +2645,10 @@ pub struct alpm_handle_t {
     /* TODO move to frontend */
     checkspace: i32,    /* Check disk space before installing */
     pub dbext: String,  /* Sync DB extension */
-    siglevel: siglevel, /* Default signature verification level */
-    localfilesiglevel: siglevel, /* Signature verification level for local file
+    SigLevel: SigLevel, /* Default signature verification level */
+    localfileSigLevel: SigLevel, /* Signature verification level for local file
                         // 	                                       upgrade operations */
-    remotefilesiglevel: siglevel, /* Signature verification level for remote file
+    remotefileSigLevel: SigLevel, /* Signature verification level for remote file
                                   // 	                                       upgrade operations */
     //
     // 	/* error code */
@@ -2662,9 +2662,9 @@ pub struct alpm_handle_t {
     // 	regex_t delta_regex;
 }
 
-impl Clone for alpm_handle_t {
+impl Clone for Handle {
     fn clone(&self) -> Self {
-        alpm_handle_t {
+        Handle {
             db_local: self.db_local.clone(),
             dbs_sync: self.dbs_sync.clone(),
             // 	FILE *logstream;
@@ -2705,9 +2705,9 @@ impl Clone for alpm_handle_t {
             usesyslog: self.usesyslog,
             checkspace: self.checkspace,
             dbext: self.dbext.clone(),
-            siglevel: self.siglevel,
-            localfilesiglevel: self.localfilesiglevel,
-            remotefilesiglevel: self.remotefilesiglevel,
+            SigLevel: self.SigLevel,
+            localfileSigLevel: self.localfileSigLevel,
+            remotefileSigLevel: self.remotefileSigLevel,
             // pub pm_errno: errno_t,
             lockfd: None,
             // 	int delta_regex_compiled;

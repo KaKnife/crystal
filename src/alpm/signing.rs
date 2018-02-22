@@ -150,7 +150,7 @@ use super::*;
 //  * @param handle the context handle
 //  * @return 0 on success, -1 on error
 //  */
-// static int init_gpgme(alpm_handle_t *handle)
+// static int init_gpgme(Handle *handle)
 // {
 // 	static int init = 0;
 // 	const char *version, *sigdir;
@@ -215,7 +215,7 @@ use super::*;
 //  * @param fpr the fingerprint key ID to look up
 //  * @return 1 if key is known, 0 if key is unknown, -1 on error
 //  */
-// int _alpm_key_in_keychain(alpm_handle_t *handle, const char *fpr)
+// int _alpm_key_in_keychain(Handle *handle, const char *fpr)
 // {
 // 	gpgme_error_t gpg_err;
 // 	gpgme_ctx_t ctx;
@@ -267,7 +267,7 @@ use super::*;
 //  * @param pgpkey storage location for the given key if found
 //  * @return 1 on success, 0 on key not found, -1 on error
 //  */
-// static int key_search(alpm_handle_t *handle, const char *fpr,
+// static int key_search(Handle *handle, const char *fpr,
 // 		alpm_pgpkey_t *pgpkey)
 // {
 // 	gpgme_error_t gpg_err;
@@ -390,7 +390,7 @@ use super::*;
 //  * @param key the key to import, likely retrieved from #key_search
 //  * @return 0 on success, -1 on error
 //  */
-// static int key_import(alpm_handle_t *handle, alpm_pgpkey_t *key)
+// static int key_import(Handle *handle, alpm_pgpkey_t *key)
 // {
 // 	gpgme_error_t gpg_err;
 // 	gpgme_ctx_t ctx;
@@ -437,7 +437,7 @@ use super::*;
 //  * @param fpr the fingerprint key ID to import
 //  * @return 0 on success, -1 on error
 //  */
-// int _alpm_key_import(alpm_handle_t *handle, const char *fpr)
+// int _alpm_key_import(Handle *handle, const char *fpr)
 // {
 // 	int ret = -1;
 // 	alpm_pgpkey_t fetch_key;
@@ -493,7 +493,7 @@ use super::*;
 //  * @param siglist a pointer to storage for signature results
 //  * @return 0 in normal cases, -1 if the something failed in the check process
 //  */
-// int _alpm_gpgme_checksig(alpm_handle_t *handle, const char *path,
+// int _alpm_gpgme_checksig(Handle *handle, const char *path,
 // 		const char *base64_sig, alpm_siglist_t *siglist)
 // {
 // 	int ret = -1, sigcount;
@@ -710,17 +710,17 @@ use super::*;
 // }
 //
 // #else /* HAVE_LIBGPGME */
-// int _alpm_key_in_keychain(alpm_handle_t UNUSED *handle, const char UNUSED *fpr)
+// int _alpm_key_in_keychain(Handle UNUSED *handle, const char UNUSED *fpr)
 // {
 // 	return -1;
 // }
 //
-// int _alpm_key_import(alpm_handle_t UNUSED *handle, const char UNUSED *fpr)
+// int _alpm_key_import(Handle UNUSED *handle, const char UNUSED *fpr)
 // {
 // 	return -1;
 // }
 //
-// int _alpm_gpgme_checksig(alpm_handle_t UNUSED *handle, const char UNUSED *path,
+// int _alpm_gpgme_checksig(Handle UNUSED *handle, const char UNUSED *path,
 // 		const char UNUSED *base64_sig, alpm_siglist_t UNUSED *siglist)
 // {
 // 	return -1;
@@ -744,7 +744,7 @@ use super::*;
 //  * @return 0 on success, -1 on error (consult pm_errno or sigdata)
 //  */
 pub fn _alpm_check_pgp_helper(
-    handle: &alpm_handle_t,
+    handle: &Handle,
     path: &String,
     base64_sig: Option<&String>,
     optional: bool,
@@ -837,7 +837,7 @@ pub fn _alpm_check_pgp_helper(
 //  * validation process
 //  */
 pub fn _alpm_process_siglist(
-    handle: &alpm_handle_t,
+    handle: &Handle,
     identifier: &String,
     siglist: &alpm_siglist_t,
     optional: bool,
@@ -987,7 +987,7 @@ pub fn _alpm_process_siglist(
 //  * @param keys a pointer to storage for key IDs
 //  * @return 0 on success, -1 on error
 //  */
-// int SYMEXPORT alpm_extract_keyid(alpm_handle_t *handle, const char *identifier,
+// int SYMEXPORT alpm_extract_keyid(Handle *handle, const char *identifier,
 // 		const unsigned char *sig, const size_t len, alpm_list_t **keys)
 // {
 // 	size_t pos, spos, blen, hlen, ulen, slen;

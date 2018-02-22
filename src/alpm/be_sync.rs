@@ -82,7 +82,7 @@ use std::fs;
 pub fn alpm_db_update(
     mut force: bool,
     db: &mut Database,
-    handle: &mut alpm_handle_t,
+    handle: &mut Handle,
 ) -> Result<i8> {
     let syncpath;
     let mut updated = false;
