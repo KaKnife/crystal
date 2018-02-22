@@ -297,7 +297,7 @@ impl siglevel {
 
 /// PGP signature verification status return codes
 #[derive(Debug, Clone)]
-enum alpm_sigstatus_t {
+enum sigstatus_t {
     ALPM_SIGSTATUS_VALID,
     ALPM_SIGSTATUS_KEY_EXPIRED,
     ALPM_SIGSTATUS_SIG_EXPIRED,
@@ -305,9 +305,9 @@ enum alpm_sigstatus_t {
     ALPM_SIGSTATUS_KEY_DISABLED,
     ALPM_SIGSTATUS_INVALID,
 }
-impl Default for alpm_sigstatus_t {
+impl Default for sigstatus_t {
     fn default() -> Self {
-        alpm_sigstatus_t::ALPM_SIGSTATUS_VALID
+        sigstatus_t::ALPM_SIGSTATUS_VALID
     }
 }
 
@@ -425,7 +425,7 @@ struct alpm_pgpkey_t {
 #[derive(Debug, Clone, Default)]
 struct alpm_sigresult_t {
     key: alpm_pgpkey_t,
-    status: alpm_sigstatus_t,
+    status: sigstatus_t,
     validity: alpm_sigvalidity_t,
 }
 
