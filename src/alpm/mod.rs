@@ -49,7 +49,7 @@ pub use self::deps::alpm_find_satisfier;
 
 const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
 
-pub type Result<T> = std::result::Result<T, alpm_errno_t>;
+pub type Result<T> = std::result::Result<T, errno_t>;
 
 // /*
 //  * alpm.h
@@ -102,13 +102,13 @@ pub type Result<T> = std::result::Result<T, alpm_errno_t>;
 // typedef struct __pkg_t pkg_t;
 // typedef struct __alpm_trans_t alpm_trans_t;
 
-impl Default for alpm_errno_t {
+impl Default for errno_t {
     fn default() -> Self {
-        alpm_errno_t::ALPM_ERR_OK
+        errno_t::ALPM_ERR_OK
     }
 }
 use std::fmt;
-impl fmt::Display for alpm_errno_t {
+impl fmt::Display for errno_t {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.alpm_strerror())
     }
@@ -116,7 +116,7 @@ impl fmt::Display for alpm_errno_t {
 
 /// Error Codes
 #[derive(Debug, Copy, Clone)]
-pub enum alpm_errno_t {
+pub enum errno_t {
     ALPM_ERR_OK = 0,
     ALPM_ERR_MEMORY,
     ALPM_ERR_SYSTEM,
@@ -186,10 +186,10 @@ pub enum alpm_errno_t {
 }
 
 // /** Returns the current error code from the handle. */
-// alpm_errno_t alpm_errno(alpm_handle_t *handle);
+// errno_t alpm_errno(alpm_handle_t *handle);
 //
 // /** Returns the string corresponding to an error number. */
-// const char *alpm_strerror(alpm_errno_t err);
+// const char *alpm_strerror(errno_t err);
 //
 // /* End of alpm_api_errors */
 // /** @} */
@@ -793,7 +793,7 @@ enum alpm_event_type_t {
 // 	/** Filename to remove */
 // 	const char *filepath;
 // 	/** Error code indicating the reason for package invalidity */
-// 	alpm_errno_t reason;
+// 	errno_t reason;
 // } alpm_question_corrupted_t;
 
 // typedef struct _alpm_question_remove_pkgs_t {
@@ -1702,7 +1702,7 @@ pub struct alpm_transflag_t {
 // char *alpm_compute_sha256sum(const char *filename);
 //
 // alpm_handle_t *alpm_initialize(const char *root, const char *dbpath,
-// 		alpm_errno_t *err);
+// 		errno_t *err);
 // int alpm_release(alpm_handle_t *handle);
 // int alpm_unlock(alpm_handle_t *handle);
 #[derive(Default)]
@@ -1776,7 +1776,7 @@ pub struct alpm_caps {
 /// * `dbpath` the absolute path to the libalpm database
 /// * return - a context handle on success, or error
 pub fn alpm_initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
-    let myerr = alpm_errno_t::default();
+    let myerr = errno_t::default();
     let lf = "db.lck";
     let hookdir;
     let mut myhandle = alpm_handle_t::_alpm_handle_new();

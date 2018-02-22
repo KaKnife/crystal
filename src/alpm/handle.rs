@@ -6,7 +6,7 @@ use std;
 use std::fs::File;
 // use std::io::Result;
 // use std::ffi::OsString;
-use self::alpm_errno_t::*;
+use self::errno_t::*;
 use std::fs;
 use super::deps::find_dep_satisfier;
 /*
@@ -108,7 +108,7 @@ impl alpm_handle_t {
         /* lock db */
         if !flags.NOLOCK {
             if self._alpm_handle_lock().is_err() {
-                return Err(alpm_errno_t::ALPM_ERR_HANDLE_LOCK);
+                return Err(errno_t::ALPM_ERR_HANDLE_LOCK);
             }
         }
 
@@ -161,7 +161,7 @@ impl alpm_handle_t {
             // if data {
             *data = invalid.clone();
             // }
-            return Err(alpm_errno_t::ALPM_ERR_PKG_INVALID_ARCH);
+            return Err(errno_t::ALPM_ERR_PKG_INVALID_ARCH);
         }
 
         if trans.add.is_empty() {
@@ -247,7 +247,7 @@ impl alpm_handle_t {
         // 	if(trans->add == NULL) {
         // 		if(_alpm_remove_packages(handle, 1) == -1) {
         // 			/* pm_errno is set by _alpm_remove_packages() */
-        // 			alpm_errno_t save = handle->pm_errno;
+        // 			errno_t save = handle->pm_errno;
         // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
         // 			handle->pm_errno = save;
         // 			return -1;
@@ -255,7 +255,7 @@ impl alpm_handle_t {
         // 	} else {
         // 		if(_alpm_sync_commit(handle) == -1) {
         // 			/* pm_errno is set by _alpm_sync_commit() */
-        // 			alpm_errno_t save = handle->pm_errno;
+        // 			errno_t save = handle->pm_errno;
         // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
         // 			handle->pm_errno = save;
         // 			return -1;
@@ -555,7 +555,7 @@ impl alpm_handle_t {
             Err(_e) => {
                 debug!("database dir '{}' does not exist, creating it", syncpath);
                 if fs::create_dir_all(&syncpath).is_err() {
-                    return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                    return Err(errno_t::ALPM_ERR_SYSTEM);
                 }
             }
             Ok(m) => {
@@ -564,7 +564,7 @@ impl alpm_handle_t {
                     if std::fs::remove_file(&syncpath).is_err()
                         || fs::create_dir_all(&syncpath).is_err()
                     {
-                        return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                        return Err(errno_t::ALPM_ERR_SYSTEM);
                     }
                 }
             }
@@ -870,11 +870,11 @@ impl alpm_handle_t {
     ) -> Result<alpm_db_t> {
         /* ensure database name is unique */
         if treename == "local" {
-            return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
+            return Err(errno_t::ALPM_ERR_DB_NOT_NULL);
         }
         for d in &self.dbs_sync {
             if treename == &d.treename {
-                return Err(alpm_errno_t::ALPM_ERR_DB_NOT_NULL);
+                return Err(errno_t::ALPM_ERR_DB_NOT_NULL);
             }
         }
 
@@ -905,7 +905,7 @@ impl alpm_handle_t {
         debug!("adding package '{}'", pkgname);
 
         if alpm_pkg_find(&mut trans.add, &pkgname).is_some() {
-            return Err(alpm_errno_t::ALPM_ERR_TRANS_DUP_TARGET);
+            return Err(errno_t::ALPM_ERR_TRANS_DUP_TARGET);
         }
 
         match self.db_local._alpm_db_get_pkgfromcache(pkgname) {
@@ -1022,7 +1022,7 @@ impl alpm_handle_t {
                 self.trans.state = alpm_transstate_t::STATE_INTERRUPTED;
                 /* running ldconfig at this point could possibly screw system */
                 skip_ldconfig = true;
-                ret = Err(alpm_errno_t::ALPM_ERR_TRANS_ABORT);
+                ret = Err(errno_t::ALPM_ERR_TRANS_ABORT);
             }
 
             pkg_current += 1;
@@ -2652,7 +2652,7 @@ pub struct alpm_handle_t {
                                   // 	                                       upgrade operations */
     //
     // 	/* error code */
-    // pub pm_errno: alpm_errno_t,
+    // pub pm_errno: errno_t,
 
     /* lock file descriptor */
     lockfd: Option<File>,
@@ -2708,7 +2708,7 @@ impl Clone for alpm_handle_t {
             siglevel: self.siglevel,
             localfilesiglevel: self.localfilesiglevel,
             remotefilesiglevel: self.remotefilesiglevel,
-            // pub pm_errno: alpm_errno_t,
+            // pub pm_errno: errno_t,
             lockfd: None,
             // 	int delta_regex_compiled;
             // 	regex_t delta_regex;

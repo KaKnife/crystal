@@ -1609,7 +1609,7 @@ fn setup_libalpm(config: &mut config_t) -> Result<alpm_handle_t> {
                 config.dbpath
             );
             match e {
-                alpm_errno_t::ALPM_ERR_DB_VERSION => {
+                errno_t::ALPM_ERR_DB_VERSION => {
                     eprintln!("try running pacman-db-upgrade");
                 }
                 _ => {}

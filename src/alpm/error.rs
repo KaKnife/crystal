@@ -20,14 +20,14 @@ use super::*;
  */
 
 // impl alpm_handle_t {
-//     pub fn alpm_errno(&self) -> alpm_errno_t {
+//     pub fn alpm_errno(&self) -> errno_t {
 //         self.pm_errno
 //     }
 // }
 
-impl alpm_errno_t {
+impl errno_t {
     pub fn alpm_strerror(&self) -> String {
-        use self::alpm_errno_t::*;
+        use self::errno_t::*;
         match self {
 		/* System */
 		 &ALPM_ERR_MEMORY=>

@@ -30,9 +30,8 @@ fn remove_target(target: String, config: &mut config_t, handle:&mut alpm_handle_
         Some(pkg) => {
             match alpm_remove_pkg(&mut handle.trans, &pkg) {
                 Err(err) => {
-                    use self::alpm_errno_t::*;
                     match err {
-                        ALPM_ERR_TRANS_DUP_TARGET => {
+                        errno_t::ALPM_ERR_TRANS_DUP_TARGET => {
                             /* just skip duplicate targets */
                             println!("skipping target: {}", target);
                             return 0;
@@ -120,7 +119,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut config_t, handle:&mut al
     //     let err = alpm_errno(&config.handle);
     //     eprintln!("failed to prepare transaction ({})", alpm_strerror(err));
     //     match err {
-    //         alpm_errno_t::ALPM_ERR_UNSATISFIED_DEPS => {
+    //         errno_t::ALPM_ERR_UNSATISFIED_DEPS => {
     //             for miss in data {
     //                 let depstring = alpm_dep_compute_string(&miss.depend);
     //                 unimplemented!();

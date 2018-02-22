@@ -489,7 +489,7 @@ fn process_pkg(pkg: &pkg_t) -> i32 {
     // 	int ret = alpm_add_pkg(config->handle, pkg);
     //
     // 	if(ret == -1) {
-    // 		alpm_errno_t err = alpm_errno(config->handle);
+    // 		errno_t err = alpm_errno(config->handle);
     // 		if(err == ALPM_ERR_TRANS_DUP_TARGET) {
     // 			/* just skip duplicate targets */
     // 			pm_printf(ALPM_LOG_WARNING, _("skipping target: %s\n"), alpm_pkg_get_name(pkg));
@@ -580,7 +580,7 @@ fn process_targname<T>(
 
     /* skip ignored packages when user says no */
     // match config.handle.alpm_errno() {
-    //     alpm_errno_t::ALPM_ERR_PKG_IGNORED => {
+    //     errno_t::ALPM_ERR_PKG_IGNORED => {
     //         // pm_printf(ALPM_LOG_WARNING, _("skipping target: %s\n"), targname);
     //         return 0;
     //     }
@@ -724,7 +724,7 @@ pub fn sync_prepare_execute(
         Err(err) => {
             // == -1 {
             error!("failed to prepare transaction ({})", err);
-            use self::alpm_errno_t::*;
+            use self::errno_t::*;
             match err {
                 ALPM_ERR_PKG_INVALID_ARCH => {
                     for pkg in data {
@@ -791,7 +791,7 @@ pub fn sync_prepare_execute(
     // 	}
 
     // 	if(alpm_trans_commit(config->handle, &data) == -1) {
-    // 		alpm_errno_t err = alpm_errno(config->handle);
+    // 		errno_t err = alpm_errno(config->handle);
     // 		pm_printf(ALPM_LOG_ERROR, _("failed to commit transaction (%s)\n"),
     // 		        alpm_strerror(err));
     // 		switch(err) {

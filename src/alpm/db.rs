@@ -142,7 +142,7 @@ impl alpm_db_t {
             return Ok(true);
         }
         if self.status.DB_STATUS_INVALID {
-            return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
+            return Err(errno_t::ALPM_ERR_DB_INVALID_SIG);
         }
 
         let dbpath = match self._alpm_db_path() {
@@ -209,7 +209,7 @@ impl alpm_db_t {
             if ret != 0 {
                 self.status.DB_STATUS_VALID = false;
                 self.status.DB_STATUS_INVALID = true;
-                return Err(alpm_errno_t::ALPM_ERR_DB_INVALID_SIG);
+                return Err(errno_t::ALPM_ERR_DB_INVALID_SIG);
             }
         }
 
@@ -546,13 +546,13 @@ impl alpm_db_t {
             Err(_) => {
                 debug!("database dir '{}' does not exist, creating it", path);
                 if std::fs::create_dir(&path).is_err() {
-                    return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                    return Err(errno_t::ALPM_ERR_SYSTEM);
                 }
             }
             Ok(p) => if !p.is_dir() {
                 warn!("removing invalid database: {}", path);
                 if std::fs::remove_dir_all(&path).is_err() || std::fs::create_dir(&path).is_err() {
-                    return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                    return Err(errno_t::ALPM_ERR_SYSTEM);
                 }
             },
         }
@@ -781,7 +781,7 @@ impl alpm_db_t {
 
     pub fn local_db_populate(&mut self) -> Result<()> {
         use std::fs;
-        use self::alpm_errno_t::*;
+        use self::errno_t::*;
         let mut count = 0;
         let dbdir;
         let dbpath;
@@ -914,7 +914,7 @@ impl alpm_db_t {
                         }
                     }
                     _ => {
-                        return Err(alpm_errno_t::ALPM_ERR_DB_OPEN);
+                        return Err(errno_t::ALPM_ERR_DB_OPEN);
                     }
                 }
             }
@@ -936,7 +936,7 @@ impl alpm_db_t {
                             } else {
                                 self.status.DB_STATUS_VALID = false;
                                 self.status.DB_STATUS_INVALID = true;
-                                return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
+                                return Err(errno_t::ALPM_ERR_DB_VERSION);
                             }
                         }
                         Err(_e) => panic!(),
@@ -946,7 +946,7 @@ impl alpm_db_t {
                 if self.local_db_add_version(&dbpath).is_err() {
                     self.status.DB_STATUS_VALID = false;
                     self.status.DB_STATUS_INVALID = true;
-                    return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
+                    return Err(errno_t::ALPM_ERR_DB_VERSION);
                 }
 
                 self.status.DB_STATUS_VALID = true;
@@ -964,7 +964,7 @@ impl alpm_db_t {
             Err(e) => {
                 self.status.DB_STATUS_VALID = false;
                 self.status.DB_STATUS_INVALID = true;
-                return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
+                return Err(errno_t::ALPM_ERR_DB_VERSION);
             }
             Ok(v) => v,
         };
@@ -972,7 +972,7 @@ impl alpm_db_t {
         if version != ALPM_LOCAL_DB_VERSION {
             self.status.DB_STATUS_VALID = false;
             self.status.DB_STATUS_INVALID = true;
-            return Err(alpm_errno_t::ALPM_ERR_DB_VERSION);
+            return Err(errno_t::ALPM_ERR_DB_VERSION);
         }
 
         self.status.DB_STATUS_VALID = true;
@@ -985,7 +985,7 @@ impl alpm_db_t {
         match std::fs::create_dir(dbpath) {
             Err(e) => {
                 eprintln!("could not create directory {}: {}", dbpath, e);
-                return Err(alpm_errno_t::ALPM_ERR_DB_CREATE);
+                return Err(errno_t::ALPM_ERR_DB_CREATE);
             }
             _ => {}
         }
@@ -1054,7 +1054,7 @@ impl alpm_db_t {
 
         /* Sanity checks */
         if url.len() == 0 {
-            return Err(alpm_errno_t::ALPM_ERR_WRONG_ARGS);
+            return Err(errno_t::ALPM_ERR_WRONG_ARGS);
         }
 
         newurl = sanitize_url(&url);
@@ -1078,7 +1078,7 @@ impl alpm_db_t {
 
         /* Sanity checks */
         // ASSERT(db != NULL, return -1);
-        // self.handle.pm_errno = alpm_errno_t::ALPM_ERR_OK;
+        // self.handle.pm_errno = errno_t::ALPM_ERR_OK;
         // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
 
         newurl = sanitize_url(url);
@@ -1108,7 +1108,7 @@ impl alpm_db_t {
     /// Get a group entry from a package database.
     pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&alpm_group_t> {
         // if name.len() ==0{
-        //     return Err(alpm_errno_t::ALPM_ERR_WRONG_ARGS);
+        //     return Err(errno_t::ALPM_ERR_WRONG_ARGS);
         // }
 
         return self._alpm_db_get_groupfromcache(name);
@@ -1116,7 +1116,7 @@ impl alpm_db_t {
 
     pub fn alpm_db_get_group_mut(&mut self, name: &String) -> Option<&mut alpm_group_t> {
         // if name.len() ==0{
-        //     return Err(alpm_errno_t::ALPM_ERR_WRONG_ARGS);
+        //     return Err(errno_t::ALPM_ERR_WRONG_ARGS);
         // }
 
         return self._alpm_db_get_groupfromcache_mut(name);
@@ -1241,9 +1241,9 @@ impl alpm_db_t {
             //     "returning error {} from {} : {}\n",
             //     ALPM_ERR_DB_INVALID,
             //     __func__,
-            //     alpm_errno_t::ALPM_ERR_DB_INVALID
+            //     errno_t::ALPM_ERR_DB_INVALID
             // );
-            return Err(alpm_errno_t::ALPM_ERR_DB_INVALID);
+            return Err(errno_t::ALPM_ERR_DB_INVALID);
             // return None;
         }
 
@@ -1263,9 +1263,9 @@ impl alpm_db_t {
             //     "returning error {} from {} : {}\n",
             //     ALPM_ERR_DB_INVALID,
             //     __func__,
-            //     alpm_errno_t::ALPM_ERR_DB_INVALID
+            //     errno_t::ALPM_ERR_DB_INVALID
             // );
-            return Err(alpm_errno_t::ALPM_ERR_DB_INVALID);
+            return Err(errno_t::ALPM_ERR_DB_INVALID);
             // return None;
         }
 
@@ -1505,7 +1505,7 @@ impl alpm_db_t {
             // let dbpath = &handle.dbpathhandle;
             if dbpath == "" {
                 eprintln!("database path is undefined");
-                use self::alpm_errno_t::ALPM_ERR_DB_OPEN;
+                use self::errno_t::ALPM_ERR_DB_OPEN;
                 return Err(ALPM_ERR_DB_OPEN);
             }
 
