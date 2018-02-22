@@ -174,12 +174,18 @@ pub enum pkgvalidation_t {
 /// Types of version constraints in dependency specs.
 #[derive(Debug, Clone)]
 pub enum depmod_t {
-    /** No version constraint */ ALPM_DEP_MOD_ANY = 1,
-    /** Test version equality (package=x.y.z) */ ALPM_DEP_MOD_EQ,
-    /** Test for at least a version (package>=x.y.z) */ ALPM_DEP_MOD_GE,
-    /** Test for at most a version (package<=x.y.z) */ ALPM_DEP_MOD_LE,
-    /** Test for greater than some version (package>x.y.z) */ ALPM_DEP_MOD_GT,
-    /** Test for less than some version (package<x.y.z) */ ALPM_DEP_MOD_LT,
+    /// No version constraint
+    ALPM_DEP_MOD_ANY = 1,
+    /// Test version equality (package=x.y.z) */
+    ALPM_DEP_MOD_EQ,
+    /// Test for at least a version (package>=x.y.z) */
+    ALPM_DEP_MOD_GE,
+    /// Test for at most a version (package<=x.y.z) */
+    ALPM_DEP_MOD_LE,
+    /// Test for greater than some version (package>x.y.z) */
+    ALPM_DEP_MOD_GT,
+    /// Test for less than some version (package<x.y.z) */
+    ALPM_DEP_MOD_LT,
 }
 
 impl Default for depmod_t {
@@ -192,7 +198,7 @@ impl Default for depmod_t {
 /// Whether the conflict results from a file existing on the filesystem, or with
 /// another target in the transaction.
 #[derive(Debug)]
-enum alpm_fileconflicttype_t {
+enum fileconflicttype_t {
     ALPM_FILECONFLICT_TARGET = 1,
     ALPM_FILECONFLICT_FILESYSTEM,
 }
@@ -351,7 +357,7 @@ pub struct alpm_conflict_t {
 /// File conflict */
 struct alpm_fileconflict_t {
     target: String,
-    ttype: alpm_fileconflicttype_t, //used to be type
+    ttype: fileconflicttype_t, //used to be type
     file: String,
     ctarget: String,
 }
@@ -359,8 +365,10 @@ struct alpm_fileconflict_t {
 /// Package group
 #[derive(Debug, Clone)]
 pub struct alpm_group_t {
-    /** group name */ pub name: String,
-    /** list of pkg_t packages */ pub packages: Vec<pkg_t>,
+    /** group name */
+    pub name: String,
+    /** list of pkg_t packages */
+    pub packages: Vec<pkg_t>,
 }
 
 // /// Package upgrade delta */
@@ -451,41 +459,64 @@ pub struct loglevel {
 
 /// Type of events.
 enum alpm_event_type_t {
-    /** Dependencies will be computed for a package. */ ALPM_EVENT_CHECKDEPS_START = 1,
-    /** Dependencies were computed for a package. */ ALPM_EVENT_CHECKDEPS_DONE,
-    /** File conflicts will be computed for a package. */ ALPM_EVENT_FILECONFLICTS_START,
-    /** File conflicts were computed for a package. */ ALPM_EVENT_FILECONFLICTS_DONE,
-    /** Dependencies will be resolved for target package. */ ALPM_EVENT_RESOLVEDEPS_START,
-    /** Dependencies were resolved for target package. */ ALPM_EVENT_RESOLVEDEPS_DONE,
-    /** Inter-conflicts will be checked for target package. */ ALPM_EVENT_INTERCONFLICTS_START,
-    /** Inter-conflicts were checked for target package. */ ALPM_EVENT_INTERCONFLICTS_DONE,
-    /** Processing the package transaction is starting. */ ALPM_EVENT_TRANSACTION_START,
-    /** Processing the package transaction is finished. */ ALPM_EVENT_TRANSACTION_DONE,
+    /** Dependencies will be computed for a package. */
+    ALPM_EVENT_CHECKDEPS_START = 1,
+    /** Dependencies were computed for a package. */
+    ALPM_EVENT_CHECKDEPS_DONE,
+    /** File conflicts will be computed for a package. */
+    ALPM_EVENT_FILECONFLICTS_START,
+    /** File conflicts were computed for a package. */
+    ALPM_EVENT_FILECONFLICTS_DONE,
+    /** Dependencies will be resolved for target package. */
+    ALPM_EVENT_RESOLVEDEPS_START,
+    /** Dependencies were resolved for target package. */
+    ALPM_EVENT_RESOLVEDEPS_DONE,
+    /** Inter-conflicts will be checked for target package. */
+    ALPM_EVENT_INTERCONFLICTS_START,
+    /** Inter-conflicts were checked for target package. */
+    ALPM_EVENT_INTERCONFLICTS_DONE,
+    /** Processing the package transaction is starting. */
+    ALPM_EVENT_TRANSACTION_START,
+    /** Processing the package transaction is finished. */
+    ALPM_EVENT_TRANSACTION_DONE,
     /** Package will be installed/upgraded/downgraded/re-installed/removed; See
      * alpm_event_package_operation_t for arguments. */
     ALPM_EVENT_PACKAGE_OPERATION_START,
     /** Package was installed/upgraded/downgraded/re-installed/removed; See
      * alpm_event_package_operation_t for arguments. */
     ALPM_EVENT_PACKAGE_OPERATION_DONE,
-    /** Target package's integrity will be checked. */ ALPM_EVENT_INTEGRITY_START,
-    /** Target package's integrity was checked. */ ALPM_EVENT_INTEGRITY_DONE,
-    /** Target package will be loaded. */ ALPM_EVENT_LOAD_START,
-    /** Target package is finished loading. */ ALPM_EVENT_LOAD_DONE,
-    /** Target delta's integrity will be checked. */ ALPM_EVENT_DELTA_INTEGRITY_START,
-    /** Target delta's integrity was checked. */ ALPM_EVENT_DELTA_INTEGRITY_DONE,
-    /** Deltas will be applied to packages. */ ALPM_EVENT_DELTA_PATCHES_START,
-    /** Deltas were applied to packages. */ ALPM_EVENT_DELTA_PATCHES_DONE,
+    /** Target package's integrity will be checked. */
+    ALPM_EVENT_INTEGRITY_START,
+    /** Target package's integrity was checked. */
+    ALPM_EVENT_INTEGRITY_DONE,
+    /** Target package will be loaded. */
+    ALPM_EVENT_LOAD_START,
+    /** Target package is finished loading. */
+    ALPM_EVENT_LOAD_DONE,
+    /** Target delta's integrity will be checked. */
+    ALPM_EVENT_DELTA_INTEGRITY_START,
+    /** Target delta's integrity was checked. */
+    ALPM_EVENT_DELTA_INTEGRITY_DONE,
+    /** Deltas will be applied to packages. */
+    ALPM_EVENT_DELTA_PATCHES_START,
+    /** Deltas were applied to packages. */
+    ALPM_EVENT_DELTA_PATCHES_DONE,
     /** Delta patch will be applied to target package; See
      * alpm_event_delta_patch_t for arguments.. */
     ALPM_EVENT_DELTA_PATCH_START,
-    /** Delta patch was applied to target package. */ ALPM_EVENT_DELTA_PATCH_DONE,
-    /** Delta patch failed to apply to target package. */ ALPM_EVENT_DELTA_PATCH_FAILED,
+    /** Delta patch was applied to target package. */
+    ALPM_EVENT_DELTA_PATCH_DONE,
+    /** Delta patch failed to apply to target package. */
+    ALPM_EVENT_DELTA_PATCH_FAILED,
     /** Scriptlet has printed information; See alpm_event_scriptlet_info_t for
      * arguments. */
     ALPM_EVENT_SCRIPTLET_INFO,
-    /** Files will be downloaded from a repository. */ ALPM_EVENT_RETRIEVE_START,
-    /** Files were downloaded from a repository. */ ALPM_EVENT_RETRIEVE_DONE,
-    /** Not all files were successfully downloaded from a repository. */ ALPM_EVENT_RETRIEVE_FAILED,
+    /** Files will be downloaded from a repository. */
+    ALPM_EVENT_RETRIEVE_START,
+    /** Files were downloaded from a repository. */
+    ALPM_EVENT_RETRIEVE_DONE,
+    /** Not all files were successfully downloaded from a repository. */
+    ALPM_EVENT_RETRIEVE_FAILED,
     /** A file will be downloaded from a repository; See alpm_event_pkgdownload_t
      * for arguments */
     ALPM_EVENT_PKGDOWNLOAD_START,
@@ -495,27 +526,37 @@ enum alpm_event_type_t {
     /** A file failed to be downloaded from a repository; See
      * alpm_event_pkgdownload_t for arguments */
     ALPM_EVENT_PKGDOWNLOAD_FAILED,
-    /** Disk space usage will be computed for a package. */ ALPM_EVENT_DISKSPACE_START,
-    /** Disk space usage was computed for a package. */ ALPM_EVENT_DISKSPACE_DONE,
+    /** Disk space usage will be computed for a package. */
+    ALPM_EVENT_DISKSPACE_START,
+    /** Disk space usage was computed for a package. */
+    ALPM_EVENT_DISKSPACE_DONE,
     /** An optdepend for another package is being removed; See
      * alpm_event_optdep_removal_t for arguments. */
     ALPM_EVENT_OPTDEP_REMOVAL,
     /** A configured repository database is missing; See
      * alpm_event_database_missing_t for arguments. */
     ALPM_EVENT_DATABASE_MISSING,
-    /** Checking keys used to create signatures are in keyring. */ ALPM_EVENT_KEYRING_START,
-    /** Keyring checking is finished. */ ALPM_EVENT_KEYRING_DONE,
-    /** Downloading missing keys into keyring. */ ALPM_EVENT_KEY_DOWNLOAD_START,
-    /** Key downloading is finished. */ ALPM_EVENT_KEY_DOWNLOAD_DONE,
+    /** Checking keys used to create signatures are in keyring. */
+    ALPM_EVENT_KEYRING_START,
+    /** Keyring checking is finished. */
+    ALPM_EVENT_KEYRING_DONE,
+    /** Downloading missing keys into keyring. */
+    ALPM_EVENT_KEY_DOWNLOAD_START,
+    /** Key downloading is finished. */
+    ALPM_EVENT_KEY_DOWNLOAD_DONE,
     /** A .pacnew file was created; See alpm_event_pacnew_created_t for arguments. */
     ALPM_EVENT_PACNEW_CREATED,
     /** A .pacsave file was created; See alpm_event_pacsave_created_t for
      * arguments */
     ALPM_EVENT_PACSAVE_CREATED,
-    /** Processing hooks will be started. */ ALPM_EVENT_HOOK_START,
-    /** Processing hooks is finished. */ ALPM_EVENT_HOOK_DONE,
-    /** A hook is starting */ ALPM_EVENT_HOOK_RUN_START,
-    /** A hook has finished running */ ALPM_EVENT_HOOK_RUN_DONE,
+    /** Processing hooks will be started. */
+    ALPM_EVENT_HOOK_START,
+    /** Processing hooks is finished. */
+    ALPM_EVENT_HOOK_DONE,
+    /** A hook is starting */
+    ALPM_EVENT_HOOK_RUN_START,
+    /** A hook has finished running */
+    ALPM_EVENT_HOOK_RUN_DONE,
 }
 
 // typedef struct _alpm_event_any_t {
@@ -1476,25 +1517,40 @@ impl alpm_db_usage_t {
 /// Transaction flags
 #[derive(Default, Debug, Clone)]
 pub struct alpm_transflag_t {
-    /** Ignore dependency checks. */ pub NODEPS: bool,
-    /** Ignore file conflicts and overwrite files. */ pub FORCE: bool,
-    /** Delete files even if they are tagged as backup. */ pub NOSAVE: bool,
-    /** Ignore version numbers when checking dependencies. */ pub NODEPVERSION: bool,
-    /** Remove also any packages depending on a package being removed. */ pub CASCADE: bool,
-    /** Remove packages and their unneeded deps (not explicitly installed). */ pub RECURSE: bool,
-    /** Modify database but do not commit changes to the filesystem. */ pub DBONLY: bool,
+    /** Ignore dependency checks. */
+    pub NODEPS: bool,
+    /** Ignore file conflicts and overwrite files. */
+    pub FORCE: bool,
+    /** Delete files even if they are tagged as backup. */
+    pub NOSAVE: bool,
+    /** Ignore version numbers when checking dependencies. */
+    pub NODEPVERSION: bool,
+    /** Remove also any packages depending on a package being removed. */
+    pub CASCADE: bool,
+    /** Remove packages and their unneeded deps (not explicitly installed). */
+    pub RECURSE: bool,
+    /** Modify database but do not commit changes to the filesystem. */
+    pub DBONLY: bool,
     /* (1 << 7) flag can go here */
-    /** Use ALPM_PKG_REASON_DEPEND when installing packages. */ pub ALLDEPS: bool,
-    /** Only download packages and do not actually install. */ pub DOWNLOADONLY: bool,
-    /** Do not execute install scriptlets after installing. */ pub NOSCRIPTLET: bool,
-    /** Ignore dependency conflicts. */ pub NOCONFLICTS: bool,
+    /** Use ALPM_PKG_REASON_DEPEND when installing packages. */
+    pub ALLDEPS: bool,
+    /** Only download packages and do not actually install. */
+    pub DOWNLOADONLY: bool,
+    /** Do not execute install scriptlets after installing. */
+    pub NOSCRIPTLET: bool,
+    /** Ignore dependency conflicts. */
+    pub NOCONFLICTS: bool,
     /* (1 << 12) flag can go here */
-    /** Do not install a package if it is already installed and up to date. */ pub NEEDED: bool,
-    /** Use ALPM_PKG_REASON_EXPLICIT when installing packages. */ pub ALLEXPLICIT: bool,
-    /** Do not remove a package if it is needed by another one. */ pub UNNEEDED: bool,
+    /** Do not install a package if it is already installed and up to date. */
+    pub NEEDED: bool,
+    /** Use ALPM_PKG_REASON_EXPLICIT when installing packages. */
+    pub ALLEXPLICIT: bool,
+    /** Do not remove a package if it is needed by another one. */
+    pub UNNEEDED: bool,
     /** Remove also explicitly installed unneeded deps (use with pub RECURSE). */
     pub RECURSEALL: bool,
-    /** Do not lock the database during the operation. */ pub NOLOCK: bool,
+    /** Do not lock the database during the operation. */
+    pub NOLOCK: bool,
 }
 //
 // /** Returns the bitfield of flags for the current transaction.
