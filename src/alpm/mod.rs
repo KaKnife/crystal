@@ -338,7 +338,7 @@ pub struct depend_t {
 }
 
 /** Missing dependency */
-pub struct alpm_depmissing_t {
+pub struct depmissing_t {
     pub target: String,
     pub depend: depend_t,
     /* this is used only in the case of a remove dependency error */
@@ -1581,7 +1581,7 @@ pub struct alpm_transflag_t {
 // /** Prepare a transaction.
 //  * @param handle the context handle
 //  * @param data the address of an alpm_list where a list
-//  * of alpm_depmissing_t objects is dumped (conflicting packages)
+//  * of depmissing_t objects is dumped (conflicting packages)
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //  */
 // int alpm_trans_prepare(alpm_handle_t *handle, alpm_list_t **data);
@@ -1691,7 +1691,7 @@ pub struct alpm_caps {
 // int alpm_capabilities(void);
 //
 // void alpm_fileconflict_free(alpm_fileconflict_t *conflict);
-// void alpm_depmissing_free(alpm_depmissing_t *miss);
+// void alpm_depmissing_free(depmissing_t *miss);
 // void alpm_conflict_free(alpm_conflict_t *conflict);
 //
 // /* End of alpm_api */

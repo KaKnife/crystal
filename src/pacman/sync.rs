@@ -689,7 +689,7 @@ fn sync_trans(
     sync_prepare_execute(config, handle)
 }
 
-fn print_broken_dep(miss: &alpm_depmissing_t) {
+fn print_broken_dep(miss: &depmissing_t) {
     unimplemented!();
     // 	char *depstring = alpm_dep_compute_string(miss->depend);
     // 	alpm_list_t *trans_add = alpm_trans_get_add(config->handle);

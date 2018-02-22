@@ -379,14 +379,14 @@ impl alpm_handle_t {
     /// * `remove` an alpm_list_t* of packages to be removed
     /// * `upgrade` an alpm_list_t* of packages to be upgraded (remove-then-upgrade)
     /// * `reversedeps` handles the backward dependencies
-    /// * returns an alpm_list_t* of alpm_depmissing_t pointers.
+    /// * returns an alpm_list_t* of depmissing_t pointers.
     pub fn alpm_checkdeps(
         &self,
         pkglist: Option<Vec<pkg_t>>,
         remw: Option<Vec<pkg_t>>,
         upgrade: &mut Vec<pkg_t>,
         reversedeps: i32,
-    ) -> Vec<alpm_depmissing_t> {
+    ) -> Vec<depmissing_t> {
         unimplemented!();
         // 	alpm_list_t *i, *j;
         // 	alpm_list_t *dblist = NULL, *modified = NULL;
@@ -442,7 +442,7 @@ impl alpm_handle_t {
                 {
                     unimplemented!();
                     /* Unsatisfied dependency in the upgrade list */
-                    // alpm_depmissing_t *miss;
+                    // depmissing_t *miss;
                     // let missdepstring = alpm_dep_compute_string(depend);
                     // _alpm_log(handle, ALPM_LOG_DEBUG,
                     //"checkdeps: missing dependency '%s' for package '%s'\n",
@@ -476,7 +476,7 @@ impl alpm_handle_t {
             // 						!find_dep_satisfier(upgrade, depend) &&
             // 						!find_dep_satisfier(dblist, depend) &&
             // 						!_alpm_depcmp_provides(depend, handle->assumeinstalled)) {
-            // 					alpm_depmissing_t *miss;
+            // 					depmissing_t *miss;
             // 					char *missdepstring = alpm_dep_compute_string(depend);
             //_alpm_log(handle, ALPM_LOG_DEBUG,
             //"checkdeps: transaction would break '%s' dependency of '%s'\n",
@@ -2142,7 +2142,7 @@ impl alpm_handle_t {
      * @brief Transaction preparation for remove actions.
      *
      * This functions takes a pointer to a alpm_list_t which will be
-     * filled with a list of alpm_depmissing_t* objects representing
+     * filled with a list of depmissing_t* objects representing
      * the packages blocking the transaction.
      *
      * @param handle the context handle
