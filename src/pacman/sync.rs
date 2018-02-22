@@ -860,7 +860,7 @@ pub fn pacman_sync(
     if config.op_s_clean != 0 {
         let mut ret = 0;
 
-        if trans_init(&alpm::alpm_transflag_t::default(), false, handle) == -1 {
+        if trans_init(&alpm::TransactionFlag::default(), false, handle) == -1 {
             return Err(());
         }
 

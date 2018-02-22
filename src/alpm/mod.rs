@@ -1487,7 +1487,7 @@ impl alpm_db_usage_t {
 
 /// Transaction flags
 #[derive(Default, Debug, Clone)]
-pub struct alpm_transflag_t {
+pub struct TransactionFlag {
     /// Ignore dependency checks.
     pub NODEPS: bool,
     /// Ignore file conflicts and overwrite files.

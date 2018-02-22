@@ -156,7 +156,7 @@ pub struct config_t {
     pub group: u8,
     pub noask: bool,
     pub ask: u64,
-    pub flags: alpm::alpm_transflag_t,
+    pub flags: alpm::TransactionFlag,
     pub SigLevel: SigLevel,
     pub localfileSigLevel: SigLevel,
     pub remotefileSigLevel: SigLevel,

@@ -64,7 +64,7 @@ use super::alpm::*;
 // };
 
 pub fn trans_init(
-    flags: &alpm::alpm_transflag_t,
+    flags: &alpm::TransactionFlag,
     check_valid: bool,
     handle: &mut Handle,
 ) -> i32 {
@@ -436,9 +436,9 @@ fn table_free<T1, T2>(headers: alpm_list_t<T1>, rows: alpm_list_t<T2>) {
     // 	alpm_list_free(rows);
 }
 
-type off_t = i64;
+// type off_t = i64;
 
-fn add_transaction_sizes_row<T>(rows: alpm_list_t<T>, label: String, size: off_t) {
+fn add_transaction_sizes_row<T>(rows: alpm_list_t<T>, label: String, size: i64) {
     unimplemented!()
     // 	alpm_list_t *row = NULL;
     // 	char *str;
@@ -993,7 +993,7 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 // 	FREELIST(targets);
 // }
 
-fn pkg_get_size(pkg: &mut Package, config: &config_t, db: &mut Database) -> off_t {
+fn pkg_get_size(pkg: &mut Package, config: &config_t, db: &mut Database) -> i64 {
     match config.op {
         Some(PM_OP_SYNC) => pkg.alpm_pkg_download_size(),
         Some(PM_OP_UPGRADE) => pkg.alpm_pkg_get_size(),
@@ -1063,7 +1063,7 @@ fn simple_pow(base: i32, exp: i32) -> f64 {
  *
  * @return the size in the appropriate unit
  */
-pub fn humanize_size(bytes: off_t, target_unit: char, precision: i8, label: &mut String) -> f64 {
+pub fn humanize_size(bytes: i64, target_unit: char, precision: i8, label: &mut String) -> f64 {
     let labels = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
     let unitcount = labels.len();
 

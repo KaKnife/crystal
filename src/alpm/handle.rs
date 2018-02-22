@@ -102,7 +102,7 @@ impl Handle {
     }
 
     /// Initialize the transaction.
-    pub fn alpm_trans_init(&mut self, flags: &alpm_transflag_t) -> Result<()> {
+    pub fn alpm_trans_init(&mut self, flags: &TransactionFlag) -> Result<()> {
         let mut trans: alpm_trans_t = alpm_trans_t::default();
 
         /* lock db */

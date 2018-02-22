@@ -50,7 +50,7 @@ fn change_install_reason(
     }
 
     /* Lock database */
-    if trans_init(&alpm_transflag_t::default(), false, handle) == -1 {
+    if trans_init(&TransactionFlag::default(), false, handle) == -1 {
         return 1;
     }
 
