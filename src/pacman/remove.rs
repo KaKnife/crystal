@@ -140,10 +140,10 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut Config, handle:&mut Hand
     for pkg in &handle.trans.remove {
         if config
             .holdpkg
-            .binary_search_by(|other| fnmatch_cmp(&pkg.name, other))
+            .binary_search_by(|other| fnmatch_cmp(pkg.get_name(), other))
             .is_ok()
         {
-            println!("{} is designated as a HoldPkg.", pkg.name);
+            println!("{} is designated as a HoldPkg.", pkg.get_name());
             holdpkg = 1;
         }
     }

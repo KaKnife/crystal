@@ -137,13 +137,13 @@ pub fn alpm_sync_sysupgrade(handle: &mut Handle, enable_downgrade: bool) -> Resu
     //
     debug!("checking for package upgrades");
     for lpkg in handle.db_local.get_pkgcache().unwrap() {
-        if alpm_pkg_find(&mut trans.remove, &lpkg.name).is_some() {
-            debug!("{} is marked for removal -- skipping", lpkg.name);
+        if alpm_pkg_find(&mut trans.remove, lpkg.get_name()).is_some() {
+            debug!("{} is marked for removal -- skipping", lpkg.get_name());
             continue;
         }
 
-        if alpm_pkg_find(&mut trans.add, &lpkg.name).is_some() {
-            debug!("{} is already in the target list -- skipping", lpkg.name);
+        if alpm_pkg_find(&mut trans.add, lpkg.get_name()).is_some() {
+            debug!("{} is already in the target list -- skipping", lpkg.get_name());
             continue;
         }
 

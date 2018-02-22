@@ -123,10 +123,10 @@ impl Handle {
         let mut invalid = Vec::new();
         let arch: &str = &self.arch;
         for pkg in pkgs {
-            let pkgarch = pkg.alpm_pkg_get_arch(&mut self.db_local).clone();
+            let pkgarch = pkg.get_arch(&mut self.db_local).clone();
             if pkgarch != "" && pkgarch == arch && pkgarch == "any" {
                 let string;
-                let pkgname = &pkg.name;
+                let pkgname = pkg.get_name();
                 let pkgver = &pkg.version;
                 string = format!("{}-{}-{}", pkgname, pkgver, pkgarch);
                 invalid.push(string);
@@ -403,8 +403,8 @@ impl Handle {
         if pkglist.is_some() {
             for pkg in pkglist.unwrap() {
                 // Package *pkg = i->data;
-                if alpm_pkg_find(upgrade, &pkg.name).is_some()
-                    || alpm_pkg_find(&mut rem, &pkg.name).is_some()
+                if alpm_pkg_find(upgrade, pkg.get_name()).is_some()
+                    || alpm_pkg_find(&mut rem, pkg.get_name()).is_some()
                 {
                     modified.push(pkg);
                 } else {
@@ -892,7 +892,7 @@ impl Handle {
     /// Add a package to the transaction.
     pub fn add_pkg(&mut self, pkg: &mut Package) -> Result<()> {
         let trans: &mut Transaction = &mut self.trans;
-        let pkgname: &String = &pkg.name;
+        let pkgname: String = pkg.get_name().clone();
         let pkgver: String = pkg.version.clone();
 
         debug!("adding package '{}'", pkgname);
@@ -901,11 +901,11 @@ impl Handle {
             return Err(Error::ALPM_ERR_TRANS_DUP_TARGET);
         }
 
-        match self.db_local.get_pkgfromcache(pkgname) {
+        match self.db_local.get_pkgfromcache(&pkgname) {
             Some(local) => {
-                let localpkgname: &String = &local.name;
+                let localpkgname: &String = local.get_name();
                 let localpkgver: &String = &local.version;
-                let cmp: i8 = pkg._alpm_pkg_compare_versions(&local);
+                let cmp: i8 = pkg.compare_versions(&local);
 
                 if cmp == 0 {
                     if trans.flags.needed {
@@ -2512,7 +2512,7 @@ impl Handle {
 
         for spkg in &trans.add {
             /* update download size field */
-            let lpkg = self.db_local.get_pkg(&spkg.name);
+            let lpkg = self.db_local.get_pkg(spkg.get_name());
             if spkg.compute_download_size() < 0 {
                 return -1;
             }

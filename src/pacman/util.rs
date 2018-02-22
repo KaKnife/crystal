@@ -995,9 +995,9 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 
 fn pkg_get_size(pkg: &mut Package, config: &Config, db: &mut Database) -> i64 {
     match config.op {
-        Some(Operations::SYNC) => pkg.alpm_pkg_download_size(),
-        Some(Operations::UPGRADE) => pkg.alpm_pkg_get_size(),
-        _ => pkg.alpm_pkg_get_isize(db),
+        Some(Operations::SYNC) => pkg.download_size(),
+        Some(Operations::UPGRADE) => pkg.get_size(),
+        _ => pkg.get_isize(db),
     }
 }
 
@@ -1005,11 +1005,11 @@ fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
     // alpm_list_t *servers;
     // char *string = NULL;
     // use PackageFrom::*;
-    match pkg.alpm_pkg_get_origin() {
+    match pkg.get_origin() {
         PackageFrom::SyncDatabase => {
-            if pkg.alpm_pkg_download_size() == 0 {
+            if pkg.download_size() == 0 {
                 /* file is already in the package cache */
-                let pkgfile = pkg.alpm_pkg_get_filename();
+                let pkgfile = pkg.get_filename();
                 // struct stat buf;
                 for item in handle.option_get_cachedirs() {
                     let _path = format!("{}{}", item, pkgfile);
@@ -1030,9 +1030,9 @@ fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
             // }
 
             /* fallthrough - for theoretical serverless repos */
-            return pkg.alpm_pkg_get_filename();
+            return pkg.get_filename();
         }
-        PackageFrom::File => return pkg.alpm_pkg_get_filename(),
+        PackageFrom::File => return pkg.get_filename(),
         _ => {
             unimplemented!();
             // pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));
@@ -1104,7 +1104,7 @@ pub fn print_packages(
         }
         let string = &print_format;
         /* %n : pkgname */
-        string.replace("%n", &pkg.name);
+        string.replace("%n", &pkg.get_name());
         /* %v : pkgver */
         string.replace("%v", &pkg.version);
         /* %l : location */

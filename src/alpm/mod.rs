@@ -125,7 +125,7 @@ impl Default for PackageFrom {
 }
 
 /// Location a package object was loaded from.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum PackageFrom {
     File = 1,
     LocalDatabase,

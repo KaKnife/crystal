@@ -88,13 +88,13 @@ fn print_query_fileowner(filename: &String, info: &Package, config: &Config) {
             "{} is owned by {}{} {}{}{}",
             filename,
             colstr.title,
-            info.alpm_pkg_get_name(),
+            info.get_name(),
             colstr.version,
-            info.alpm_pkg_get_version(),
+            info.get_version(),
             colstr.nocolor
         );
     } else {
-        println!("{}", info.alpm_pkg_get_name());
+        println!("{}", info.get_name());
     }
 }
 
@@ -216,7 +216,7 @@ fn query_fileowner(targets: &Vec<String>) -> i32 {
     // 		}
     //
     // 		for(i = packages; i && (!found || is_dir); i = alpm_list_next(i)) {
-    // 			if(alpm_filelist_contains(alpm_pkg_get_files(i.data), rel_path)) {
+    // 			if(alpm_filelist_contains(get_files(i.data), rel_path)) {
     // 				print_query_fileowner(rpath, i.data);
     // 				found = 1;
     // 			}
@@ -250,7 +250,7 @@ fn query_search(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> 
 }
 
 fn pkg_get_locality(pkg: &Package, handle: &Handle) -> u8 {
-    let pkgname = &pkg.alpm_pkg_get_name();
+    let pkgname = pkg.get_name();
     let sync_dbs = handle.get_syncdbs();
 
     for data in sync_dbs {
@@ -267,10 +267,10 @@ fn is_unrequired(
     db_local: &mut Database,
     dbs_sync: &mut Vec<Database>,
 ) -> bool {
-    let mut requiredby = pkg.alpm_pkg_compute_requiredby(db_local, dbs_sync);
+    let mut requiredby = pkg.compute_requiredby(0, db_local, dbs_sync);
     if requiredby.is_empty() {
         if level == 1 {
-            requiredby = pkg.alpm_pkg_compute_optionalfor(db_local, dbs_sync);
+            requiredby = pkg.compute_optionalfor(db_local, dbs_sync);
         }
         if requiredby.is_empty() {
             return true;
@@ -280,7 +280,7 @@ fn is_unrequired(
 }
 
 fn filter(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
-    match pkg.alpm_pkg_get_reason(handle.get_localdb_mut()) {
+    match pkg.get_reason(handle.get_localdb_mut()) {
         /* check if this package was installed as a dependency */
         &PackageReason::Dependency if config.op_q_explicit != 0 => return 0,
         /* check if this package was explicitly installed */
@@ -303,7 +303,7 @@ fn filter(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
     }
     /* check if this pkg is outdated */
     if config.op_q_upgrade != 0
-        && pkg.alpm_sync_newversion(handle.get_syncdbs())
+        && pkg.newversion(handle.get_syncdbs())
             .is_none()
     {
         return 0;
@@ -354,19 +354,19 @@ fn display(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
             print!(
                 "{}{} {}{}{}",
                 colstr.title,
-                pkg.alpm_pkg_get_name(),
+                pkg.get_name(),
                 colstr.version,
-                pkg.alpm_pkg_get_version(),
+                pkg.get_version(),
                 colstr.nocolor
             );
 
             if config.op_q_upgrade != 0 {
                 unimplemented!();
-                let newpkg = pkg.alpm_sync_newversion(handle.get_syncdbs()).unwrap();
+                let newpkg = pkg.newversion(handle.get_syncdbs()).unwrap();
                 print!(
                     " . {}{}{}",
                     colstr.version,
-                    newpkg.alpm_pkg_get_version(),
+                    newpkg.get_version(),
                     colstr.nocolor
                 );
 
@@ -377,7 +377,7 @@ fn display(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
 
             println!();
         } else {
-            println!("{}", pkg.alpm_pkg_get_name());
+            println!("{}", pkg.get_name());
         }
     }
     return ret;
@@ -397,7 +397,7 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i
                 if filter(pkg, config, handle_clone) == 0 {
                     continue;
                 }
-                println!("{} {}", grp.name, pkg.alpm_pkg_get_name());
+                println!("{} {}", grp.name, pkg.get_name());
             }
         }
     } else {
@@ -408,9 +408,9 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i
                         continue;
                     }
                     if !config.quiet {
-                        println!("{} {}", grpname, data.alpm_pkg_get_name());
+                        println!("{} {}", grpname, data.get_name());
                     } else {
-                        println!("{}", data.alpm_pkg_get_name());
+                        println!("{}", data.get_name());
                     }
                 },
                 Err(_) => {
@@ -556,7 +556,7 @@ pub fn pacman_query(
 
         if config.op_q_isfile != 0 {
             unimplemented!();
-            // 	alpm_pkg_free(pkg);
+            // 	free(pkg);
             // pkg = NULL;
         }
     }

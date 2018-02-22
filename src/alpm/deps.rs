@@ -89,7 +89,7 @@ pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &Dependency) -> Optio
 
     for pkg in pkgs {
         // Package *pkg = i->data;
-        if pkg._alpm_depcmp(dep) {
+        if pkg.depcmp(dep) {
             return Some(pkg);
         }
     }

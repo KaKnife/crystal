@@ -384,7 +384,7 @@ fn sync_info(mut syncs: Vec<Database>, targets: &Vec<String>) -> std::result::Re
                 founddb = true;
 
                 for pkg in db.get_pkgcache().unwrap() {
-                    if pkg.alpm_pkg_get_name() == pkgstr {
+                    if pkg.get_name() == pkgstr {
                         unimplemented!();
                         // dump_pkg_full(pkg, config.op_s_info > 1);
                         foundpkg = true;

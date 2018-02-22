@@ -60,7 +60,7 @@ pub fn alpm_remove_pkg(trans: &mut Transaction, pkg: &Package) -> Result<i32> {
     // alpm_trans_t *trans;
     // Package *copy;
 
-    let pkgname = &pkg.name;
+    let pkgname = &pkg.get_name();
 
     if alpm_pkg_find(&mut trans.remove, &pkgname).is_some() {
         // unimplemented!();
@@ -70,7 +70,7 @@ pub fn alpm_remove_pkg(trans: &mut Transaction, pkg: &Package) -> Result<i32> {
 
     // _alpm_log(handle, ALPM_LOG_DEBUG, "adding package %s to the transaction remove list\n",
     // 		pkgname);
-    let copy = match pkg._alpm_pkg_dup() {
+    let copy = match pkg.dup() {
         Ok(c) => c,
         Err(e) => return Err(e),
     };

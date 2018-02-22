@@ -61,7 +61,7 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
                 ret = 1;
             }
             Some(pkg) => {
-                if pkg.alpm_pkg_set_reason(&reason) != 0 {
+                if pkg.set_reason(&reason) != 0 {
                     eprintln!(
                         "could not set install reason for package {} ()",
                         pkgname /*alpm_strerror(alpm_errno(config->handle))*/,

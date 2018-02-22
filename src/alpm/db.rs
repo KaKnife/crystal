@@ -216,7 +216,7 @@ impl Database {
         return Ok(true);
     }
 
-    pub fn local_db_read(&mut self, info: &mut Package, inforeq: i32) -> i32 {
+    pub fn local_db_read(&mut self, pkg: &mut Package, inforeq: i32) -> i32 {
         enum NextLineType {
             None,
             Name,
@@ -247,12 +247,12 @@ impl Database {
          * inforeq:   00010100
          * & result:  00000100
          * == to inforeq? nope, we need to load more info. */
-        if (info.infolevel & inforeq) == inforeq {
+        if (pkg.infolevel & inforeq) == inforeq {
             /* already loaded all of this info, do nothing */
             return 0;
         }
 
-        if info.infolevel & INFRQ_ERROR != 0 {
+        if pkg.infolevel & INFRQ_ERROR != 0 {
             /* We've encountered an error loading this package before. Don't attempt
              * repeated reloads, just give up. */
             return -1;
@@ -260,17 +260,17 @@ impl Database {
 
         info!(
             "loading package data for {} : level=0x{:x}",
-            info.name, inforeq
+            pkg.get_name(), inforeq
         );
 
         /* DESC */
-        if inforeq & INFRQ_DESC != 0 && (info.infolevel & INFRQ_DESC) == 0 {
-            let path = self.local_db_pkgpath(info, &String::from("desc"));
+        if inforeq & INFRQ_DESC != 0 && (pkg.infolevel & INFRQ_DESC) == 0 {
+            let path = self.local_db_pkgpath(pkg, &String::from("desc"));
             let mut fp = match std::fs::File::open(&path) {
                 Ok(f) => f,
                 Err(e) => {
                     error!("could not open file {}: {}", path, e);
-                    info.infolevel |= INFRQ_ERROR;
+                    pkg.infolevel |= INFRQ_ERROR;
                     return -1;
                 }
             };
@@ -294,56 +294,56 @@ impl Database {
                 match next_line_type {
                     NextLineType::None => {}
                     NextLineType::Name => {
-                        if line != info.name {
+                        if line != pkg.get_name() {
                             error!(
                                 "{} database is inconsistent: name mismatch on package {}",
-                                self.treename, info.name
+                                self.treename, pkg.get_name()
                             );
                         }
                     }
                     NextLineType::Version => {
-                        if line != info.version {
+                        if line != pkg.version {
                             error!(
                                 "{} database is inconsistent: version mismatch on package {}",
-                                self.treename, info.name
+                                self.treename, pkg.get_name()
                             );
                         }
                     }
                     NextLineType::Base => {
-                        info.base = String::from(line);
+                        pkg.set_base(line);
                     }
                     NextLineType::Desc => {
-                        info.desc = String::from(line);
+                        pkg.desc = String::from(line);
                     }
                     NextLineType::Groups => {
                         if line != "" {
-                            info.groups.push(String::from(line));
+                            pkg.groups.push(String::from(line));
                             continue;
                         }
                     }
                     NextLineType::Url => {
-                        info.url = String::from(line);
+                        pkg.url = String::from(line);
                     }
                     NextLineType::License => {
                         if line != "" {
-                            info.licenses.push(String::from(line));
+                            pkg.licenses.push(String::from(line));
                             continue;
                         }
                     }
                     NextLineType::Arch => {
-                        info.arch = String::from(line);
+                        pkg.arch = String::from(line);
                     }
                     NextLineType::BuildDate => {
-                        info.builddate = _alpm_parsedate(line);
+                        pkg.builddate = _alpm_parsedate(line);
                     }
                     NextLineType::InstallDate => {
-                        info.installdate = _alpm_parsedate(line);
+                        pkg.installdate = _alpm_parsedate(line);
                     }
                     NextLineType::Packager => {
-                        info.packager = String::from(line);
+                        pkg.packager = String::from(line);
                     }
                     NextLineType::Reason => {
-                        info.reason = PackageReason::from(u8::from_str_radix(line, 10).unwrap());
+                        pkg.reason = PackageReason::from(u8::from_str_radix(line, 10).unwrap());
                     }
                     NextLineType::Validation => {
                         unimplemented!();
@@ -362,45 +362,45 @@ impl Database {
                         //     } else {
                         //         info!(
                         //             "unknown validation type for package {}: {}",
-                        //             info.name, i.data
+                        //             pkg.get_name(), i.data
                         //         );
                         //     }
                         // }
                         // FREELIST(v);
                     }
                     NextLineType::Size => {
-                        info.isize = _alpm_strtoofft(&String::from(line));
+                        pkg.isize = _alpm_strtoofft(&String::from(line));
                     }
                     NextLineType::Replaces => {
                         if line != "" {
-                            info.replaces
+                            pkg.replaces
                                 .push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
                     }
                     NextLineType::Depends => {
                         if line != "" {
-                            info.depends.push(alpm_dep_from_string(&String::from(line)));
+                            pkg.depends.push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
                     }
                     NextLineType::OptDepends => {
                         if line != "" {
-                            info.optdepends
+                            pkg.optdepends
                                 .push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
                     }
                     NextLineType::Confilcts => {
                         if line != "" {
-                            info.conflicts
+                            pkg.conflicts
                                 .push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
                     }
                     NextLineType::Provides => {
                         if line != "" {
-                            info.provides
+                            pkg.provides
                                 .push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
@@ -450,18 +450,18 @@ impl Database {
                     next_line_type = NextLineType::Provides;
                 }
             }
-            info.infolevel |= INFRQ_DESC;
+            pkg.infolevel |= INFRQ_DESC;
         }
 
         /* FILES */
-        if inforeq & INFRQ_FILES != 0 && (info.infolevel & INFRQ_FILES) == 0 {
+        if inforeq & INFRQ_FILES != 0 && (pkg.infolevel & INFRQ_FILES) == 0 {
             unimplemented!();
-            let path = self.local_db_pkgpath(info, &String::from("desc"));
+            let path = self.local_db_pkgpath(pkg, &String::from("desc"));
             let mut fp = match std::fs::File::open(&path) {
                 Ok(f) => f,
                 Err(e) => {
                     error!("could not open file {}: {}", path, e);
-                    info.infolevel |= INFRQ_ERROR;
+                    pkg.infolevel |= INFRQ_ERROR;
                     return -1;
                 }
             };
@@ -513,18 +513,18 @@ impl Database {
                     next_line_type = NextLineType::Backup;
                 }
             }
-            info.infolevel |= INFRQ_FILES;
+            pkg.infolevel |= INFRQ_FILES;
         }
 
         /* INSTALL */
-        if inforeq & INFRQ_SCRIPTLET != 0 && (info.infolevel & INFRQ_SCRIPTLET) == 0 {
-            let path = self.local_db_pkgpath(info, &String::from("install"));
+        if inforeq & INFRQ_SCRIPTLET != 0 && (pkg.infolevel & INFRQ_SCRIPTLET) == 0 {
+            let path = self.local_db_pkgpath(pkg, &String::from("install"));
             use std::path::Path;
             let install_path = Path::new(&path);
             if install_path.exists() {
-                info.scriptlet = 1;
+                pkg.scriptlet = 1;
             }
-            info.infolevel |= INFRQ_SCRIPTLET;
+            pkg.infolevel |= INFRQ_SCRIPTLET;
         }
 
         return 0;
@@ -594,7 +594,7 @@ impl Database {
         // 		char *path;
         // 		_alpm_log(db.handle, ALPM_LOG_DEBUG,
         // 				"writing {}-{} DESC information back to db",
-        // 				info.name, info.version);
+        // 				pkg.get_name(), info.version);
         // 		path = _alpm_local_db_pkgpath(db, info, "desc");
         // 		if(!path || (fp = fopen(path, "w")) == NULL) {
         // 			_alpm_log(db.handle, ALPM_LOG_ERROR, _("could not open file {}: {}"),
@@ -605,7 +605,7 @@ impl Database {
         // 		}
         // 		free(path);
         // 		fprintf(fp, "%%NAME%%{}"
-        // 						"%%VERSION%%{}", info.name, info.version);
+        // 						"%%VERSION%%{}", pkg.get_name(), info.version);
         // 		if(info.base) {
         // 			fprintf(fp, "%%BASE%%"
         // 							"{}", info.base);
@@ -826,9 +826,9 @@ impl Database {
                             }
                             Ok(d) => d,
                         };
-                        pkg.name = name;
+                        pkg.set_name(&name);
                         pkg.version = version;
-                        pkg.name_hash = name_hash;
+                        pkg.set_name_hash(name_hash);
                     }
 
                     /* duplicated database entries are not allowed */
@@ -849,7 +849,7 @@ impl Database {
                     /* add to the collection */
                     info!(
                         "adding '{}' to package cache for db '{}'",
-                        pkg.name, self.treename
+                        pkg.get_name(), self.treename
                     );
                     self.pkgcache._alpm_pkghash_add(pkg);
                     count += 1;
@@ -859,7 +859,7 @@ impl Database {
         }
 
         if count > 0 {
-            self.pkgcache.list.sort_by(_alpm_pkg_cmp);
+            self.pkgcache.list.sort_by(pkg_cmp);
         }
         debug!(
             "added {} packages to package cache for db '{}'",
@@ -1003,12 +1003,12 @@ impl Database {
     }
 
     /* Note: the return value must be freed by the caller */
-    fn local_db_pkgpath(&self, info: &Package, filename: &String) -> String {
+    fn local_db_pkgpath(&self, pkg: &Package, filename: &String) -> String {
         let pkgpath: String;
         let dbpath: String;
 
         dbpath = self.path().unwrap();
-        pkgpath = format!("{}{}-{}/{}", dbpath, info.name, info.version, filename);
+        pkgpath = format!("{}{}-{}/{}", dbpath, pkg.get_name(), pkg.version, filename);
         return pkgpath;
     }
 
@@ -1108,9 +1108,9 @@ impl Database {
             return return Err(Error::WrongArgs);;
         }
 
-        for info in self.get_groupcache() {
-            if info.name == *target {
-                return Ok(info);
+        for grp in self.get_groupcache() {
+            if grp.name == *target {
+                return Ok(grp);
             }
         }
 

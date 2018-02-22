@@ -112,10 +112,10 @@ use super::deps::dep_vercmp;
 // type off_t = i64;
 #[derive(Default, Debug, Clone)]
 pub struct Package {
-    pub name_hash: u64,
-    pub filename: String,
-    pub base: String,
-    pub name: String,
+    name_hash: u64,
+    filename: String,
+    base: String,
+    name: String,
     pub version: String,
     pub desc: String,
     pub url: String,
@@ -167,28 +167,6 @@ pub struct Package {
     pub infolevel: i32,
     /* Bitfield from alpm_pkgvalidation_t */
     pub validation: i32,
-}
-
-/// Check the integrity (with md5) of a package from the sync cache.
-fn alpm_pkg_checkmd5sum(pkg: &Package) -> i64 {
-    let fpath: String;
-    let retval = 0;
-
-    /* We only inspect packages from sync repositories */
-    match pkg.origin {
-        PackageFrom::SyncDatabase => {}
-        _ => { /*RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1))*/ }
-    }
-    unimplemented!();
-    // fpath = _alpm_filecache_find(pkg.handle, pkg.filename);
-    //
-    // retval = _alpm_test_checksum(fpath, pkg.md5sum, ALPM_PKG_VALIDATION_MD5SUM);
-    //
-    // if (retval == 1) {
-    //     retval = -1;
-    // }
-
-    return retval;
 }
 
 // /* Default package accessor functions. These will get overridden by any
@@ -256,10 +234,31 @@ fn alpm_pkg_checkmd5sum(pkg: &Package) -> i64 {
 // static int _pkg_force_load(Package UNUSED *pkg) { return 0; }
 
 impl Package {
-    /** Check for new version of pkg in sync repos
-     * (only the first occurrence is considered in sync)
-     */
-    pub fn alpm_sync_newversion(&self, dbs_sync: &Vec<Database>) -> Option<Package> {
+    /// Check the integrity (with md5) of a package from the sync cache.
+    fn checkmd5sum(&self) -> i64 {
+        let fpath: String;
+        let retval = 0;
+
+        /* We only inspect packages from sync repositories */
+        match self.origin {
+            PackageFrom::SyncDatabase => {}
+            _ => { /*RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1))*/ }
+        }
+        unimplemented!();
+        // fpath = _alpm_filecache_find(pkg.handle, pkg.filename);
+        //
+        // retval = _alpm_test_checksum(fpath, pkg.md5sum, ALPM_PKG_VALIDATION_MD5SUM);
+        //
+        // if (retval == 1) {
+        //     retval = -1;
+        // }
+
+        return retval;
+    }
+
+    /// Check for new version of pkg in sync repos
+    /// (only the first occurrence is considered in sync)
+    pub fn newversion(&self, dbs_sync: &Vec<Database>) -> Option<Package> {
         unimplemented!();
         // 	alpm_list_t *i;
         // 	Package *spkg = NULL;
@@ -333,7 +332,7 @@ impl Package {
 
     /// Returns the size of the files that will be downloaded to install a
     /// package. returns the size of the download
-    pub fn alpm_pkg_download_size(&self) -> i64 {
+    pub fn download_size(&self) -> i64 {
         unimplemented!();
         // if !(self.infolevel & INFRQ_DSIZE) {
         // 	compute_download_size(newpkg);
@@ -341,7 +340,7 @@ impl Package {
         // return self.download_size;
     }
 
-    fn _alpm_depcmp_literal(&self, dep: &Dependency) -> bool {
+    fn depcmp_literal(&self, dep: &Dependency) -> bool {
         if self.name_hash != dep.name_hash || self.name != dep.name {
             /* skip more expensive checks */
             return false;
@@ -349,62 +348,74 @@ impl Package {
         return dep_vercmp(&self.version, &dep.depmod, &dep.version);
     }
 
-    pub fn _alpm_depcmp(&self, dep: &Dependency) -> bool {
-        return self._alpm_depcmp_literal(dep) || dep._alpm_depcmp_provides(&self.provides);
+    pub fn depcmp(&self, dep: &Dependency) -> bool {
+        return self.depcmp_literal(dep) || dep._alpm_depcmp_provides(&self.provides);
     }
 
-    pub fn alpm_pkg_get_filename(&self) -> String {
+    pub fn get_filename(&self) -> String {
         return self.filename.clone();
     }
 
-    pub fn alpm_pkg_get_base(&self) -> String {
+    pub fn get_base(&self) -> String {
         unimplemented!();
         // return self.ops.get_base(self);
     }
 
-    pub fn alpm_pkg_get_name(&self) -> String {
-        return self.name.clone();
+    pub fn set_base(&mut self, base: &str) {
+        self.name = String::from(base);
     }
 
-    pub fn alpm_pkg_get_version(&self) -> &String {
+    pub fn get_name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn set_name(&mut self, name: &String) {
+        self.name = name.clone();
+    }
+
+    pub fn set_name_hash(&mut self, name_hash: u64) {
+        self.name_hash = name_hash;
+    }
+
+    pub fn get_version(&self) -> &String {
         return &self.version;
     }
 
-    pub fn alpm_pkg_get_origin(&self) -> PackageFrom {
-        return self.origin.clone();
+    pub fn get_origin(&self) -> PackageFrom {
+        return self.origin;
     }
 
-    pub fn alpm_pkg_get_desc(&mut self, db: &mut Database) -> &String {
-        match self.alpm_pkg_get_origin() {
+    pub fn get_desc(&mut self, db: &mut Database) -> &String {
+        match self.get_origin() {
             PackageFrom::LocalDatabase => self._cache_get_desc(db),
             _ => unimplemented!(),
         }
         // return self.ops.get_desc(self);
     }
 
-    pub fn alpm_pkg_get_url(&mut self, db: &mut Database) -> &String {
-        match self.alpm_pkg_get_origin() {
+    pub fn get_url(&mut self, db: &mut Database) -> &String {
+        match self.get_origin() {
             PackageFrom::LocalDatabase => self._cache_get_url(db),
             _ => unimplemented!(),
         }
         // return self.ops.get_url(self);
     }
 
-    pub fn alpm_pkg_get_builddate(&mut self, db: &mut Database) -> Time {
-        match self.alpm_pkg_get_origin() {
+    pub fn get_builddate(&mut self, db: &mut Database) -> Time {
+        match self.get_origin() {
             PackageFrom::LocalDatabase => self._cache_get_builddate(db),
             _ => unimplemented!(),
         }
     }
 
-    pub fn alpm_pkg_get_installdate(&mut self, db: &mut Database) -> Time {
+    pub fn get_installdate(&mut self, db: &mut Database) -> Time {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_installdate(db),
             _ => unimplemented!(),
         }
     }
 
-    pub fn alpm_pkg_get_packager(&mut self, db: &mut Database) -> &String {
+    pub fn get_packager(&mut self, db: &mut Database) -> &String {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_packager(db),
             _ => unimplemented!(),
@@ -412,19 +423,19 @@ impl Package {
         // 	return pkg->ops->get_packager(pkg);
     }
 
-    pub fn alpm_pkg_get_md5sum(&self) -> &String {
+    pub fn md5sum(&self) -> &String {
         return &self.md5sum;
     }
 
-    pub fn alpm_pkg_get_sha256sum(&self) -> &String {
+    pub fn sha256sum(&self) -> &String {
         return &self.sha256sum;
     }
 
-    pub fn alpm_pkg_get_base64_sig(&self) -> &String {
+    pub fn base64_sig(&self) -> &String {
         return &self.base64_sig;
     }
 
-    pub fn alpm_pkg_get_arch(&mut self, db: &mut Database) -> &String {
+    pub fn get_arch(&mut self, db: &mut Database) -> &String {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_arch(db),
             _ => unimplemented!(),
@@ -432,11 +443,11 @@ impl Package {
         // return self.ops.get_arch(self);
     }
 
-    pub fn alpm_pkg_get_size(&self) -> i64 {
+    pub fn get_size(&self) -> i64 {
         return self.size;
     }
 
-    pub fn alpm_pkg_get_isize(&mut self, db: &mut Database) -> i64 {
+    pub fn get_isize(&mut self, db: &mut Database) -> i64 {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_isize(db),
             _ => unimplemented!(),
@@ -444,26 +455,22 @@ impl Package {
         // return self.ops.get_isize(pkg);
     }
 
-    fn get_reason(&mut self, db: &mut Database) -> &PackageReason {
+    pub fn get_reason(&mut self, db: &mut Database) -> &PackageReason {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_reason(db),
             _ => unimplemented!(),
         }
-    }
-
-    pub fn alpm_pkg_get_reason(&mut self, db: &mut Database) -> &PackageReason {
-        self.get_reason(db)
         //return pkg.ops.get_reason(pkg);
     }
 
-    pub fn alpm_pkg_get_validation(&mut self, db: &mut Database) -> i32 {
+    pub fn get_validation(&mut self, db: &mut Database) -> i32 {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_validation(db),
             _ => unimplemented!(),
         }
     }
 
-    pub fn alpm_pkg_get_licenses(&mut self, db: &mut Database) -> &Vec<String> {
+    pub fn get_licenses(&mut self, db: &mut Database) -> &Vec<String> {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_licenses(db),
             _ => unimplemented!(),
@@ -471,7 +478,7 @@ impl Package {
         // 	return pkg->ops->get_licenses(pkg);
     }
 
-    pub fn alpm_pkg_get_groups(&mut self, db: &mut Database) -> &Vec<String> {
+    pub fn get_groups(&mut self, db: &mut Database) -> &Vec<String> {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_groups(db),
             _ => unimplemented!(),
@@ -479,11 +486,11 @@ impl Package {
         // 	return pkg->ops->get_groups(pkg);
     }
 
-    pub fn alpm_pkg_get_depends(&mut self) -> &Vec<Dependency> {
+    pub fn get_depends(&mut self) -> &Vec<Dependency> {
         return &mut self.depends;
     }
 
-    pub fn alpm_pkg_get_optdepends(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    pub fn get_optdepends(&mut self, db: &mut Database) -> &Vec<Dependency> {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_optdepends(db),
             _ => unimplemented!(),
@@ -491,17 +498,17 @@ impl Package {
         // return pkg->ops->get_optdepends(pkg);
     }
 
-    pub fn alpm_pkg_get_checkdepends(&self) -> Vec<Dependency> {
+    pub fn get_checkdepends(&self) -> Vec<Dependency> {
         unimplemented!();
         // return pkg->ops->get_checkdepends(pkg);
     }
 
-    pub fn alpm_pkg_get_makedepends(&self) -> Vec<Dependency> {
+    pub fn get_makedepends(&self) -> Vec<Dependency> {
         unimplemented!();
         // return pkg->ops->get_makedepends(pkg);
     }
 
-    pub fn alpm_pkg_get_conflicts(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    pub fn get_conflicts(&mut self, db: &mut Database) -> &Vec<Dependency> {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_conflicts(db),
             _ => unimplemented!(),
@@ -509,7 +516,7 @@ impl Package {
         // return pkg->ops->get_conflicts(pkg);
     }
 
-    pub fn alpm_pkg_get_provides(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    pub fn get_provides(&mut self, db: &mut Database) -> &Vec<Dependency> {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_provides(db),
             _ => unimplemented!(),
@@ -517,7 +524,7 @@ impl Package {
         // return pkg->ops->get_provides(pkg);
     }
 
-    pub fn alpm_pkg_get_replaces(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    pub fn get_replaces(&mut self, db: &mut Database) -> &Vec<Dependency> {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_replaces(db),
             _ => unimplemented!(),
@@ -525,17 +532,17 @@ impl Package {
         // return pkg->ops->get_replaces(pkg);
     }
 
-    pub fn alpm_pkg_get_deltas(&self) -> &Vec<String> {
+    pub fn get_deltas(&self) -> &Vec<String> {
         unimplemented!();
         // return pkg->deltas;
     }
 
-    pub fn alpm_pkg_get_files(&self) -> Vec<String> {
+    pub fn get_files(&self) -> Vec<String> {
         unimplemented!();
         // return pkg->ops->get_files(pkg);
     }
 
-    pub fn alpm_pkg_get_backup(&self) -> Vec<String> {
+    pub fn get_backup(&self) -> Vec<String> {
         unimplemented!();
         // return pkg->ops->get_backup(pkg);
     }
@@ -546,13 +553,13 @@ impl Package {
     // }
 
     /** Open a package changelog for reading. */
-    pub fn alpm_pkg_changelog_open(&self) {
+    pub fn changelog_open(&self) {
         unimplemented!();
         // return pkg->ops->changelog_open(pkg);
     }
 
-    // /** Read data from an open changelog 'file stream'. */
-    // pub fn alpm_pkg_changelog_read(void *ptr, size_t size,
+    // /// Read data from an open changelog 'file stream'.
+    // pub fn changelog_read(void *ptr, size_t size,
     // 		const &self, void *fp) -> usize
     // {
     //     unimplemented!();
@@ -560,20 +567,20 @@ impl Package {
     // }
 
     /// Close a package changelog for reading.
-    // pub fn alpm_pkg_changelog_close(const &self, void *fp) -> i64
+    // pub fn changelog_close(const &self, void *fp) -> i64
     // {
     //     unimplemented!();
     // 	// return pkg->ops->changelog_close(pkg, fp);
     // }
 
     /// Open a package mtree file for reading.
-    // pub fn alpm_pkg_mtree_open(&self) -> archive {
+    // pub fn mtree_open(&self) -> archive {
     //     unimplemented!();
     //     // return pkg->ops->mtree_open(pkg);
     // }
 
     /// Read entry from an open mtree file.
-    // int SYMEXPORT alpm_pkg_mtree_next(const Package * pkg, struct archive *archive,
+    // int SYMEXPORT _mtree_next(const Package * pkg, struct archive *archive,
     // 	struct archive_entry **entry)
     // {
     // 	ASSERT(pkg != NULL, return -1);
@@ -582,12 +589,12 @@ impl Package {
     // }
 
     /// Close a package mtree file for reading.
-    // pub fn alpm_pkg_mtree_close(&self, archive: &archive) -> i64 {
+    // pub fn mtree_close(&self, archive: &archive) -> i64 {
     //     unimplemented!();
     //     // 	return pkg->ops->mtree_close(pkg, archive);
     // }
 
-    pub fn alpm_pkg_has_scriptlet(&mut self, db: &mut Database) -> i32 {
+    pub fn has_scriptlet(&mut self, db: &mut Database) -> i32 {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_has_scriptlet(db),
             _ => unimplemented!(),
@@ -602,12 +609,12 @@ impl Package {
             let cachepkgname = cachepkg.name.clone();
 
             if optional == 0 {
-                j = cachepkg.alpm_pkg_get_depends();
+                j = cachepkg.get_depends();
             } else {
-                j = cachepkg.alpm_pkg_get_optdepends(&mut db_clone);
+                j = cachepkg.get_optdepends(&mut db_clone);
             }
             for data in j {
-                if self._alpm_depcmp(data) {
+                if self.depcmp(data) {
                     if !reqs.contains(&cachepkgname) {
                         reqs.push(cachepkgname.clone());
                     }
@@ -616,6 +623,7 @@ impl Package {
         }
     }
 
+    /** Compute the packages requiring a given package. */
     pub fn compute_requiredby(
         &self,
         optional: i8,
@@ -651,17 +659,8 @@ impl Package {
         return reqs;
     }
 
-    /** Compute the packages requiring a given package. */
-    pub fn alpm_pkg_compute_requiredby(
-        &self,
-        db_local: &mut Database,
-        dbs_sync: &mut Vec<Database>,
-    ) -> Vec<String> {
-        self.compute_requiredby(0, db_local, dbs_sync)
-    }
-
     /** Compute the packages optionally requiring a given package. */
-    pub fn alpm_pkg_compute_optionalfor(
+    pub fn compute_optionalfor(
         &self,
         db_local: &mut Database,
         dbs_sync: &mut Vec<Database>,
@@ -689,11 +688,11 @@ impl Package {
     // }
     //
 
-    /// * Duplicate a package data struct.
+    /// Duplicate a package data struct.
     /// * `pkg` - the package to duplicate
     /// * `new_ptr` - location to store duplicated package pointer
     /// * returns 0 on success, -1 on fatal error, 1 on non-fatal error
-    pub fn _alpm_pkg_dup(&self) -> Result<Package> {
+    pub fn dup(&self) -> Result<Package> {
         unimplemented!();
         // 	Package *newpkg;
         // 	alpm_list_t *i;
@@ -778,12 +777,11 @@ impl Package {
         // 	return ret;
         //
         // cleanup:
-        // 	_alpm_pkg_free(newpkg);
         // 	RET_ERR(pkg->handle, ALPM_ERR_MEMORY, -1);
     }
 
     /// Is spkg an upgrade for localpkg?
-    pub fn _alpm_pkg_compare_versions(&self, localpkg: &Package) -> i8 {
+    pub fn compare_versions(&self, localpkg: &Package) -> i8 {
         alpm_pkg_vercmp(&self.version, &localpkg.version)
     }
 
@@ -793,92 +791,92 @@ impl Package {
         }
     }
 
-    pub fn _cache_get_base(&mut self, db: &mut Database) -> &String {
+    fn _cache_get_base(&mut self, db: &mut Database) -> &String {
         self.lazy_load(INFRQ_DESC, db);
         return &self.base;
     }
 
-    pub fn _cache_get_desc(&mut self, db: &mut Database) -> &String {
+    fn _cache_get_desc(&mut self, db: &mut Database) -> &String {
         self.lazy_load(INFRQ_DESC, db);
         return &self.desc;
     }
 
-    pub fn _cache_get_url(&mut self, db: &mut Database) -> &String {
+    fn _cache_get_url(&mut self, db: &mut Database) -> &String {
         self.lazy_load(INFRQ_DESC, db);
         return &self.url;
     }
 
-    pub fn _cache_get_builddate(&mut self, db: &mut Database) -> Time {
+    fn _cache_get_builddate(&mut self, db: &mut Database) -> Time {
         self.lazy_load(INFRQ_DESC, db);
         return self.builddate;
     }
 
-    pub fn _cache_get_installdate(&mut self, db: &mut Database) -> Time {
+    fn _cache_get_installdate(&mut self, db: &mut Database) -> Time {
         self.lazy_load(INFRQ_DESC, db);
         return self.installdate;
     }
 
-    pub fn _cache_get_packager(&mut self, db: &mut Database) -> &String {
+    fn _cache_get_packager(&mut self, db: &mut Database) -> &String {
         self.lazy_load(INFRQ_DESC, db);
         return &self.packager;
     }
 
-    pub fn _cache_get_arch(&mut self, db: &mut Database) -> &String {
+    fn _cache_get_arch(&mut self, db: &mut Database) -> &String {
         self.lazy_load(INFRQ_DESC, db);
         return &self.arch;
     }
 
-    pub fn _cache_get_isize(&mut self, db: &mut Database) -> i64 {
+    fn _cache_get_isize(&mut self, db: &mut Database) -> i64 {
         self.lazy_load(INFRQ_DESC, db);
         return self.isize;
     }
 
-    pub fn _cache_get_reason(&mut self, db: &mut Database) -> &PackageReason {
+    fn _cache_get_reason(&mut self, db: &mut Database) -> &PackageReason {
         self.lazy_load(INFRQ_DESC, db);
         return &self.reason;
     }
 
-    pub fn _cache_get_validation(&mut self, db: &mut Database) -> i32 {
+    fn _cache_get_validation(&mut self, db: &mut Database) -> i32 {
         self.lazy_load(INFRQ_DESC, db);
         return self.validation;
     }
 
-    pub fn _cache_get_licenses(&mut self, db: &mut Database) -> &Vec<String> {
+    fn _cache_get_licenses(&mut self, db: &mut Database) -> &Vec<String> {
         self.lazy_load(INFRQ_DESC, db);
         return &self.licenses;
     }
 
-    pub fn _cache_get_groups(&mut self, db: &mut Database) -> &Vec<String> {
+    fn _cache_get_groups(&mut self, db: &mut Database) -> &Vec<String> {
         self.lazy_load(INFRQ_DESC, db);
         return &self.groups;
     }
 
-    pub fn _cache_has_scriptlet(&mut self, db: &mut Database) -> i32 {
+    fn _cache_has_scriptlet(&mut self, db: &mut Database) -> i32 {
         self.lazy_load(INFRQ_SCRIPTLET, db);
         return self.scriptlet;
     }
 
-    pub fn _cache_get_depends(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    fn _cache_get_depends(&mut self, db: &mut Database) -> &Vec<Dependency> {
         self.lazy_load(INFRQ_DESC, db);
         return &self.depends;
     }
 
-    pub fn _cache_get_optdepends(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    fn _cache_get_optdepends(&mut self, db: &mut Database) -> &Vec<Dependency> {
         self.lazy_load(INFRQ_DESC, db);
         return &self.optdepends;
     }
 
-    pub fn _cache_get_conflicts(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    fn _cache_get_conflicts(&mut self, db: &mut Database) -> &Vec<Dependency> {
         self.lazy_load(INFRQ_DESC, db);
         return &self.conflicts;
     }
 
-    pub fn _cache_get_provides(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    fn _cache_get_provides(&mut self, db: &mut Database) -> &Vec<Dependency> {
         self.lazy_load(INFRQ_DESC, db);
         return &self.provides;
     }
 
-    pub fn _cache_get_replaces(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    fn _cache_get_replaces(&mut self, db: &mut Database) -> &Vec<Dependency> {
         self.lazy_load(INFRQ_DESC, db);
         return &self.replaces;
     }
@@ -888,7 +886,7 @@ impl Package {
     //     return &self.files;
     // }
 
-    pub fn _cache_get_backup(&mut self, db: &mut Database) -> &Vec<String> {
+    fn _cache_get_backup(&mut self, db: &mut Database) -> &Vec<String> {
         self.lazy_load(INFRQ_FILES, db);
         return &self.backup;
     }
@@ -897,7 +895,7 @@ impl Package {
     ///except that the returned 'file stream' is from the database.
     ///@param pkg the package (from db) to read the changelog
     ///@return a 'file stream' to the package changelog
-    pub fn _cache_changelog_open(&self) -> std::fs::File {
+    fn _cache_changelog_open(&self) -> std::fs::File {
         unimplemented!();
         //     let db = self.alpm_pkg_get_db();
         //     let clfile = db._alpm_local_db_pkgpath(self, "changelog");
@@ -990,7 +988,7 @@ impl Package {
     // 	return _alpm_archive_read_free(mtree);
     // }
 
-    pub fn _cache_force_load(&mut self, db: &mut Database) -> i32 {
+    fn _cache_force_load(&mut self, db: &mut Database) -> i32 {
         return db.local_db_read(self, INFRQ_ALL);
     }
 
@@ -1015,7 +1013,7 @@ impl Package {
     //     // 	return 0;
     // }
 
-    pub fn write_deps(fp: File, header: &String, deplist: Vec<Dependency>) {
+    fn write_deps(fp: File, header: &String, deplist: Vec<Dependency>) {
         unimplemented!();
         // 	alpm_list_t *lp;
         // 	if(!deplist) {
@@ -1032,7 +1030,7 @@ impl Package {
         // 	fputc('', fp);
     }
 
-    pub fn alpm_pkg_set_reason(&self, reason: &PackageReason) -> i32 {
+    pub fn set_reason(&self, reason: &PackageReason) -> i32 {
         unimplemented!();
         // 	ASSERT(pkg != NULL, return -1);
         // 	ASSERT(pkg->origin == LocalDatabase,
@@ -1150,7 +1148,7 @@ impl PartialEq for Package {
 }
 impl Eq for Package {}
 /// Helper function for comparing packages
-pub fn _alpm_pkg_cmp(pkg1: &Package, pkg2: &Package) -> std::cmp::Ordering {
+pub fn pkg_cmp(pkg1: &Package, pkg2: &Package) -> std::cmp::Ordering {
     pkg1.name.cmp(&pkg2.name)
 }
 
