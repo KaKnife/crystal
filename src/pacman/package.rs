@@ -272,16 +272,16 @@ pub fn dump_pkg_full(
 
 	let v = pkg.alpm_pkg_get_validation(db_local);
 	if v != 0 {
-		if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_NONE as i32 != 0 {
+		if v & pkgvalidation_t::ALPM_PKG_VALIDATION_NONE as i32 != 0 {
 			validation.push(String::from("None"));
 		} else {
-			if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_MD5SUM as i32 != 0 {
+			if v & pkgvalidation_t::ALPM_PKG_VALIDATION_MD5SUM as i32 != 0 {
 				validation.push(String::from("MD5 Sum"));
 			}
-			if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_SHA256SUM as i32 != 0 {
+			if v & pkgvalidation_t::ALPM_PKG_VALIDATION_SHA256SUM as i32 != 0 {
 				validation.push(String::from("SHA-256 Sum"));
 			}
-			if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_SIGNATURE as i32 != 0 {
+			if v & pkgvalidation_t::ALPM_PKG_VALIDATION_SIGNATURE as i32 != 0 {
 				validation.push(String::from("Signature"));
 			}
 		}
