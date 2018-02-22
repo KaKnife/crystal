@@ -1,13 +1,3 @@
-// #[macro_use]
-// mod util;
-use super::*;
-use std;
-// use std::error::Error;
-use std::fs::File;
-// use std::io::Result;
-// use std::ffi::OsString;
-use std::fs;
-use super::deps::find_dep_satisfier;
 /*
  *  handle.c
  *
@@ -29,42 +19,54 @@ use super::deps::find_dep_satisfier;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// #[macro_use]
+// mod util;
+use super::*;
+use std;
+// use std::error::Error;
+use std::fs::File;
+// use std::io::Result;
+// use std::ffi::OsString;
+use std::fs;
+use super::deps::find_dep_satisfier;
+const LDCONFIG: &str = "/sbin/ldconfig";
 
 // alpm_cb_log SYMEXPORT alpm_option_get_logcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->logcb;
 // }
-//
+
 // alpm_cb_download SYMEXPORT alpm_option_get_dlcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->dlcb;
 // }
-//
+
 // alpm_cb_fetch SYMEXPORT alpm_option_get_fetchcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->fetchcb;
 // }
+
 // alpm_cb_totaldl SYMEXPORT alpm_option_get_totaldlcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->totaldlcb;
 // }
-//
+
 // alpm_cb_event SYMEXPORT alpm_option_get_eventcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->eventcb;
 // }
-//
+
 // alpm_cb_question SYMEXPORT alpm_option_get_questioncb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->questioncb;
 // }
-//
+
 // alpm_cb_progress SYMEXPORT alpm_option_get_progresscb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
@@ -88,16 +90,213 @@ impl Handle {
         line = format!("{}etc/ld.so.conf", self.root);
         if metadata(line).is_ok() {
             unimplemented!();
-            // // unimplemented due to lack of global var LDCONFIG
-            // line = format!("{}{}", self.root, LDCONFIG);
-            // if metadata(line).is_ok() {
-            //     let arg0: &str = "ldconfig";
-            //     let argv: [&str; 1] = [arg0];
-            //     return _alpm_run_chroot(self, LDCONFIG, argv, NULL, NULL);
-            // }
+            line = format!("{}{}", self.root, LDCONFIG);
+            if metadata(line).is_ok() {
+                let argv: Vec<String> = vec!["ldconfig".to_string()];
+                return self.run_chroot(&LDCONFIG.to_string(), argv /*NULL, NULL*/);
+            }
         }
 
         return 0;
+    }
+
+    /** Execute a command with arguments in a chroot.
+     * @param handle the context handle
+     * @param cmd command to execute
+     * @param argv arguments to pass to cmd
+     * @param stdin_cb callback to provide input to the chroot on stdin
+     * @param stdin_ctx context to be passed to @a stdin_cb
+     * @return 0 on success, 1 on error
+     */
+    fn run_chroot(
+        &self,
+        cmd: &String,
+        argv: Vec<String>,
+        /*_alpm_cb_io stdin_cb, void *stdin_ctx*/
+    ) -> i32 {
+        unimplemented!();
+        // 	pid_t pid;
+        // 	int child2parent_pipefd[2], parent2child_pipefd[2];
+        // 	int cwdfd;
+        // 	int retval = 0;
+        //
+        // #define HEAD 1
+        // #define TAIL 0
+        //
+        // 	/* save the cwd so we can restore it later */
+        // 	OPEN(cwdfd, ".", O_RDONLY | O_CLOEXEC);
+        // 	if(cwdfd < 0) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not get current working directory\n"));
+        // 	}
+        //
+        // 	/* just in case our cwd was removed in the upgrade operation */
+        // 	if(chdir(handle->root) != 0) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not change directory to %s (%s)\n"),
+        // 				handle->root, strerror(errno));
+        // 		goto cleanup;
+        // 	}
+        //
+        // 	_alpm_log(handle, ALPM_LOG_DEBUG, "executing \"%s\" under chroot \"%s\"\n",
+        // 			cmd, handle->root);
+        //
+        // 	/* Flush open fds before fork() to avoid cloning buffers */
+        // 	fflush(NULL);
+        //
+        // 	if(socketpair(AF_UNIX, SOCK_STREAM, 0, child2parent_pipefd) == -1) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not create pipe (%s)\n"), strerror(errno));
+        // 		retval = 1;
+        // 		goto cleanup;
+        // 	}
+        //
+        // 	if(socketpair(AF_UNIX, SOCK_STREAM, 0, parent2child_pipefd) == -1) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not create pipe (%s)\n"), strerror(errno));
+        // 		retval = 1;
+        // 		goto cleanup;
+        // 	}
+        //
+        // 	/* fork- parent and child each have separate code blocks below */
+        // 	pid = fork();
+        // 	if(pid == -1) {
+        // 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not fork a new process (%s)\n"), strerror(errno));
+        // 		retval = 1;
+        // 		goto cleanup;
+        // 	}
+        //
+        // 	if(pid == 0) {
+        // 		/* this code runs for the child only (the actual chroot/exec) */
+        // 		close(0);
+        // 		close(1);
+        // 		close(2);
+        // 		while(dup2(child2parent_pipefd[HEAD], 1) == -1 && errno == EINTR);
+        // 		while(dup2(child2parent_pipefd[HEAD], 2) == -1 && errno == EINTR);
+        // 		while(dup2(parent2child_pipefd[TAIL], 0) == -1 && errno == EINTR);
+        // 		close(parent2child_pipefd[TAIL]);
+        // 		close(parent2child_pipefd[HEAD]);
+        // 		close(child2parent_pipefd[TAIL]);
+        // 		close(child2parent_pipefd[HEAD]);
+        // 		if(cwdfd >= 0) {
+        // 			close(cwdfd);
+        // 		}
+        //
+        // 		/* use fprintf instead of _alpm_log to send output through the parent */
+        // 		if(chroot(handle->root) != 0) {
+        // 			fprintf(stderr, _("could not change the root directory (%s)\n"), strerror(errno));
+        // 			exit(1);
+        // 		}
+        // 		if(chdir("/") != 0) {
+        // 			fprintf(stderr, _("could not change directory to %s (%s)\n"),
+        // 					"/", strerror(errno));
+        // 			exit(1);
+        // 		}
+        // 		umask(0022);
+        // 		execv(cmd, argv);
+        // 		/* execv only returns if there was an error */
+        // 		fprintf(stderr, _("call to execv failed (%s)\n"), strerror(errno));
+        // 		exit(1);
+        // 	} else {
+        // 		/* this code runs for the parent only (wait on the child) */
+        // 		int status;
+        // 		char obuf[PIPE_BUF]; /* writes <= PIPE_BUF are guaranteed atomic */
+        // 		char ibuf[LINE_MAX];
+        // 		ssize_t olen = 0, ilen = 0;
+        // 		nfds_t nfds = 2;
+        // 		struct pollfd fds[2], *child2parent = &(fds[0]), *parent2child = &(fds[1]);
+        //
+        // 		child2parent->fd = child2parent_pipefd[TAIL];
+        // 		child2parent->events = POLLIN;
+        // 		fcntl(child2parent->fd, F_SETFL, O_NONBLOCK);
+        // 		close(child2parent_pipefd[HEAD]);
+        // 		close(parent2child_pipefd[TAIL]);
+        //
+        // 		if(stdin_cb) {
+        // 			parent2child->fd = parent2child_pipefd[HEAD];
+        // 			parent2child->events = POLLOUT;
+        // 			fcntl(parent2child->fd, F_SETFL, O_NONBLOCK);
+        // 		} else {
+        // 			parent2child->fd = -1;
+        // 			parent2child->events = 0;
+        // 			close(parent2child_pipefd[HEAD]);
+        // 		}
+        //
+        // #define STOP_POLLING(p) do { close(p->fd); p->fd = -1; } while(0)
+        //
+        // 		while((child2parent->fd != -1 || parent2child->fd != -1)
+        // 				&& poll(fds, nfds, -1) > 0) {
+        // 			if(child2parent->revents & POLLIN) {
+        // 				if(_alpm_chroot_read_from_child(handle, child2parent->fd,
+        // 							ibuf, &ilen, sizeof(ibuf)) != 0) {
+        // 					/* we encountered end-of-file or an error */
+        // 					STOP_POLLING(child2parent);
+        // 				}
+        // 			} else if(child2parent->revents) {
+        // 				/* anything but POLLIN indicates an error */
+        // 				STOP_POLLING(child2parent);
+        // 			}
+        // 			if(parent2child->revents & POLLOUT) {
+        // 				if(_alpm_chroot_write_to_child(handle, parent2child->fd, obuf, &olen,
+        // 							sizeof(obuf), stdin_cb, stdin_ctx) != 0) {
+        // 					STOP_POLLING(parent2child);
+        // 				}
+        // 			} else if(parent2child->revents) {
+        // 				/* anything but POLLOUT indicates an error */
+        // 				STOP_POLLING(parent2child);
+        // 			}
+        // 		}
+        // 		/* process anything left in the input buffer */
+        // 		if(ilen) {
+        // 			/* buffer would have already been flushed if it had a newline */
+        // 			strcpy(ibuf + ilen, "\n");
+        // 			_alpm_chroot_process_output(handle, ibuf);
+        // 		}
+        //
+        // #undef STOP_POLLING
+        // #undef HEAD
+        // #undef TAIL
+        //
+        // 		if(parent2child->fd != -1) {
+        // 			close(parent2child->fd);
+        // 		}
+        // 		if(child2parent->fd != -1) {
+        // 			close(child2parent->fd);
+        // 		}
+        //
+        // 		while(waitpid(pid, &status, 0) == -1) {
+        // 			if(errno != EINTR) {
+        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("call to waitpid failed (%s)\n"), strerror(errno));
+        // 				retval = 1;
+        // 				goto cleanup;
+        // 			}
+        // 		}
+        //
+        // 		/* check the return status, make sure it is 0 (success) */
+        // 		if(WIFEXITED(status)) {
+        // 			_alpm_log(handle, ALPM_LOG_DEBUG, "call to waitpid succeeded\n");
+        // 			if(WEXITSTATUS(status) != 0) {
+        // 				_alpm_log(handle, ALPM_LOG_ERROR, _("command failed to execute correctly\n"));
+        // 				retval = 1;
+        // 			}
+        // 		} else if(WIFSIGNALED(status) != 0) {
+        // 			char *signal_description = strsignal(WTERMSIG(status));
+        // 			/* strsignal can return NULL on some (non-Linux) platforms */
+        // 			if(signal_description == NULL) {
+        // 				signal_description = _("Unknown signal");
+        // 			}
+        // 			_alpm_log(handle, ALPM_LOG_ERROR, _("command terminated by signal %d: %s\n"),
+        // 						WTERMSIG(status), signal_description);
+        // 			retval = 1;
+        // 		}
+        // 	}
+        //
+        // cleanup:
+        // 	if(cwdfd >= 0) {
+        // 		if(fchdir(cwdfd) != 0) {
+        // 			_alpm_log(handle, ALPM_LOG_ERROR,
+        // 					_("could not restore working directory (%s)\n"), strerror(errno));
+        // 		}
+        // 		close(cwdfd);
+        // 	}
+        //
+        // 	return retval;
     }
 
     /// Initialize the transaction.
@@ -120,15 +319,13 @@ impl Handle {
     }
 
     fn check_arch(&mut self, pkgs: &mut Vec<Package>) -> Vec<String> {
-        let mut invalid = Vec::new();
+        let mut invalid: Vec<String> = Vec::new();
         let arch: &str = &self.arch;
         for pkg in pkgs {
             let pkgarch = pkg.get_arch(&mut self.db_local).clone();
             if pkgarch != "" && pkgarch == arch && pkgarch == "any" {
                 let string;
-                let pkgname = pkg.get_name();
-                let pkgver = &pkg.version;
-                string = format!("{}-{}-{}", pkgname, pkgver, pkgarch);
+                string = format!("{}-{}-{}", pkg.get_name(), &pkg.version, pkgarch);
                 invalid.push(string);
             }
         }
@@ -278,6 +475,7 @@ impl Handle {
     /// Interrupt a transaction.
     /// note: Safe to call from inside signal handlers.
     pub fn trans_interrupt(&self) {
+        unimplemented!();
         // 	alpm_trans_t *trans;
         //
         // 	/* Sanity checks */
@@ -536,7 +734,7 @@ impl Handle {
         // 	}
         // #endif
 
-        let mut db = Database::new(treename, false,DbOpsType::Sync);
+        let mut db = Database::new(treename, false, DbOpsType::Sync);
         // db->ops = &sync_db_ops;
         // db.handle = handle;
         db.set_siglevel(level);

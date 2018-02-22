@@ -22,25 +22,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <string.h>
-// #include <limits.h>
-// #include <sys/stat.h>
-// #include <dirent.h>
-//
-// /* libalpm */
-// #include "conflict.h"
-// #include "alpm_list.h"
-// #include "alpm.h"
-// #include "handle.h"
-// #include "trans.h"
-// #include "util.h"
-// #include "log.h"
-// #include "deps.h"
-// #include "filelist.h"
-
+ 
 // /**
 //  * @brief Creates a new conflict.
 //  */

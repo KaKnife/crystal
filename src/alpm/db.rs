@@ -42,31 +42,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 use super::*;
-use super::be_local::ALPM_LOCAL_DB_VERSION;
 
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>
-//
-// #include "alpm.h"
-// #include "pkghash.h"
-// #include "signing.h"
-//
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <regex.h>
-//
-// /* libalpm */
-// #include "db.h"
-// #include "alpm_list.h"
-// #include "log.h"
-// #include "util.h"
-// #include "handle.h"
-// #include "alpm.h"
-// #include "package.h"
-// #include "group.h"
 
+pub const ALPM_LOCAL_DB_VERSION: usize = 9;
 /// Database entries
 pub const INFRQ_BASE: i32 = (1 << 0);
 pub const INFRQ_DESC: i32 = (1 << 1);

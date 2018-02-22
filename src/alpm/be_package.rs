@@ -19,29 +19,10 @@ use super::*;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// #include <stdlib.h>
-// #include <string.h>
-// #include <errno.h>
-// #include <sys/types.h>
-// #include <sys/stat.h>
-// #include <fcntl.h>
-// #include <limits.h>
-//
+
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>
-//
-// /* libalpm */
-// #include "alpm_list.h"
-// #include "alpm.h"
-// #include "libarchive-compat.h"
-// #include "util.h"
-// #include "log.h"
-// #include "handle.h"
-// #include "package.h"
-// #include "deps.h"
-// #include "filelist.h"
-// #include "util.h"
 
 // struct package_changelog {
 // 	struct archive *archive;

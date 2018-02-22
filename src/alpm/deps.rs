@@ -21,30 +21,6 @@ use super::*;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <string.h>
-//
-// /* libalpm */
-// #include "deps.h"
-// #include "alpm_list.h"
-// #include "util.h"
-// #include "log.h"
-// #include "graph.h"
-// #include "package.h"
-// #include "db.h"
-// #include "handle.h"
-// #include "trans.h"
-
-// void SYMEXPORT alpm_dep_free(Dependency *dep)
-// {
-// 	ASSERT(dep != NULL, return);
-// 	FREE(dep->name);
-// 	FREE(dep->version);
-// 	FREE(dep->desc);
-// 	FREE(dep);
-// }
-//
 // static alpm_depmissing_t *depmiss_new(const char *target, Dependency *dep,
 // 		const char *causingpkg)
 // {
@@ -62,7 +38,7 @@ use super::*;
 // 	alpm_depmissing_free(miss);
 // 	return NULL;
 // }
-//
+
 // void SYMEXPORT alpm_depmissing_free(alpm_depmissing_t *miss)
 // {
 // 	ASSERT(miss != NULL, return);
@@ -71,7 +47,7 @@ use super::*;
 // 	FREE(miss->causingpkg);
 // 	FREE(miss);
 // }
-//
+
 // /** Check if pkg2 satisfies a dependency of pkg1 */
 // static int _alpm_pkg_depends_on(Package *pkg1, Package *pkg2)
 // {
@@ -157,7 +133,7 @@ pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &Dependency) -> Optio
 // 	alpm_list_free(localpkgs);
 // 	return vertices;
 // }
-//
+
 // static void _alpm_warn_dep_cycle(Handle *handle, alpm_list_t *targets,
 // 		alpm_graph_t *ancestor, alpm_graph_t *vertex, int reverse)
 // {

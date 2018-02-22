@@ -6,7 +6,6 @@ pub mod db;
 pub mod package;
 pub mod trans;
 pub mod version;
-pub mod be_local;
 pub mod conflict;
 pub mod error;
 pub mod remove;
