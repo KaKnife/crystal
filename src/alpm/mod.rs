@@ -313,15 +313,15 @@ impl Default for sigstatus_t {
 
 /// PGP signature verification status return codes
 #[derive(Debug, Clone)]
-enum alpm_sigvalidity_t {
+enum sigvalidity_t {
     ALPM_SIGVALIDITY_FULL,
     ALPM_SIGVALIDITY_MARGINAL,
     ALPM_SIGVALIDITY_NEVER,
     ALPM_SIGVALIDITY_UNKNOWN,
 }
-impl Default for alpm_sigvalidity_t {
+impl Default for sigvalidity_t {
     fn default() -> Self {
-        alpm_sigvalidity_t::ALPM_SIGVALIDITY_UNKNOWN
+        sigvalidity_t::ALPM_SIGVALIDITY_UNKNOWN
     }
 }
 
@@ -426,7 +426,7 @@ struct alpm_pgpkey_t {
 struct alpm_sigresult_t {
     key: alpm_pgpkey_t,
     status: sigstatus_t,
-    validity: alpm_sigvalidity_t,
+    validity: sigvalidity_t,
 }
 
 /// Signature list. Contains the number of signatures found and a pointer to an
