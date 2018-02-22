@@ -147,7 +147,7 @@ fn query_fileowner(targets: &Vec<String>) -> i32 {
     // 	const char *root = alpm_option_get_root(config.handle);
     // 	size_t rootlen = strlen(root);
     // 	alpm_list_t *t;
-    // 	alpm_db_t *db_local;
+    // 	Database *db_local;
     // 	alpm_list_t *packages;
     //
     // 	/* This code is here for safety only */
@@ -238,7 +238,7 @@ fn query_fileowner(targets: &Vec<String>) -> i32 {
 /// search the local database for a matching package
 fn query_search(targets: &Vec<String>, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
     let tem_handle = &handle.clone();
-    let db_local: &mut alpm_db_t = handle.alpm_get_localdb_mut();
+    let db_local: &mut Database = handle.alpm_get_localdb_mut();
     return dump_pkg_search(
         db_local,
         targets,
@@ -267,7 +267,7 @@ fn pkg_get_locality(pkg: &pkg_t, handle: &alpm_handle_t) -> u8 {
     return PKG_LOCALITY_FOREIGN;
 }
 
-fn is_unrequired(pkg: &pkg_t, level: u8, db_local: &mut alpm_db_t, dbs_sync: &mut Vec<alpm_db_t>) -> bool {
+fn is_unrequired(pkg: &pkg_t, level: u8, db_local: &mut Database, dbs_sync: &mut Vec<Database>) -> bool {
     let mut requiredby = pkg.alpm_pkg_compute_requiredby(db_local, dbs_sync);
     if requiredby.is_empty() {
         if level == 1 {
@@ -369,7 +369,7 @@ fn display(pkg: &mut pkg_t, config: &config_t, handle: &mut alpm_handle_t) -> i3
 fn query_group(targets: &Vec<String>, config: &config_t, handle: &mut alpm_handle_t) -> i32 {
     let mut ret = 0;
     let handle_clone = &mut handle.clone();
-    let db_local: &mut alpm_db_t = handle.alpm_get_localdb_mut();
+    let db_local: &mut Database = handle.alpm_get_localdb_mut();
 
     let op_q_explicit = config.op_q_explicit;
     let op_q_deps = config.op_q_deps;
@@ -419,7 +419,7 @@ pub fn pacman_query(
     // 	alpm_list_t *i;
     // 	pkg_t *pkg = NULL;
     let mut pkg;
-    // 	alpm_db_t *db_local;
+    // 	Database *db_local;
     let mut db_local;
     // let op_q_explicit = config.op_q_explicit;
     // let op_q_deps = config.op_q_deps;

@@ -128,7 +128,7 @@ fn sync_cleancache(level: i32) -> i32 {
     unimplemented!();
     // 	alpm_list_t *i;
     // 	alpm_list_t *sync_dbs = alpm_get_syncdbs(config->handle);
-    // 	alpm_db_t *db_local = alpm_get_localdb(config->handle);
+    // 	Database *db_local = alpm_get_localdb(config->handle);
     // 	alpm_list_t *cachedirs = alpm_option_get_cachedirs(config->handle);
     // 	int ret = 0;
     //
@@ -248,7 +248,7 @@ fn sync_cleancache(level: i32) -> i32 {
     // 				alpm_list_t *j;
     // 				/* check if this package is in a sync DB */
     // 				for(j = sync_dbs; j && delete; j = alpm_list_next(j)) {
-    // 					alpm_db_t *db = j->data;
+    // 					Database *db = j->data;
     // 					pkg = alpm_db_get_pkg(db, local_name);
     // 					if(pkg != NULL && alpm_pkg_vercmp(local_version,
     // 								alpm_pkg_get_version(pkg)) == 0) {
@@ -281,7 +281,7 @@ fn sync_cleancache(level: i32) -> i32 {
 
 /* search the sync dbs for a matching package */
 fn sync_search(
-    syncs: &mut Vec<alpm_db_t>,
+    syncs: &mut Vec<Database>,
     targets: &Vec<String>,
     config: &config_t,
     handle: &mut alpm_handle_t,
@@ -297,7 +297,7 @@ fn sync_search(
 
 fn sync_group(
     level: i32,
-    syncs: &Vec<alpm_db_t>,
+    syncs: &Vec<Database>,
     targets: Vec<String>,
 ) -> std::result::Result<(), ()> {
     unimplemented!();
@@ -310,7 +310,7 @@ fn sync_group(
     // 			found = 0;
     // 			const char *grpname = i->data;
     // 			for(j = syncs; j; j = alpm_list_next(j)) {
-    // 				alpm_db_t *db = j->data;
+    // 				Database *db = j->data;
     // 				alpm_group_t *grp = alpm_db_get_group(db, grpname);
     //
     // 				if(grp) {
@@ -333,7 +333,7 @@ fn sync_group(
     // 	} else {
     // 		ret = 1;
     // 		for(i = syncs; i; i = alpm_list_next(i)) {
-    // 			alpm_db_t *db = i->data;
+    // 			Database *db = i->data;
     //
     // 			for(j = alpm_db_get_groupcache(db); j; j = alpm_list_next(j)) {
     // 				alpm_group_t *grp = j->data;
@@ -359,7 +359,7 @@ fn sync_group(
     // 	return ret;
 }
 
-fn sync_info(mut syncs: Vec<alpm_db_t>, targets: &Vec<String>) -> std::result::Result<(), ()> {
+fn sync_info(mut syncs: Vec<Database>, targets: &Vec<String>) -> std::result::Result<(), ()> {
     let mut ret = Ok(());
     if !targets.is_empty() {
         for target in targets {
@@ -414,19 +414,19 @@ fn sync_info(mut syncs: Vec<alpm_db_t>, targets: &Vec<String>) -> std::result::R
     ret
 }
 
-fn sync_list(syncs: &mut Vec<alpm_db_t>, targets: &Vec<String>) -> std::result::Result<(), ()> {
+fn sync_list(syncs: &mut Vec<Database>, targets: &Vec<String>) -> std::result::Result<(), ()> {
     unimplemented!();
     // 	alpm_list_t *i, *j, *ls = NULL;
-    // 	alpm_db_t *db_local = alpm_get_localdb(config->handle);
+    // 	Database *db_local = alpm_get_localdb(config->handle);
     // 	int ret = 0;
     //
     // 	if(targets) {
     // 		for(i = targets; i; i = alpm_list_next(i)) {
     // 			const char *repo = i->data;
-    // 			alpm_db_t *db = NULL;
+    // 			Database *db = NULL;
     //
     // 			for(j = syncs; j; j = alpm_list_next(j)) {
-    // 				alpm_db_t *d = j->data;
+    // 				Database *d = j->data;
     //
     // 				if(strcmp(repo, alpm_db_get_name(d)) == 0) {
     // 					db = d;
@@ -447,7 +447,7 @@ fn sync_list(syncs: &mut Vec<alpm_db_t>, targets: &Vec<String>) -> std::result::
     // 	}
     //
     // 	for(i = ls; i; i = alpm_list_next(i)) {
-    // 		alpm_db_t *db = i->data;
+    // 		Database *db = i->data;
     //
     // 		for(j = alpm_db_get_pkgcache(db); j; j = alpm_list_next(j)) {
     // 			pkg_t *pkg = j->data;
@@ -472,11 +472,11 @@ fn sync_list(syncs: &mut Vec<alpm_db_t>, targets: &Vec<String>) -> std::result::
     // 	return ret;
 }
 
-fn get_db(dbname: &String) -> alpm_db_t {
+fn get_db(dbname: &String) -> Database {
     unimplemented!();
     // 	alpm_list_t *i;
     // 	for(i = alpm_get_syncdbs(config->handle); i; i = i->next) {
-    // 		alpm_db_t *db = i->data;
+    // 		Database *db = i->data;
     // 		if(strcmp(alpm_db_get_name(db), dbname) == 0) {
     // 			return db;
     // 		}
@@ -606,7 +606,7 @@ fn process_target(target: &String, error: i32) -> i32 {
     //
     // 	if(targname && targname != targstring)
     {
-        let mut db: alpm_db_t;
+        let mut db: Database;
         let dbname: &String;
         let mut usage: alpm_db_usage_t = alpm_db_usage_t::default();
 
@@ -854,7 +854,7 @@ pub fn pacman_sync(
     handle: &mut alpm_handle_t,
 ) -> std::result::Result<(), ()> {
     // 	alpm_list_t *sync_dbs = NULL;
-    let mut sync_dbs: Vec<alpm_db_t>;
+    let mut sync_dbs: Vec<Database>;
 
     /* clean the cache */
     if config.op_s_clean != 0 {

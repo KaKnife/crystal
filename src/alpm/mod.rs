@@ -42,7 +42,7 @@ pub use self::remove::alpm_remove_pkg;
 pub use self::package::pkg_t;
 pub use self::handle::alpm_list_t;
 pub use self::handle::alpm_handle_t;
-pub use self::db::alpm_db_t;
+pub use self::db::Database;
 pub use self::deps::alpm_dep_from_string;
 pub use self::be_sync::alpm_db_update;
 pub use self::deps::alpm_find_satisfier;
@@ -90,7 +90,7 @@ pub type Result<T> = std::result::Result<T, errno_t>;
 /* Opaque Structures */
 
 type __alpm_handle_t = alpm_handle_t;
-type __alpm_db_t = alpm_db_t;
+type __Database = Database;
 type __pkg_t = pkg_t;
 type __alpm_trans_t = alpm_trans_t;
 type alpm_time_t = i64;
@@ -702,7 +702,7 @@ enum alpm_event_type_t {
 // 	/* Package to replace with. */
 // 	pkg_t *newpkg;
 // 	/* DB of newpkg
-// 	alpm_db_t *newdb;
+// 	Database *newdb;
 // } alpm_question_replace_t;
 
 // typedef struct _alpm_question_conflict_t {
@@ -964,13 +964,13 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * libalpm functions.
 //  * @return a reference to the local database
 //
-// alpm_db_t *alpm_get_localdb(alpm_handle_t *handle);
+// Database *alpm_get_localdb(alpm_handle_t *handle);
 //
 // /// Get the list of sync databases.
-//  * Returns a list of alpm_db_t structures, one for each registered
+//  * Returns a list of Database structures, one for each registered
 //  * sync database.
 //  * @param handle the context handle
-//  * @return a reference to an internal list of alpm_db_t structures
+//  * @return a reference to an internal list of Database structures
 //
 // alpm_list_t *alpm_get_syncdbs(alpm_handle_t *handle);
 //
@@ -979,9 +979,9 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * @param treename the name of the sync repository
 //  * @param level what level of signature checking to perform on the
 //  * database; note that this must be a '.sig' file type verification
-//  * @return an alpm_db_t* on success (the value), NULL on error
+//  * @return an Database* on success (the value), NULL on error
 //
-// alpm_db_t *alpm_register_syncdb(alpm_handle_t *handle, const char *treename,
+// Database *alpm_register_syncdb(alpm_handle_t *handle, const char *treename,
 // 		int level);
 //
 // /// Unregister all package databases.
@@ -994,13 +994,13 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * @param db pointer to the package database to unregister
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_db_unregister(alpm_db_t *db);
+// int alpm_db_unregister(Database *db);
 //
 // /// Get the name of a package database.
 //  * @param db pointer to the package database
 //  * @return the name of the package database, NULL on error
 //
-// const char *alpm_db_get_name(const alpm_db_t *db);
+// const char *alpm_db_get_name(const Database *db);
 //
 // /// Get the signature verification level for a database.
 //  * Will return the default verification level if this database is set up
@@ -1008,7 +1008,7 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * @param db pointer to the package database
 //  * @return the signature verification level
 //
-// int alpm_db_get_siglevel(alpm_db_t *db);
+// int alpm_db_get_siglevel(Database *db);
 //
 // /// Check the validity of a database.
 //  * This is most useful for sync databases and verifying signature status.
@@ -1016,51 +1016,51 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * @param db pointer to the package database
 //  * @return 0 if valid, -1 if invalid (pm_errno is set accordingly)
 //
-// int alpm_db_get_valid(alpm_db_t *db);
+// int alpm_db_get_valid(Database *db);
 //
 // /// @name Accessors to the list of servers for a database.
 //  * @{
 //
-// alpm_list_t *alpm_db_get_servers(const alpm_db_t *db);
-// int alpm_db_set_servers(alpm_db_t *db, alpm_list_t *servers);
-// int alpm_db_add_server(alpm_db_t *db, const char *url);
-// int alpm_db_remove_server(alpm_db_t *db, const char *url);
+// alpm_list_t *alpm_db_get_servers(const Database *db);
+// int alpm_db_set_servers(Database *db, alpm_list_t *servers);
+// int alpm_db_add_server(Database *db, const char *url);
+// int alpm_db_remove_server(Database *db, const char *url);
 // /// @}
 //
-// int alpm_db_update(int force, alpm_db_t *db);
+// int alpm_db_update(int force, Database *db);
 //
 // /// Get a package entry from a package database.
 //  * @param db pointer to the package database to get the package from
 //  * @param name of the package
 //  * @return the package entry on success, NULL on error
 //
-// pkg_t *alpm_db_get_pkg(alpm_db_t *db, const char *name);
+// pkg_t *alpm_db_get_pkg(Database *db, const char *name);
 //
 // /// Get the package cache of a package database.
 //  * @param db pointer to the package database to get the package from
 //  * @return the list of packages on success, NULL on error
 //
-// alpm_list_t *alpm_db_get_pkgcache(alpm_db_t *db);
+// alpm_list_t *alpm_db_get_pkgcache(Database *db);
 //
 // /// Get a group entry from a package database.
 //  * @param db pointer to the package database to get the group from
 //  * @param name of the group
 //  * @return the groups entry on success, NULL on error
 //
-// group_t *alpm_db_get_group(alpm_db_t *db, const char *name);
+// group_t *alpm_db_get_group(Database *db, const char *name);
 //
 // /// Get the group cache of a package database.
 //  * @param db pointer to the package database to get the group from
 //  * @return the list of groups on success, NULL on error
 //
-// alpm_list_t *alpm_db_get_groupcache(alpm_db_t *db);
+// alpm_list_t *alpm_db_get_groupcache(Database *db);
 //
 // /// Searches a database with regular expressions.
 //  * @param db pointer to the package database to search in
 //  * @param needles a list of regular expressions to search for
 //  * @return the list of packages matching all regular expressions on success, NULL on error
 //
-// alpm_list_t *alpm_db_search(alpm_db_t *db, const alpm_list_t *needles);
+// alpm_list_t *alpm_db_search(Database *db, const alpm_list_t *needles);
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct alpm_db_usage_t {
@@ -1083,14 +1083,14 @@ impl alpm_db_usage_t {
 //  * @param usage a bitmask of alpm_db_usage_t values
 //  * @return 0 on success, or -1 on error
 //
-// int alpm_db_set_usage(alpm_db_t *db, int usage);
+// int alpm_db_set_usage(Database *db, int usage);
 //
 // /// Gets the usage of a database.
 //  * @param db pointer to the package database to get the status of
 //  * @param usage pointer to an alpm_db_usage_t to store db's status
 //  * @return 0 on success, or -1 on error
 //
-// int alpm_db_get_usage(alpm_db_t *db, int *usage);
+// int alpm_db_get_usage(Database *db, int *usage);
 //
 // /// @}
 //
@@ -1346,12 +1346,12 @@ impl alpm_db_usage_t {
 // alpm_list_t *alpm_pkg_get_backup(pkg_t *pkg);
 //
 // /// Returns the database containing pkg.
-//  * Returns a pointer to the alpm_db_t structure the package is
+//  * Returns a pointer to the Database structure the package is
 //  * originating from, or NULL if the package was loaded from a file.
 //  * @param pkg a pointer to package
 //  * @return a pointer to the DB containing pkg, or NULL.
 //
-// alpm_db_t *alpm_pkg_get_db(pkg_t *pkg);
+// Database *alpm_pkg_get_db(pkg_t *pkg);
 //
 // /// Returns the base64 encoded package signature.
 //  * @param pkg a pointer to package
@@ -1456,7 +1456,7 @@ impl alpm_db_usage_t {
 //
 // int alpm_pkg_check_pgp_signature(pkg_t *pkg, alpm_siglist_t *siglist);
 //
-// int alpm_db_check_pgp_signature(alpm_db_t *db, alpm_siglist_t *siglist);
+// int alpm_db_check_pgp_signature(Database *db, alpm_siglist_t *siglist);
 //
 // int alpm_siglist_cleanup(alpm_siglist_t *siglist);
 //
@@ -1627,16 +1627,7 @@ pub struct alpm_transflag_t {
 //
 
 // depend_t *alpm_dep_from_string(const char *depstring);
-//
-// /// Free a dependency info structure
-//  * @param dep struct to free
-//
-// void alpm_dep_free(depend_t *dep);
-//
-// /*
-//  * Helpers
-//
-//
+
 // /* checksums
 // char *alpm_compute_md5sum(const char *filename);
 // char *alpm_compute_sha256sum(const char *filename);
@@ -1658,44 +1649,32 @@ pub struct Capabilities {
 // void alpm_depmissing_free(depmissing_t *miss);
 // void alpm_conflict_free(alpm_conflict_t *conflict);
 
-// /*
-//  *  alpm.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
-//  *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
-//  *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
+/*
+ *  alpm.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
+ *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
+ *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 // #ifdef HAVE_LIBCURL
 // #include <curl/curl.h>
 // #endif
-//
-// /* libalpm
-// #include "alpm.h"
-// #include "alpm_list.h"
-// #include "handle.h"
-// #include "log.h"
-// #include "util.h"
-//
-// /// \addtogroup alpm_interface Interface Functions
-//  * @brief Functions to initialize and release libalpm
-//  * @{
-//
 
 /// Initializes the library.
 /// Creates handle, connects to database and creates lockfile.
@@ -1743,7 +1722,7 @@ pub fn initialize(root: &String, dbpath: &String) -> Result<alpm_handle_t> {
 pub fn alpm_release(myhandle: alpm_handle_t) -> i32 {
     unimplemented!();
     // 	int ret = 0;
-    // 	alpm_db_t *db;
+    // 	Database *db;
     //
     // 	CHECK_HANDLE(myhandle, return -1);
     //

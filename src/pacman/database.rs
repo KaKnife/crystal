@@ -29,7 +29,7 @@ fn change_install_reason(
     config: &mut config_t,
     handle: &mut alpm_handle_t,
 ) -> i32 {
-    let db_local: &alpm_db_t;
+    let db_local: &Database;
     let mut ret: i32 = 0;
     let reason: pkgreason_t;
 
@@ -249,7 +249,7 @@ fn check_db_local(config: &mut config_t, handle: &mut alpm_handle_t) -> i32 {
         return ret;
     }
     {
-        let db: &mut alpm_db_t;
+        let db: &mut Database;
         db = handle.alpm_get_localdb_mut();
         pkglist = db.alpm_db_get_pkgcache().unwrap().clone();
     }

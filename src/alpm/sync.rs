@@ -49,7 +49,7 @@ use super::*;
 // #include "signing.h"
 
 // static alpm_list_t *check_replacers(alpm_handle_t *handle, pkg_t *lpkg,
-// 		alpm_db_t *sdb)
+// 		Database *sdb)
 // {
 // 	/* 2. search for replacers in sdb */
 // 	alpm_list_t *replacers = NULL;
@@ -149,7 +149,7 @@ pub fn alpm_sync_sysupgrade(handle: &mut alpm_handle_t, enable_downgrade: bool) 
 
         /* Search for replacers then literal (if no replacer) in each sync database. */
         for sdb in &handle.dbs_sync {
-            // alpm_db_t *sdb = j.data;
+            // Database *sdb = j.data;
             // alpm_list_t *replacers;
 
             if !sdb.usage.ALPM_DB_USAGE_UPGRADE {
@@ -181,15 +181,15 @@ pub fn alpm_sync_sysupgrade(handle: &mut alpm_handle_t, enable_downgrade: bool) 
 /// Find group members across a list of databases.
 /// If a member exists in several databases, only the first database is used.
 /// IgnorePkg is also handled.
-/// @param dbs the list of alpm_db_t *
+/// @param dbs the list of Database
 /// @param name the name of the group
 /// @return the list of pkg_t * (caller is responsible for alpm_list_free)
-pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
+pub fn alpm_find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<pkg_t> {
     unimplemented!();
     // 	alpm_list_t *i, *j, *pkgs = NULL, *ignorelist = NULL;
     //
     // 	for(i = dbs; i; i = i.next) {
-    // 		alpm_db_t *db = i.data;
+    // 		Database *db = i.data;
     // 		alpm_group_t *grp = alpm_db_get_group(db, name);
     //
     // 		if(!grp) {
@@ -408,7 +408,7 @@ fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: errno_t) 
 // 		return payload;
 // }
 
-// static int find_dl_candidates(alpm_db_t *repo, alpm_list_t **files, alpm_list_t **deltas)
+// static int find_dl_candidates(Database *repo, alpm_list_t **files, alpm_list_t **deltas)
 // {
 // 	alpm_list_t *i;
 // 	alpm_handle_t *handle = repo->handle;

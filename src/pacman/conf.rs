@@ -1475,7 +1475,7 @@ fn _parse_options(
     return 0;
 }
 
-fn _add_mirror(db: &mut alpm_db_t, value: &String, arch: &String) -> Result<()> {
+fn _add_mirror(db: &mut Database, value: &String, arch: &String) -> Result<()> {
     let dbname = db.alpm_db_get_name().clone();
     /* let's attempt a replacement for the current repo */
     let temp = value.replace("$repo", &dbname);

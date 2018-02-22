@@ -143,7 +143,7 @@ pub fn check_syncdbs(
 
 pub fn sync_syncdbs(
     level: i32,
-    syncs: &mut Vec<alpm_db_t>,
+    syncs: &mut Vec<Database>,
     handle: &mut alpm_handle_t,
 ) -> std::result::Result<(), ()> {
     let mut success = Ok(());
@@ -812,7 +812,7 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 //
 // 	/* a row consists of the package name, */
 // 	if(target->install) {
-// 		const alpm_db_t *db = alpm_pkg_get_db(target->install);
+// 		const Database *db = alpm_pkg_get_db(target->install);
 // 		if(db) {
 // 			pm_asprintf(&str, "%s/%s", alpm_db_get_name(db), alpm_pkg_get_name(target->install));
 // 		} else {
@@ -964,7 +964,7 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 // void display_targets(void)
 // {
 // 	alpm_list_t *i, *targets = NULL;
-// 	alpm_db_t *db_local = alpm_get_localdb(config->handle);
+// 	Database *db_local = alpm_get_localdb(config->handle);
 //
 // 	for(i = alpm_trans_get_add(config->handle); i; i = alpm_list_next(i)) {
 // 		pkg_t *pkg = i->data;
@@ -993,7 +993,7 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 // 	FREELIST(targets);
 // }
 
-fn pkg_get_size(pkg: &mut pkg_t, config: &config_t, db: &mut alpm_db_t) -> off_t {
+fn pkg_get_size(pkg: &mut pkg_t, config: &config_t, db: &mut Database) -> off_t {
     match config.op {
         Some(PM_OP_SYNC) => pkg.alpm_pkg_download_size(),
         Some(PM_OP_UPGRADE) => pkg.alpm_pkg_get_size(),
@@ -1165,7 +1165,7 @@ pub fn print_packages(
 //
 // static char *make_optstring(alpm_depend_t *optdep)
 // {
-// 	alpm_db_t *localdb = alpm_get_localdb(config->handle);
+// 	Database *localdb = alpm_get_localdb(config->handle);
 // 	char *optstring = alpm_dep_compute_string(optdep);
 // 	char *status = NULL;
 // 	if(alpm_find_satisfier(alpm_db_get_pkgcache(localdb), optstring)) {
@@ -1246,7 +1246,7 @@ pub fn print_packages(
 //
 // 	for(i = pkglist; i; i = i->next) {
 // 		pkg_t *pkg = i->data;
-// 		alpm_db_t *db = alpm_pkg_get_db(pkg);
+// 		Database *db = alpm_pkg_get_db(pkg);
 //
 // 		if(!dbname) {
 // 			dbname = alpm_db_get_name(db);

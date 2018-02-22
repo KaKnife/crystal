@@ -193,7 +193,7 @@ fn deplist_display(title: &str, deps: &Vec<depend_t>, cols: usize) {
 // static void optdeplist_display(pkg_t *pkg, unsigned short cols)
 // {
 // 	alpm_list_t *i, *text = NULL;
-// 	alpm_db_t *localdb = alpm_get_localdb(config->handle);
+// 	Database *localdb = alpm_get_localdb(config->handle);
 // 	for(i = alpm_pkg_get_optdepends(pkg); i; i = alpm_list_next(i)) {
 // 		depend_t *optdep = i->data;
 // 		char *depstring = alpm_dep_compute_string(optdep);
@@ -221,8 +221,8 @@ pub fn dump_pkg_full(
 	pkg: &mut pkg_t,
 	extra: bool,
 	config: &config_t,
-	db_local: &mut alpm_db_t,
-	dbs_sync: &mut Vec<alpm_db_t>,
+	db_local: &mut Database,
+	dbs_sync: &mut Vec<Database>,
 ) {
 	// unimplemented!();
 	// unsigned short cols;
@@ -541,7 +541,7 @@ pub fn dump_pkg_changelog(pkg: &pkg_t) {
 	// 	}
 }
 
-// void print_installed(alpm_db_t *db_local, pkg_t *pkg)
+// void print_installed(Database *db_local, pkg_t *pkg)
 // {
 // 	const char *pkgname = alpm_pkg_get_name(pkg);
 // 	const char *pkgver = alpm_pkg_get_version(pkg);
@@ -565,7 +565,7 @@ pub fn dump_pkg_changelog(pkg: &pkg_t) {
  * @param show_status show if the package is also in the local db
  */
 pub fn dump_pkg_search(
-	db: &mut alpm_db_t,
+	db: &mut Database,
 	targets: &Vec<String>,
 	show_status: i32,
 	colstr: &colstr_t,
@@ -574,7 +574,7 @@ pub fn dump_pkg_search(
 ) -> i32 {
 	unimplemented!();
 	// 	int freelist = 0;
-	// 	alpm_db_t *db_local;
+	// 	Database *db_local;
 	let db_local;
 	// 	alpm_list_t *i, *searchlist;
 	let searchlist;

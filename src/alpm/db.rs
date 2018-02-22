@@ -82,7 +82,7 @@ pub const INFRQ_ERROR: i32 = (1 << 30);
 
 /// Database status. Bitflags. */
 #[derive(Debug, Clone, Default)]
-pub struct alpm_dbstatus_t {
+pub struct dbstatus_t {
     pub DB_STATUS_VALID: bool,
     pub DB_STATUS_INVALID: bool,
     pub DB_STATUS_EXISTS: bool,
@@ -93,21 +93,21 @@ pub struct alpm_dbstatus_t {
     pub DB_STATUS_GRPCACHE: bool,
 }
 
-// impl Default for alpm_dbstatus_t {
+// impl Default for dbstatus_t {
 //     fn default() -> Self {
-//         alpm_dbstatus_t::DB_STATUS_VALID
+//         dbstatus_t::DB_STATUS_VALID
 //     }
 // }
 
 // struct db_operations {
-//     validate: &Fn(&alpm_db_t) -> i32,
-//     populate: Fn(&alpm_db_t) -> i32,
-//     unregister: Fn(&alpm_db_t),
+//     validate: &Fn(&Database) -> i32,
+//     populate: Fn(&Database) -> i32,
+//     unregister: Fn(&Database),
 // }
 
 /// Database
 #[derive(Debug, Default, Clone)]
-pub struct alpm_db_t {
+pub struct Database {
     // handle: alpm_handle_t,
     pub treename: String,
     /// do not access directly, use _alpm_db_path(db) for lazy access
@@ -119,7 +119,7 @@ pub struct alpm_db_t {
     pub ops_type: db_ops_type, //I created this to deturmine if it is local or other stuff
 
     /* bitfields for validity, local, loaded caches, etc. */
-    pub status: alpm_dbstatus_t,
+    pub status: dbstatus_t,
     pub siglevel: siglevel,
     pub usage: alpm_db_usage_t,
 }
@@ -136,7 +136,7 @@ impl Default for db_ops_type {
     }
 }
 
-impl alpm_db_t {
+impl Database {
     pub fn sync_db_validate(&mut self, handle: &alpm_handle_t) -> Result<bool> {
         if self.status.DB_STATUS_VALID || self.status.DB_STATUS_MISSING {
             return Ok(true);
@@ -1208,7 +1208,7 @@ impl alpm_db_t {
         //     }
         // }
         //
-        // self.status = alpm_dbstatus_t::DB_STATUS_GRPCACHE;
+        // self.status = dbstatus_t::DB_STATUS_GRPCACHE;
         // return 0;
     }
 
@@ -1304,7 +1304,7 @@ impl alpm_db_t {
     }
 
     /* Unregister a package database. */
-    // int SYMEXPORT alpm_db_unregister(alpm_db_t *db)
+    // int SYMEXPORT alpm_db_unregister(Database *db)
     // {
     // 	int found = 0;
     // 	alpm_handle_t *handle;
@@ -1587,7 +1587,7 @@ fn sanitize_url(url: &String) -> String {
     return newurl;
 }
 
-// void _alpm_db_free(alpm_db_t *db)
+// void _alpm_db_free(Database *db)
 // {
 // 	ASSERT(db != NULL, return);
 // 	/* cleanup pkgcache */
@@ -1603,13 +1603,13 @@ fn sanitize_url(url: &String) -> String {
 
 // int _alpm_db_cmp(const void *d1, const void *d2)
 // {
-// 	const alpm_db_t *db1 = d1;
-// 	const alpm_db_t *db2 = d2;
+// 	const Database *db1 = d1;
+// 	const Database *db2 = d2;
 // 	return strcmp(db1->treename, db2->treename);
 // }
 
 // /* "duplicate" pkg then add it to pkgcache */
-// int _alpm_db_add_pkgincache(alpm_db_t *db, pkg_t *pkg)
+// int _alpm_db_add_pkgincache(Database *db, pkg_t *pkg)
 // {
 // 	pkg_t *newpkg = NULL;
 //
@@ -1639,7 +1639,7 @@ fn sanitize_url(url: &String) -> String {
 // 	return 0;
 // }
 
-// int _alpm_db_remove_pkgfromcache(alpm_db_t *db, pkg_t *pkg)
+// int _alpm_db_remove_pkgfromcache(Database *db, pkg_t *pkg)
 // {
 // 	pkg_t *data = NULL;
 //

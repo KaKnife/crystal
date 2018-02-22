@@ -501,7 +501,7 @@ impl alpm_handle_t {
     /// providers. The first satisfier found is returned.
     /// The dependency can include versions with depmod operators.
     ///* `handle` the context handle
-    ///* `dbs` an alpm_list_t* of alpm_db_t where the satisfier will be searched
+    ///* `dbs` an alpm_list_t* of Database where the satisfier will be searched
     ///* `depstring` package or provision name, versioned or not
     ///* returns a pkg_t* satisfying depstring
     pub fn alpm_find_dbs_satisfier<T>(&self, dbs: &Vec<T>, depstring: &String) -> Option<pkg_t> {
@@ -528,7 +528,7 @@ impl alpm_handle_t {
         // return _alpm_innerconflicts(handle, pkglist);
     }
 
-    pub fn _alpm_db_register_sync(&mut self, treename: &String, level: siglevel) -> alpm_db_t {
+    pub fn _alpm_db_register_sync(&mut self, treename: &String, level: siglevel) -> Database {
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "registering sync database '%s'\n", treename);
 
         // #ifndef HAVE_LIBGPGME
@@ -537,7 +537,7 @@ impl alpm_handle_t {
         // 	}
         // #endif
 
-        let mut db = alpm_db_t::_alpm_db_new(treename, false);
+        let mut db = Database::_alpm_db_new(treename, false);
         db.ops_type = db_ops_type::sync;
         // db->ops = &sync_db_ops;
         // db.handle = handle;
@@ -845,7 +845,7 @@ impl alpm_handle_t {
     pub fn alpm_unregister_all_syncdbs(&self) -> i32 {
         unimplemented!();
         // 	alpm_list_t *i;
-        // 	alpm_db_t *db;
+        // 	Database *db;
         //
         // 	/* Sanity checks */
         // 	CHECK_HANDLE(handle, return -1);
@@ -867,7 +867,7 @@ impl alpm_handle_t {
         &mut self,
         treename: &String,
         siglevel: siglevel,
-    ) -> Result<alpm_db_t> {
+    ) -> Result<Database> {
         /* ensure database name is unique */
         if treename == "local" {
             return Err(errno_t::ALPM_ERR_DB_NOT_NULL);
@@ -881,11 +881,11 @@ impl alpm_handle_t {
         Ok(self._alpm_db_register_sync(&treename, siglevel))
     }
 
-    pub fn _alpm_db_register_local(&mut self) -> Result<&alpm_db_t> {
+    pub fn _alpm_db_register_local(&mut self) -> Result<&Database> {
         let mut db;
         debug!("registering local database");
 
-        db = alpm_db_t::_alpm_db_new(&String::from("local"), true);
+        db = Database::_alpm_db_new(&String::from("local"), true);
         // db.ops = &local_db_ops;
         db.ops_type = db_ops_type::local;
         db.usage.ALPM_DB_USAGE_ALL = true;
@@ -1310,7 +1310,7 @@ impl alpm_handle_t {
         // 	int is_upgrade = 0;
         let oldpkg: &Option<pkg_t>;
         // 	pkg_t *oldpkg = NULL;
-        // 	alpm_db_t *db = handle->db_local;
+        // 	Database *db = handle->db_local;
         // 	alpm_trans_t *trans = handle->trans;
         // 	alpm_progress_t progress = ALPM_PROGRESS_ADD_START;
         // 	alpm_event_package_operation_t event;
@@ -1982,19 +1982,19 @@ impl alpm_handle_t {
         Ok(())
     }
 
-    pub fn alpm_get_localdb(&self) -> &alpm_db_t {
+    pub fn alpm_get_localdb(&self) -> &Database {
         return &self.db_local;
     }
 
-    pub fn alpm_get_localdb_mut(&mut self) -> &mut alpm_db_t {
+    pub fn alpm_get_localdb_mut(&mut self) -> &mut Database {
         return &mut self.db_local;
     }
 
-    pub fn alpm_get_syncdbs(&self) -> &Vec<alpm_db_t> {
+    pub fn alpm_get_syncdbs(&self) -> &Vec<Database> {
         return &self.dbs_sync;
     }
 
-    pub fn alpm_get_syncdbs_mut(&mut self) -> &mut Vec<alpm_db_t> {
+    pub fn alpm_get_syncdbs_mut(&mut self) -> &mut Vec<Database> {
         return &mut self.dbs_sync;
     }
 
@@ -2154,7 +2154,7 @@ impl alpm_handle_t {
         unimplemented!();
         // 	alpm_list_t *lp;
         // 	alpm_trans_t *trans = handle->trans;
-        // 	alpm_db_t *db = handle->db_local;
+        // 	Database *db = handle->db_local;
         // 	alpm_event_t event;
         //
         // 	if((trans->flags & ALPM_TRANS_FLAG_RECURSE)
@@ -2590,8 +2590,8 @@ pub fn _alpm_set_directory_option(
 #[derive(Default, Debug)]
 pub struct alpm_handle_t {
     // 	/* internal usage */
-    pub db_local: alpm_db_t,      //// local db pointer */
-    pub dbs_sync: Vec<alpm_db_t>, /* List of (alpm_db_t *) */
+    pub db_local: Database,      //// local db pointer */
+    pub dbs_sync: Vec<Database>, /* List of (Database *) */
     // 	FILE *logstream;        /* log file stream pointer */
     pub trans: alpm_trans_t,
     //

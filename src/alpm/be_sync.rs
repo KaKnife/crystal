@@ -57,7 +57,7 @@ use std::fs;
  * @code
  * alpm_list_t *syncs = alpm_get_syncdbs();
  * for(i = syncs; i; i = alpm_list_next(i)) {
- *     alpm_db_t *db = alpm_list_getdata(i);
+ *     Database *db = alpm_list_getdata(i);
  *     result = alpm_db_update(0, db);
  *
  *     if(result < 0) {
@@ -81,7 +81,7 @@ use std::fs;
  */
 pub fn alpm_db_update(
     mut force: bool,
-    db: &mut alpm_db_t,
+    db: &mut Database,
     handle: &mut alpm_handle_t,
 ) -> Result<i8> {
     let syncpath;
@@ -217,7 +217,7 @@ pub fn alpm_db_update(
 }
 
 // /* Forward decl so I don't reorganize the whole file right now */
-// static int sync_db_read(alpm_db_t *db, struct archive *archive,
+// static int sync_db_read(Database *db, struct archive *archive,
 // 		struct archive_entry *entry, pkg_t **likely_pkg);
 //
 // static int _sync_get_validation(pkg_t *pkg)
@@ -243,7 +243,7 @@ pub fn alpm_db_update(
 // 	return pkg->validation;
 // }
 
-// static pkg_t *load_pkg_for_entry(alpm_db_t *db, const char *entryname,
+// static pkg_t *load_pkg_for_entry(Database *db, const char *entryname,
 // 		const char **entry_filename, pkg_t *likely_pkg)
 // {
 // 	char *pkgname = NULL, *pkgver = NULL;
@@ -336,7 +336,7 @@ pub fn alpm_db_update(
 // 	return (size_t)((st->st_size / per_package) + 1);
 // }
 
-// static int sync_db_populate(alpm_db_t *db)
+// static int sync_db_populate(Database *db)
 // {
 // 	const char *dbpath;
 // 	size_t est_count, count;
@@ -420,7 +420,7 @@ pub fn alpm_db_update(
 
 // /* This function validates %FILENAME%. filename must be between 3 and
 //  * PATH_MAX characters and cannot be contain a path */
-// static int _alpm_validate_filename(alpm_db_t *db, const char *pkgname,
+// static int _alpm_validate_filename(Database *db, const char *pkgname,
 // 		const char *filename)
 // {
 // 	size_t len = strlen(filename);
@@ -470,7 +470,7 @@ pub fn alpm_db_update(
 // 	f = alpm_list_add(f, alpm_dep_from_string(line)); \
 // } while(1) /* note the while(1) and not (0) */
 
-// static int sync_db_read(alpm_db_t *db, struct archive *archive,
+// static int sync_db_read(Database *db, struct archive *archive,
 // 		struct archive_entry *entry, pkg_t **likely_pkg)
 // {
 // 	const char *entryname, *filename;
