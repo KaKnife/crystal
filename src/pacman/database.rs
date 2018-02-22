@@ -31,7 +31,7 @@ fn change_install_reason(
 ) -> i32 {
     let db_local: &alpm_db_t;
     let mut ret: i32 = 0;
-    let reason: alpm_pkgreason_t;
+    let reason: pkgreason_t;
 
     if targets.len() == 0 {
         eprintln!("no targets specified (use -h for help)");
@@ -40,10 +40,10 @@ fn change_install_reason(
 
     if config.flags.ALLDEPS {
         /* --asdeps */
-        reason = alpm_pkgreason_t::ALPM_PKG_REASON_DEPEND;
+        reason = pkgreason_t::ALPM_PKG_REASON_DEPEND;
     } else if config.flags.ALLEXPLICIT {
         /* --asexplicit */
-        reason = alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT;
+        reason = pkgreason_t::ALPM_PKG_REASON_EXPLICIT;
     } else {
         eprintln!("no install reason specified (use -h for help)");
         return 1;
@@ -73,7 +73,7 @@ fn change_install_reason(
                     ret = 1;
                 } else if !config.quiet {
                     match reason {
-                        alpm_pkgreason_t::ALPM_PKG_REASON_DEPEND => {
+                        pkgreason_t::ALPM_PKG_REASON_DEPEND => {
                             println!(
                                 "{}: install reason has been set to 'installed as dependency'",
                                 pkgname

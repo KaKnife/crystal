@@ -1,28 +1,28 @@
 use super::*;
-// /*
-//  *  conflict.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
-//  *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
-//  *  Copyright (c) 2006 by Miklos Vajna <vmiklos@frugalware.org>
-//  *  Copyright (c) 2006 by Christian Hamar <krics@linuxforum.hu>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
+/*
+ *  conflict.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
+ *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
+ *  Copyright (c) 2006 by Miklos Vajna <vmiklos@frugalware.org>
+ *  Copyright (c) 2006 by Christian Hamar <krics@linuxforum.hu>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // #include <stdlib.h>
 // #include <stdio.h>
 // #include <string.h>
@@ -40,7 +40,7 @@ use super::*;
 // #include "log.h"
 // #include "deps.h"
 // #include "filelist.h"
-//
+
 // /**
 //  * @brief Creates a new conflict.
 //  */
@@ -63,7 +63,7 @@ use super::*;
 // 	alpm_conflict_free(conflict);
 // 	return NULL;
 // }
-//
+
 // /**
 //  * @brief Free a conflict and its members.
 //  */
@@ -74,7 +74,7 @@ use super::*;
 // 	FREE(conflict->package1);
 // 	FREE(conflict);
 // }
-//
+
 // /**
 //  * @brief Creates a copy of a conflict.
 //  */
@@ -95,7 +95,7 @@ use super::*;
 // 	alpm_conflict_free(newconflict);
 // 	return NULL;
 // }
-//
+
 // /**
 //  * @brief Searches for a conflict in a list.
 //  *
@@ -119,7 +119,7 @@ use super::*;
 //
 // 	return 0;
 // }
-//
+
 // /**
 //  * @brief Adds the pkg1/pkg2 conflict to the baddeps list.
 //  *
@@ -149,7 +149,7 @@ use super::*;
 // 	}
 // 	return 0;
 // }
-//
+
 // /**
 //  * @brief Check if packages from list1 conflict with packages from list2.
 //  *
@@ -201,7 +201,7 @@ use super::*;
 // 		}
 // 	}
 // }
-//
+
 // /**
 //  * @brief Check for inter-conflicts in a list of packages.
 //  *
@@ -219,7 +219,7 @@ use super::*;
 //
 // 	return baddeps;
 // }
-//
+
 // /**
 //  * @brief Returns a list of conflicts between a db and a list of packages.
 //  */
@@ -297,7 +297,7 @@ use super::*;
 // 	FREE(conflict->target);
 // 	FREE(conflict);
 // }
-//
+
 // /**
 //  * @brief Recursively checks if a set of packages own all subdirectories and
 //  * files in a directory.
@@ -362,7 +362,7 @@ use super::*;
 // 	closedir(dir);
 // 	return 1;
 // }
-//
+
 // static alpm_list_t *alpm_db_find_file_owners(alpm_db_t* db, const char *path)
 // {
 // 	alpm_list_t *i, *owners = NULL;
@@ -373,7 +373,7 @@ use super::*;
 // 	}
 // 	return owners;
 // }
-//
+
 // static pkg_t *_alpm_find_file_owner(alpm_handle_t *handle, const char *path)
 // {
 // 	alpm_list_t *i;
@@ -384,13 +384,13 @@ use super::*;
 // 	}
 // 	return NULL;
 // }
-//
+
 // static int _alpm_can_overwrite_file(alpm_handle_t *handle, const char *path)
 // {
 // 	return handle->trans->flags & ALPM_TRANS_FLAG_FORCE
 // 		|| _alpm_fnmatch_patterns(handle->overwrite_files, path) == 0;
 // }
-//
+
 // /**
 //  * @brief Find file conflicts that may occur during the transaction.
 //  *
@@ -417,7 +417,7 @@ use super::*;
 // 	}
 //
 // 	rootlen = strlen(handle->root);
-//
+
 // 	/* TODO this whole function needs a huge change, which hopefully will
 // 	 * be possible with real transactions. Right now we only do half as much
 // 	 * here as we do when we actually extract files in add.c with our 12
@@ -686,5 +686,3 @@ use super::*;
 //
 // 	return conflicts;
 // }
-//
-// /* vim: set noet: */

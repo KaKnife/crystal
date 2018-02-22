@@ -1,27 +1,27 @@
 use super::*;
-// /*
-//  *  sync.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
-//  *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
-//  *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
+/*
+ *  sync.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
+ *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
+ *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // #include <sys/types.h> /* off_t */
 // #include <stdlib.h>
 // #include <stdio.h>
@@ -29,7 +29,6 @@ use super::*;
 // #include <stdint.h> /* intmax_t */
 // #include <unistd.h>
 // #include <limits.h>
-//
 // /* libalpm */
 // #include "sync.h"
 // #include "alpm_list.h"
@@ -48,7 +47,6 @@ use super::*;
 // #include "remove.h"
 // #include "diskspace.h"
 // #include "signing.h"
-
 
 // static alpm_list_t *check_replacers(alpm_handle_t *handle, pkg_t *lpkg,
 // 		alpm_db_t *sdb)
@@ -180,13 +178,12 @@ pub fn alpm_sync_sysupgrade(handle: &mut alpm_handle_t, enable_downgrade: bool) 
     Ok(0)
 }
 
-/** Find group members across a list of databases.
- * If a member exists in several databases, only the first database is used.
- * IgnorePkg is also handled.
- * @param dbs the list of alpm_db_t *
- * @param name the name of the group
- * @return the list of pkg_t * (caller is responsible for alpm_list_free)
- */
+/// Find group members across a list of databases.
+/// If a member exists in several databases, only the first database is used.
+/// IgnorePkg is also handled.
+/// @param dbs the list of alpm_db_t *
+/// @param name the name of the group
+/// @return the list of pkg_t * (caller is responsible for alpm_list_free)
 pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
     unimplemented!();
     // 	alpm_list_t *i, *j, *pkgs = NULL, *ignorelist = NULL;
@@ -226,517 +223,141 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
     // 	return pkgs;
 }
 
-// /** Compute the size of the files that will be downloaded to install a
-//  * package.
-//  * @param newpkg the new package to upgrade to
-//  */
-// static int compute_download_size(pkg_t *newpkg)
-// {
-// 	const char *fname;
-// 	char *fpath, *fnamepart = NULL;
-// 	off_t size = 0;
-// 	alpm_handle_t *handle = newpkg.handle;
-// 	int ret = 0;
-//
-// 	if(newpkg.origin != ALPM_PKG_FROM_SYNCDB) {
-// 		newpkg.infolevel |= INFRQ_DSIZE;
-// 		newpkg.download_size = 0;
-// 		return 0;
-// 	}
-//
-// 	ASSERT(newpkg.filename != NULL, RET_ERR(handle, ALPM_ERR_PKG_INVALID_NAME, -1));
-// 	fname = newpkg.filename;
-// 	fpath = _alpm_filecache_find(handle, fname);
-//
-// 	/* downloaded file exists, so there's nothing to grab */
-// 	if(fpath) {
-// 		size = 0;
-// 		goto finish;
-// 	}
-//
-// 	CALLOC(fnamepart, strlen(fname) + 6, sizeof(char), return -1);
-// 	sprintf(fnamepart, "{}.part", fname);
-// 	fpath = _alpm_filecache_find(handle, fnamepart);
-// 	if(fpath) {
-// 		struct stat st;
-// 		if(stat(fpath, &st) == 0) {
-// 			/* subtract the size of the .part file */
-// 			debug!("using (package - .part) size\n");
-// 			size = newpkg.size - st.st_size;
-// 			size = size < 0 ? 0 : size;
-// 		}
-//
-// 		/* tell the caller that we have a partial */
-// 		ret = 1;
-// 	} else if(handle.deltaratio > 0.0) {
-// 		off_t dltsize;
-//
-// 		dltsize = _alpm_shortest_delta_path(handle, newpkg.deltas,
-// 				newpkg.filename, &newpkg.delta_path);
-//
-// 		if(newpkg.delta_path && (dltsize < newpkg.size * handle.deltaratio)) {
-// 			debug!("using delta size\n");
-// 			size = dltsize;
-// 		} else {
-// 			debug!("using package size\n");
-// 			size = newpkg.size;
-// 			alpm_list_free(newpkg.delta_path);
-// 			newpkg.delta_path = NULL;
-// 		}
-// 	} else {
-// 		size = newpkg.size;
-// 	}
-//
-// finish:
-// 	debug!("setting download size %jd for pkg {}\n",
-// 			(intmax_t)size, newpkg.name);
-//
-// 	newpkg.infolevel |= INFRQ_DSIZE;
-// 	newpkg.download_size = size;
-//
-// 	FREE(fpath);
-// 	FREE(fnamepart);
-//
-// 	return ret;
-// }
-//
-// int _alpm_sync_prepare(alpm_handle_t *handle, alpm_list_t **data)
-// {
-// 	alpm_list_t *i, *j;
-// 	alpm_list_t *deps = NULL;
-// 	alpm_list_t *unresolvable = NULL;
-// 	int from_sync = 0;
-// 	int ret = 0;
-// 	alpm_trans_t *trans = handle.trans;
-// 	alpm_event_t event;
-//
-// 	if(data) {
-// 		*data = NULL;
-// 	}
-//
-// 	for(i = trans.add; i; i = i.next) {
-// 		pkg_t *spkg = i.data;
-// 		if (spkg.origin == ALPM_PKG_FROM_SYNCDB){
-// 			from_sync = 1;
-// 			break;
-// 		}
-// 	}
-//
-// 	/* ensure all sync database are valid if we will be using them */
-// 	for(i = handle.dbs_sync; i; i = i.next) {
-// 		const alpm_db_t *db = i.data;
-// 		if(db.status & DB_STATUS_INVALID) {
-// 			RET_ERR(handle, ALPM_ERR_DB_INVALID, -1);
-// 		}
-// 		/* missing databases are not allowed if we have sync targets */
-// 		if(from_sync && db.status & DB_STATUS_MISSING) {
-// 			RET_ERR(handle, ALPM_ERR_DB_NOT_FOUND, -1);
-// 		}
-// 	}
-//
-// 	if(!(trans.flags & ALPM_TRANS_FLAG_NODEPS)) {
-// 		alpm_list_t *resolved = NULL;
-// 		alpm_list_t *remove = alpm_list_copy(trans.remove);
-// 		alpm_list_t *localpkgs;
-//
-// 		/* Build up list by repeatedly resolving each transaction package */
-// 		/* Resolve targets dependencies */
-// 		event.type = ALPM_EVENT_RESOLVEDEPS_START;
-// 		EVENT(handle, &event);
-// 		debug!("resolving target's dependencies\n");
-//
-// 		/* build remove list for resolvedeps */
-// 		for(i = trans.add; i; i = i.next) {
-// 			pkg_t *spkg = i.data;
-// 			for(j = spkg.removes; j; j = j.next) {
-// 				remove = alpm_list_add(remove, j->data);
-// 			}
-// 		}
-//
-// 		/* Compute the fake local database for resolvedeps (partial fix for the
-// 		 * phonon/qt issue) */
-// 		localpkgs = alpm_list_diff(_alpm_db_get_pkgcache(handle->db_local),
-// 				trans->add, _alpm_pkg_cmp);
-//
-// 		/* Resolve packages in the transaction one at a time, in addition
-// 		   building up a list of packages which could not be resolved. */
-// 		for(i = trans->add; i; i = i->next) {
-// 			pkg_t *pkg = i->data;
-// 			if(_alpm_resolvedeps(handle, localpkgs, pkg, trans->add,
-// 						&resolved, remove, data) == -1) {
-// 				unresolvable = alpm_list_add(unresolvable, pkg);
-// 			}
-// 			/* Else, [resolved] now additionally contains [pkg] and all of its
-// 			   dependencies not already on the list */
-// 		}
-// 		alpm_list_free(localpkgs);
-// 		alpm_list_free(remove);
-//
-// 		/* If there were unresolvable top-level packages, prompt the user to
-// 		   see if they'd like to ignore them rather than failing the sync */
-// 		if(unresolvable != NULL) {
-// 			alpm_question_remove_pkgs_t question = {
-// 				.type = ALPM_QUESTION_REMOVE_PKGS,
-// 				.skip = 0,
-// 				.packages = unresolvable
-// 			};
-// 			QUESTION(handle, &question);
-// 			if(question.skip) {
-// 				/* User wants to remove the unresolvable packages from the
-// 				   transaction. The packages will be removed from the actual
-// 				   transaction when the transaction packages are replaced with a
-// 				   dependency-reordered list below */
-// 				handle->pm_errno = ALPM_ERR_OK;
-// 				if(data) {
-// 					alpm_list_free_inner(*data,
-// 							(alpm_list_fn_free)alpm_depmissing_free);
-// 					alpm_list_free(*data);
-// 					*data = NULL;
-// 				}
-// 			} else {
-// 				/* pm_errno was set by resolvedeps, callback may have overwrote it */
-// 				handle->pm_errno = ALPM_ERR_UNSATISFIED_DEPS;
-// 				alpm_list_free(resolved);
-// 				alpm_list_free(unresolvable);
-// 				ret = -1;
-// 				goto cleanup;
-// 			}
-// 		}
-//
-// 		/* Set DEPEND reason for pulled packages */
-// 		for(i = resolved; i; i = i->next) {
-// 			pkg_t *pkg = i->data;
-// 			if(!alpm_pkg_find(trans->add, pkg->name)) {
-// 				pkg->reason = ALPM_PKG_REASON_DEPEND;
-// 			}
-// 		}
-//
-// 		/* Unresolvable packages will be removed from the target list; set these
-// 		 * aside in the transaction as a list we won't operate on. If we free them
-// 		 * before the end of the transaction, we may kill pointers the frontend
-// 		 * holds to package objects. */
-// 		trans->unresolvable = unresolvable;
-//
-// 		alpm_list_free(trans->add);
-// 		trans->add = resolved;
-//
-// 		event.type = ALPM_EVENT_RESOLVEDEPS_DONE;
-// 		EVENT(handle, &event);
-// 	}
-//
-// 	if(!(trans->flags & ALPM_TRANS_FLAG_NOCONFLICTS)) {
-// 		/* check for inter-conflicts and whatnot */
-// 		event.type = ALPM_EVENT_INTERCONFLICTS_START;
-// 		EVENT(handle, &event);
-//
-// 		debug!("looking for conflicts\n");
-//
-// 		/* 1. check for conflicts in the target list */
-// 		debug!("check targets vs targets\n");
-// 		deps = _alpm_innerconflicts(handle, trans->add);
-//
-// 		for(i = deps; i; i = i->next) {
-// 			alpm_conflict_t *conflict = i->data;
-// 			pkg_t *rsync, *sync, *sync1, *sync2;
-//
-// 			/* have we already removed one of the conflicting targets? */
-// 			sync1 = alpm_pkg_find(trans->add, conflict->package1);
-// 			sync2 = alpm_pkg_find(trans->add, conflict->package2);
-// 			if(!sync1 || !sync2) {
-// 				continue;
-// 			}
-//
-// 			debug!("conflicting packages in the sync list: '{}' <-> '{}'\n",
-// 					conflict->package1, conflict->package2);
-//
-// 			/* if sync1 provides sync2, we remove sync2 from the targets, and vice versa */
-// 			alpm_depend_t *dep1 = alpm_dep_from_string(conflict->package1);
-// 			alpm_depend_t *dep2 = alpm_dep_from_string(conflict->package2);
-// 			if(_alpm_depcmp(sync1, dep2)) {
-// 				rsync = sync2;
-// 				sync = sync1;
-// 			} else if(_alpm_depcmp(sync2, dep1)) {
-// 				rsync = sync1;
-// 				sync = sync2;
-// 			} else {
-// 				_alpm_log(handle, ALPM_LOG_ERROR, _("unresolvable package conflicts detected\n"));
-// 				handle->pm_errno = ALPM_ERR_CONFLICTING_DEPS;
-// 				ret = -1;
-// 				if(data) {
-// 					alpm_conflict_t *newconflict = _alpm_conflict_dup(conflict);
-// 					if(newconflict) {
-// 						*data = alpm_list_add(*data, newconflict);
-// 					}
-// 				}
-// 				alpm_list_free_inner(deps, (alpm_list_fn_free)alpm_conflict_free);
-// 				alpm_list_free(deps);
-// 				alpm_dep_free(dep1);
-// 				alpm_dep_free(dep2);
-// 				goto cleanup;
-// 			}
-// 			alpm_dep_free(dep1);
-// 			alpm_dep_free(dep2);
-//
-// 			/* Prints warning */
-// 			_alpm_log(handle, ALPM_LOG_WARNING,
-// 					_("removing '{}' from target list because it conflicts with '{}'\n"),
-// 					rsync->name, sync->name);
-// 			trans->add = alpm_list_remove(trans->add, rsync, _alpm_pkg_cmp, NULL);
-// 			/* rsync is not a transaction target anymore */
-// 			trans->unresolvable = alpm_list_add(trans->unresolvable, rsync);
-// 		}
-//
-// 		alpm_list_free_inner(deps, (alpm_list_fn_free)alpm_conflict_free);
-// 		alpm_list_free(deps);
-// 		deps = NULL;
-//
-// 		/* 2. we check for target vs db conflicts (and resolve)*/
-// 		debug!("check targets vs db and db vs targets\n");
-// 		deps = _alpm_outerconflicts(handle->db_local, trans->add);
-//
-// 		for(i = deps; i; i = i->next) {
-// 			alpm_question_conflict_t question = {
-// 				.type = ALPM_QUESTION_CONFLICT_PKG,
-// 				.remove = 0,
-// 				.conflict = i->data
-// 			};
-// 			alpm_conflict_t *conflict = i->data;
-// 			int found = 0;
-//
-// 			/* if conflict->package2 (the local package) is not elected for removal,
-// 			   we ask the user */
-// 			if(alpm_pkg_find(trans->remove, conflict->package2)) {
-// 				found = 1;
-// 			}
-// 			for(j = trans->add; j && !found; j = j->next) {
-// 				pkg_t *spkg = j->data;
-// 				if(alpm_pkg_find(spkg->removes, conflict->package2)) {
-// 					found = 1;
-// 				}
-// 			}
-// 			if(found) {
-// 				continue;
-// 			}
-//
-// 			debug!("package '{}' conflicts with '{}'\n",
-// 					conflict->package1, conflict->package2);
-//
-// 			QUESTION(handle, &question);
-// 			if(question.remove) {
-// 				/* append to the removes list */
-// 				pkg_t *sync = alpm_pkg_find(trans->add, conflict->package1);
-// 				pkg_t *local = _alpm_db_get_pkgfromcache(handle->db_local, conflict->package2);
-// 				debug!("electing '{}' for removal\n", conflict->package2);
-// 				sync->removes = alpm_list_add(sync->removes, local);
-// 			} else { /* abort */
-// 				_alpm_log(handle, ALPM_LOG_ERROR, _("unresolvable package conflicts detected\n"));
-// 				handle->pm_errno = ALPM_ERR_CONFLICTING_DEPS;
-// 				ret = -1;
-// 				if(data) {
-// 					alpm_conflict_t *newconflict = _alpm_conflict_dup(conflict);
-// 					if(newconflict) {
-// 						*data = alpm_list_add(*data, newconflict);
-// 					}
-// 				}
-// 				alpm_list_free_inner(deps, (alpm_list_fn_free)alpm_conflict_free);
-// 				alpm_list_free(deps);
-// 				goto cleanup;
-// 			}
-// 		}
-// 		event.type = ALPM_EVENT_INTERCONFLICTS_DONE;
-// 		EVENT(handle, &event);
-// 		alpm_list_free_inner(deps, (alpm_list_fn_free)alpm_conflict_free);
-// 		alpm_list_free(deps);
-// 	}
-//
-// 	/* Build trans->remove list */
-// 	for(i = trans->add; i; i = i->next) {
-// 		pkg_t *spkg = i->data;
-// 		for(j = spkg->removes; j; j = j->next) {
-// 			pkg_t *rpkg = j->data;
-// 			if(!alpm_pkg_find(trans->remove, rpkg->name)) {
-// 				pkg_t *copy;
-// 				debug!("adding '{}' to remove list\n", rpkg->name);
-// 				if(_alpm_pkg_dup(rpkg, &copy) == -1) {
-// 					return -1;
-// 				}
-// 				trans->remove = alpm_list_add(trans->remove, copy);
-// 			}
-// 		}
-// 	}
-//
-// 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
-// 		debug!("checking dependencies\n");
-// 		deps = alpm_checkdeps(handle, _alpm_db_get_pkgcache(handle->db_local),
-// 				trans->remove, trans->add, 1);
-// 		if(deps) {
-// 			handle->pm_errno = ALPM_ERR_UNSATISFIED_DEPS;
-// 			ret = -1;
-// 			if(data) {
-// 				*data = deps;
-// 			} else {
-// 				alpm_list_free_inner(deps,
-// 						(alpm_list_fn_free)alpm_depmissing_free);
-// 				alpm_list_free(deps);
-// 			}
-// 			goto cleanup;
-// 		}
-// 	}
-// 	for(i = trans->add; i; i = i->next) {
-// 		/* update download size field */
-// 		pkg_t *spkg = i->data;
-// 		pkg_t *lpkg = alpm_db_get_pkg(handle->db_local, spkg->name);
-// 		if(compute_download_size(spkg) < 0) {
-// 			ret = -1;
-// 			goto cleanup;
-// 		}
-// 		if(lpkg && _alpm_pkg_dup(lpkg, &spkg->oldpkg) != 0) {
-// 			ret = -1;
-// 			goto cleanup;
-// 		}
-// 	}
-//
-// cleanup:
-// 	return ret;
-// }
-
-
-// static int endswith(const char *filename, const char *extension)
+// fn endswith(filename: &String, extension: &String) -> bool
 // {
 // 	const char *s = filename + strlen(filename) - strlen(extension);
 // 	return strcmp(s, extension) == 0;
 // }
-//
-// /** Applies delta files to create an upgraded package file.
-//  *
-//  * All intermediate files are deleted, leaving only the starting and
-//  * ending package files.
-//  *
-//  * @param handle the context handle
-//  *
-//  * @return 0 if all delta files were able to be applied, 1 otherwise.
-//  */
-// static int apply_deltas(alpm_handle_t *handle)
-// {
-// 	alpm_list_t *i;
-// 	size_t deltas_found = 0;
-// 	int ret = 0;
-// 	const char *cachedir = _alpm_filecache_setup(handle);
-// 	alpm_trans_t *trans = handle->trans;
-// 	alpm_event_delta_patch_t event;
-//
-// 	for(i = trans->add; i; i = i->next) {
-// 		pkg_t *spkg = i->data;
-// 		alpm_list_t *delta_path = spkg->delta_path;
-// 		alpm_list_t *dlts = NULL;
-//
-// 		if(!delta_path) {
-// 			continue;
-// 		}
-//
-// 		if(!deltas_found) {
-// 			/* only show this if we actually have deltas to apply, and it is before
-// 			 * the very first one */
-// 			event.type = ALPM_EVENT_DELTA_PATCHES_START;
-// 			EVENT(handle, &event);
-// 			deltas_found = 1;
-// 		}
-//
-// 		for(dlts = delta_path; dlts; dlts = dlts->next) {
-// 			alpm_delta_t *d = dlts->data;
-// 			char *delta, *from, *to;
-// 			char command[PATH_MAX];
-// 			size_t len = 0;
-//
-// 			delta = _alpm_filecache_find(handle, d->delta);
-// 			/* the initial package might be in a different cachedir */
-// 			if(dlts == delta_path) {
-// 				from = _alpm_filecache_find(handle, d->from);
-// 			} else {
-// 				/* len = cachedir len + from len + '/' + null */
-// 				len = strlen(cachedir) + strlen(d->from) + 2;
-// 				MALLOC(from, len, free(delta); RET_ERR(handle, ALPM_ERR_MEMORY, 1));
-// 				snprintf(from, len, "{}/{}", cachedir, d->from);
-// 			}
-// 			len = strlen(cachedir) + strlen(d->to) + 2;
-// 			MALLOC(to, len, free(delta); free(from); RET_ERR(handle, ALPM_ERR_MEMORY, 1));
-// 			snprintf(to, len, "{}/{}", cachedir, d->to);
-//
-// 			/* build the patch command */
-// 			if(endswith(to, ".gz")) {
-// 				/* special handling for gzip : we disable timestamp with -n option */
-// 				snprintf(command, PATH_MAX, "xdelta3 -d -q -R -c -s {} {} | gzip -n > {}", from, delta, to);
-// 			} else {
-// 				snprintf(command, PATH_MAX, "xdelta3 -d -q -s {} {} {}", from, delta, to);
-// 			}
-//
-// 			debug!("command: {}\n", command);
-//
-// 			event.type = ALPM_EVENT_DELTA_PATCH_START;
-// 			event.delta = d;
-// 			EVENT(handle, &event);
-//
-// 			int retval = system(command);
-// 			if(retval == 0) {
-// 				event.type = ALPM_EVENT_DELTA_PATCH_DONE;
-// 				EVENT(handle, &event);
-//
-// 				/* delete the delta file */
-// 				unlink(delta);
-//
-// 				/* Delete the 'from' package but only if it is an intermediate
-// 				 * package. The starting 'from' package should be kept, just
-// 				 * as if deltas were not used. */
-// 				if(dlts != delta_path) {
-// 					unlink(from);
-// 				}
-// 			}
-// 			FREE(from);
-// 			FREE(to);
-// 			FREE(delta);
-//
-// 			if(retval != 0) {
-// 				/* one delta failed for this package, cancel the remaining ones */
-// 				event.type = ALPM_EVENT_DELTA_PATCH_FAILED;
-// 				EVENT(handle, &event);
-// 				handle->pm_errno = ALPM_ERR_DLT_PATCHFAILED;
-// 				ret = 1;
-// 				break;
-// 			}
-// 		}
-// 	}
-// 	if(deltas_found) {
-// 		event.type = ALPM_EVENT_DELTA_PATCHES_DONE;
-// 		EVENT(handle, &event);
-// 	}
-//
-// 	return ret;
-// }
-//
-// /**
-//  * Prompts to delete the file now that we know it is invalid.
-//  * @param handle the context handle
-//  * @param filename the absolute path of the file to test
-//  * @param reason an error code indicating the reason for package invalidity
-//  *
-//  * @return 1 if file was removed, 0 otherwise
-//  */
-// static int prompt_to_delete(alpm_handle_t *handle, const char *filepath,
-// 		alpm_errno_t reason)
-// {
-// 	alpm_question_corrupted_t question = {
-// 		.type = ALPM_QUESTION_CORRUPTED_PKG,
-// 		.remove = 0,
-// 		.filepath = filepath,
-// 		.reason = reason
-// 	};
-// 	QUESTION(handle, &question);
-// 	if(question.remove) {
-// 		unlink(filepath);
-// 	}
-// 	return question.remove;
-// }
-//
+
+/** Applies delta files to create an upgraded package file.
+ *
+ * All intermediate files are deleted, leaving only the starting and
+ * ending package files.
+ *
+ * @param handle the context handle
+ *
+ * @return 0 if all delta files were able to be applied, 1 otherwise.
+ */
+fn apply_deltas(handle: &alpm_handle_t) -> i32 {
+    unimplemented!();
+    // 	alpm_list_t *i;
+    // 	size_t deltas_found = 0;
+    // 	int ret = 0;
+    // 	const char *cachedir = _alpm_filecache_setup(handle);
+    // 	alpm_trans_t *trans = handle->trans;
+    // 	alpm_event_delta_patch_t event;
+    //
+    // 	for(i = trans->add; i; i = i->next) {
+    // 		pkg_t *spkg = i->data;
+    // 		alpm_list_t *delta_path = spkg->delta_path;
+    // 		alpm_list_t *dlts = NULL;
+    //
+    // 		if(!delta_path) {
+    // 			continue;
+    // 		}
+    //
+    // 		if(!deltas_found) {
+    // 			/* only show this if we actually have deltas to apply, and it is before
+    // 			 * the very first one */
+    // 			event.type = ALPM_EVENT_DELTA_PATCHES_START;
+    // 			EVENT(handle, &event);
+    // 			deltas_found = 1;
+    // 		}
+    //
+    // 		for(dlts = delta_path; dlts; dlts = dlts->next) {
+    // 			alpm_delta_t *d = dlts->data;
+    // 			char *delta, *from, *to;
+    // 			char command[PATH_MAX];
+    // 			size_t len = 0;
+    //
+    // 			delta = _alpm_filecache_find(handle, d->delta);
+    // 			/* the initial package might be in a different cachedir */
+    // 			if(dlts == delta_path) {
+    // 				from = _alpm_filecache_find(handle, d->from);
+    // 			} else {
+    // 				/* len = cachedir len + from len + '/' + null */
+    // 				len = strlen(cachedir) + strlen(d->from) + 2;
+    // 				MALLOC(from, len, free(delta); RET_ERR(handle, ALPM_ERR_MEMORY, 1));
+    // 				snprintf(from, len, "{}/{}", cachedir, d->from);
+    // 			}
+    // 			len = strlen(cachedir) + strlen(d->to) + 2;
+    // 			MALLOC(to, len, free(delta); free(from); RET_ERR(handle, ALPM_ERR_MEMORY, 1));
+    // 			snprintf(to, len, "{}/{}", cachedir, d->to);
+    //
+    // 			/* build the patch command */
+    // 			if(endswith(to, ".gz")) {
+    // 				/* special handling for gzip : we disable timestamp with -n option */
+    // 				snprintf(command, PATH_MAX, "xdelta3 -d -q -R -c -s {} {} | gzip -n > {}", from, delta, to);
+    // 			} else {
+    // 				snprintf(command, PATH_MAX, "xdelta3 -d -q -s {} {} {}", from, delta, to);
+    // 			}
+    //
+    // 			debug!("command: {}\n", command);
+    //
+    // 			event.type = ALPM_EVENT_DELTA_PATCH_START;
+    // 			event.delta = d;
+    // 			EVENT(handle, &event);
+    //
+    // 			int retval = system(command);
+    // 			if(retval == 0) {
+    // 				event.type = ALPM_EVENT_DELTA_PATCH_DONE;
+    // 				EVENT(handle, &event);
+    //
+    // 				/* delete the delta file */
+    // 				unlink(delta);
+    //
+    // 				/* Delete the 'from' package but only if it is an intermediate
+    // 				 * package. The starting 'from' package should be kept, just
+    // 				 * as if deltas were not used. */
+    // 				if(dlts != delta_path) {
+    // 					unlink(from);
+    // 				}
+    // 			}
+    // 			FREE(from);
+    // 			FREE(to);
+    // 			FREE(delta);
+    //
+    // 			if(retval != 0) {
+    // 				/* one delta failed for this package, cancel the remaining ones */
+    // 				event.type = ALPM_EVENT_DELTA_PATCH_FAILED;
+    // 				EVENT(handle, &event);
+    // 				handle->pm_errno = ALPM_ERR_DLT_PATCHFAILED;
+    // 				ret = 1;
+    // 				break;
+    // 			}
+    // 		}
+    // 	}
+    // 	if(deltas_found) {
+    // 		event.type = ALPM_EVENT_DELTA_PATCHES_DONE;
+    // 		EVENT(handle, &event);
+    // 	}
+    //
+    // 	return ret;
+}
+
+/**
+ * Prompts to delete the file now that we know it is invalid.
+ * @param handle the context handle
+ * @param filename the absolute path of the file to test
+ * @param reason an error code indicating the reason for package invalidity
+ *
+ * @return 1 if file was removed, 0 otherwise
+ */
+fn prompt_to_delete(handle: &alpm_handle_t, filepath: &String, reason: alpm_errno_t) -> i32 {
+    unimplemented!();
+    // 	alpm_question_corrupted_t question = {
+    // 		.type = ALPM_QUESTION_CORRUPTED_PKG,
+    // 		.remove = 0,
+    // 		.filepath = filepath,
+    // 		.reason = reason
+    // 	};
+    // 	QUESTION(handle, &question);
+    // 	if(question.remove) {
+    // 		unlink(filepath);
+    // 	}
+    // 	return question.remove;
+}
+
 // static int validate_deltas(alpm_handle_t *handle, alpm_list_t *deltas)
 // {
 // 	alpm_list_t *i, *errors = NULL;
@@ -774,7 +395,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 // 	}
 // 	return 0;
 // }
-//
+
 // static struct dload_payload *build_payload(alpm_handle_t *handle,
 // 		const char *filename, size_t size, alpm_list_t *servers)
 // {
@@ -786,7 +407,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 // 		payload->servers = servers;
 // 		return payload;
 // }
-//
+
 // static int find_dl_candidates(alpm_db_t *repo, alpm_list_t **files, alpm_list_t **deltas)
 // {
 // 	alpm_list_t *i;
@@ -832,7 +453,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 //
 // 	return 0;
 // }
-//
+
 // static int download_single_file(alpm_handle_t *handle, struct dload_payload *payload,
 // 		const char *cachedir)
 // {
@@ -867,7 +488,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 // 	EVENT(handle, &event);
 // 	return -1;
 // }
-//
+
 // static int download_files(alpm_handle_t *handle, alpm_list_t **deltas)
 // {
 // 	const char *cachedir;
@@ -953,7 +574,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 //
 // 	return errors;
 // }
-//
+
 // #ifdef HAVE_LIBGPGME
 // static int check_keyring(alpm_handle_t *handle)
 // {
@@ -1030,7 +651,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 // 	return 0;
 // }
 // #endif /* HAVE_LIBGPGME */
-//
+
 // static int check_validity(alpm_handle_t *handle,
 // 		size_t total, uint64_t total_bytes)
 // {
@@ -1115,7 +736,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 //
 // 	return 0;
 // }
-//
+
 // static int load_packages(alpm_handle_t *handle, alpm_list_t **data,
 // 		size_t total, size_t total_bytes)
 // {
@@ -1200,7 +821,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 //
 // 	return 0;
 // }
-//
+
 // int _alpm_sync_load(alpm_handle_t *handle, alpm_list_t **data)
 // {
 // 	alpm_list_t *i, *deltas = NULL;
@@ -1257,7 +878,7 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 //
 // 	return 0;
 // }
-//
+
 // int _alpm_sync_check(alpm_handle_t *handle, alpm_list_t **data)
 // {
 // 	alpm_trans_t *trans = handle->trans;
@@ -1303,31 +924,24 @@ pub fn alpm_find_group_pkgs(dbs: Vec<alpm_db_t>, name: &String) -> Vec<pkg_t> {
 //
 // 	return 0;
 // }
-//
-// int _alpm_sync_commit(alpm_handle_t *handle)
-// {
-// 	alpm_trans_t *trans = handle->trans;
-//
-// 	/* remove conflicting and to-be-replaced packages */
-// 	if(trans->remove) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG,
-// 				"removing conflicting and to-be-replaced packages\n");
-// 		/* we want the frontend to be aware of commit details */
-// 		if(_alpm_remove_packages(handle, 0) == -1) {
-// 			_alpm_log(handle, ALPM_LOG_ERROR,
-// 					_("could not commit removal transaction\n"));
-// 			return -1;
-// 		}
-// 	}
-//
-// 	/* install targets */
-// 	debug!("installing packages\n");
-// 	if(_alpm_upgrade_packages(handle) == -1) {
-// 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not commit transaction\n"));
-// 		return -1;
-// 	}
-//
-// 	return 0;
-// }
-//
-// /* vim: set noet: */
+
+fn _alpm_sync_commit(handle: &mut alpm_handle_t) -> i32 {
+    /* remove conflicting and to-be-replaced packages */
+    if !handle.trans.remove.is_empty() {
+        debug!("removing conflicting and to-be-replaced packages");
+        /* we want the frontend to be aware of commit details */
+        if handle._alpm_remove_packages(0) == -1 {
+            error!("could not commit removal transaction");
+            return -1;
+        }
+    }
+
+    /* install targets */
+    debug!("installing packages");
+    if handle._alpm_upgrade_packages().is_err() {
+        error!("could not commit transaction");
+        return -1;
+    }
+
+    return 0;
+}

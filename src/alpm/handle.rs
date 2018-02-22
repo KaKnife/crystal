@@ -120,11 +120,11 @@ impl alpm_handle_t {
         Ok(())
     }
 
-    pub fn check_arch(&self, pkgs: &Vec<pkg_t>) -> Vec<String> {
+    pub fn check_arch(&mut self, pkgs: &mut Vec<pkg_t>) -> Vec<String> {
         let mut invalid = Vec::new();
         let arch: &str = &self.arch;
         for pkg in pkgs {
-            let pkgarch = pkg.alpm_pkg_get_arch();
+            let pkgarch = pkg.alpm_pkg_get_arch(&mut self.db_local).clone();
             if pkgarch != "" && pkgarch == arch && pkgarch == "any" {
                 let string;
                 let pkgname = &pkg.name;
@@ -137,7 +137,7 @@ impl alpm_handle_t {
     }
 
     /** Prepare a transaction. */
-    pub fn alpm_trans_prepare(&self, data: &mut Vec<String>) -> Result<i32> {
+    pub fn alpm_trans_prepare(&mut self, data: &mut Vec<String>) -> Result<i32> {
         unimplemented!();
         // 	alpm_trans_t *trans;
         //
@@ -145,7 +145,7 @@ impl alpm_handle_t {
         // 	CHECK_HANDLE(handle, return -1);
         // 	ASSERT(data != NULL, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1));
         //
-        let trans = &self.trans;
+        let mut trans = self.trans.clone();
         //
         // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
         // 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
@@ -156,7 +156,7 @@ impl alpm_handle_t {
         }
 
         // 	alpm_list_t *invalid = check_arch(handle, trans->add);
-        let invalid = &self.check_arch(&trans.add);
+        let invalid = &self.check_arch(&mut trans.add);
         if !invalid.is_empty() {
             // if data {
             *data = invalid.clone();
@@ -165,135 +165,175 @@ impl alpm_handle_t {
         }
 
         if trans.add.is_empty() {
-            unimplemented!();
-        // 		if(_alpm_remove_prepare(handle, data) == -1) {
-        // 			/* pm_errno is set by _alpm_remove_prepare() */
-        // 			return -1;
-        // 		}
+            if self._alpm_remove_prepare(data) == -1 {
+                /* pm_errno is set by _alpm_remove_prepare() */
+                // return -1;
+                unimplemented!();
+            }
         } else {
-            unimplemented!();
-            // 		if(_alpm_sync_prepare(handle, data) == -1) {
-            // 			/* pm_errno is set by _alpm_sync_prepare() */
-            // 			return -1;
-            // 		}
+            if self._alpm_sync_prepare(data) == -1 {
+                /* pm_errno is set by _alpm_sync_prepare() */
+                // return -1;
+                unimplemented!();
+            }
         }
 
-        // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
-        // 		_alpm_log(handle, ALPM_LOG_DEBUG, "sorting by dependencies\n");
-        // 		if(trans->add) {
-        // 			alpm_list_t *add_orig = trans->add;
-        // 			trans->add = _alpm_sortbydeps(handle, add_orig, trans->remove, 0);
-        // 			alpm_list_free(add_orig);
-        // 		}
-        // 		if(trans->remove) {
-        // 			alpm_list_t *rem_orig = trans->remove;
-        // 			trans->remove = _alpm_sortbydeps(handle, rem_orig, NULL, 1);
-        // 			alpm_list_free(rem_orig);
-        // 		}
-        // 	}
+        if !trans.flags.NODEPS {
+            debug!("sorting by dependencies");
+            if !trans.add.is_empty() {
+                unimplemented!();
+                // let add_orig = trans.add;
+                // trans.add = _alpm_sortbydeps(handle, add_orig, trans->remove, 0);
+                // alpm_list_free(add_orig);
+            }
+            if !trans.remove.is_empty() {
+                unimplemented!();
+                // let rem_orig = trans.remove;
+                // trans->remove = _alpm_sortbydeps(handle, rem_orig, NULL, 1);
+                // alpm_list_free(rem_orig);
+            }
+        }
 
-        // 	trans->state = STATE_PREPARED;
+        trans.state = alpm_transstate_t::STATE_PREPARED;
 
         return Ok(0);
     }
 
-    // /** Commit a transaction. */
-    // int SYMEXPORT alpm_trans_commit(alpm_handle_t *handle, alpm_list_t **data)
-    // {
-    // 	alpm_trans_t *trans;
-    // 	alpm_event_any_t event;
-    //
-    // 	/* Sanity checks */
-    // 	CHECK_HANDLE(handle, return -1);
-    //
-    // 	trans = handle->trans;
-    //
-    // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-    // 	ASSERT(trans->state == STATE_PREPARED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_PREPARED, -1));
-    //
-    //ASSERT(!(trans->flags & ALPM_TRANS_FLAG_NOLOCK), RET_ERR(handle, ALPM_ERR_TRANS_NOT_LOCKED, -1));
-    //
-    // 	/* If there's nothing to do, return without complaining */
-    // 	if(trans->add == NULL && trans->remove == NULL) {
-    // 		return 0;
-    // 	}
-    //
-    // 	if(trans->add) {
-    // 		if(_alpm_sync_load(handle, data) != 0) {
-    // 			/* pm_errno is set by _alpm_sync_load() */
-    // 			return -1;
-    // 		}
-    // 		if(trans->flags & ALPM_TRANS_FLAG_DOWNLOADONLY) {
-    // 			return 0;
-    // 		}
-    // 		if(_alpm_sync_check(handle, data) != 0) {
-    // 			/* pm_errno is set by _alpm_sync_check() */
-    // 			return -1;
-    // 		}
-    // 	}
-    //
-    // 	if(_alpm_hook_run(handle, ALPM_HOOK_PRE_TRANSACTION) != 0) {
-    // 		RET_ERR(handle, ALPM_ERR_TRANS_HOOK_FAILED, -1);
-    // 	}
-    //
-    // 	trans->state = STATE_COMMITING;
-    //
-    // 	alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction started\n");
-    // 	event.type = ALPM_EVENT_TRANSACTION_START;
-    // 	EVENT(handle, (void *)&event);
-    //
-    // 	if(trans->add == NULL) {
-    // 		if(_alpm_remove_packages(handle, 1) == -1) {
-    // 			/* pm_errno is set by _alpm_remove_packages() */
-    // 			alpm_errno_t save = handle->pm_errno;
-    // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
-    // 			handle->pm_errno = save;
-    // 			return -1;
-    // 		}
-    // 	} else {
-    // 		if(_alpm_sync_commit(handle) == -1) {
-    // 			/* pm_errno is set by _alpm_sync_commit() */
-    // 			alpm_errno_t save = handle->pm_errno;
-    // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
-    // 			handle->pm_errno = save;
-    // 			return -1;
-    // 		}
-    // 	}
-    //
-    // 	if(trans->state == STATE_INTERRUPTED) {
-    // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction interrupted\n");
-    // 	} else {
-    // 		event.type = ALPM_EVENT_TRANSACTION_DONE;
-    // 		EVENT(handle, (void *)&event);
-    // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction completed\n");
-    // 		_alpm_hook_run(handle, ALPM_HOOK_POST_TRANSACTION);
-    // 	}
-    //
-    // 	trans->state = STATE_COMMITED;
-    //
-    // 	return 0;
-    // }
-    //
-    // /** Interrupt a transaction.
-    //  * @note Safe to call from inside signal handlers.
-    //  */
-    // int SYMEXPORT alpm_trans_interrupt(alpm_handle_t *handle)
-    // {
-    // 	alpm_trans_t *trans;
-    //
-    // 	/* Sanity checks */
-    // 	CHECK_HANDLE(handle, return -1);
-    //
-    // 	trans = handle->trans;
-    // 	ASSERT(trans != NULL, RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_NULL, -1));
-    // 	ASSERT(trans->state == STATE_COMMITING || trans->state == STATE_INTERRUPTED,
-    // 			RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_TYPE, -1));
-    //
-    // 	trans->state = STATE_INTERRUPTED;
-    //
-    // 	return 0;
-    // }
-    //
+    /** Commit a transaction. */
+    pub fn alpm_trans_commit<T>(&self, data: &alpm_list_t<T>) -> i32 {
+        unimplemented!();
+        // 	alpm_trans_t *trans;
+        // 	alpm_event_any_t event;
+        //
+        // 	/* Sanity checks */
+        // 	CHECK_HANDLE(handle, return -1);
+        //
+        // 	trans = handle->trans;
+        //
+        // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
+        // 	ASSERT(trans->state == STATE_PREPARED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_PREPARED, -1));
+        //
+        //ASSERT(!(trans->flags & ALPM_TRANS_FLAG_NOLOCK), RET_ERR(handle, ALPM_ERR_TRANS_NOT_LOCKED, -1));
+        //
+        // 	/* If there's nothing to do, return without complaining */
+        // 	if(trans->add == NULL && trans->remove == NULL) {
+        // 		return 0;
+        // 	}
+        //
+        // 	if(trans->add) {
+        // 		if(_alpm_sync_load(handle, data) != 0) {
+        // 			/* pm_errno is set by _alpm_sync_load() */
+        // 			return -1;
+        // 		}
+        // 		if(trans->flags & ALPM_TRANS_FLAG_DOWNLOADONLY) {
+        // 			return 0;
+        // 		}
+        // 		if(_alpm_sync_check(handle, data) != 0) {
+        // 			/* pm_errno is set by _alpm_sync_check() */
+        // 			return -1;
+        // 		}
+        // 	}
+        //
+        // 	if(_alpm_hook_run(handle, ALPM_HOOK_PRE_TRANSACTION) != 0) {
+        // 		RET_ERR(handle, ALPM_ERR_TRANS_HOOK_FAILED, -1);
+        // 	}
+        //
+        // 	trans->state = STATE_COMMITING;
+        //
+        // 	alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction started\n");
+        // 	event.type = ALPM_EVENT_TRANSACTION_START;
+        // 	EVENT(handle, (void *)&event);
+        //
+        // 	if(trans->add == NULL) {
+        // 		if(_alpm_remove_packages(handle, 1) == -1) {
+        // 			/* pm_errno is set by _alpm_remove_packages() */
+        // 			alpm_errno_t save = handle->pm_errno;
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
+        // 			handle->pm_errno = save;
+        // 			return -1;
+        // 		}
+        // 	} else {
+        // 		if(_alpm_sync_commit(handle) == -1) {
+        // 			/* pm_errno is set by _alpm_sync_commit() */
+        // 			alpm_errno_t save = handle->pm_errno;
+        // 			alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction failed\n");
+        // 			handle->pm_errno = save;
+        // 			return -1;
+        // 		}
+        // 	}
+        //
+        // 	if(trans->state == STATE_INTERRUPTED) {
+        // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction interrupted\n");
+        // 	} else {
+        // 		event.type = ALPM_EVENT_TRANSACTION_DONE;
+        // 		EVENT(handle, (void *)&event);
+        // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction completed\n");
+        // 		_alpm_hook_run(handle, ALPM_HOOK_POST_TRANSACTION);
+        // 	}
+        //
+        // 	trans->state = STATE_COMMITED;
+        //
+        // 	return 0;
+    }
+
+    /// Interrupt a transaction.
+    /// note: Safe to call from inside signal handlers.
+    pub fn alpm_trans_interrupt(&self) {
+        // 	alpm_trans_t *trans;
+        //
+        // 	/* Sanity checks */
+        // 	CHECK_HANDLE(handle, return -1);
+        //
+        // 	trans = handle->trans;
+        // 	ASSERT(trans != NULL, RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_NULL, -1));
+        // 	ASSERT(trans->state == STATE_COMMITING || trans->state == STATE_INTERRUPTED,
+        // 			RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_TRANS_TYPE, -1));
+        //
+        // 	trans->state = STATE_INTERRUPTED;
+        //
+        // 	return 0;
+    }
+
+    ///Remove packages in the current transaction.
+    ///@param handle the context handle
+    ///@param run_ldconfig whether to run ld_config after removing the packages
+    ///@return 0 on success, -1 if errors occurred while removing files
+    pub fn _alpm_remove_packages(&self, run_ldconfig: i32) -> i32 {
+        unimplemented!();
+        // 	alpm_list_t *targ;
+        // 	size_t pkg_count, targ_count;
+        // 	alpm_trans_t *trans = handle->trans;
+        // 	int ret = 0;
+        //
+        // 	pkg_count = alpm_list_count(trans->remove);
+        // 	targ_count = 1;
+        //
+        // 	for(targ = trans->remove; targ; targ = targ->next) {
+        // 		pkg_t *pkg = targ->data;
+        //
+        // 		if(trans->state == STATE_INTERRUPTED) {
+        // 			return ret;
+        // 		}
+        //
+        // 		if(_alpm_remove_single_package(handle, pkg, NULL,
+        // 					targ_count, pkg_count) == -1) {
+        // 			handle->pm_errno = ALPM_ERR_TRANS_ABORT;
+        // 			/* running ldconfig at this point could possibly screw system */
+        // 			run_ldconfig = 0;
+        // 			ret = -1;
+        // 		}
+        //
+        // 		targ_count++;
+        // 	}
+        //
+        // 	if(run_ldconfig) {
+        // 		/* run ldconfig if it exists */
+        // 		_alpm_ldconfig(handle);
+        // 	}
+        //
+        // 	return ret;
+    }
+
     /** Release a transaction. */
     pub fn alpm_trans_release(&self) -> Result<i32> {
         unimplemented!();
@@ -319,37 +359,27 @@ impl alpm_handle_t {
         // 	return 0;
     }
 
-    /**
-     * Form a signature path given a file path.
-     * Caller must free the result.
-     * @param handle the context handle
-     * @param path the full path to a file
-     * @return the path with '.sig' appended, NULL on errors
-     */
+    ///Form a signature path given a file path.
+    ///Caller must free the result.
+    ///`path` - the full path to a file.
     pub fn _alpm_sigpath(&self, path: &Option<String>) -> Option<String> {
-        // 	char *sigpath;
-        // 	size_t len;
-        //
         match path {
             &None => None,
             &Some(ref path) => Some(format!("{}.sig", path)),
         }
-        // 	return sigpath;
     }
 
     fn no_dep_version(&self) -> bool {
         self.trans.flags.NODEPVERSION
     }
 
-    /* Checks dependencies and returns missing ones in a list.
-     * Dependencies can include versions with depmod operators.
-     * @param handle the context handle
-     * @param pkglist the list of local packages
-     * @param remove an alpm_list_t* of packages to be removed
-     * @param upgrade an alpm_list_t* of packages to be upgraded (remove-then-upgrade)
-     * @param reversedeps handles the backward dependencies
-     * @return an alpm_list_t* of alpm_depmissing_t pointers.
-     */
+    ///Checks dependencies and returns missing ones in a list.
+    ///Dependencies can include versions with depmod operators.
+    /// * `pkglist` the list of local packages
+    /// * `remove` an alpm_list_t* of packages to be removed
+    /// * `upgrade` an alpm_list_t* of packages to be upgraded (remove-then-upgrade)
+    /// * `reversedeps` handles the backward dependencies
+    /// * returns an alpm_list_t* of alpm_depmissing_t pointers.
     pub fn alpm_checkdeps(
         &self,
         pkglist: Option<Vec<pkg_t>>,
@@ -398,7 +428,7 @@ impl alpm_handle_t {
             // );
 
             for mut depend in &tp.depends {
-                // alpm_depend_t *depend = j->data;
+                // depend_t *depend = j->data;
                 let orig_mod = depend.depmod.clone();
                 // if (nodepversion) {
                 //     depend.depmod = alpm_depmod_t::ALPM_DEP_MOD_ANY;
@@ -432,7 +462,7 @@ impl alpm_handle_t {
             // 		for(i = dblist; i; i = i->next) {
             // 			pkg_t *lp = i->data;
             // 			for(j = alpm_pkg_get_depends(lp); j; j = j->next) {
-            // 				alpm_depend_t *depend = j->data;
+            // 				depend_t *depend = j->data;
             // 				alpm_depmod_t orig_mod = depend->mod;
             // 				if(nodepversion) {
             // 					depend->mod = ALPM_DEP_MOD_ANY;
@@ -466,18 +496,17 @@ impl alpm_handle_t {
         return baddeps;
     }
 
-    /** Find a package satisfying a specified dependency.
-     * First look for a literal, going through each db one by one. Then look for
-     * providers. The first satisfier found is returned.
-     * The dependency can include versions with depmod operators.
-     * @param handle the context handle
-     * @param dbs an alpm_list_t* of alpm_db_t where the satisfier will be searched
-     * @param depstring package or provision name, versioned or not
-     * @return a pkg_t* satisfying depstring
-     */
+    /// Find a package satisfying a specified dependency.
+    /// First look for a literal, going through each db one by one. Then look for
+    /// providers. The first satisfier found is returned.
+    /// The dependency can include versions with depmod operators.
+    ///* `handle` the context handle
+    ///* `dbs` an alpm_list_t* of alpm_db_t where the satisfier will be searched
+    ///* `depstring` package or provision name, versioned or not
+    ///* returns a pkg_t* satisfying depstring
     pub fn alpm_find_dbs_satisfier<T>(&self, dbs: &Vec<T>, depstring: &String) -> Option<pkg_t> {
         unimplemented!();
-        // 	alpm_depend_t *dep;
+        // 	depend_t *dep;
         // 	pkg_t *pkg;
         //
         // 	CHECK_HANDLE(handle, return NULL);
@@ -490,13 +519,9 @@ impl alpm_handle_t {
         // 	return pkg;
     }
 
-    /** @brief Check the package conflicts in a database
-     *
-     * @param handle the context handle
-     * @param pkglist the list of packages to check
-     *
-     * @return an alpm_list_t of alpm_conflict_t
-     */
+    ///Check the package conflicts in a database
+    ///* `pkglist` the list of packages to check
+    ///* returns an alpm_list_t of alpm_conflict_t
     pub fn alpm_checkconflicts(&self, pkglist: &Vec<pkg_t>) -> Vec<alpm_conflict_t> {
         unimplemented!();
         // CHECK_HANDLE(handle, return NULL);
@@ -549,9 +574,8 @@ impl alpm_handle_t {
     }
 
     /// Load a package and create the corresponding pkg_t struct.
-    ///@param handle the context handle
-    ///@param pkgfile path to the package file
-    ///@param full whether to stop the load after metadata is read or continue
+    ///* `pkgfile` path to the package file
+    ///* `full` whether to stop the load after metadata is read or continue
     ///through the full archive
     fn _alpm_pkg_load_internal(&self, pkgfile: &String, full: i32) -> pkg_t {
         unimplemented!();
@@ -697,34 +721,34 @@ impl alpm_handle_t {
         // 	return NULL;
     }
 
-    // /* adopted limit from repo-add */
-    // #define MAX_SIGFILE_SIZE 16384
+    ///adopted limit from repo-add
+    const MAX_SIGFILE_SIZE: i16 = 16384;
 
-    // static int read_sigfile(const char *sigpath, unsigned char **sig)
-    // {
-    // 	struct stat st;
-    // 	FILE *fp;
-    //
-    // 	if((fp = fopen(sigpath, "rb")) == NULL) {
-    // 		return -1;
-    // 	}
-    //
-    // 	if(fstat(fileno(fp), &st) != 0 || st.st_size > MAX_SIGFILE_SIZE) {
-    // 		fclose(fp);
-    // 		return -1;
-    // 	}
-    //
-    // 	MALLOC(*sig, st.st_size, fclose(fp); return -1);
-    //
-    // 	if(fread(*sig, st.st_size, 1, fp) != 1) {
-    // 		free(*sig);
-    // 		fclose(fp);
-    // 		return -1;
-    // 	}
-    //
-    // 	fclose(fp);
-    // 	return st.st_size;
-    // }
+    pub fn read_sigfile(sigpath: &String, sig: &mut String) -> i32 {
+        unimplemented!();
+        // 	struct stat st;
+        // 	FILE *fp;
+        //
+        // 	if((fp = fopen(sigpath, "rb")) == NULL) {
+        // 		return -1;
+        // 	}
+        //
+        // 	if(fstat(fileno(fp), &st) != 0 || st.st_size > MAX_SIGFILE_SIZE) {
+        // 		fclose(fp);
+        // 		return -1;
+        // 	}
+        //
+        // 	MALLOC(*sig, st.st_size, fclose(fp); return -1);
+        //
+        // 	if(fread(*sig, st.st_size, 1, fp) != 1) {
+        // 		free(*sig);
+        // 		fclose(fp);
+        // 		return -1;
+        // 	}
+        //
+        // 	fclose(fp);
+        // 	return st.st_size;
+    }
 
     pub fn alpm_pkg_load(
         &self,
@@ -817,7 +841,7 @@ impl alpm_handle_t {
         // return false;
     }
 
-    /// Unregister all package databases. */
+    /// Unregister all package databases.
     pub fn alpm_unregister_all_syncdbs(&self) -> i32 {
         unimplemented!();
         // 	alpm_list_t *i;
@@ -838,7 +862,7 @@ impl alpm_handle_t {
         // 	return 0;
     }
 
-    /// Register a sync database of packages. */
+    /// Register a sync database of packages.
     pub fn alpm_register_syncdb(
         &mut self,
         treename: &String,
@@ -916,7 +940,7 @@ impl alpm_handle_t {
         }
 
         /* add the package to the transaction */
-        pkg.reason = alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT;
+        pkg.reason = pkgreason_t::ALPM_PKG_REASON_EXPLICIT;
         debug!(
             "adding package {}-{} to the transaction add list\n",
             pkgname, pkgver
@@ -1016,8 +1040,6 @@ impl alpm_handle_t {
         match std::fs::rename(src, dest) {
             Err(e) => {
                 error!("could not rename {} to {} ({})\n", src, dest, e);
-                // alpm_logaction(handle, ALPM_CALLER_PREFIX,
-                // "error: could not rename {} to {} ({})\n", src, dest, strerror(errno));
                 return 1;
             }
             Ok(()) => {}
@@ -1349,7 +1371,7 @@ impl alpm_handle_t {
 
         /* we override any pre-set reason if we have alldeps or allexplicit set */
         // 	if(trans->flags & ALPM_TRANS_FLAG_ALLDEPS) {
-        // 		newpkg->reason = ALPM_PKG_REASON_DEPEND;
+        // 		newpkg->reason = ALPM_PKG_REASON_DEPEND;*
         // 	} else if(trans->flags & ALPM_TRANS_FLAG_ALLEXPLICIT) {
         // 		newpkg->reason = ALPM_PKG_REASON_EXPLICIT;
         // 	}
@@ -1541,8 +1563,6 @@ impl alpm_handle_t {
     }
 
     pub fn alpm_option_get_dbpath(&self) -> &String {
-        // unimplemented!();
-        // CHECK_HANDLE(handle, return NULL);
         return &self.dbpath;
     }
 
@@ -1562,78 +1582,64 @@ impl alpm_handle_t {
         self.gpgdir.clone()
     }
 
-    // int SYMEXPORT alpm_option_get_usesyslog(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return -1);
-    // 	return handle->usesyslog;
-    // }
-    //
-    // alpm_list_t SYMEXPORT *alpm_option_get_noupgrades(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	return handle->noupgrade;
-    // }
-    //
-    // alpm_list_t SYMEXPORT *alpm_option_get_noextracts(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	return handle->noextract;
-    // }
-    //
-    // alpm_list_t SYMEXPORT *alpm_option_get_ignorepkgs(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	return handle->ignorepkg;
-    // }
-    //
-    // alpm_list_t SYMEXPORT *alpm_option_get_ignoregroups(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	return handle->ignoregroup;
-    // }
-    //
-    // alpm_list_t SYMEXPORT *alpm_option_get_overwrite_files(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	return handle->overwrite_files;
-    // }
-    //
-    // alpm_list_t SYMEXPORT *alpm_option_get_assumeinstalled(alpm_handle_t *handle)
+    pub fn alpm_option_get_usesyslog(&self) -> i32 {
+        return self.usesyslog;
+    }
+
+    pub fn alpm_option_get_noupgrades(&self) -> &Vec<String> {
+        &self.noupgrade
+    }
+
+    pub fn alpm_option_get_noextracts(&self) -> &Vec<String> {
+        &self.noextract
+    }
+
+    pub fn alpm_option_get_ignorepkgs(&self) -> &Vec<String> {
+        &self.ignorepkg
+    }
+
+    pub fn alpm_option_get_ignoregroups(&self) -> &Vec<String> {
+        &self.ignoregroup
+    }
+
+    pub fn alpm_option_get_overwrite_files(&self) -> &Vec<String> {
+        &self.overwrite_files
+    }
+
+    // alpm_list_t SYMEXPORT *alpm_option_get_assumeinstalled(&self)
     // {
     // 	CHECK_HANDLE(handle, return NULL);
     // 	return handle->assumeinstalled;
     // }
-    //
-    // const char SYMEXPORT *alpm_option_get_arch(alpm_handle_t *handle)
+
+    // const char SYMEXPORT *alpm_option_get_arch(&self)
     // {
     // 	CHECK_HANDLE(handle, return NULL);
     // 	return handle->arch;
     // }
-    //
-    // double SYMEXPORT alpm_option_get_deltaratio(alpm_handle_t *handle)
+
+    // double SYMEXPORT alpm_option_get_deltaratio(&self)
     // {
     // 	CHECK_HANDLE(handle, return -1);
     // 	return handle->deltaratio;
     // }
 
-    // int SYMEXPORT alpm_option_get_checkspace(alpm_handle_t *handle)
+    // int SYMEXPORT alpm_option_get_checkspace(&self)
     // {
     // 	CHECK_HANDLE(handle, return -1);
     // 	return handle->checkspace;
     // }
-    //
-    // const char SYMEXPORT *alpm_option_get_dbext(alpm_handle_t *handle)
-    // {
-    // 	CHECK_HANDLE(handle, return NULL);
-    // 	return handle->dbext;
-    // }
-    //
+
+    pub fn alpm_option_get_dbext(&self) -> &String {
+        &self.dbext
+    }
+
     // pub fn alpm_option_set_logcb(&mut self,  cb: alpm_cb_log)
     // {
     // 	self.logcb = cb;
     // }
-    //
-    // int SYMEXPORT alpm_option_set_dlcb(alpm_handle_t *handle, alpm_cb_download cb)
+
+    // int SYMEXPORT alpm_option_set_dlcb(&self, alpm_cb_download cb)
     // {
     // 	CHECK_HANDLE(handle, return -1);
     // 	handle->dlcb = cb;
@@ -1644,13 +1650,13 @@ impl alpm_handle_t {
     //     self.fetchcb = cb;
     // }
 
-    // int SYMEXPORT alpm_option_set_totaldlcb(alpm_handle_t *handle, alpm_cb_totaldl cb)
+    // int SYMEXPORT alpm_option_set_totaldlcb(&self, alpm_cb_totaldl cb)
     // {
     // 	CHECK_HANDLE(handle, return -1);
     // 	handle->totaldlcb = cb;
     // 	return 0;
     // }
-    //
+
     // int SYMEXPORT alpm_option_set_eventcb(alpm_handle_t *handle, alpm_cb_event cb)
     // {
     // 	CHECK_HANDLE(handle, return -1);
@@ -1901,9 +1907,9 @@ impl alpm_handle_t {
     // 	return _alpm_option_strlist_rem(handle, &(handle->overwrite_files), glob);
     // }
 
-    pub fn alpm_option_add_assumeinstalled(&mut self, dep: &alpm_depend_t) {
+    pub fn alpm_option_add_assumeinstalled(&mut self, dep: &depend_t) {
         use std::hash::{Hash, Hasher};
-        let mut depcpy = alpm_depend_t::default();
+        let mut depcpy = depend_t::default();
         let mut hasher = sdbm_hasher::default();
         /* fill in name_hash in case dep was built by hand */
         dep.name.hash(&mut hasher);
@@ -1929,8 +1935,8 @@ impl alpm_handle_t {
     //
     // static int assumeinstalled_cmp(const void *d1, const void *d2)
     // {
-    // 	const alpm_depend_t *dep1 = d1;
-    // 	const alpm_depend_t *dep2 = d2;
+    // 	const depend_t *dep1 = d1;
+    // 	const depend_t *dep2 = d2;
     //
     // 	if(dep1->name_hash != dep2->name_hash
     // 			|| strcmp(dep1->name, dep2->name) != 0) {
@@ -1950,9 +1956,9 @@ impl alpm_handle_t {
     // 	return -1;
     // }
 
-    pub fn alpm_option_remove_assumeinstalled(&self, dep: &alpm_depend_t) -> i32 {
+    pub fn alpm_option_remove_assumeinstalled(&self, dep: &depend_t) -> i32 {
         unimplemented!();
-        // alpm_depend_t *vdata = NULL;
+        // depend_t *vdata = NULL;
 
         // self.assumeinstalled = alpm_list_remove(handle->assumeinstalled, dep,
         // &assumeinstalled_cmp, (void **)&vdata);
@@ -2078,57 +2084,7 @@ impl alpm_handle_t {
         return handle;
     }
 
-    // void _alpm_handle_free(alpm_handle_t *handle)
-    // {
-    // 	if(handle == NULL) {
-    // 		return;
-    // 	}
-    //
-    // 	/* close logfile */
-    // 	if(handle->logstream) {
-    // 		fclose(handle->logstream);
-    // 		handle->logstream = NULL;
-    // 	}
-    // 	if(handle->usesyslog) {
-    // 		handle->usesyslog = 0;
-    // 		closelog();
-    // 	}
-    //
-    // #ifdef HAVE_LIBCURL
-    // 	/* release curl handle */
-    // 	curl_easy_cleanup(handle->curl);
-    // #endif
-    //
-    // #ifdef HAVE_LIBGPGME
-    // 	FREELIST(handle->known_keys);
-    // #endif
-    //
-    // 	regfree(&handle->delta_regex);
-    //
-    // 	/* free memory */
-    // 	_alpm_trans_free(handle->trans);
-    // 	FREE(handle->root);
-    // 	FREE(handle->dbpath);
-    // 	FREE(handle->dbext);
-    // 	FREELIST(handle->cachedirs);
-    // 	FREELIST(handle->hookdirs);
-    // 	FREE(handle->logfile);
-    // 	FREE(handle->lockfile);
-    // 	FREE(handle->arch);
-    // 	FREE(handle->gpgdir);
-    // 	FREELIST(handle->noupgrade);
-    // 	FREELIST(handle->noextract);
-    // 	FREELIST(handle->ignorepkg);
-    // 	FREELIST(handle->ignoregroup);
-    // 	FREELIST(handle->overwrite_files);
-    //
-    // 	alpm_list_free_inner(handle->assumeinstalled, (alpm_list_fn_free)alpm_dep_free);
-    // 	alpm_list_free(handle->assumeinstalled);
-    //
-    // 	FREE(handle);
-    // }
-
-    /** Lock the database */
+    /// Lock the database
     pub fn _alpm_handle_lock(&mut self) -> std::io::Result<()> {
         assert!(self.lockfile != "");
         assert!(self.lockfd.is_none());
@@ -2142,13 +2098,8 @@ impl alpm_handle_t {
         Ok(())
     }
 
-    /** Remove the database lock file
-     * @param handle the context handle
-     * @return 0 on success, -1 on error
-     *
-     * @note Safe to call from inside signal handlers.
-     */
-    fn alpm_unlock(&mut self) -> std::io::Result<()> {
+    /// Remove the database lock file
+    pub fn alpm_unlock(&mut self) -> std::io::Result<()> {
         // ASSERT(handle->lockfile != NULL, return 0);
         // ASSERT(handle->lockfd >= 0, return 0);
 
@@ -2185,6 +2136,396 @@ impl alpm_handle_t {
         }
 
         return Ok(());
+    }
+
+    /**
+     * @brief Transaction preparation for remove actions.
+     *
+     * This functions takes a pointer to a alpm_list_t which will be
+     * filled with a list of alpm_depmissing_t* objects representing
+     * the packages blocking the transaction.
+     *
+     * @param handle the context handle
+     * @param data a pointer to an alpm_list_t* to fill
+     *
+     * @return 0 on success, -1 on error
+     */
+    fn _alpm_remove_prepare(&self, data: &Vec<String>) -> i32 {
+        unimplemented!();
+        // 	alpm_list_t *lp;
+        // 	alpm_trans_t *trans = handle->trans;
+        // 	alpm_db_t *db = handle->db_local;
+        // 	alpm_event_t event;
+        //
+        // 	if((trans->flags & ALPM_TRANS_FLAG_RECURSE)
+        // 			&& !(trans->flags & ALPM_TRANS_FLAG_CASCADE)) {
+        // 		_alpm_log(handle, ALPM_LOG_DEBUG, "finding removable dependencies\n");
+        // 		if(_alpm_recursedeps(db, &trans->remove,
+        // 				trans->flags & ALPM_TRANS_FLAG_RECURSEALL)) {
+        // 			return -1;
+        // 		}
+        // 	}
+        //
+        // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
+        // 		event.type = ALPM_EVENT_CHECKDEPS_START;
+        // 		EVENT(handle, &event);
+        //
+        // 		_alpm_log(handle, ALPM_LOG_DEBUG, "looking for unsatisfied dependencies\n");
+        // 		lp = alpm_checkdeps(handle, _alpm_db_get_pkgcache(db), trans->remove, NULL, 1);
+        // 		if(lp != NULL) {
+        //
+        // 			if(trans->flags & ALPM_TRANS_FLAG_CASCADE) {
+        // 				if(remove_prepare_cascade(handle, lp)) {
+        // 					return -1;
+        // 				}
+        // 			} else if(trans->flags & ALPM_TRANS_FLAG_UNNEEDED) {
+        // 				/* Remove needed packages (which would break dependencies)
+        // 				 * from target list */
+        // 				remove_prepare_keep_needed(handle, lp);
+        // 			} else {
+        // 				if(data) {
+        // 					*data = lp;
+        // 				} else {
+        // 					alpm_list_free_inner(lp,
+        // 							(alpm_list_fn_free)alpm_depmissing_free);
+        // 					alpm_list_free(lp);
+        // 				}
+        // 				RET_ERR(handle, ALPM_ERR_UNSATISFIED_DEPS, -1);
+        // 			}
+        // 		}
+        // 	}
+        //
+        // 	/* -Rcs == -Rc then -Rs */
+        // 	if((trans->flags & ALPM_TRANS_FLAG_CASCADE)
+        // 			&& (trans->flags & ALPM_TRANS_FLAG_RECURSE)) {
+        // 		_alpm_log(handle, ALPM_LOG_DEBUG, "finding removable dependencies\n");
+        // 		if(_alpm_recursedeps(db, &trans->remove,
+        // 					trans->flags & ALPM_TRANS_FLAG_RECURSEALL)) {
+        // 			return -1;
+        // 		}
+        // 	}
+        //
+        // 	/* Note packages being removed that are optdepends for installed packages */
+        // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
+        // 		remove_notify_needed_optdepends(handle, trans->remove);
+        // 	}
+        //
+        // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
+        // 		event.type = ALPM_EVENT_CHECKDEPS_DONE;
+        // 		EVENT(handle, &event);
+        // 	}
+        //
+        // 	return 0;
+    }
+
+    fn _alpm_sync_prepare(&self, data: &Vec<String>) -> i32 {
+        // 	alpm_list_t *i, *j;
+        // 	alpm_list_t *deps = NULL;
+        // 	alpm_list_t *unresolvable = NULL;
+        let mut from_sync = false;
+        let ret = 0;
+        let trans = &self.trans;
+        // 	alpm_event_t event;
+
+        // 	if(data) {
+        // 		*data = NULL;
+        // 	}
+
+        for spkg in &trans.add {
+            match spkg.origin {
+                pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+                    from_sync = true;
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        /* ensure all sync database are valid if we will be using them */
+        for db in &self.dbs_sync {
+            if db.status.DB_STATUS_INVALID {
+                unimplemented!();
+                // RET_ERR(handle, ALPM_ERR_DB_INVALID, -1);
+            }
+            /* missing databases are not allowed if we have sync targets */
+            if from_sync && db.status.DB_STATUS_MISSING {
+                unimplemented!();
+                // RET_ERR(handle, ALPM_ERR_DB_NOT_FOUND, -1);
+            }
+        }
+
+        if !trans.flags.NODEPS {
+            unimplemented!();
+            // 		alpm_list_t *resolved = NULL;
+            // 		alpm_list_t *remove = alpm_list_copy(trans.remove);
+            // 		alpm_list_t *localpkgs;
+            //
+            // 		/* Build up list by repeatedly resolving each transaction package */
+            // 		/* Resolve targets dependencies */
+            // 		event.type = ALPM_EVENT_RESOLVEDEPS_START;
+            // 		EVENT(handle, &event);
+            // 		debug!("resolving target's dependencies\n");
+            //
+            // 		/* build remove list for resolvedeps */
+            // 		for(i = trans.add; i; i = i.next) {
+            // 			pkg_t *spkg = i.data;
+            // 			for(j = spkg.removes; j; j = j.next) {
+            // 				remove = alpm_list_add(remove, j->data);
+            // 			}
+            // 		}
+            //
+            // 		/* Compute the fake local database for resolvedeps (partial fix for the
+            // 		 * phonon/qt issue) */
+            // 		localpkgs = alpm_list_diff(_alpm_db_get_pkgcache(handle->db_local),
+            // 				trans->add, _alpm_pkg_cmp);
+            //
+            // 		/* Resolve packages in the transaction one at a time, in addition
+            // 		   building up a list of packages which could not be resolved. */
+            // 		for(i = trans->add; i; i = i->next) {
+            // 			pkg_t *pkg = i->data;
+            // 			if(_alpm_resolvedeps(handle, localpkgs, pkg, trans->add,
+            // 						&resolved, remove, data) == -1) {
+            // 				unresolvable = alpm_list_add(unresolvable, pkg);
+            // 			}
+            // 			/* Else, [resolved] now additionally contains [pkg] and all of its
+            // 			   dependencies not already on the list */
+            // 		}
+            // 		alpm_list_free(localpkgs);
+            // 		alpm_list_free(remove);
+            //
+            // 		/* If there were unresolvable top-level packages, prompt the user to
+            // 		   see if they'd like to ignore them rather than failing the sync */
+            // 		if(unresolvable != NULL) {
+            // 			alpm_question_remove_pkgs_t question = {
+            // 				.type = ALPM_QUESTION_REMOVE_PKGS,
+            // 				.skip = 0,
+            // 				.packages = unresolvable
+            // 			};
+            // 			QUESTION(handle, &question);
+            // 			if(question.skip) {
+            // 				/* User wants to remove the unresolvable packages from the
+            // 				   transaction. The packages will be removed from the actual
+            // 				   transaction when the transaction packages are replaced with a
+            // 				   dependency-reordered list below */
+            // 				handle->pm_errno = ALPM_ERR_OK;
+            // 				if(data) {
+            // 					alpm_list_free_inner(*data,
+            // 							(alpm_list_fn_free)alpm_depmissing_free);
+            // 					alpm_list_free(*data);
+            // 					*data = NULL;
+            // 				}
+            // 			} else {
+            // 				/* pm_errno was set by resolvedeps, callback may have overwrote it */
+            // 				handle->pm_errno = ALPM_ERR_UNSATISFIED_DEPS;
+            // 				alpm_list_free(resolved);
+            // 				alpm_list_free(unresolvable);
+            // 				ret = -1;
+            // 				goto cleanup;
+            // 			}
+            // 		}
+            //
+            // 		/* Set DEPEND reason for pulled packages */
+            // 		for(i = resolved; i; i = i->next) {
+            // 			pkg_t *pkg = i->data;
+            // 			if(!alpm_pkg_find(trans->add, pkg->name)) {
+            // 				pkg->reason = ALPM_PKG_REASON_DEPEND;
+            // 			}
+            // 		}
+            //
+            // 		/* Unresolvable packages will be removed from the target list; set these
+            // 		 * aside in the transaction as a list we won't operate on. If we free them
+            // 		 * before the end of the transaction, we may kill pointers the frontend
+            // 		 * holds to package objects. */
+            // 		trans->unresolvable = unresolvable;
+            //
+            // 		alpm_list_free(trans->add);
+            // 		trans->add = resolved;
+            //
+            // 		event.type = ALPM_EVENT_RESOLVEDEPS_DONE;
+            // 		EVENT(handle, &event);
+        }
+
+        if !trans.flags.NOCONFLICTS {
+            unimplemented!();
+            // 		/* check for inter-conflicts and whatnot */
+            // 		event.type = ALPM_EVENT_INTERCONFLICTS_START;
+            // 		EVENT(handle, &event);
+            //
+            // 		debug!("looking for conflicts\n");
+            //
+            // 		/* 1. check for conflicts in the target list */
+            // 		debug!("check targets vs targets\n");
+            // 		deps = _alpm_innerconflicts(handle, trans->add);
+            //
+            // 		for(i = deps; i; i = i->next) {
+            // 			alpm_conflict_t *conflict = i->data;
+            // 			pkg_t *rsync, *sync, *sync1, *sync2;
+            //
+            // 			/* have we already removed one of the conflicting targets? */
+            // 			sync1 = alpm_pkg_find(trans->add, conflict->package1);
+            // 			sync2 = alpm_pkg_find(trans->add, conflict->package2);
+            // 			if(!sync1 || !sync2) {
+            // 				continue;
+            // 			}
+            //
+            // 			debug!("conflicting packages in the sync list: '{}' <-> '{}'\n",
+            // 					conflict->package1, conflict->package2);
+            //
+            // 			/* if sync1 provides sync2, we remove sync2 from the targets, and vice versa */
+            // 			alpm_depend_t *dep1 = alpm_dep_from_string(conflict->package1);
+            // 			alpm_depend_t *dep2 = alpm_dep_from_string(conflict->package2);
+            // 			if(_alpm_depcmp(sync1, dep2)) {
+            // 				rsync = sync2;
+            // 				sync = sync1;
+            // 			} else if(_alpm_depcmp(sync2, dep1)) {
+            // 				rsync = sync1;
+            // 				sync = sync2;
+            // 			} else {
+            // 				_alpm_log(handle, ALPM_LOG_ERROR, _("unresolvable package conflicts detected\n"));
+            // 				handle->pm_errno = ALPM_ERR_CONFLICTING_DEPS;
+            // 				ret = -1;
+            // 				if(data) {
+            // 					alpm_conflict_t *newconflict = _alpm_conflict_dup(conflict);
+            // 					if(newconflict) {
+            // 						*data = alpm_list_add(*data, newconflict);
+            // 					}
+            // 				}
+            // 				alpm_list_free_inner(deps, (alpm_list_fn_free)alpm_conflict_free);
+            // 				alpm_list_free(deps);
+            // 				alpm_dep_free(dep1);
+            // 				alpm_dep_free(dep2);
+            // 				goto cleanup;
+            // 			}
+            // 			alpm_dep_free(dep1);
+            // 			alpm_dep_free(dep2);
+            //
+            // 			/* Prints warning */
+            // 			_alpm_log(handle, ALPM_LOG_WARNING,
+            // 					_("removing '{}' from target list because it conflicts with '{}'\n"),
+            // 					rsync->name, sync->name);
+            // 			trans->add = alpm_list_remove(trans->add, rsync, _alpm_pkg_cmp, NULL);
+            // 			/* rsync is not a transaction target anymore */
+            // 			trans->unresolvable = alpm_list_add(trans->unresolvable, rsync);
+            // 		}
+            //
+            // 		alpm_list_free_inner(deps, (alpm_list_fn_free)alpm_conflict_free);
+            // 		alpm_list_free(deps);
+            // 		deps = NULL;
+            //
+            // 		/* 2. we check for target vs db conflicts (and resolve)*/
+            // 		debug!("check targets vs db and db vs targets\n");
+            // 		deps = _alpm_outerconflicts(handle->db_local, trans->add);
+            //
+            // 		for(i = deps; i; i = i->next) {
+            // 			alpm_question_conflict_t question = {
+            // 				.type = ALPM_QUESTION_CONFLICT_PKG,
+            // 				.remove = 0,
+            // 				.conflict = i->data
+            // 			};
+            // 			alpm_conflict_t *conflict = i->data;
+            // 			int found = 0;
+            //
+            // 			/* if conflict->package2 (the local package) is not elected for removal,
+            // 			   we ask the user */
+            // 			if(alpm_pkg_find(trans->remove, conflict->package2)) {
+            // 				found = 1;
+            // 			}
+            // 			for(j = trans->add; j && !found; j = j->next) {
+            // 				pkg_t *spkg = j->data;
+            // 				if(alpm_pkg_find(spkg->removes, conflict->package2)) {
+            // 					found = 1;
+            // 				}
+            // 			}
+            // 			if(found) {
+            // 				continue;
+            // 			}
+            //
+            // 			debug!("package '{}' conflicts with '{}'\n",
+            // 					conflict->package1, conflict->package2);
+            //
+            // 			QUESTION(handle, &question);
+            // 			if(question.remove) {
+            // 				/* append to the removes list */
+            // 				pkg_t *sync = alpm_pkg_find(trans->add, conflict->package1);
+            // 				pkg_t *local = _alpm_db_get_pkgfromcache(handle->db_local, conflict->package2);
+            // 				debug!("electing '{}' for removal\n", conflict->package2);
+            // 				sync->removes = alpm_list_add(sync->removes, local);
+            // 			} else { /* abort */
+            // 				_alpm_log(handle, ALPM_LOG_ERROR, _("unresolvable package conflicts detected\n"));
+            // 				handle->pm_errno = ALPM_ERR_CONFLICTING_DEPS;
+            // 				ret = -1;
+            // 				if(data) {
+            // 					alpm_conflict_t *newconflict = _alpm_conflict_dup(conflict);
+            // 					if(newconflict) {
+            // 						*data = alpm_list_add(*data, newconflict);
+            // 					}
+            // 				}
+            // 				alpm_list_free_inner(deps, (alpm_list_fn_free)alpm_conflict_free);
+            // 				alpm_list_free(deps);
+            // 				goto cleanup;
+            // 			}
+            // 		}
+            // 		event.type = ALPM_EVENT_INTERCONFLICTS_DONE;
+            // 		EVENT(handle, &event);
+            // 		alpm_list_free_inner(deps, (alpm_list_fn_free)alpm_conflict_free);
+            // 		alpm_list_free(deps);
+        }
+
+        /* Build trans->remove list */
+        // 	for(i = trans->add; i; i = i->next) {
+        // 		pkg_t *spkg = i->data;
+        // 		for(j = spkg->removes; j; j = j->next) {
+        // 			pkg_t *rpkg = j->data;
+        // 			if(!alpm_pkg_find(trans->remove, rpkg->name)) {
+        // 				pkg_t *copy;
+        // 				debug!("adding '{}' to remove list\n", rpkg->name);
+        // 				if(_alpm_pkg_dup(rpkg, &copy) == -1) {
+        // 					return -1;
+        // 				}
+        // 				trans->remove = alpm_list_add(trans->remove, copy);
+        // 			}
+        // 		}
+        // 	}
+
+        if !trans.flags.NODEPS {
+            debug!("checking dependencies");
+            unimplemented!();
+            // 		deps = alpm_checkdeps(handle, _alpm_db_get_pkgcache(handle->db_local),
+            // 				trans->remove, trans->add, 1);
+            // 		if(deps) {
+            // 			handle->pm_errno = ALPM_ERR_UNSATISFIED_DEPS;
+            // 			ret = -1;
+            // 			if(data) {
+            // 				*data = deps;
+            // 			} else {
+            // 				alpm_list_free_inner(deps,
+            // 						(alpm_list_fn_free)alpm_depmissing_free);
+            // 				alpm_list_free(deps);
+            // 			}
+            // 			goto cleanup;
+            // 		}
+        }
+
+        for spkg in &trans.add {
+            /* update download size field */
+            let lpkg = self.db_local.alpm_db_get_pkg(&spkg.name);
+            if spkg.compute_download_size() < 0 {
+                return -1;
+            }
+            match lpkg {
+                Some(lpkg) => {
+                    unimplemented!();
+                    // spkg.oldpkg = match lpkg._alpm_pkg_dup() {
+                    //     Some(pkg) => pkg,
+                    //     None => return -1,
+                    // };
+                }
+                None => {}
+            }
+        }
+
+        // cleanup:
+        ret
     }
 }
 
@@ -2272,36 +2613,41 @@ pub struct alpm_handle_t {
     // 	alpm_cb_event eventcb;
     // 	alpm_cb_question questioncb;
     // 	alpm_cb_progress progresscb;
-    //
-    // 	/* filesystem paths */
-    pub root: String,                 /* Root path, default '/' */
-    pub dbpath: String,               /* Base path to pacman's DBs */
-    pub logfile: String,              /* Name of the log file */
-    pub lockfile: String,             /* Name of the lock file */
-    pub gpgdir: String,               /* Directory where GnuPG files are stored */
-    pub cachedirs: Vec<String>,       /* Paths to pacman cache directories */
-    pub hookdirs: Vec<String>,        /* Paths to hook directories */
-    pub overwrite_files: Vec<String>, /* Paths that may be overwritten */
-    //
-    // 	/* package lists */
-    pub noupgrade: Vec<String>,   /* List of packages NOT to be upgraded */
-    pub noextract: Vec<String>,   /* List of files NOT to extract */
-    pub ignorepkg: Vec<String>,   /* List of packages to ignore */
-    pub ignoregroup: Vec<String>, /* List of groups to ignore */
+
+    	/* filesystem paths */
+    pub root: String,             /* Root path, default '/' */
+    pub dbpath: String,           /* Base path to pacman's DBs */
+    logfile: String,              /* Name of the log file */
+    pub lockfile: String,         /* Name of the lock file */
+    gpgdir: String,               /* Directory where GnuPG files are stored */
+    cachedirs: Vec<String>,       /* Paths to pacman cache directories */
+    pub hookdirs: Vec<String>,    /* Paths to hook directories */
+    overwrite_files: Vec<String>, /* Paths that may be overwritten */
+
+    /* package lists */
+    /// List of packages NOT to be upgraded */
+    noupgrade: Vec<String>,
+    /// List of files NOT to extract */
+    noextract: Vec<String>,
+    /// List of packages to ignore */
+    ignorepkg: Vec<String>,
+    /// List of groups to ignore */
+    ignoregroup: Vec<String>,
     ///List of virtual packages used to satisfy dependencies
-    pub assumeinstalled: Vec<alpm_depend_t>,
-    //
-    // 	/* options */
-    pub arch: String, /* Architecture of packages we should allow */
+    assumeinstalled: Vec<depend_t>,
+
+    /* options */
+    /// Architecture of packages we should allow */
+    arch: String,
     deltaratio: f64,
     /// Download deltas if possible; a ratio value */
-    pub usesyslog: i32, /* Use syslog instead of logfile? */
+    usesyslog: i32, /* Use syslog instead of logfile? */
     /* TODO move to frontend */
-    pub checkspace: i32, /* Check disk space before installing */
-    pub dbext: String,   /* Sync DB extension */
-    siglevel: siglevel,  /* Default signature verification level */
+    checkspace: i32,    /* Check disk space before installing */
+    pub dbext: String,  /* Sync DB extension */
+    siglevel: siglevel, /* Default signature verification level */
     localfilesiglevel: siglevel, /* Signature verification level for local file
-                         // 	                                       upgrade operations */
+                        // 	                                       upgrade operations */
     remotefilesiglevel: siglevel, /* Signature verification level for remote file
                                   // 	                                       upgrade operations */
     //

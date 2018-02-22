@@ -116,71 +116,71 @@ pub fn alpm_db_update(
         // umask(oldmask);
         return Err(alpm_errno_t::ALPM_ERR_HANDLE_LOCK);
     }
+    {
+        let dbext = handle.alpm_option_get_dbext();
 
-    let dbext = handle.dbext.clone();
+        for server in db.servers.clone() {
+            let mut final_db_url = String::new();
+            let mut payload = dload_payload::default();
+            let mut sig_ret = 0;
 
-    for server in db.servers.clone() {
-        let mut final_db_url = String::new();
-        let mut payload = dload_payload::default();
-        let mut sig_ret = 0;
+            /* set hard upper limit of 25MiB */
+            payload.max_size = 25 * 1024 * 1024;
 
-        /* set hard upper limit of 25MiB */
-        payload.max_size = 25 * 1024 * 1024;
+            /* print server + filename into a buffer */
+            payload.fileurl = format!("{}/{}{}", server, db.treename, dbext);
+            payload.force = force;
+            payload.unlink_on_fail = 1;
 
-        /* print server + filename into a buffer */
-        payload.fileurl = format!("{}/{}{}", server, db.treename, dbext);
-        payload.force = force;
-        payload.unlink_on_fail = 1;
-
-        ret = payload._alpm_download(&syncpath, None, Some(&final_db_url));
-        payload._alpm_dload_payload_reset();
-        updated = updated || ret == 0;
-
-        if ret != -1 && updated && siglevel.ALPM_SIG_DATABASE {
-            /* an existing sig file is no good at this point */
-            {
-                let dbpath = &db._alpm_db_path().ok();
-                let sigpath = match handle._alpm_sigpath(dbpath) {
-                    Some(s) => s,
-                    None => {
-                        ret = -1;
-                        break;
-                    }
-                };
-                fs::remove_file(sigpath).unwrap();
-            }
-
-            /* check if the final URL from internal downloader looks reasonable */
-            if final_db_url != "" {
-                if final_db_url.len() < 3 || !final_db_url.ends_with(&dbext) {
-                    final_db_url = String::new();
-                }
-            }
-
-            /* if we downloaded a DB, we want the .sig from the same server */
-            if final_db_url != "" {
-                payload.fileurl = format!("{}.sig", final_db_url);
-            } else {
-                payload.fileurl = format!("{}/{}{}.sig", server, db.treename, dbext);
-            }
-
-            payload.force = true;
-            payload.errors_ok = siglevel.ALPM_SIG_DATABASE_OPTIONAL;
-
-            /* set hard upper limit of 16KiB */
-            payload.max_size = 16 * 1024;
-
-            sig_ret = payload._alpm_download(&syncpath, None, None);
-            /* errors_ok suppresses error messages, but not the return code */
-            sig_ret = if payload.errors_ok { 0 } else { sig_ret };
+            ret = payload._alpm_download(&syncpath, None, Some(&final_db_url));
             payload._alpm_dload_payload_reset();
-        }
+            updated = updated || ret == 0;
 
-        if ret != -1 && sig_ret != -1 {
-            break;
+            if ret != -1 && updated && siglevel.ALPM_SIG_DATABASE {
+                /* an existing sig file is no good at this point */
+                {
+                    let dbpath = &db._alpm_db_path().ok();
+                    let sigpath = match handle._alpm_sigpath(dbpath) {
+                        Some(s) => s,
+                        None => {
+                            ret = -1;
+                            break;
+                        }
+                    };
+                    fs::remove_file(sigpath).unwrap();
+                }
+
+                /* check if the final URL from internal downloader looks reasonable */
+                if final_db_url != "" {
+                    if final_db_url.len() < 3 || !final_db_url.ends_with(dbext) {
+                        final_db_url = String::new();
+                    }
+                }
+
+                /* if we downloaded a DB, we want the .sig from the same server */
+                if final_db_url != "" {
+                    payload.fileurl = format!("{}.sig", final_db_url);
+                } else {
+                    payload.fileurl = format!("{}/{}{}.sig", server, db.treename, dbext);
+                }
+
+                payload.force = true;
+                payload.errors_ok = siglevel.ALPM_SIG_DATABASE_OPTIONAL;
+
+                /* set hard upper limit of 16KiB */
+                payload.max_size = 16 * 1024;
+
+                sig_ret = payload._alpm_download(&syncpath, None, None);
+                /* errors_ok suppresses error messages, but not the return code */
+                sig_ret = if payload.errors_ok { 0 } else { sig_ret };
+                payload._alpm_dload_payload_reset();
+            }
+
+            if ret != -1 && sig_ret != -1 {
+                break;
+            }
         }
     }
-
     if updated {
         /* Cache needs to be rebuilt */
         db._alpm_db_free_pkgcache();

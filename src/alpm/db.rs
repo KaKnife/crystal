@@ -281,7 +281,7 @@ impl alpm_db_t {
             let mut lines: String = String::new();
             match fp.read_to_string(&mut lines) {
                 Ok(_) => {}
-                Err(e) => {
+                Err(_) => {
                     return -1;
                 }
             }
@@ -346,7 +346,7 @@ impl alpm_db_t {
                         info.packager = String::from(line);
                     }
                     NextLineType::Reason => {
-                        info.reason = alpm_pkgreason_t::from(u8::from_str_radix(line, 10).unwrap());
+                        info.reason = pkgreason_t::from(u8::from_str_radix(line, 10).unwrap());
                     }
                     NextLineType::Validation => {
                         unimplemented!();
@@ -376,7 +376,8 @@ impl alpm_db_t {
                     }
                     NextLineType::Replaces => {
                         if line != "" {
-                            info.replaces.push(String::from(line));
+                            info.replaces
+                                .push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
                     }
@@ -520,13 +521,13 @@ impl alpm_db_t {
 
         /* INSTALL */
         if inforeq & INFRQ_SCRIPTLET != 0 && (info.infolevel & INFRQ_SCRIPTLET) == 0 {
-            unimplemented!();
-            // 		char *path = _alpm_local_db_pkgpath(db, info, "install");
-            // 		if(access(path, F_OK) == 0) {
-            // 			info->scriptlet = 1;
-            // 		}
-            // 		free(path);
-            // 		info->infolevel |= INFRQ_SCRIPTLET;
+            let path = self._alpm_local_db_pkgpath(info, &String::from("install"));
+            use std::path::Path;
+            let install_path = Path::new(&path);
+            if install_path.exists() {
+                info.scriptlet = 1;
+            }
+            info.infolevel |= INFRQ_SCRIPTLET;
         }
 
         return 0;
@@ -539,48 +540,42 @@ impl alpm_db_t {
         // 	return -1;
     }
 
-    pub fn checkdbdir(&self) -> i32 {
-        unimplemented!();
-        // 	struct stat buf;
-        // 	const char *path = _alpm_db_path(db);
-        //
-        // 	if(stat(path, &buf) != 0) {
-        // 		_alpm_log(db.handle, ALPM_LOG_DEBUG, "database dir '{}' does not exist, creating it",
-        // 				path);
-        // 		if(_alpm_makepath(path) != 0) {
-        // 			RET_ERR(db.handle, ALPM_ERR_SYSTEM, -1);
-        // 		}
-        // 	} else if(!S_ISDIR(buf.st_mode)) {
-        // 		_alpm_log(db.handle, ALPM_LOG_WARNING, _("removing invalid database: {}"), path);
-        // 		if(unlink(path) != 0 || _alpm_makepath(path) != 0) {
-        // 			RET_ERR(db.handle, ALPM_ERR_SYSTEM, -1);
-        // 		}
-        // 	}
-        // 	return 0;
+    pub fn checkdbdir(&mut self) -> Result<()> {
+        let path = self._alpm_db_path().unwrap();
+        match std::fs::metadata(&path) {
+            Err(_) => {
+                debug!("database dir '{}' does not exist, creating it", path);
+                if std::fs::create_dir(&path).is_err() {
+                    return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                }
+            }
+            Ok(p) => if !p.is_dir() {
+                warn!("removing invalid database: {}", path);
+                if std::fs::remove_dir_all(&path).is_err() || std::fs::create_dir(&path).is_err() {
+                    return Err(alpm_errno_t::ALPM_ERR_SYSTEM);
+                }
+            },
+        }
+        return Ok(());
     }
 
-    pub fn _alpm_local_db_prepare(&self, info: &pkg_t) -> i32 {
-        unimplemented!();
-        // 	mode_t oldmask;
-        // 	int retval = 0;
-        // 	char *pkgpath;
-        //
-        // 	if(checkdbdir(db) != 0) {
-        // 		return -1;
-        // 	}
-        //
-        // 	oldmask = umask(0000);
-        // 	pkgpath = _alpm_local_db_pkgpath(db, info, NULL);
-        //
-        // 	if((retval = mkdir(pkgpath, 0755)) != 0) {
-        // 		_alpm_log(db.handle, ALPM_LOG_ERROR, _("could not create directory {}: {}"),
-        // 				pkgpath, strerror(errno));
-        // 	}
-        //
-        // 	free(pkgpath);
-        // 	umask(oldmask);
-        //
-        // 	return retval;
+    pub fn _alpm_local_db_prepare(&mut self, info: &pkg_t) -> i32 {
+        let pkgpath;
+
+        if self.checkdbdir().is_err() {
+            return -1;
+        }
+
+        pkgpath = self._alpm_local_db_pkgpath(info, &String::new());
+
+        match std::fs::create_dir(&pkgpath) {
+            Err(e) => {
+                error!("could not create directory {}: {}", pkgpath, e);
+                return -1;
+            }
+            _ => {}
+        }
+        0
     }
 
     pub fn _alpm_local_db_write(&self, info: &pkg_t, inforeq: i32) -> i32 {
@@ -846,7 +841,7 @@ impl alpm_db_t {
                     // 			continue;
                     // 		}
 
-                    pkg.origin = alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB;
+                    pkg.origin = pkgfrom_t::ALPM_PKG_FROM_LOCALDB;
 
                     /* explicitly read with only 'BASE' data, accessors will handle the rest */
                     if self.local_db_read(&mut pkg, INFRQ_BASE) == -1 {

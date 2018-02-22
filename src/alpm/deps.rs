@@ -36,7 +36,7 @@ use super::*;
 // #include "handle.h"
 // #include "trans.h"
 
-// void SYMEXPORT alpm_dep_free(alpm_depend_t *dep)
+// void SYMEXPORT alpm_dep_free(depend_t *dep)
 // {
 // 	ASSERT(dep != NULL, return);
 // 	FREE(dep->name);
@@ -45,7 +45,7 @@ use super::*;
 // 	FREE(dep);
 // }
 //
-// static alpm_depmissing_t *depmiss_new(const char *target, alpm_depend_t *dep,
+// static alpm_depmissing_t *depmiss_new(const char *target, depend_t *dep,
 // 		const char *causingpkg)
 // {
 // 	alpm_depmissing_t *miss;
@@ -84,7 +84,7 @@ use super::*;
 // 	return 0;
 // }
 
-pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<pkg_t>, dep: &alpm_depend_t) -> Option<&'a pkg_t> {
+pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<pkg_t>, dep: &depend_t) -> Option<&'a pkg_t> {
     // alpm_list_t *i;
 
     for pkg in pkgs {
@@ -193,90 +193,91 @@ pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<pkg_t>, dep: &alpm_depend_t) -> Opti
 // 		}
 // 	}
 // }
-//
-// /* Re-order a list of target packages with respect to their dependencies.
-//  *
-//  * Example (reverse == 0):
-//  *   A depends on C
-//  *   B depends on A
-//  *   Target order is A,B,C,D
-//  *
-//  *   Should be re-ordered to C,A,B,D
-//  *
-//  * packages listed in ignore will not be used to detect indirect dependencies
-//  *
-//  * if reverse is > 0, the dependency order will be reversed.
-//  *
-//  * This function returns the new alpm_list_t* target list.
-//  *
-//  */
-// alpm_list_t *_alpm_sortbydeps(alpm_handle_t *handle,
-// 		alpm_list_t *targets, alpm_list_t *ignore, int reverse)
-// {
-// 	alpm_list_t *newtargs = NULL;
-// 	alpm_list_t *vertices = NULL;
-// 	alpm_list_t *i;
-// 	alpm_graph_t *vertex;
-//
-// 	if(targets == NULL) {
-// 		return NULL;
-// 	}
-//
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "started sorting dependencies\n");
-//
-// 	vertices = dep_graph_init(handle, targets, ignore);
-//
-// 	i = vertices;
-// 	vertex = vertices->data;
-// 	while(i) {
-// 		/* mark that we touched the vertex */
-// 		vertex->state = ALPM_GRAPH_STATE_PROCESSING;
-// 		int switched_to_child = 0;
-// 		while(vertex->iterator && !switched_to_child) {
-// 			alpm_graph_t *nextchild = vertex->iterator->data;
-// 			vertex->iterator = vertex->iterator->next;
-// 			if(nextchild->state == ALPM_GRAPH_STATE_UNPROCESSED) {
-// 				switched_to_child = 1;
-// 				nextchild->parent = vertex;
-// 				vertex = nextchild;
-// 			} else if(nextchild->state == ALPM_GRAPH_STATE_PROCESSING) {
-// 				_alpm_warn_dep_cycle(handle, targets, vertex, nextchild, reverse);
-// 			}
-// 		}
-// 		if(!switched_to_child) {
-// 			if(alpm_list_find_ptr(targets, vertex->data)) {
-// 				newtargs = alpm_list_add(newtargs, vertex->data);
-// 			}
-// 			/* mark that we've left this vertex */
-// 			vertex->state = ALPM_GRAPH_STATE_PROCESSED;
-// 			vertex = vertex->parent;
-// 			if(!vertex) {
-// 				/* top level vertex reached, move to the next unprocessed vertex */
-// 				for(i = i->next; i; i = i->next) {
-// 					vertex = i->data;
-// 					if(vertex->state == ALPM_GRAPH_STATE_UNPROCESSED) {
-// 						break;
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-//
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "sorting dependencies finished\n");
-//
-// 	if(reverse) {
-// 		/* reverse the order */
-// 		alpm_list_t *tmptargs = alpm_list_reverse(newtargs);
-// 		/* free the old one */
-// 		alpm_list_free(newtargs);
-// 		newtargs = tmptargs;
-// 	}
-//
-// 	alpm_list_free_inner(vertices, _alpm_graph_free);
-// 	alpm_list_free(vertices);
-//
-// 	return newtargs;
-// }
+
+/* Re-order a list of target packages with respect to their dependencies.
+ *
+ * Example (reverse == 0):
+ *   A depends on C
+ *   B depends on A
+ *   Target order is A,B,C,D
+ *
+ *   Should be re-ordered to C,A,B,D
+ *
+ * packages listed in ignore will not be used to detect indirect dependencies
+ *
+ * if reverse is > 0, the dependency order will be reversed.
+ *
+ * This function returns the new alpm_list_t* target list.
+ *
+ */
+fn _alpm_sortbydeps<T>(
+    handle: alpm_handle_t,
+    targets: &mut Vec<T>,
+    ignore: &Vec<T>,
+    reverse: i32,
+) -> Vec<T> {
+    let newtargs: Vec<T>;
+    let vertices: Vec<T>;
+    let i: Vec<T>;
+    // 	alpm_graph_t *vertex;
+
+    if targets.is_empty() {
+        return Vec::new();
+    }
+
+    debug!("started sorting dependencies");
+
+    // 	vertices = dep_graph_init(handle, targets, ignore);
+
+    // 	i = vertices;
+    // 	vertex = vertices->data;
+    // 	while(i) {
+    // 		/* mark that we touched the vertex */
+    // 		vertex->state = ALPM_GRAPH_STATE_PROCESSING;
+    // 		int switched_to_child = 0;
+    // 		while(vertex->iterator && !switched_to_child) {
+    // 			alpm_graph_t *nextchild = vertex->iterator->data;
+    // 			vertex->iterator = vertex->iterator->next;
+    // 			if(nextchild->state == ALPM_GRAPH_STATE_UNPROCESSED) {
+    // 				switched_to_child = 1;
+    // 				nextchild->parent = vertex;
+    // 				vertex = nextchild;
+    // 			} else if(nextchild->state == ALPM_GRAPH_STATE_PROCESSING) {
+    // 				_alpm_warn_dep_cycle(handle, targets, vertex, nextchild, reverse);
+    // 			}
+    // 		}
+    // 		if(!switched_to_child) {
+    // 			if(alpm_list_find_ptr(targets, vertex->data)) {
+    // 				newtargs = alpm_list_add(newtargs, vertex->data);
+    // 			}
+    // 			/* mark that we've left this vertex */
+    // 			vertex->state = ALPM_GRAPH_STATE_PROCESSED;
+    // 			vertex = vertex->parent;
+    // 			if(!vertex) {
+    // 				/* top level vertex reached, move to the next unprocessed vertex */
+    // 				for(i = i->next; i; i = i->next) {
+    // 					vertex = i->data;
+    // 					if(vertex->state == ALPM_GRAPH_STATE_UNPROCESSED) {
+    // 						break;
+    // 					}
+    // 				}
+    // 			}
+    // 		}
+    // 	}
+
+    unimplemented!();
+    debug!("sorting dependencies finished");
+
+    // 	if(reverse) {
+    // 		/* reverse the order */
+    // 		alpm_list_t *tmptargs = alpm_list_reverse(newtargs);
+    // 		/* free the old one */
+    // 		alpm_list_free(newtargs);
+    // 		newtargs = tmptargs;
+    // 	}
+
+    // 	return newtargs;
+}
 
 /** Find a package satisfying a specified dependency.
  * The dependency can include versions with depmod operators.
@@ -285,7 +286,7 @@ pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<pkg_t>, dep: &alpm_depend_t) -> Opti
  * @return a pkg_t* satisfying depstring
  */
 pub fn alpm_find_satisfier<'a>(pkgs: &'a Vec<pkg_t>, depstring: &String) -> Option<&'a pkg_t> {
-    // alpm_depend_t *dep = alpm_dep_from_string(depstring);
+    // depend_t *dep = alpm_dep_from_string(depstring);
     let dep = &alpm_dep_from_string(depstring);
     // if(!dep) {
     // 	return NULL;
@@ -294,17 +295,17 @@ pub fn alpm_find_satisfier<'a>(pkgs: &'a Vec<pkg_t>, depstring: &String) -> Opti
     return pkg;
 }
 
-pub fn dep_vercmp(version1: &String, depmod: &alpm_depmod_t, version2: &String) -> bool {
+pub fn dep_vercmp(version1: &String, depmod: &depmod_t, version2: &String) -> bool {
     // int equal = 0;
     let cmp = alpm_pkg_vercmp(version1, version2);
-    // use alpm_depmod_t::*;
+    // use pkgfrom_t::*;
     match depmod {
-        &alpm_depmod_t::ALPM_DEP_MOD_ANY => true,
-        &alpm_depmod_t::ALPM_DEP_MOD_EQ => cmp == 0,
-        &alpm_depmod_t::ALPM_DEP_MOD_GE => cmp >= 0,
-        &alpm_depmod_t::ALPM_DEP_MOD_LE => cmp <= 0,
-        &alpm_depmod_t::ALPM_DEP_MOD_LT => cmp < 0,
-        &alpm_depmod_t::ALPM_DEP_MOD_GT => cmp > 0,
+        &depmod_t::ALPM_DEP_MOD_ANY => true,
+        &depmod_t::ALPM_DEP_MOD_EQ => cmp == 0,
+        &depmod_t::ALPM_DEP_MOD_GE => cmp >= 0,
+        &depmod_t::ALPM_DEP_MOD_LE => cmp <= 0,
+        &depmod_t::ALPM_DEP_MOD_LT => cmp < 0,
+        &depmod_t::ALPM_DEP_MOD_GT => cmp > 0,
         // _ => true,
     }
 }
@@ -312,9 +313,9 @@ pub fn dep_vercmp(version1: &String, depmod: &alpm_depmod_t, version2: &String) 
 /// Return a newly allocated dependency information parsed from a string
 /// * `depstring` - a formatted string, e.g. "glibc=2.12"
 /// * return - a dependency info structure
-pub fn alpm_dep_from_string(depstring: &String) -> alpm_depend_t {
+pub fn alpm_dep_from_string(depstring: &String) -> depend_t {
     unimplemented!()
-    // 	alpm_depend_t *depend;
+    // 	depend_t *depend;
     // 	const char *ptr, *version, *desc;
     // 	size_t deplen;
     //
@@ -322,7 +323,7 @@ pub fn alpm_dep_from_string(depstring: &String) -> alpm_depend_t {
     // 		return NULL;
     // 	}
     //
-    // 	CALLOC(depend, 1, sizeof(alpm_depend_t), return NULL);
+    // 	CALLOC(depend, 1, sizeof(depend_t), return NULL);
     //
     // 	/* Note the extra space in ": " to avoid matching the epoch */
     // 	if((desc = strstr(depstring, ": ")) != NULL) {
@@ -379,29 +380,29 @@ pub fn alpm_dep_from_string(depstring: &String) -> alpm_depend_t {
     // 	return NULL;
 }
 
-impl alpm_depend_t {
+impl depend_t {
     /**
      * @param dep dependency to check against the provision list
      * @param provisions provision list
      * @return 1 if provider is found, 0 otherwise
      */
-    pub fn _alpm_depcmp_provides(&self, provisions: &Vec<alpm_depend_t>) -> bool {
+    pub fn _alpm_depcmp_provides(&self, provisions: &Vec<depend_t>) -> bool {
         let satisfy = false;
         // alpm_list_t * i;
 
         /* check provisions, name and version if available */
         for provision in provisions {
-            // alpm_depend_t *provision = i->data;
+            // depend_t *provision = i->data;
 
             match self.depmod {
-                alpm_depmod_t::ALPM_DEP_MOD_ANY => {
+                depmod_t::ALPM_DEP_MOD_ANY => {
                     /* any version will satisfy the requirement */
                     return provision.name_hash == self.name_hash && provision.name == self.name;
                 }
                 _ => {}
             }
             match provision.depmod {
-                alpm_depmod_t::ALPM_DEP_MOD_EQ => {
+                depmod_t::ALPM_DEP_MOD_EQ => {
                     /* provision specifies a version, so try it out */
                     return provision.name_hash == self.name_hash && provision.name == self.name
                         && dep_vercmp(&provision.version, &self.depmod, &self.version);
@@ -413,10 +414,10 @@ impl alpm_depend_t {
         return satisfy;
     }
 
-    // alpm_depend_t *_alpm_dep_dup(const alpm_depend_t *dep)
+    // depend_t *_alpm_dep_dup(const depend_t *dep)
     // {
-    // 	alpm_depend_t *newdep;
-    // 	CALLOC(newdep, 1, sizeof(alpm_depend_t), return NULL);
+    // 	depend_t *newdep;
+    // 	CALLOC(newdep, 1, sizeof(depend_t), return NULL);
     //
     // 	STRDUP(newdep->name, dep->name, goto error);
     // 	STRDUP(newdep->version, dep->version, goto error);
@@ -525,7 +526,7 @@ impl alpm_depend_t {
     //  *        an error code without prompting
     //  * @return the resolved package
     //  **/
-    // static pkg_t *resolvedep(alpm_handle_t *handle, alpm_depend_t *dep,
+    // static pkg_t *resolvedep(alpm_handle_t *handle, depend_t *dep,
     // 		alpm_list_t *dbs, alpm_list_t *excluding, int prompt)
     // {
     // 	alpm_list_t *i, *j;
@@ -692,7 +693,7 @@ impl alpm_depend_t {
     //
     // 	for(j = deps; j; j = j->next) {
     // 		alpm_depmissing_t *miss = j->data;
-    // 		alpm_depend_t *missdep = miss->depend;
+    // 		depend_t *missdep = miss->depend;
     // 		/* check if one of the packages in the [*packages] list already satisfies
     // 		 * this dependency */
     // 		if(find_dep_satisfier(*packages, missdep)) {
@@ -740,7 +741,7 @@ impl alpm_depend_t {
     // 	return ret;
     // }
 
-    /// Reverse of splitdep; make a dep string from a alpm_depend_t struct.
+    /// Reverse of splitdep; make a dep string from a depend_t struct.
     /// returns a string-formatted dependency with operator if necessary
     pub fn alpm_dep_compute_string(&self) -> String {
         unimplemented!();

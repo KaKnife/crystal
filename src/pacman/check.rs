@@ -1,32 +1,31 @@
 use super::*;
-// /*
-//  *  check.c
-//  *
-//  *  Copyright (c) 2012-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
+/*
+ *  check.c
+ *
+ *  Copyright (c) 2012-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // #include <limits.h>
 // #include <string.h>
 // #include <errno.h>
-//
 // /* pacman */
 // #include "check.h"
 // #include "conf.h"
 // #include "util.h"
-//
+
 // static int check_file_exists(const char *pkgname, char *filepath, size_t rootlen,
 // 		struct stat *st)
 // {
@@ -48,7 +47,7 @@ use super::*;
 //
 // 	return 0;
 // }
-//
+
 // static int check_file_type(const char *pkgname, const char *filepath,
 // 		struct stat *st, struct archive_entry *entry)
 // {
@@ -69,7 +68,7 @@ use super::*;
 //
 // 	return 0;
 // }
-//
+
 // static int check_file_permissions(const char *pkgname, const char *filepath,
 // 		struct stat *st, struct archive_entry *entry)
 // {
@@ -106,7 +105,7 @@ use super::*;
 //
 // 	return (errors != 0 ? 1 : 0);
 // }
-//
+
 // static int check_file_time(const char *pkgname, const char *filepath,
 // 		struct stat *st, struct archive_entry *entry, int backup)
 // {
@@ -129,7 +128,7 @@ use super::*;
 //
 // 	return 0;
 // }
-//
+
 // static int check_file_link(const char *pkgname, const char *filepath,
 // 		struct stat *st, struct archive_entry *entry)
 // {
@@ -153,7 +152,7 @@ use super::*;
 //
 // 	return 0;
 // }
-//
+
 // static int check_file_size(const char *pkgname, const char *filepath,
 // 		struct stat *st, struct archive_entry *entry, int backup)
 // {
@@ -176,20 +175,19 @@ use super::*;
 //
 // 	return 0;
 // }
-//
-// /* placeholders - libarchive currently does not read checksums from mtree files
+
+/* placeholders - libarchive currently does not read checksums from mtree files
 // static int check_file_md5sum(const char *pkgname, const char *filepath,
 // 		struct stat *st, struct archive_entry *entry, int backup)
 // {
 // 	return 0;
 // }
-//
 // static int check_file_sha256sum(const char *pkgname, const char *filepath,
 // 		struct stat *st, struct archive_entry *entry, int backup)
 // {
 // 	return 0;
 // }
-// */
+*/
 
 /* Loop through the files of the package to check if they exist. */
 pub fn check_pkg_fast(pkg: &pkg_t) -> i32 {

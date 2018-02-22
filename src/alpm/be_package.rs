@@ -48,51 +48,50 @@ use super::*;
 // 	int fd;
 // };
 
-// /** Open a package changelog for reading. Similar to fopen in functionality,
-//  * except that the returned 'file stream' is from an archive.
-//  * @param pkg the package (file) to read the changelog
-//  * @return a 'file stream' to the package changelog
-//  */
-// static void *_package_changelog_open(pkg_t *pkg)
-// {
-// 	ASSERT(pkg != NULL, return NULL);
-//
-// 	struct package_changelog *changelog;
-// 	struct archive *archive;
-// 	struct archive_entry *entry;
-// 	const char *pkgfile = pkg->origin_data.file;
-// 	struct stat buf;
-// 	int fd;
-//
-// 	fd = _alpm_open_archive(pkg->handle, pkgfile, &buf,
-// 			&archive, ALPM_ERR_PKG_OPEN);
-// 	if(fd < 0) {
-// 		return NULL;
-// 	}
-//
-// 	while(archive_read_next_header(archive, &entry) == ARCHIVE_OK) {
-// 		const char *entry_name = archive_entry_pathname(entry);
-//
-// 		if(strcmp(entry_name, ".CHANGELOG") == 0) {
-// 			changelog = malloc(sizeof(struct package_changelog));
-// 			if(!changelog) {
-// 				pkg->handle->pm_errno = ALPM_ERR_MEMORY;
-// 				_alpm_archive_read_free(archive);
-// 				close(fd);
-// 				return NULL;
-// 			}
-// 			changelog->archive = archive;
-// 			changelog->fd = fd;
-// 			return changelog;
-// 		}
-// 	}
-// 	/* we didn't find a changelog */
-// 	_alpm_archive_read_free(archive);
-// 	close(fd);
-// 	errno = ENOENT;
-//
-// 	return NULL;
-// }
+/// Open a package changelog for reading. Similar to fopen in functionality,
+/// except that the returned 'file stream' is from an archive.
+/// @param pkg the package (file) to read the changelog
+/// @return a 'file stream' to the package changelog
+fn _package_changelog_open(pkg: &pkg_t) {
+    unimplemented!();
+    // 	ASSERT(pkg != NULL, return NULL);
+    //
+    // 	struct package_changelog *changelog;
+    // 	struct archive *archive;
+    // 	struct archive_entry *entry;
+    // 	const char *pkgfile = pkg->origin_data.file;
+    // 	struct stat buf;
+    // 	int fd;
+    //
+    // 	fd = _alpm_open_archive(pkg->handle, pkgfile, &buf,
+    // 			&archive, ALPM_ERR_PKG_OPEN);
+    // 	if(fd < 0) {
+    // 		return NULL;
+    // 	}
+    //
+    // 	while(archive_read_next_header(archive, &entry) == ARCHIVE_OK) {
+    // 		const char *entry_name = archive_entry_pathname(entry);
+    //
+    // 		if(strcmp(entry_name, ".CHANGELOG") == 0) {
+    // 			changelog = malloc(sizeof(struct package_changelog));
+    // 			if(!changelog) {
+    // 				pkg->handle->pm_errno = ALPM_ERR_MEMORY;
+    // 				_alpm_archive_read_free(archive);
+    // 				close(fd);
+    // 				return NULL;
+    // 			}
+    // 			changelog->archive = archive;
+    // 			changelog->fd = fd;
+    // 			return changelog;
+    // 		}
+    // 	}
+    // 	/* we didn't find a changelog */
+    // 	_alpm_archive_read_free(archive);
+    // 	close(fd);
+    // 	errno = ENOENT;
+    //
+    // 	return NULL;
+}
 
 // /**Read data from an open changelog 'file stream'. Similar to fread in
 //  * functionality, this function takes a buffer and amount of data to read.

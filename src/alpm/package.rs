@@ -76,7 +76,7 @@ use super::deps::dep_vercmp;
 //     // const char *(*get_packager) (pkg_t *);
 //     // const char *(*get_arch) (pkg_t *);
 //     // off_t (*get_isize) (pkg_t *);
-//     // alpm_pkgreason_t (*get_reason) (pkg_t *);
+//     // pkgreason_t (*get_reason) (pkg_t *);
 //     // int (*get_validation) (pkg_t *);
 //     // int (*has_scriptlet) (pkg_t *);
 //
@@ -134,18 +134,18 @@ pub struct pkg_t {
 
     // pub handle: alpm_handle_t,
     pub licenses: Vec<String>,
-    pub replaces: Vec<String>,
+    pub replaces: Vec<depend_t>,
     pub groups: Vec<String>,
     pub backup: Vec<String>,
-    pub depends: Vec<alpm_depend_t>,
-    pub optdepends: Vec<alpm_depend_t>,
-    pub checkdepends: Vec<alpm_depend_t>,
-    pub makedepends: Vec<alpm_depend_t>,
-    pub conflicts: Vec<alpm_depend_t>,
-    pub provides: Vec<alpm_depend_t>,
-    pub deltas: Vec<alpm_depend_t>,
-    pub delta_path: Vec<alpm_depend_t>,
-    pub removes: Vec<alpm_depend_t>,
+    pub depends: Vec<depend_t>,
+    pub optdepends: Vec<depend_t>,
+    pub checkdepends: Vec<depend_t>,
+    pub makedepends: Vec<depend_t>,
+    pub conflicts: Vec<depend_t>,
+    pub provides: Vec<depend_t>,
+    pub deltas: Vec<depend_t>,
+    pub delta_path: Vec<depend_t>,
+    pub removes: Vec<depend_t>,
     /* in transaction targets only */
     // pub oldpkg: Option<pkg_t>, /* in transaction targets only */
 
@@ -159,8 +159,8 @@ pub struct pkg_t {
     // pub db: alpm_db_t,
     pub file: String,
     // } origin_data;
-    pub origin: alpm_pkgfrom_t,
-    pub reason: alpm_pkgreason_t,
+    pub origin: pkgfrom_t,
+    pub reason: pkgreason_t,
     pub scriptlet: i32,
 
     /* Bitfield from alpm_dbinfrq_t */
@@ -176,7 +176,7 @@ fn alpm_pkg_checkmd5sum(pkg: &pkg_t) -> i64 {
 
     /* We only inspect packages from sync repositories */
     match pkg.origin {
-        alpm_pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {}
+        pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {}
         _ => { /*RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1))*/ }
     }
     unimplemented!();
@@ -203,7 +203,7 @@ fn alpm_pkg_checkmd5sum(pkg: &pkg_t) -> i64 {
 // static const char *_pkg_get_packager(pkg_t *pkg)    { return pkg->packager; }
 // static const char *_pkg_get_arch(pkg_t *pkg)        { return pkg->arch; }
 // static off_t _pkg_get_isize(pkg_t *pkg)             { return pkg->isize; }
-// static alpm_pkgreason_t _pkg_get_reason(pkg_t *pkg) { return pkg->reason; }
+// static pkgreason_t _pkg_get_reason(pkg_t *pkg) { return pkg->reason; }
 // static int _pkg_get_validation(pkg_t *pkg) { return pkg->validation; }
 // static int _pkg_has_scriptlet(pkg_t *pkg)           { return pkg->scriptlet; }
 //
@@ -341,7 +341,7 @@ impl pkg_t {
         // return self.download_size;
     }
 
-    fn _alpm_depcmp_literal(&self, dep: &alpm_depend_t) -> bool {
+    fn _alpm_depcmp_literal(&self, dep: &depend_t) -> bool {
         if self.name_hash != dep.name_hash || self.name != dep.name {
             /* skip more expensive checks */
             return false;
@@ -349,7 +349,7 @@ impl pkg_t {
         return dep_vercmp(&self.version, &dep.depmod, &dep.version);
     }
 
-    pub fn _alpm_depcmp(&self, dep: &alpm_depend_t) -> bool {
+    pub fn _alpm_depcmp(&self, dep: &depend_t) -> bool {
         return self._alpm_depcmp_literal(dep) || dep._alpm_depcmp_provides(&self.provides);
     }
 
@@ -366,57 +366,69 @@ impl pkg_t {
         return self.name.clone();
     }
 
-    pub fn alpm_pkg_get_version(&self) -> String {
-        return self.version.clone();
+    pub fn alpm_pkg_get_version(&self) -> &String {
+        return &self.version;
     }
 
-    pub fn alpm_pkg_get_origin(&self) -> alpm_pkgfrom_t {
+    pub fn alpm_pkg_get_origin(&self) -> pkgfrom_t {
         return self.origin.clone();
     }
 
-    pub fn alpm_pkg_get_desc(&self) -> String {
-        unimplemented!();
+    pub fn alpm_pkg_get_desc(&mut self, db: &mut alpm_db_t) -> &String {
+        match self.alpm_pkg_get_origin() {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_desc(db),
+            _ => unimplemented!(),
+        }
         // return self.ops.get_desc(self);
     }
 
-    pub fn alpm_pkg_get_url(&self) -> String {
-        unimplemented!();
+    pub fn alpm_pkg_get_url(&mut self, db: &mut alpm_db_t) -> &String {
+        match self.alpm_pkg_get_origin() {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_url(db),
+            _ => unimplemented!(),
+        }
         // return self.ops.get_url(self);
     }
 
     pub fn alpm_pkg_get_builddate(&mut self, db: &mut alpm_db_t) -> alpm_time_t {
-        match self.origin {
-            alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_builddate(db),
+        match self.alpm_pkg_get_origin() {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_builddate(db),
             _ => unimplemented!(),
         }
     }
 
     pub fn alpm_pkg_get_installdate(&mut self, db: &mut alpm_db_t) -> alpm_time_t {
         match self.origin {
-            alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_installdate(db),
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_installdate(db),
             _ => unimplemented!(),
         }
     }
 
-    pub fn alpm_pkg_get_packager(&self) -> String {
-        unimplemented!();
+    pub fn alpm_pkg_get_packager(&mut self, db: &mut alpm_db_t) -> &String {
+        match self.origin {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_packager(db),
+            _ => unimplemented!(),
+        }
         // 	return pkg->ops->get_packager(pkg);
     }
 
-    pub fn alpm_pkg_get_md5sum(&self) -> String {
-        return self.md5sum.clone();
+    pub fn alpm_pkg_get_md5sum(&self) -> &String {
+        return &self.md5sum;
     }
 
-    pub fn alpm_pkg_get_sha256sum(&self) -> String {
-        return self.sha256sum.clone();
+    pub fn alpm_pkg_get_sha256sum(&self) -> &String {
+        return &self.sha256sum;
     }
 
-    pub fn alpm_pkg_get_base64_sig(&self) -> String {
-        return self.base64_sig.clone();
+    pub fn alpm_pkg_get_base64_sig(&self) -> &String {
+        return &self.base64_sig;
     }
 
-    pub fn alpm_pkg_get_arch(&self) -> String {
-        unimplemented!();
+    pub fn alpm_pkg_get_arch(&mut self, db: &mut alpm_db_t) -> &String {
+        match self.origin {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_arch(db),
+            _ => unimplemented!(),
+        }
         // return self.ops.get_arch(self);
     }
 
@@ -424,74 +436,92 @@ impl pkg_t {
         return self.size;
     }
 
-    pub fn alpm_pkg_get_isize(&self) -> off_t {
-        unimplemented!();
+    pub fn alpm_pkg_get_isize(&mut self, db: &mut alpm_db_t) -> off_t {
+        match self.origin {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_isize(db),
+            _ => unimplemented!(),
+        }
         // return self.ops.get_isize(pkg);
     }
 
-    fn get_reason(&mut self, db: &mut alpm_db_t) -> &alpm_pkgreason_t {
+    fn get_reason(&mut self, db: &mut alpm_db_t) -> &pkgreason_t {
         match self.origin {
-            alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_reason(db),
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_reason(db),
             _ => unimplemented!(),
         }
     }
 
-    pub fn alpm_pkg_get_reason(&mut self, db: &mut alpm_db_t) -> &alpm_pkgreason_t {
+    pub fn alpm_pkg_get_reason(&mut self, db: &mut alpm_db_t) -> &pkgreason_t {
         self.get_reason(db)
         //return pkg.ops.get_reason(pkg);
     }
 
     pub fn alpm_pkg_get_validation(&mut self, db: &mut alpm_db_t) -> i32 {
         match self.origin {
-            alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_validation(db),
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_validation(db),
             _ => unimplemented!(),
         }
     }
 
-    pub fn alpm_pkg_get_licenses(&self) -> Vec<String> {
-        unimplemented!();
+    pub fn alpm_pkg_get_licenses(&mut self, db: &mut alpm_db_t) -> &Vec<String> {
+        match self.origin {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_licenses(db),
+            _ => unimplemented!(),
+        }
         // 	return pkg->ops->get_licenses(pkg);
     }
 
-    pub fn alpm_pkg_get_groups(&self) -> Vec<String> {
-        unimplemented!();
+    pub fn alpm_pkg_get_groups(&mut self, db: &mut alpm_db_t) -> &Vec<String> {
+        match self.origin {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_groups(db),
+            _ => unimplemented!(),
+        }
         // 	return pkg->ops->get_groups(pkg);
     }
 
-    pub fn alpm_pkg_get_depends(&mut self) -> &Vec<alpm_depend_t> {
+    pub fn alpm_pkg_get_depends(&mut self) -> &Vec<depend_t> {
         return &mut self.depends;
     }
 
-    pub fn alpm_pkg_get_optdepends(&mut self, db: &mut alpm_db_t) -> &Vec<alpm_depend_t> {
+    pub fn alpm_pkg_get_optdepends(&mut self, db: &mut alpm_db_t) -> &Vec<depend_t> {
         match self.origin {
-            alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_optdepends(db),
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_optdepends(db),
             _ => unimplemented!(),
         }
         // return pkg->ops->get_optdepends(pkg);
     }
 
-    pub fn alpm_pkg_get_checkdepends(&self) -> Vec<alpm_depend_t> {
+    pub fn alpm_pkg_get_checkdepends(&self) -> Vec<depend_t> {
         unimplemented!();
         // return pkg->ops->get_checkdepends(pkg);
     }
 
-    pub fn alpm_pkg_get_makedepends(&self) -> Vec<alpm_depend_t> {
+    pub fn alpm_pkg_get_makedepends(&self) -> Vec<depend_t> {
         unimplemented!();
         // return pkg->ops->get_makedepends(pkg);
     }
 
-    pub fn alpm_pkg_get_conflicts(&self) -> &Vec<alpm_conflict_t> {
-        unimplemented!();
+    pub fn alpm_pkg_get_conflicts(&mut self, db: &mut alpm_db_t) -> &Vec<depend_t> {
+        match self.origin {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_conflicts(db),
+            _ => unimplemented!(),
+        }
         // return pkg->ops->get_conflicts(pkg);
     }
 
-    pub fn alpm_pkg_get_provides(&self) -> &Vec<alpm_depend_t> {
-        unimplemented!();
+    pub fn alpm_pkg_get_provides(&mut self, db: &mut alpm_db_t) -> &Vec<depend_t> {
+        match self.origin {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_provides(db),
+            _ => unimplemented!(),
+        }
         // return pkg->ops->get_provides(pkg);
     }
 
-    pub fn alpm_pkg_get_replaces(&self) -> &Vec<String> {
-        unimplemented!();
+    pub fn alpm_pkg_get_replaces(&mut self, db: &mut alpm_db_t) -> &Vec<depend_t> {
+        match self.origin {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_get_replaces(db),
+            _ => unimplemented!(),
+        }
         // return pkg->ops->get_replaces(pkg);
     }
 
@@ -557,8 +587,11 @@ impl pkg_t {
     //     // 	return pkg->ops->mtree_close(pkg, archive);
     // }
 
-    pub fn alpm_pkg_has_scriptlet(&self) -> i64 {
-        unimplemented!();
+    pub fn alpm_pkg_has_scriptlet(&mut self, db: &mut alpm_db_t) -> i32 {
+        match self.origin {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => self._cache_has_scriptlet(db),
+            _ => unimplemented!(),
+        }
         // 	return pkg->ops->has_scriptlet(pkg);
     }
 
@@ -598,14 +631,14 @@ impl pkg_t {
         // 	ASSERT(pkg != NULL, return NULL);
         // 	pkg->handle->pm_errno = ALPM_ERR_OK;
         match self.origin {
-            alpm_pkgfrom_t::ALPM_PKG_FROM_FILE => {
+            pkgfrom_t::ALPM_PKG_FROM_FILE => {
                 /* The sane option; search locally for things that require this. */
                 self.find_requiredby(db_local, &mut reqs, optional);
             }
-            alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB => {
+            pkgfrom_t::ALPM_PKG_FROM_LOCALDB => {
                 self.find_requiredby(db_local, &mut reqs, optional);
             }
-            alpm_pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+            pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
                 for db in dbs_sync {
                     // db = i->data;
                     self.find_requiredby(db, &mut reqs, optional);
@@ -800,7 +833,7 @@ impl pkg_t {
         return self.isize;
     }
 
-    pub fn _cache_get_reason(&mut self, db: &mut alpm_db_t) -> &alpm_pkgreason_t {
+    pub fn _cache_get_reason(&mut self, db: &mut alpm_db_t) -> &pkgreason_t {
         self.LAZY_LOAD(INFRQ_DESC, db);
         return &self.reason;
     }
@@ -825,27 +858,27 @@ impl pkg_t {
         return self.scriptlet;
     }
 
-    pub fn _cache_get_depends(&mut self, db: &mut alpm_db_t) -> &Vec<alpm_depend_t> {
+    pub fn _cache_get_depends(&mut self, db: &mut alpm_db_t) -> &Vec<depend_t> {
         self.LAZY_LOAD(INFRQ_DESC, db);
         return &self.depends;
     }
 
-    pub fn _cache_get_optdepends(&mut self, db: &mut alpm_db_t) -> &Vec<alpm_depend_t> {
+    pub fn _cache_get_optdepends(&mut self, db: &mut alpm_db_t) -> &Vec<depend_t> {
         self.LAZY_LOAD(INFRQ_DESC, db);
         return &self.optdepends;
     }
 
-    pub fn _cache_get_conflicts(&mut self, db: &mut alpm_db_t) -> &Vec<alpm_depend_t> {
+    pub fn _cache_get_conflicts(&mut self, db: &mut alpm_db_t) -> &Vec<depend_t> {
         self.LAZY_LOAD(INFRQ_DESC, db);
         return &self.conflicts;
     }
 
-    pub fn _cache_get_provides(&mut self, db: &mut alpm_db_t) -> &Vec<alpm_depend_t> {
+    pub fn _cache_get_provides(&mut self, db: &mut alpm_db_t) -> &Vec<depend_t> {
         self.LAZY_LOAD(INFRQ_DESC, db);
         return &self.provides;
     }
 
-    pub fn _cache_get_replaces(&mut self, db: &mut alpm_db_t) -> &Vec<String> {
+    pub fn _cache_get_replaces(&mut self, db: &mut alpm_db_t) -> &Vec<depend_t> {
         self.LAZY_LOAD(INFRQ_DESC, db);
         return &self.replaces;
     }
@@ -982,7 +1015,7 @@ impl pkg_t {
     //     // 	return 0;
     // }
 
-    pub fn write_deps(fp: File, header: &String, deplist: Vec<alpm_depend_t>) {
+    pub fn write_deps(fp: File, header: &String, deplist: Vec<depend_t>) {
         unimplemented!();
         // 	alpm_list_t *lp;
         // 	if(!deplist) {
@@ -999,7 +1032,7 @@ impl pkg_t {
         // 	fputc('', fp);
     }
 
-    pub fn alpm_pkg_set_reason(&self, reason: &alpm_pkgreason_t) -> i32 {
+    pub fn alpm_pkg_set_reason(&self, reason: &pkgreason_t) -> i32 {
         unimplemented!();
         // 	ASSERT(pkg != NULL, return -1);
         // 	ASSERT(pkg->origin == ALPM_PKG_FROM_LOCALDB,
@@ -1021,6 +1054,80 @@ impl pkg_t {
         // 	}
         //
         // 	return 0;
+    }
+
+    /** Compute the size of the files that will be downloaded to install a
+     * package.
+     * @param newpkg the new package to upgrade to
+     */
+    pub fn compute_download_size(&self) -> i32 {
+        // 	const char *fname;
+        // 	char *fpath, *fnamepart = NULL;
+        // 	off_t size = 0;
+        // 	alpm_handle_t *handle = newpkg.handle;
+        // 	int ret = 0;
+        //
+        // 	if(newpkg.origin != ALPM_PKG_FROM_SYNCDB) {
+        // 		newpkg.infolevel |= INFRQ_DSIZE;
+        // 		newpkg.download_size = 0;
+        // 		return 0;
+        // 	}
+        //
+        // 	ASSERT(newpkg.filename != NULL, RET_ERR(handle, ALPM_ERR_PKG_INVALID_NAME, -1));
+        // 	fname = newpkg.filename;
+        // 	fpath = _alpm_filecache_find(handle, fname);
+        //
+        // 	/* downloaded file exists, so there's nothing to grab */
+        // 	if(fpath) {
+        // 		size = 0;
+        // 		goto finish;
+        // 	}
+        //
+        // 	CALLOC(fnamepart, strlen(fname) + 6, sizeof(char), return -1);
+        // 	sprintf(fnamepart, "{}.part", fname);
+        // 	fpath = _alpm_filecache_find(handle, fnamepart);
+        // 	if(fpath) {
+        // 		struct stat st;
+        // 		if(stat(fpath, &st) == 0) {
+        // 			/* subtract the size of the .part file */
+        // 			debug!("using (package - .part) size\n");
+        // 			size = newpkg.size - st.st_size;
+        // 			size = size < 0 ? 0 : size;
+        // 		}
+        //
+        // 		/* tell the caller that we have a partial */
+        // 		ret = 1;
+        // 	} else if(handle.deltaratio > 0.0) {
+        // 		off_t dltsize;
+        //
+        // 		dltsize = _alpm_shortest_delta_path(handle, newpkg.deltas,
+        // 				newpkg.filename, &newpkg.delta_path);
+        //
+        // 		if(newpkg.delta_path && (dltsize < newpkg.size * handle.deltaratio)) {
+        // 			debug!("using delta size\n");
+        // 			size = dltsize;
+        // 		} else {
+        // 			debug!("using package size\n");
+        // 			size = newpkg.size;
+        // 			alpm_list_free(newpkg.delta_path);
+        // 			newpkg.delta_path = NULL;
+        // 		}
+        // 	} else {
+        // 		size = newpkg.size;
+        // 	}
+        //
+        // finish:
+        // 	debug!("setting download size %jd for pkg {}\n",
+        // 			(intmax_t)size, newpkg.name);
+        //
+        // 	newpkg.infolevel |= INFRQ_DSIZE;
+        // 	newpkg.download_size = size;
+        //
+        // 	FREE(fpath);
+        // 	FREE(fnamepart);
+        //
+        // 	return ret;
+        unimplemented!();
     }
 }
 

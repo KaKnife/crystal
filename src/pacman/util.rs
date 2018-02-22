@@ -1,25 +1,25 @@
 use super::*;
 use super::alpm::*;
-// /*
-//  *  util.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
+/*
+ *  util.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // #include <sys/types.h>
 // #include <sys/ioctl.h>
 // #include <sys/stat.h>
@@ -183,12 +183,12 @@ pub fn sync_syncdbs(
 // 	/* fail silently */
 // 	return 0;
 // }
-//
+
 // void columns_cache_reset(void)
 // {
 // 	cached_columns = -1;
 // }
-//
+
 // static int getcols_fd(int fd)
 // {
 // 	int width = -1;
@@ -261,10 +261,9 @@ fn rmrf(path: String) -> i32 {
     // 	}
 }
 
-/* output a string, but wrap words properly with a specified indentation
- */
-fn indentprint(sstr: String, indent: usize, cols: usize) {
-    println!("{}",sstr);
+/// output a string, but wrap words properly with a specified indentation
+fn indentprint(sstr: &String, indent: usize, cols: usize) {
+    print!("{}", sstr);
     //TODO: actually do this
     // unimplemented!();
     // // 	wchar_t *wcstr;
@@ -453,7 +452,7 @@ fn add_transaction_sizes_row<T>(rows: alpm_list_t<T>, label: String, size: off_t
     // 	*rows = alpm_list_add(*rows, row);
 }
 
-pub fn string_display(title: &str, string: String, cols: usize, config: &config_t) {
+pub fn string_display(title: &str, string: &String, cols: usize, config: &config_t) {
     if title != "" {
         print!("{}{}{} ", config.colstr.title, title, config.colstr.nocolor);
     }
@@ -463,7 +462,7 @@ pub fn string_display(title: &str, string: String, cols: usize, config: &config_
         /* compute the length of title + a space */
         indentprint(string, title.len() + 1, cols);
     }
-    print!("\n");
+    println!();
 }
 
 fn table_print_line<T>(
@@ -578,7 +577,7 @@ fn table_print_line<T>(
 // 	*has_data = coldata;
 // 	return totalwidth;
 // }
-//
+
 // /** Displays the list in table format
 //  *
 //  * @param header the column headers. column count is determined by the nr
@@ -634,45 +633,50 @@ fn table_print_line<T>(
 // 	free(has_data);
 // 	return ret;
 // }
-//
-pub fn list_display(title: &str, list: Vec<String>, maxcols: usize) {
-    unimplemented!();
+
+pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
     // 	const alpm_list_t *i;
-    // 	size_t len = 0;
-    //
-    // 	if(title) {
-    // 		len = string_length(title) + 1;
-    // 		printf("%s%s%s ", config->colstr.title, title, config->colstr.nocolor);
-    // 	}
-    //
-    // 	if(!list) {
-    // 		printf("%s\n", _("None"));
-    // 	} else {
-    // 		size_t cols = len;
-    // 		const char *str = list->data;
-    // 		fputs(str, stdout);
-    // 		cols += string_length(str);
-    // 		for(i = alpm_list_next(list); i; i = alpm_list_next(i)) {
-    // 			str = i->data;
-    // 			size_t s = string_length(str);
-    // 			/* wrap only if we have enough usable column space */
-    // 			if(maxcols > len && cols + s + 2 >= maxcols) {
-    // 				size_t j;
-    // 				cols = len;
-    // 				printf("\n");
-    // 				for(j = 1; j <= len; j++) {
-    // 					printf(" ");
-    // 				}
-    // 			} else if(cols != len) {
-    // 				/* 2 spaces are added if this is not the first element on a line. */
-    // 				printf("  ");
-    // 				cols += 2;
-    // 			}
-    // 			fputs(str, stdout);
-    // 			cols += s;
-    // 		}
-    // 		putchar('\n');
-    // 	}
+    let len;
+
+    if !title.is_empty() {
+        len = title.len() + 1;
+        print!("{} ", title);
+    }
+
+    if !list.is_empty() {
+        println!("None");
+    } else {
+        for item in list {
+            print!("{} ", item);
+        }
+        println!();
+        //TODO: actually do something here
+        // unimplemented!();
+        // let cols = len;
+        // 		const char *str = list->data;
+        // 		fputs(str, stdout);
+        // 		cols += string_length(str);
+        // 		for(i = alpm_list_next(list); i; i = alpm_list_next(i)) {
+        // 			str = i->data;
+        // 			size_t s = string_length(str);
+        // 			/* wrap only if we have enough usable column space */
+        // 			if(maxcols > len && cols + s + 2 >= maxcols) {
+        // 				size_t j;
+        // 				cols = len;
+        // 				printf("\n");
+        // 				for(j = 1; j <= len; j++) {
+        // 					printf(" ");
+        // 				}
+        // 			} else if(cols != len) {
+        // 				/* 2 spaces are added if this is not the first element on a line. */
+        // 				printf("  ");
+        // 				cols += 2;
+        // 			}
+        // 			fputs(str, stdout);
+        // 			cols += s;
+        // 		}
+        // 		putchar('\n');
+    }
 }
 
 // void list_display_linebreak(const char *title, const alpm_list_t *list,
@@ -989,20 +993,20 @@ pub fn list_display(title: &str, list: Vec<String>, maxcols: usize) {
 // 	FREELIST(targets);
 // }
 
-fn pkg_get_size(pkg: &pkg_t, config: &config_t) -> off_t {
+fn pkg_get_size(pkg: &mut pkg_t, config: &config_t, db: &mut alpm_db_t) -> off_t {
     match config.op {
         Some(PM_OP_SYNC) => pkg.alpm_pkg_download_size(),
         Some(PM_OP_UPGRADE) => pkg.alpm_pkg_get_size(),
-        _ => pkg.alpm_pkg_get_isize(),
+        _ => pkg.alpm_pkg_get_isize(db),
     }
 }
 
 fn pkg_get_location(pkg: &pkg_t, handle: &alpm_handle_t) -> String {
     // alpm_list_t *servers;
     // char *string = NULL;
-    // use alpm_pkgfrom_t::*;
+    // use pkgfrom_t::*;
     match pkg.alpm_pkg_get_origin() {
-        alpm_pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+        pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
             if pkg.alpm_pkg_download_size() == 0 {
                 /* file is already in the package cache */
                 let pkgfile = pkg.alpm_pkg_get_filename();
@@ -1028,7 +1032,7 @@ fn pkg_get_location(pkg: &pkg_t, handle: &alpm_handle_t) -> String {
             /* fallthrough - for theoretical serverless repos */
             return pkg.alpm_pkg_get_filename();
         }
-        alpm_pkgfrom_t::ALPM_PKG_FROM_FILE => return pkg.alpm_pkg_get_filename(),
+        pkgfrom_t::ALPM_PKG_FROM_FILE => return pkg.alpm_pkg_get_filename(),
         _ => {
             unimplemented!();
             // pm_asprintf(&string, "%s-%s", alpm_pkg_get_name(pkg), alpm_pkg_get_version(pkg));
@@ -1037,67 +1041,61 @@ fn pkg_get_location(pkg: &pkg_t, handle: &alpm_handle_t) -> String {
     }
 }
 
-// /* a pow() implementation that is specialized for an integer base and small,
-//  * positive-only integer exponents. */
-// static double simple_pow(int base, int exp)
-// {
-// 	double result = 1.0;
-// 	for(; exp > 0; exp--) {
-// 		result *= base;
-// 	}
-// 	return result;
-// }
-//
-// /** Converts sizes in bytes into human readable units.
-//  *
-//  * @param bytes the size in bytes
-//  * @param target_unit '\0' or a short label. If equal to one of the short unit
-//  * labels ('B', 'K', ...) bytes is converted to target_unit; if '\0', the first
-//  * unit which will bring the value to below a threshold of 2048 will be chosen.
-//  * @param precision number of decimal places, ensures -0.00 gets rounded to
-//  * 0.00; -1 if no rounding desired
-//  * @param label will be set to the appropriate unit label
-//  *
-//  * @return the size in the appropriate unit
-//  */
-// double humanize_size(off_t bytes, const char target_unit, int precision,
-// 		const char **label)
-// {
-// 	static const char *labels[] = {"B", "KiB", "MiB", "GiB",
-// 		"TiB", "PiB", "EiB", "ZiB", "YiB"};
-// 	static const int unitcount = ARRAYSIZE(labels);
-//
-// 	double val = (double)bytes;
-// 	int index;
-//
-// 	for(index = 0; index < unitcount - 1; index++) {
-// 		if(target_unit != '\0' && labels[index][0] == target_unit) {
-// 			break;
-// 		} else if(target_unit == '\0' && val <= 2048.0 && val >= -2048.0) {
-// 			break;
-// 		}
-// 		val /= 1024.0;
-// 	}
-//
-// 	if(label) {
-// 		*label = labels[index];
-// 	}
-//
-// 	/* do not display negative zeroes */
-// 	if(precision >= 0 && val < 0.0 &&
-// 			val > (-0.5 / simple_pow(10, precision))) {
-// 		val = 0.0;
-// 	}
-//
-// 	return val;
-// }
+/// a pow() implementation that is specialized for an integer base and small,
+/// positive-only integer exponents.
+fn simple_pow(base: i32, exp: i32) -> f64 {
+    let mut result = 1.0;
+    for _ in 0..exp {
+        result *= base as f64;
+    }
+    result
+}
+
+/** Converts sizes in bytes into human readable units.
+ *
+ * @param bytes the size in bytes
+ * @param target_unit '\0' or a short label. If equal to one of the short unit
+ * labels ('B', 'K', ...) bytes is converted to target_unit; if '\0', the first
+ * unit which will bring the value to below a threshold of 2048 will be chosen.
+ * @param precision number of decimal places, ensures -0.00 gets rounded to
+ * 0.00; -1 if no rounding desired
+ * @param label will be set to the appropriate unit label
+ *
+ * @return the size in the appropriate unit
+ */
+pub fn humanize_size(bytes: off_t, target_unit: char, precision: i8, label: &mut String) -> f64 {
+    let labels = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
+    let unitcount = labels.len();
+
+    let mut val = bytes as f64;
+    let mut index = 0;
+
+    while index < unitcount - 1 {
+        if target_unit != '\0' && labels[index].chars().collect::<Vec<char>>()[0] == target_unit {
+            break;
+        } else if target_unit == '\0' && val <= 2048.0 && val >= -2048.0 {
+            break;
+        }
+        val /= 1024.0;
+        index += 1;
+    }
+
+    *label = String::from(labels[index]);
+
+    /* do not display negative zeroes */
+    if precision >= 0 && val < 0.0 && val > (-0.5 / simple_pow(10, precision as i32)) {
+        val = 0.0;
+    }
+
+    val
+}
 
 // pub fn print_packages(packages: &Vec<pkg_t>, config: &config_t)
 pub fn print_packages(
-    packages: &Vec<pkg_t>,
+    packages: &mut Vec<pkg_t>,
     print_format: &String,
     config: &config_t,
-    handle: &alpm_handle_t,
+    handle: &mut alpm_handle_t,
 ) {
     for pkg in packages {
         if print_format == "" {
@@ -1116,7 +1114,7 @@ pub fn print_packages(
         /* %s : size */
         if string.contains("%s") {
             // 	char *size;
-            let size = format!("{}", pkg_get_size(pkg, config));
+            let size = format!("{}", pkg_get_size(pkg, config, handle.alpm_get_localdb_mut()));
             string.replace("%s", &size);
             // 	free(size);
             // 	free(temp);

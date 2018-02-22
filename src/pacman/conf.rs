@@ -16,29 +16,67 @@ const OS_ARCH: &str = "x86_64";
 
 #[cfg(target_arch = "x86")]
 const OS_ARCH: &str = "x86";
-// /*
-//  *  conf.h
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
+/*
+ *  conf.h
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  conf.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 // #ifndef PM_CONF_H
 // #define PM_CONF_H
 //
 // #include <alpm.h>
+// #include <errno.h>
+// #include <limits.h>
+// #include <locale.h> /* setlocale */
+// #include <fcntl.h> /* open */
+// #include <glob.h>
+// #include <stdlib.h>
+// #include <stdio.h>
+// #include <string.h> /* strdup */
+// #include <sys/stat.h>
+// #include <sys/types.h>
+// #include <sys/utsname.h> /* uname */
+// #include <unistd.h>
+//
+// /* pacman */
+// #include "conf.h"
+// #include "ini.h"
+// #include "util.h"
+// #include "pacman.h"
+// #include "callback.h"
 
 #[derive(Default, Debug)]
 pub struct colstr_t {
@@ -180,32 +218,11 @@ pub static PKG_LOCALITY_UNSET: u8 = 0;
 pub static PKG_LOCALITY_NATIVE: u8 = (1 << 0);
 pub static PKG_LOCALITY_FOREIGN: u8 = (1 << 1);
 
-//
 // enum {
 // 	PM_COLOR_UNSET = 0,
 // 	PM_COLOR_OFF,
 // 	PM_COLOR_ON
 // };
-
-/*
- *  conf.c
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 fn invalid_opt(used: bool, opt1: &str, opt2: &str) {
     if used {
@@ -217,33 +234,8 @@ fn invalid_opt(used: bool, opt1: &str, opt2: &str) {
     }
 }
 
-// #include <errno.h>
-// #include <limits.h>
-// #include <locale.h> /* setlocale */
-// #include <fcntl.h> /* open */
-// #include <glob.h>
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <string.h> /* strdup */
-// #include <sys/stat.h>
-// #include <sys/types.h>
-// #include <sys/utsname.h> /* uname */
-// #include <unistd.h>
-//
-// /* pacman */
-// #include "conf.h"
-// #include "ini.h"
-// #include "util.h"
-// #include "pacman.h"
-// #include "callback.h"
-//
-// /* global config variable */
-// config_t *config = NULL;
-//
 // #define NOCOLOR       "\033[0m"
-//
 // #define BOLD          "\033[0;1m"
-//
 // #define BLACK         "\033[0;30m"
 // #define RED           "\033[0;31m"
 // #define GREEN         "\033[0;32m"
@@ -252,7 +244,6 @@ fn invalid_opt(used: bool, opt1: &str, opt2: &str) {
 // #define MAGENTA       "\033[0;35m"
 // #define CYAN          "\033[0;36m"
 // #define WHITE         "\033[0;37m"
-//
 // #define BOLDBLACK     "\033[1;30m"
 // #define BOLDRED       "\033[1;31m"
 // #define BOLDGREEN     "\033[1;32m"
@@ -261,7 +252,7 @@ fn invalid_opt(used: bool, opt1: &str, opt2: &str) {
 // #define BOLDMAGENTA   "\033[1;35m"
 // #define BOLDCYAN      "\033[1;36m"
 // #define BOLDWHITE     "\033[1;37m"
-//
+
 // void enable_colors(int colors)
 // {
 // 	colstr_t *colstr = &config.colstr;
@@ -288,7 +279,7 @@ fn invalid_opt(used: bool, opt1: &str, opt2: &str) {
 // 		colstr.nocolor = "";
 // 	}
 // }
-//
+
 impl config_t {
     pub fn new() -> config_t {
         let mut newconfig = config_t::default();
@@ -351,7 +342,7 @@ impl config_t {
             opts.optflag("T", "--deptest", ""); /* used by makepkg */
             opts.optflag("U", "--upgrade", "");
             opts.optflag("V", "--version", "");
-            opts.optflag("H", "--help", "");
+            opts.optflag("h", "--help", "");
 
             opts.optopt("b", "dbpath", "", "");
             opts.optflag("c", "cascade", "");
@@ -976,60 +967,16 @@ impl config_t {
     }
 }
 
-// int config_free(config_t *oldconfig)
-// {
-// 	if(oldconfig == NULL) {
-// 		return -1;
-// 	}
-//
-// 	alpm_list_free(oldconfig.explicit_adds);
-// 	alpm_list_free(oldconfig.explicit_removes);
-//
-// 	alpm_list_free_inner(config.repos, (alpm_list_fn_free) config_repo_free);
-// 	alpm_list_free(config.repos);
-//
-// 	FREELIST(oldconfig.holdpkg);
-// 	FREELIST(oldconfig.ignorepkg);
-// 	FREELIST(oldconfig.ignoregrp);
-// 	FREELIST(oldconfig.assumeinstalled);
-// 	FREELIST(oldconfig.noupgrade);
-// 	FREELIST(oldconfig.noextract);
-// 	FREELIST(oldconfig.overwrite_files);
-// 	free(oldconfig.configfile);
-// 	free(oldconfig.rootdir);
-// 	free(oldconfig.dbpath);
-// 	free(oldconfig.logfile);
-// 	free(oldconfig.gpgdir);
-// 	FREELIST(oldconfig.hookdirs);
-// 	FREELIST(oldconfig.cachedirs);
-// 	free(oldconfig.xfercommand);
-// 	free(oldconfig.print_format);
-// 	free(oldconfig.arch);
-// 	free(oldconfig);
-//
-// 	return 0;
-// }
-//
-// void config_repo_free(config_repo_t *repo)
-// {
-// 	if(repo == NULL) {
-// 		return;
-// 	}
-// 	free(repo.name);
-// 	FREELIST(repo.servers);
-// 	free(repo);
-// }
-//
-// /** Helper function for download_with_xfercommand() */
-// static char *get_filename(const char *url)
-// {
-// 	char *filename = strrchr(url, '/');
-// 	if(filename != NULL) {
-// 		filename++;
-// 	}
-// 	return filename;
-// }
-//
+///Helper function for download_with_xfercommand()
+fn get_filename(url: &String) -> String {
+    unimplemented!();
+    // 	char *filename = strrchr(url, '/');
+    // 	if(filename != NULL) {
+    // 		filename++;
+    // 	}
+    // 	return filename;
+}
+
 // /** Helper function for download_with_xfercommand() */
 // static char *get_destfile(const char *path, const char *filename)
 // {
@@ -1041,7 +988,7 @@ impl config_t {
 //
 // 	return destfile;
 // }
-//
+
 // /** Helper function for download_with_xfercommand() */
 // static char *get_tempfile(const char *path, const char *filename)
 // {
@@ -1053,7 +1000,7 @@ impl config_t {
 //
 // 	return tempfile;
 // }
-//
+
 // /** External fetch callback */
 // static int download_with_xfercommand(const char *url, const char *localpath,
 // 		int force)
@@ -1153,7 +1100,7 @@ impl config_t {
 //
 // 	return ret;
 // }
-//
+
 impl config_t {
     pub fn config_set_arch(&mut self, arch: &String) -> i32 {
         if arch == "auto" {
@@ -1167,15 +1114,14 @@ impl config_t {
         return 0;
     }
 }
-/**
- * Parse a signature verification level line.
- * @param values the list of parsed option values
- * @param storage location to store the derived signature level; any existing
- * value here is used as a starting point
- * @param file path to the config file
- * @param linenum current line number in file
- * @return 0 on success, 1 on any parsing error
- */
+
+/// Parse a signature verification level line.
+/// @param values the list of parsed option values
+/// @param storage location to store the derived signature level; any existing
+/// value here is used as a starting point
+/// @param file path to the config file
+/// @param linenum current line number in file
+/// @return 0 on success, 1 on any parsing error
 fn process_siglevel(
     values: Vec<String>,
     storage: &mut siglevel,
@@ -1308,12 +1254,10 @@ fn process_siglevel(
     return ret;
 }
 
-/**
- * Merge the package entries of two signature verification levels.
- * @param base initial siglevel
- * @param over overriding siglevel
- * @return merged siglevel
- */
+/// Merge the package entries of two signature verification levels.
+/// @param base initial siglevel
+/// @param over overriding siglevel
+/// @return merged siglevel
 pub fn merge_siglevel(base: siglevel, over: siglevel, mask: siglevel) -> siglevel {
     return if mask.not_zero() {
         (over & mask) | (base & !mask)

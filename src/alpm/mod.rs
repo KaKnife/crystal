@@ -209,36 +209,36 @@ type alpm_time_t = i64;
 
 /// Package install reasons.
 #[derive(Debug, Clone)]
-pub enum alpm_pkgreason_t {
+pub enum pkgreason_t {
     /// Explicitly requested by the user.
     ALPM_PKG_REASON_EXPLICIT = 0,
     /// Installed as a dependency for another package.
     ALPM_PKG_REASON_DEPEND = 1,
 }
-impl Default for alpm_pkgreason_t {
+impl Default for pkgreason_t {
     fn default() -> Self {
-        alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT
+        pkgreason_t::ALPM_PKG_REASON_EXPLICIT
     }
 }
-impl From<u8> for alpm_pkgreason_t {
-    fn from(n: u8) -> alpm_pkgreason_t {
+impl From<u8> for pkgreason_t {
+    fn from(n: u8) -> pkgreason_t {
         match n {
-            0 => alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT,
-            1 => alpm_pkgreason_t::ALPM_PKG_REASON_DEPEND,
+            0 => pkgreason_t::ALPM_PKG_REASON_EXPLICIT,
+            1 => pkgreason_t::ALPM_PKG_REASON_DEPEND,
             _ => unimplemented!(),
         }
     }
 }
 
-impl Default for alpm_pkgfrom_t {
+impl Default for pkgfrom_t {
     fn default() -> Self {
-        alpm_pkgfrom_t::ALPM_PKG_FROM_FILE
+        pkgfrom_t::ALPM_PKG_FROM_FILE
     }
 }
 
 /// Location a package object was loaded from.
 #[derive(Debug, Clone)]
-pub enum alpm_pkgfrom_t {
+pub enum pkgfrom_t {
     ALPM_PKG_FROM_FILE = 1,
     ALPM_PKG_FROM_LOCALDB,
     ALPM_PKG_FROM_SYNCDB,
@@ -255,7 +255,7 @@ pub enum alpm_pkgvalidation_t {
 
 /// Types of version constraints in dependency specs.
 #[derive(Debug, Clone)]
-pub enum alpm_depmod_t {
+pub enum depmod_t {
     /** No version constraint */ ALPM_DEP_MOD_ANY = 1,
     /** Test version equality (package=x.y.z) */ ALPM_DEP_MOD_EQ,
     /** Test for at least a version (package>=x.y.z) */ ALPM_DEP_MOD_GE,
@@ -264,9 +264,9 @@ pub enum alpm_depmod_t {
     /** Test for less than some version (package<x.y.z) */ ALPM_DEP_MOD_LT,
 }
 
-impl Default for alpm_depmod_t {
+impl Default for depmod_t {
     fn default() -> Self {
-        alpm_depmod_t::ALPM_DEP_MOD_ANY
+        depmod_t::ALPM_DEP_MOD_ANY
     }
 }
 
@@ -405,18 +405,18 @@ impl Default for alpm_sigvalidity_t {
 
 /// Dependency
 #[derive(Debug, Clone, Default)]
-pub struct alpm_depend_t {
+pub struct depend_t {
     pub name: String,
     pub version: String,
     desc: String,
     name_hash: u64,
-    depmod: alpm_depmod_t,
+    depmod: depmod_t,
 }
 
 /** Missing dependency */
 pub struct alpm_depmissing_t {
     pub target: String,
-    pub depend: alpm_depend_t,
+    pub depend: depend_t,
     /* this is used only in the case of a remove dependency error */
     pub causingpkg: String,
 }
@@ -427,7 +427,7 @@ pub struct alpm_conflict_t {
     // unsigned long package2_hash;
     pub package1: String,
     pub package2: String,
-    // alpm_depend_t *reason;
+    // depend_t *reason;
 }
 
 /// File conflict */
@@ -635,7 +635,7 @@ enum alpm_event_type_t {
 // 	/** Package with the optdep. */
 // 	pkg_t *pkg;
 // 	/** Optdep being removed. */
-// 	alpm_depend_t *optdep;
+// 	depend_t *optdep;
 // } alpm_event_optdep_removal_t;
 
 // typedef struct _alpm_event_delta_patch_t {
@@ -813,7 +813,7 @@ enum alpm_event_type_t {
 // 	/** List of pkg_t* as possible providers. */
 // 	alpm_list_t *providers;
 // 	/** What providers provide for. */
-// 	alpm_depend_t *depend;
+// 	depend_t *depend;
 // } alpm_question_select_provider_t;
 
 // typedef struct _alpm_question_import_key_t {
@@ -1268,9 +1268,9 @@ impl alpm_db_usage_t {
 // const char *alpm_pkg_get_version(pkg_t *pkg);
 //
 // /** Returns the origin of the package.
-//  * @return an alpm_pkgfrom_t constant, -1 on error
+//  * @return an pkgfrom_t constant, -1 on error
 //  */
-// alpm_pkgfrom_t alpm_pkg_get_origin(pkg_t *pkg);
+// pkgfrom_t alpm_pkg_get_origin(pkg_t *pkg);
 //
 // /** Returns the package description.
 //  * @param pkg a pointer to package
@@ -1339,7 +1339,7 @@ impl alpm_db_usage_t {
 //  * @param pkg a pointer to package
 //  * @return an enum member giving the install reason.
 //  */
-// alpm_pkgreason_t alpm_pkg_get_reason(pkg_t *pkg);
+// pkgreason_t alpm_pkg_get_reason(pkg_t *pkg);
 //
 // /** Returns the list of package licenses.
 //  * @param pkg a pointer to package
@@ -1353,39 +1353,39 @@ impl alpm_db_usage_t {
 //  */
 // alpm_list_t *alpm_pkg_get_groups(pkg_t *pkg);
 //
-// /** Returns the list of package dependencies as alpm_depend_t.
+// /** Returns the list of package dependencies as depend_t.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of alpm_depend_t structures.
+//  * @return a reference to an internal list of depend_t structures.
 //  */
 // alpm_list_t *alpm_pkg_get_depends(pkg_t *pkg);
 //
 // /** Returns the list of package optional dependencies.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of alpm_depend_t structures.
+//  * @return a reference to an internal list of depend_t structures.
 //  */
 // alpm_list_t *alpm_pkg_get_optdepends(pkg_t *pkg);
 //
 // /** Returns a list of package check dependencies
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of alpm_depend_t structures.
+//  * @return a reference to an internal list of depend_t structures.
 //  */
 // alpm_list_t *alpm_pkg_get_checkdepends(pkg_t *pkg);
 //
 // /** Returns a list of package make dependencies
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of alpm_depend_t structures.
+//  * @return a reference to an internal list of depend_t structures.
 //  */
 // alpm_list_t *alpm_pkg_get_makedepends(pkg_t *pkg);
 //
 // /** Returns the list of packages conflicting with pkg.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of alpm_depend_t structures.
+//  * @return a reference to an internal list of depend_t structures.
 //  */
 // alpm_list_t *alpm_pkg_get_conflicts(pkg_t *pkg);
 //
 // /** Returns the list of packages provided by pkg.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of alpm_depend_t structures.
+//  * @return a reference to an internal list of depend_t structures.
 //  */
 // alpm_list_t *alpm_pkg_get_provides(pkg_t *pkg);
 //
@@ -1397,7 +1397,7 @@ impl alpm_db_usage_t {
 //
 // /** Returns the list of packages to be replaced by pkg.
 //  * @param pkg a pointer to package
-//  * @return a reference to an internal list of alpm_depend_t structures.
+//  * @return a reference to an internal list of depend_t structures.
 //  */
 // alpm_list_t *alpm_pkg_get_replaces(pkg_t *pkg);
 //
@@ -1501,7 +1501,7 @@ impl alpm_db_usage_t {
 //  * @param reason the new install reason
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //  */
-// int alpm_pkg_set_reason(pkg_t *pkg, alpm_pkgreason_t reason);
+// int alpm_pkg_set_reason(pkg_t *pkg, pkgreason_t reason);
 //
 //
 // /* End of alpm_pkg */
@@ -1679,15 +1679,15 @@ pub struct alpm_transflag_t {
 //  * @param dep a dependency info structure
 //  * @return a formatted string, e.g. "glibc>=2.12"
 //  */
-// char *alpm_dep_compute_string(const alpm_depend_t *dep);
+// char *alpm_dep_compute_string(const depend_t *dep);
 //
 
-// alpm_depend_t *alpm_dep_from_string(const char *depstring);
+// depend_t *alpm_dep_from_string(const char *depstring);
 //
 // /** Free a dependency info structure
 //  * @param dep struct to free
 //  */
-// void alpm_dep_free(alpm_depend_t *dep);
+// void alpm_dep_free(depend_t *dep);
 //
 // /** @} */
 //

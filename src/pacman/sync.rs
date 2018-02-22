@@ -1,10 +1,3 @@
-use super::*;
-use super::package::*;
-use super::util::*;
-use super::alpm;
-use super::alpm::*;
-use super::conf::config_t;
-use super::util::check_syncdbs;
 /*
  *  sync.c
  *
@@ -24,132 +17,109 @@ use super::util::check_syncdbs;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+use super::*;
+use super::package::*;
+use super::util::*;
+use super::alpm;
+use super::alpm::*;
+use super::conf::config_t;
+use super::util::check_syncdbs;
 
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <limits.h>
-// #include <unistd.h>
-// #include <errno.h>
-// #include <dirent.h>
-// #include <sys/stat.h>
-// #include <fnmatch.h>
-//
-// #include <alpm.h>
-// #include <alpm_list.h>
-//
-// /* pacman */
-// #include "pacman.h"
-// #include "util.h"
-// #include "package.h"
-// #include "conf.h"
-
-// static int unlink_verbose(const char *pathname, int ignore_missing)
-// {
-// 	int ret = unlink(pathname);
-// 	if(ret) {
-// 		if(ignore_missing && errno == ENOENT) {
-// 			ret = 0;
-// 		} else {
-// 			pm_printf(ALPM_LOG_ERROR, _("could not remove %s: %s\n"),
-// 					pathname, strerror(errno));
-// 		}
-// 	}
-// 	return ret;
-// }
-
-fn sync_cleandb(dbpath: String) -> i32 {
+fn unlink_verbose(pathname: &String, ignore_missing: bool) -> i32 {
     unimplemented!();
-    // 	DIR *dir;
-    // 	struct dirent *ent;
-    // 	alpm_list_t *syncdbs;
-    // 	int ret = 0;
-    //
-    // 	dir = opendir(dbpath);
-    // 	if(dir == NULL) {
-    // 		pm_printf(ALPM_LOG_ERROR, _("could not access database directory\n"));
-    // 		return 1;
-    // 	}
-    //
-    // 	syncdbs = alpm_get_syncdbs(config->handle);
-    //
-    // 	rewinddir(dir);
-    // 	/* step through the directory one file at a time */
-    // 	while((ent = readdir(dir)) != NULL) {
-    // 		char path[PATH_MAX];
-    // 		struct stat buf;
-    // 		int found = 0;
-    // 		const char *dname = ent->d_name;
-    // 		char *dbname;
-    // 		size_t len;
-    // 		alpm_list_t *i;
-    //
-    // 		if(strcmp(dname, ".") == 0 || strcmp(dname, "..") == 0) {
-    // 			continue;
-    // 		}
-    //
-    // 		/* build the full path */
-    // 		snprintf(path, PATH_MAX, "%s%s", dbpath, dname);
-    //
-    // 		/* remove all non-skipped directories and non-database files */
-    // 		if(stat(path, &buf) == -1) {
-    // 			pm_printf(ALPM_LOG_ERROR, _("could not remove %s: %s\n"),
-    // 					path, strerror(errno));
-    // 		}
-    // 		if(S_ISDIR(buf.st_mode)) {
-    // 			if(rmrf(path)) {
-    // 				pm_printf(ALPM_LOG_ERROR, _("could not remove %s: %s\n"),
-    // 						path, strerror(errno));
-    // 			}
-    // 			continue;
-    // 		}
-    //
-    // 		len = strlen(dname);
-    // 		if(len > 3 && strcmp(dname + len - 3, ".db") == 0) {
-    // 			dbname = strndup(dname, len - 3);
-    // 		} else if(len > 7 && strcmp(dname + len - 7, ".db.sig") == 0) {
-    // 			dbname = strndup(dname, len - 7);
-    // 		} else if(len > 6 && strcmp(dname + len - 6, ".files") == 0) {
-    // 			dbname = strndup(dname, len - 6);
-    // 		} else if(len > 6 && strcmp(dname + len - 6, ".files.sig") == 0) {
-    // 			dbname = strndup(dname, len - 10);
+    // 	int ret = unlink(pathname);
+    // 	if(ret) {
+    // 		if(ignore_missing && errno == ENOENT) {
+    // 			ret = 0;
     // 		} else {
-    // 			ret += unlink_verbose(path, 0);
-    // 			continue;
+    // 			pm_printf(ALPM_LOG_ERROR, _("could not remove %s: %s\n"),
+    // 					pathname, strerror(errno));
     // 		}
-    //
-    // 		for(i = syncdbs; i && !found; i = alpm_list_next(i)) {
-    // 			alpm_db_t *db = i->data;
-    // 			found = !strcmp(dbname, alpm_db_get_name(db));
-    // 		}
-    //
-    // 		/* We have a file that doesn't match any syncdb. */
-    // 		if(!found) {
-    // 			ret += unlink_verbose(path, 0);
-    // 		}
-    //
-    // 		free(dbname);
     // 	}
-    // 	closedir(dir);
     // 	return ret;
 }
 
-fn sync_cleandb_all(config: &config_t, handle: &mut alpm_handle_t) -> i32 {
-    let mut syncdbpath; // = String::new();
+fn sync_cleandb(dbpath: String, handle: &mut alpm_handle_t) -> i32 {
+    let syncdbs;
     let mut ret = 0;
 
-    let dbpath = handle.alpm_option_get_dbpath();
-    println!("Database directory: {}", dbpath);
-    if !yesno(
-        String::from("Do you want to remove unused repositories?"),
-        config,
-    ) {
-        return 0;
-    }
-    println!("removing unused sync repositories...");
+    let dir = match std::fs::read_dir(&dbpath) {
+        Ok(d) => d,
+        Err(_) => {
+            error!("could not access database directory");
+            return 1;
+        }
+    };
 
-    syncdbpath = format!("{}{}", dbpath, "sync/");
-    ret += sync_cleandb(syncdbpath);
+    syncdbs = handle.alpm_get_syncdbs();
+
+    /* step through the directory one file at a time */
+    for entr in dir {
+        let ent = entr.unwrap();
+        let path;
+        let mut found = false;
+        let dname = ent.file_name().into_string().unwrap();
+        let mut dbname = String::new();
+        let len;
+
+        if dname == "." || dname == ".." {
+            continue;
+        }
+
+        /* build the full path */
+        path = format!("{}{}", &dbpath, dname);
+
+        /* remove all non-skipped directories and non-database files */
+        match std::fs::remove_dir_all(&path) {
+            Ok(_) => {}
+            Err(e) => {
+                error!("could not remove {}: {}", path, e);
+                continue;
+            }
+        }
+
+        len = dname.len();
+        if len > 3 && dname.ends_with(".db") {
+            dbname = dname.split_at(len - 3).0.to_string();
+        } else if len > 7 && dname.ends_with(".db.sig") {
+            dbname = dname.split_at(len - 7).0.to_string();
+        } else if len > 6 && dname.ends_with(".files") {
+            dbname = dname.split_at(len - 6).0.to_string();
+        } else if len > 6 && dname.ends_with(".files.sig") {
+            dbname = dname.split_at(len - 10).0.to_string();
+        } else {
+            ret += unlink_verbose(&path, false);
+            continue;
+        }
+
+        for db in syncdbs {
+            found = *db.alpm_db_get_name() == dbname;
+        }
+
+        /* We have a file that doesn't match any syncdb. */
+        if !found {
+            ret += unlink_verbose(&path, false);
+        }
+    }
+    return ret;
+}
+
+fn sync_cleandb_all(config: &config_t, handle: &mut alpm_handle_t) -> i32 {
+    let syncdbpath;
+    let mut ret = 0;
+    {
+        let dbpath = handle.alpm_option_get_dbpath();
+        println!("Database directory: {}", dbpath);
+        if !yesno(
+            String::from("Do you want to remove unused repositories?"),
+            config,
+        ) {
+            return 0;
+        }
+        println!("removing unused sync repositories...");
+        syncdbpath = format!("{}{}", dbpath, "sync/");
+    }
+    ret += sync_cleandb(syncdbpath, handle);
 
     return ret;
 }
@@ -389,141 +359,130 @@ fn sync_group(
     // 	return ret;
 }
 
-// static int sync_info(alpm_list_t *syncs, alpm_list_t *targets)
-// {
-// 	alpm_list_t *i, *j, *k;
-// 	int ret = 0;
-//
-// 	if(targets) {
-// 		for(i = targets; i; i = alpm_list_next(i)) {
-// 			const char *target = i->data;
-// 			char *name = strdup(target);
-// 			char *repo, *pkgstr;
-// 			int foundpkg = 0, founddb = 0;
-//
-// 			pkgstr = strchr(name, '/');
-// 			if(pkgstr) {
-// 				repo = name;
-// 				*pkgstr = '\0';
-// 				++pkgstr;
-// 			} else {
-// 				repo = NULL;
-// 				pkgstr = name;
-// 			}
-//
-// 			for(j = syncs; j; j = alpm_list_next(j)) {
-// 				alpm_db_t *db = j->data;
-// 				if(repo && strcmp(repo, alpm_db_get_name(db)) != 0) {
-// 					continue;
-// 				}
-// 				founddb = 1;
-//
-// 				for(k = alpm_db_get_pkgcache(db); k; k = alpm_list_next(k)) {
-// 					pkg_t *pkg = k->data;
-//
-// 					if(strcmp(alpm_pkg_get_name(pkg), pkgstr) == 0) {
-// 						dump_pkg_full(pkg, config->op_s_info > 1);
-// 						foundpkg = 1;
-// 						break;
-// 					}
-// 				}
-// 			}
-//
-// 			if(!founddb) {
-// 				pm_printf(ALPM_LOG_ERROR,
-// 						_("repository '%s' does not exist\n"), repo);
-// 				ret++;
-// 			}
-// 			if(!foundpkg) {
-// 				pm_printf(ALPM_LOG_ERROR,
-// 						_("package '%s' was not found\n"), target);
-// 				ret++;
-// 			}
-// 			free(name);
-// 		}
-// 	} else {
-// 		for(i = syncs; i; i = alpm_list_next(i)) {
-// 			alpm_db_t *db = i->data;
-//
-// 			for(j = alpm_db_get_pkgcache(db); j; j = alpm_list_next(j)) {
-// 				pkg_t *pkg = j->data;
-// 				dump_pkg_full(pkg, config->op_s_info > 1);
-// 			}
-// 		}
-// 	}
-//
-// 	return ret;
-// }
+fn sync_info(mut syncs: Vec<alpm_db_t>, targets: &Vec<String>) -> std::result::Result<(), ()> {
+    let mut ret = Ok(());
+    if !targets.is_empty() {
+        for target in targets {
+            let repo;
+            let pkgstr;
+            let mut founddb = false;
+            let mut foundpkg = false;
 
-// static int sync_list(alpm_list_t *syncs, alpm_list_t *targets)
-// {
-// 	alpm_list_t *i, *j, *ls = NULL;
-// 	alpm_db_t *db_local = alpm_get_localdb(config->handle);
-// 	int ret = 0;
-//
-// 	if(targets) {
-// 		for(i = targets; i; i = alpm_list_next(i)) {
-// 			const char *repo = i->data;
-// 			alpm_db_t *db = NULL;
-//
-// 			for(j = syncs; j; j = alpm_list_next(j)) {
-// 				alpm_db_t *d = j->data;
-//
-// 				if(strcmp(repo, alpm_db_get_name(d)) == 0) {
-// 					db = d;
-// 					break;
-// 				}
-// 			}
-//
-// 			if(db == NULL) {
-// 				pm_printf(ALPM_LOG_ERROR,
-// 					_("repository \"%s\" was not found.\n"), repo);
-// 				ret = 1;
-// 			}
-//
-// 			ls = alpm_list_add(ls, db);
-// 		}
-// 	} else {
-// 		ls = syncs;
-// 	}
-//
-// 	for(i = ls; i; i = alpm_list_next(i)) {
-// 		alpm_db_t *db = i->data;
-//
-// 		for(j = alpm_db_get_pkgcache(db); j; j = alpm_list_next(j)) {
-// 			pkg_t *pkg = j->data;
-//
-// 			if(!config->quiet) {
-// 				const colstr_t *colstr = &config->colstr;
-// 				printf("%s%s %s%s %s%s%s", colstr->repo, alpm_db_get_name(db),
-// 						colstr->title, alpm_pkg_get_name(pkg),
-// 						colstr->version, alpm_pkg_get_version(pkg), colstr->nocolor);
-// 				print_installed(db_local, pkg);
-// 				printf("\n");
-// 			} else {
-// 				printf("%s\n", alpm_pkg_get_name(pkg));
-// 			}
-// 		}
-// 	}
-//
-// 	if(targets) {
-// 		alpm_list_free(ls);
-// 	}
-//
-// 	return ret;
-// }
+            let tmp: Vec<&str> = target.splitn(2, "/").collect();
+            if tmp.len() == 2 {
+                repo = tmp[0];
+                pkgstr = tmp[1];
+            } else {
+                repo = "";
+                pkgstr = tmp[0];
+            }
 
-// static alpm_db_t *get_db(const char *dbname)
-// {
-// 	alpm_list_t *i;
-// 	for(i = alpm_get_syncdbs(config->handle); i; i = i->next) {
-// 		alpm_db_t *db = i->data;
-// 		if(strcmp(alpm_db_get_name(db), dbname) == 0) {
-// 			return db;
-// 		}
-// 	}
-// 	return NULL;
-// }
+            for db in &mut syncs {
+                if repo != "" && repo != db.alpm_db_get_name() {
+                    continue;
+                }
+                founddb = true;
+
+                for pkg in db.alpm_db_get_pkgcache().unwrap() {
+                    if pkg.alpm_pkg_get_name() == pkgstr {
+                        unimplemented!();
+                        // dump_pkg_full(pkg, config.op_s_info > 1);
+                        foundpkg = true;
+                        break;
+                    }
+                }
+            }
+
+            if !founddb {
+                error!("repository '{}' does not exist", repo);
+                ret = Err(());
+            }
+            if !foundpkg {
+                error!("package '{}' was not found", target);
+                ret = Err(());
+            }
+        }
+    } else {
+        for db in &mut syncs {
+            for pkg in db.alpm_db_get_pkgcache() {
+                unimplemented!();
+                // dump_pkg_full(pkg, config.op_s_info > 1);
+            }
+        }
+    }
+
+    ret
+}
+
+fn sync_list(syncs: &mut Vec<alpm_db_t>, targets: &Vec<String>) -> std::result::Result<(), ()> {
+    unimplemented!();
+    // 	alpm_list_t *i, *j, *ls = NULL;
+    // 	alpm_db_t *db_local = alpm_get_localdb(config->handle);
+    // 	int ret = 0;
+    //
+    // 	if(targets) {
+    // 		for(i = targets; i; i = alpm_list_next(i)) {
+    // 			const char *repo = i->data;
+    // 			alpm_db_t *db = NULL;
+    //
+    // 			for(j = syncs; j; j = alpm_list_next(j)) {
+    // 				alpm_db_t *d = j->data;
+    //
+    // 				if(strcmp(repo, alpm_db_get_name(d)) == 0) {
+    // 					db = d;
+    // 					break;
+    // 				}
+    // 			}
+    //
+    // 			if(db == NULL) {
+    // 				pm_printf(ALPM_LOG_ERROR,
+    // 					_("repository \"%s\" was not found.\n"), repo);
+    // 				ret = 1;
+    // 			}
+    //
+    // 			ls = alpm_list_add(ls, db);
+    // 		}
+    // 	} else {
+    // 		ls = syncs;
+    // 	}
+    //
+    // 	for(i = ls; i; i = alpm_list_next(i)) {
+    // 		alpm_db_t *db = i->data;
+    //
+    // 		for(j = alpm_db_get_pkgcache(db); j; j = alpm_list_next(j)) {
+    // 			pkg_t *pkg = j->data;
+    //
+    // 			if(!config->quiet) {
+    // 				const colstr_t *colstr = &config->colstr;
+    // 				printf("%s%s %s%s %s%s%s", colstr->repo, alpm_db_get_name(db),
+    // 						colstr->title, alpm_pkg_get_name(pkg),
+    // 						colstr->version, alpm_pkg_get_version(pkg), colstr->nocolor);
+    // 				print_installed(db_local, pkg);
+    // 				printf("\n");
+    // 			} else {
+    // 				printf("%s\n", alpm_pkg_get_name(pkg));
+    // 			}
+    // 		}
+    // 	}
+    //
+    // 	if(targets) {
+    // 		alpm_list_free(ls);
+    // 	}
+    //
+    // 	return ret;
+}
+
+fn get_db(dbname: &String) -> alpm_db_t {
+    unimplemented!();
+    // 	alpm_list_t *i;
+    // 	for(i = alpm_get_syncdbs(config->handle); i; i = i->next) {
+    // 		alpm_db_t *db = i->data;
+    // 		if(strcmp(alpm_db_get_name(db), dbname) == 0) {
+    // 			return db;
+    // 		}
+    // 	}
+    // 	return NULL;
+}
 
 fn process_pkg(pkg: &pkg_t) -> i32 {
     unimplemented!();
@@ -639,54 +598,56 @@ fn process_targname<T>(
 
 fn process_target(target: &String, error: i32) -> i32 {
     unimplemented!();
-    // 	/* process targets */
-    // 	char *targstring = strdup(target);
+    /* process targets */
+    let targstring = target.clone();
     // 	char *targname = strchr(targstring, '/');
-    // 	int ret = 0;
+    let ret = 0;
     // 	alpm_list_t *dblist;
     //
-    // 	if(targname && targname != targstring) {
-    // 		alpm_db_t *db;
-    // 		const char *dbname;
-    // 		int usage;
-    //
-    // 		*targname = '\0';
-    // 		targname++;
-    // 		dbname = targstring;
-    // 		db = get_db(dbname);
-    // 		if(!db) {
-    // 			pm_printf(ALPM_LOG_ERROR, _("database not found: %s\n"),
-    // 					dbname);
-    // 			ret = 1;
-    // 			goto cleanup;
-    // 		}
-    //
-    // 		/* explicitly mark this repo as valid for installs since
-    // 		 * a repo name was given with the target */
-    // 		alpm_db_get_usage(db, &usage);
-    // 		alpm_db_set_usage(db, usage|ALPM_DB_USAGE_INSTALL);
-    //
-    // 		dblist = alpm_list_add(NULL, db);
-    // 		ret = process_targname(dblist, targname, error);
-    // 		alpm_list_free(dblist);
-    //
-    // 		/* restore old usage so we don't possibly disturb later
-    // 		 * targets */
-    // 		alpm_db_set_usage(db, usage);
-    // 	} else {
-    // 		targname = targstring;
-    // 		dblist = alpm_get_syncdbs(config->handle);
-    // 		ret = process_targname(dblist, targname, error);
-    // 	}
-    //
-    // cleanup:
-    // 	free(targstring);
+    // 	if(targname && targname != targstring)
+    {
+        let mut db: alpm_db_t;
+        let dbname: &String;
+        let mut usage: alpm_db_usage_t = alpm_db_usage_t::default();
+
+        // *targname = '\0';
+        // targname++;
+        // dbname = targstring;
+        // db = get_db(dbname);
+        // if(!db) {
+        // 	pm_printf(ALPM_LOG_ERROR, _("database not found: %s\n"),
+        // 			dbname);
+        // 	ret = 1;
+        // 	goto cleanup;
+        // }
+
+        /* explicitly mark this repo as valid for installs since
+         * a repo name was given with the target */
+        // db.alpm_db_get_usage(&mut usage);
+        // db.alpm_db_set_usage(usage|ALPM_DB_USAGE_INSTALL);
+        //
+        // dblist = alpm_list_add(NULL, db);
+        // ret = process_targname(dblist, targname, error);
+        // alpm_list_free(dblist);
+        //
+        /* restore old usage so we don't possibly disturb later
+         * targets */
+        // db.alpm_db_set_usage(usage);
+    }
+    // else
+    {
+        // 		targname = targstring;
+        // 		dblist = alpm_get_syncdbs(config->handle);
+        // 		ret = process_targname(dblist, targname, error);
+    }
+
+    /*cleanup:*/
     // 	if(ret && access(target, R_OK) == 0) {
     // 		pm_printf(ALPM_LOG_WARNING,
     // 				_("'%s' is a file, did you mean %s instead of %s?\n"),
     // 				target, "-U/--upgrade", "-S/--sync");
     // 	}
-    // 	return ret;
+    return ret;
 }
 
 fn sync_trans(
@@ -751,7 +712,7 @@ fn print_broken_dep(miss: &alpm_depmissing_t) {
 
 pub fn sync_prepare_execute(
     config: &config_t,
-    handle: &alpm_handle_t,
+    handle: &mut alpm_handle_t,
 ) -> std::result::Result<(), ()> {
     unimplemented!();
     // 	alpm_list_t *i, *packages, *data = NULL;
@@ -773,24 +734,24 @@ pub fn sync_prepare_execute(
                 }
                 ALPM_ERR_UNSATISFIED_DEPS => {
                     for pkg in data {
-                        // 	print_broken_dep(pkg);
+                        // print_broken_dep(pkg);
                     }
                 }
                 ALPM_ERR_CONFLICTING_DEPS => {
-                    // for(i = data; i; i = alpm_list_next(i)) {
-                    // 	alpm_conflict_t *conflict = i->data;
-                    // 	/* only print reason if it contains new information */
-                    // 	if(conflict->reason->mod == ALPM_DEP_MOD_ANY) {
-                    // 		colon_printf(_("%s and %s are in conflict\n"),
-                    // 				conflict->package1, conflict->package2);
-                    // 	} else {
-                    // 		char *reason = alpm_dep_compute_string(conflict->reason);
-                    // 		colon_printf(_("%s and %s are in conflict (%s)\n"),
-                    // 				conflict->package1, conflict->package2, reason);
-                    // 		free(reason);
-                    // 	}
-                    // 	alpm_conflict_free(conflict);
-                    // }
+                    for conflict in data {
+                        // 	alpm_conflict_t *conflict = i->data;
+                        // 	/* only print reason if it contains new information */
+                        // 	if(conflict->reason->mod == ALPM_DEP_MOD_ANY) {
+                        // 		colon_printf(_("%s and %s are in conflict\n"),
+                        // 				conflict->package1, conflict->package2);
+                        // 	} else {
+                        // 		char *reason = alpm_dep_compute_string(conflict->reason);
+                        // 		colon_printf(_("%s and %s are in conflict (%s)\n"),
+                        // 				conflict->package1, conflict->package2, reason);
+                        // 		free(reason);
+                        // 	}
+                        // 	alpm_conflict_free(conflict);
+                    }
                 }
                 _ => {}
             }
@@ -920,11 +881,6 @@ pub fn pacman_sync(
     if config.op_s_sync != 0 {
         /* grab a fresh package list */
         println!("Synchronizing package databases...");
-        // alpm_logaction(
-        //     config.handle,
-        //     PACMAN_CALLER_PREFIX,
-        //     "synchronizing package lists\n",
-        // );
 
         sync_syncdbs(config.op_s_sync as i32, &mut sync_dbs, handle)?;
     }
@@ -947,14 +903,12 @@ pub fn pacman_sync(
 
     /* get package info */
     if config.op_s_info != 0 {
-        unimplemented!();
-        // return sync_info(sync_dbs, targets);
+        return sync_info(sync_dbs, &targets);
     }
 
     /* get a listing of files in sync DBs */
     if config.op_q_list != 0 {
-        unimplemented!();
-        // return sync_list(sync_dbs, targets);
+        return sync_list(&mut sync_dbs, &targets);
     }
 
     if targets.is_empty() {

@@ -2,6 +2,8 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
+#![allow(unused_variables)]
+#![allow(unused_mut)]
 pub mod pacman;
 pub mod common;
 pub mod alpm;

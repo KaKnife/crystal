@@ -177,25 +177,25 @@ pub fn make_aligned_titles() {
 }
 
 /** Turn a depends list into a text list.
- * @param deps a list with items of type alpm_depend_t
+ * @param deps a list with items of type depend_t
  */
-fn deplist_display(title: &str, deps: &Vec<alpm_depend_t>, cols: usize) {
+fn deplist_display(title: &str, deps: &Vec<depend_t>, cols: usize) {
 	let mut text = Vec::new();
 	for dep in deps {
 		text.push(dep.alpm_dep_compute_string());
 	}
-	list_display(title, text, cols);
+	list_display(title, &text, cols);
 }
 
 // /** Turn a optdepends list into a text list.
-//  * @param optdeps a list with items of type alpm_depend_t
+//  * @param optdeps a list with items of type depend_t
 //  */
 // static void optdeplist_display(pkg_t *pkg, unsigned short cols)
 // {
 // 	alpm_list_t *i, *text = NULL;
 // 	alpm_db_t *localdb = alpm_get_localdb(config->handle);
 // 	for(i = alpm_pkg_get_optdepends(pkg); i; i = alpm_list_next(i)) {
-// 		alpm_depend_t *optdep = i->data;
+// 		depend_t *optdep = i->data;
 // 		char *depstring = alpm_dep_compute_string(optdep);
 // 		if(alpm_pkg_get_origin(pkg) == ALPM_PKG_FROM_LOCALDB) {
 // 			if(alpm_find_satisfier(alpm_db_get_pkgcache(localdb), optdep->name)) {
@@ -229,14 +229,16 @@ pub fn dump_pkg_full(
 	// time_t bdate, idate;
 	let bdate;
 	let idate;
-	// alpm_pkgfrom_t from;
+	// pkgfrom_t from;
 	let from;
 	let reason;
 	// double size;
+	let mut size;
 	// char bdatestr[50] = "", idatestr[50] = "";
 	// const char *label, *reason;
+	let mut label = String::from("\0");
 	// alpm_list_t *validation = NULL, *requiredby = NULL, *optionalfor = NULL;
-	let mut validation = Vec::new();
+	let mut validation: Vec<String> = Vec::new();
 	let requiredby;
 	let optionalfor;
 
@@ -263,34 +265,32 @@ pub fn dump_pkg_full(
 	}
 
 	reason = match pkg.alpm_pkg_get_reason(db_local) {
-		&alpm_pkgreason_t::ALPM_PKG_REASON_EXPLICIT => "Explicitly installed",
-		&alpm_pkgreason_t::ALPM_PKG_REASON_DEPEND => {
-			"Installed as a dependency for another package"
-		}
+		&pkgreason_t::ALPM_PKG_REASON_EXPLICIT => "Explicitly installed",
+		&pkgreason_t::ALPM_PKG_REASON_DEPEND => "Installed as a dependency for another package",
 		_ => "Unknown",
 	};
 
 	let v = pkg.alpm_pkg_get_validation(db_local);
 	if v != 0 {
 		if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_NONE as i32 != 0 {
-			validation.push("None");
+			validation.push(String::from("None"));
 		} else {
 			if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_MD5SUM as i32 != 0 {
-				validation.push("MD5 Sum");
+				validation.push(String::from("MD5 Sum"));
 			}
 			if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_SHA256SUM as i32 != 0 {
-				validation.push("SHA-256 Sum");
+				validation.push(String::from("SHA-256 Sum"));
 			}
 			if v & alpm_pkgvalidation_t::ALPM_PKG_VALIDATION_SIGNATURE as i32 != 0 {
-				validation.push("Signature");
+				validation.push(String::from("Signature"));
 			}
 		}
 	} else {
-		validation.push("Unknown");
+		validation.push(String::from("Unknown"));
 	}
 
-	match (from, extra) {
-		(alpm_pkgfrom_t::ALPM_PKG_FROM_LOCALDB, _) | (_, true) => {
+	match (&from, extra) {
+		(&pkgfrom_t::ALPM_PKG_FROM_LOCALDB, _) | (_, true) => {
 			/* compute this here so we don't get a pause in the middle of output */
 			requiredby = pkg.alpm_pkg_compute_requiredby(db_local, dbs_sync);
 			optionalfor = pkg.alpm_pkg_compute_optionalfor(db_local, dbs_sync);
@@ -299,109 +299,128 @@ pub fn dump_pkg_full(
 	}
 
 	let cols = getcols();
-	// unimplemented!();
-	// /* actual output */
+	/* actual output */
 	// match from {
-	// 	alpm_pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
-	// 		string_display(T_REPOSITORY, alpm_db_get_name(alpm_pkg_get_db(pkg)), cols)
+	// 	pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+	// 		string_display(T_REPOSITORY, alpm_db_get_name(alpm_pkg_get_db(pkg)), cols, config)
 	// 	}
 	// 	_ => {}
 	// }
-	string_display(T_NAME, pkg.alpm_pkg_get_name(), cols, config);
-	string_display(T_VERSION, pkg.alpm_pkg_get_version(), cols, config);
-	string_display(T_DESCRIPTION, pkg.alpm_pkg_get_desc(), cols, config);
-	string_display(T_ARCHITECTURE, pkg.alpm_pkg_get_arch(), cols, config);
-	string_display(T_URL, pkg.alpm_pkg_get_url(), cols, config);
-	list_display(T_LICENSES, pkg.alpm_pkg_get_licenses(), cols);
-	list_display(T_GROUPS, pkg.alpm_pkg_get_groups(), cols);
-	deplist_display(T_PROVIDES, pkg.alpm_pkg_get_provides(), cols);
-	// deplist_display(T_DEPENDS_ON, pkg.alpm_pkg_get_depends(), cols);
+	string_display(T_NAME, &pkg.alpm_pkg_get_name(), cols, config);
+	string_display(T_VERSION, &pkg.alpm_pkg_get_version(), cols, config);
+	string_display(T_DESCRIPTION, pkg.alpm_pkg_get_desc(db_local), cols, config);
+	string_display(
+		T_ARCHITECTURE,
+		&pkg.alpm_pkg_get_arch(db_local),
+		cols,
+		config,
+	);
+	string_display(T_URL, &pkg.alpm_pkg_get_url(db_local), cols, config);
+	list_display(T_LICENSES, pkg.alpm_pkg_get_licenses(db_local), cols);
+	list_display(T_GROUPS, pkg.alpm_pkg_get_groups(db_local), cols);
+	deplist_display(T_PROVIDES, pkg.alpm_pkg_get_provides(db_local), cols);
+	deplist_display(T_DEPENDS_ON, pkg.alpm_pkg_get_depends(), cols);
 	// optdeplist_display(pkg, cols);
 
-	// 	if(extra || from == ALPM_PKG_FROM_LOCALDB) {
-	// 		list_display(titles[T_REQUIRED_BY], requiredby, cols);
-	// 		list_display(titles[T_OPTIONAL_FOR], optionalfor, cols);
-	// 	}
-	// 	deplist_display(titles[T_CONFLICTS_WITH], alpm_pkg_get_conflicts(pkg), cols);
-	// 	deplist_display(titles[T_REPLACES], alpm_pkg_get_replaces(pkg), cols);
-	//
-	// 	size = humanize_size(alpm_pkg_get_size(pkg), '\0', 2, &label);
-	// 	if(from == ALPM_PKG_FROM_SYNCDB) {
-	// 		printf("{}{}{} %.2f {}\n", config->colstr.title, titles[T_DOWNLOAD_SIZE],
-	// 			config->colstr.nocolor, size, label);
-	// 	} else if(from == ALPM_PKG_FROM_FILE) {
-	// 		printf("{}{}{} %.2f {}\n", config->colstr.title, titles[T_COMPRESSED_SIZE],
-	// 			config->colstr.nocolor, size, label);
-	// 	} else {
-	// 		/* autodetect size for "Installed Size" */
-	// 		label = "\0";
-	// 	}
-	//
-	// 	size = humanize_size(alpm_pkg_get_isize(pkg), label[0], 2, &label);
-	// 	printf("{}{}{} %.2f {}\n", config->colstr.title, titles[T_INSTALLED_SIZE],
-	// 			config->colstr.nocolor, size, label);
-	//
-	// 	string_display(titles[T_PACKAGER], alpm_pkg_get_packager(pkg), cols);
-	// 	string_display(titles[T_BUILD_DATE], bdatestr, cols);
-	// 	if(from == ALPM_PKG_FROM_LOCALDB) {
-	// 		string_display(titles[T_INSTALL_DATE], idatestr, cols);
-	// 		string_display(titles[T_INSTALL_REASON], reason, cols);
-	// 	}
-	// 	if(from == ALPM_PKG_FROM_FILE || from == ALPM_PKG_FROM_LOCALDB) {
-	// 		string_display(titles[T_INSTALL_SCRIPT],
-	// 				alpm_pkg_has_scriptlet(pkg) ? _("Yes") : _("No"), cols);
-	// 	}
-	//
-	// 	if(from == ALPM_PKG_FROM_SYNCDB && extra) {
-	// 		const char *base64_sig = alpm_pkg_get_base64_sig(pkg);
-	// 		alpm_list_t *keys = NULL;
-	// 		if(base64_sig) {
-	// 			unsigned char *decoded_sigdata = NULL;
-	// 			size_t data_len;
-	// 			alpm_decode_signature(base64_sig, &decoded_sigdata, &data_len);
-	// 			alpm_extract_keyid(config->handle, alpm_pkg_get_name(pkg),
-	// 					decoded_sigdata, data_len, &keys);
-	// 			free(decoded_sigdata);
-	// 		} else {
-	// 			keys = alpm_list_add(keys, _("None"));
-	// 		}
-	//
-	// 		string_display(titles[T_MD5_SUM], alpm_pkg_get_md5sum(pkg), cols);
-	// 		string_display(titles[T_SHA_256_SUM], alpm_pkg_get_sha256sum(pkg), cols);
-	// 		list_display(titles[T_SIGNATURES], keys, cols);
-	//
-	// 		if(base64_sig) {
-	// 			FREELIST(keys);
-	// 		}
-	// 	} else {
-	// 		list_display(titles[T_VALIDATED_BY], validation, cols);
-	// 	}
-	//
-	// 	if(from == ALPM_PKG_FROM_FILE) {
-	// 		alpm_siglist_t siglist;
-	// 		int err = alpm_pkg_check_pgp_signature(pkg, &siglist);
-	// 		if(err && alpm_errno(config->handle) == ALPM_ERR_SIG_MISSING) {
-	// 			string_display(titles[T_SIGNATURES], _("None"), cols);
-	// 		} else if(err) {
-	// 			string_display(titles[T_SIGNATURES],
-	// 					alpm_strerror(alpm_errno(config->handle)), cols);
-	// 		} else {
-	// 			signature_display(titles[T_SIGNATURES], &siglist, cols);
-	// 		}
-	// 		alpm_siglist_cleanup(&siglist);
-	// 	}
-	//
-	// 	/* Print additional package info if info flag passed more than once */
-	// 	if(from == ALPM_PKG_FROM_LOCALDB && extra) {
-	// 		dump_pkg_backups(pkg);
-	// 	}
-	//
-	// 	/* final newline to separate packages */
-	// 	printf("\n");
-	//
-	// 	FREELIST(requiredby);
-	// 	FREELIST(optionalfor);
-	// 	alpm_list_free(validation);
+	match from {
+		pkgfrom_t::ALPM_PKG_FROM_LOCALDB if extra => {
+			// list_display(T_REQUIRED_BY, requiredby, cols);
+			// list_display(T_OPTIONAL_FOR, optionalfor, cols);
+		}
+		_ => {}
+	}
+	deplist_display(T_CONFLICTS_WITH, pkg.alpm_pkg_get_conflicts(db_local), cols);
+	deplist_display(T_REPLACES, pkg.alpm_pkg_get_replaces(db_local), cols);
+
+	size = humanize_size(pkg.alpm_pkg_get_size(), '\0', 2, &mut label);
+	match from {
+		pkgfrom_t::ALPM_PKG_FROM_SYNCDB => {
+			println!("{} {} {}", T_DOWNLOAD_SIZE, size, label);
+		}
+		pkgfrom_t::ALPM_PKG_FROM_FILE => {
+			println!("{} {} {}", T_COMPRESSED_SIZE, size, label);
+		}
+		_ => {}
+	}
+	size = humanize_size(
+		pkg.alpm_pkg_get_isize(db_local),
+		label.chars().collect::<Vec<char>>()[0],
+		2,
+		&mut label,
+	);
+	println!("{} {} {}", T_INSTALLED_SIZE, size, label);
+
+	string_display(T_PACKAGER, &pkg.alpm_pkg_get_packager(db_local), cols, config);
+	// string_display(T_BUILD_DATE, bdatestr, cols);
+	match from {
+		pkgfrom_t::ALPM_PKG_FROM_LOCALDB => {
+			// string_display(T_INSTALL_DATE, idatestr, cols, config);
+			// string_display(T_INSTALL_REASON, reason, cols, config);
+		}
+		_ => {}
+	}
+	let has_scriptlet = if pkg.alpm_pkg_has_scriptlet(db_local) != 0 {
+		String::from("Yes")
+	} else {
+		String::from("No")
+	};
+	match from {
+		pkgfrom_t::ALPM_PKG_FROM_FILE | pkgfrom_t::ALPM_PKG_FROM_LOCALDB => {
+			string_display(T_INSTALL_SCRIPT, &has_scriptlet, cols, config);
+		}
+		_ => {}
+	}
+
+	match from {
+		pkgfrom_t::ALPM_PKG_FROM_SYNCDB if extra => {
+			unimplemented!();
+			let base64_sig = pkg.alpm_pkg_get_base64_sig();
+			let mut keys = Vec::new();
+			if !base64_sig.is_empty() {
+				unimplemented!();
+			// unsigned char *decoded_sigdata = NULL;
+			// size_t data_len;
+			// alpm_decode_signature(base64_sig, &decoded_sigdata, &data_len);
+			// alpm_extract_keyid(config.handle, alpm_pkg_get_name(pkg),
+			// 		decoded_sigdata, data_len, &keys);
+			} else {
+				keys.push(String::from("None"));
+			}
+
+			string_display(T_MD5_SUM, &pkg.alpm_pkg_get_md5sum(), cols, config);
+			string_display(T_SHA_256_SUM, &pkg.alpm_pkg_get_sha256sum(), cols, config);
+			list_display(T_SIGNATURES, &keys, cols);
+		}
+		_ => {
+			list_display(T_VALIDATED_BY, &validation, cols);
+		}
+	}
+
+	/* Print additional package info if info flag passed more than once */
+	match from {
+		pkgfrom_t::ALPM_PKG_FROM_FILE => {
+			unimplemented!();
+			// 		alpm_siglist_t siglist;
+			// 		int err = alpm_pkg_check_pgp_signature(pkg, &siglist);
+			// 		if(err && alpm_errno(config->handle) == ALPM_ERR_SIG_MISSING) {
+			// 			string_display(titles[T_SIGNATURES], _("None"), cols);
+			// 		} else if(err) {
+			// 			string_display(titles[T_SIGNATURES],
+			// 					alpm_strerror(alpm_errno(config->handle)), cols);
+			// 		} else {
+			// 			signature_display(titles[T_SIGNATURES], &siglist, cols);
+			// 		}
+			// 		alpm_siglist_cleanup(&siglist);
+		}
+		pkgfrom_t::ALPM_PKG_FROM_LOCALDB if extra => {
+			unimplemented!();
+			// pkg.dump_pkg_backups();
+		}
+		_ => {}
+	}
+
+	/* final newline to separate packages */
+	println!();
 }
 
 // static const char *get_backup_file_status(const char *root,

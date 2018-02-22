@@ -159,7 +159,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut config_t, handle:&mut al
     }
 
     /* Step 3: actually perform the removal */
-    let pkglist = &handle.trans.remove;
+    let mut pkglist = handle.trans.remove.clone();
     if pkglist.is_empty() {
         println!(" there is nothing to do");
         if !trans_release(handle) {
@@ -169,7 +169,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut config_t, handle:&mut al
     }
 
     if config.print {
-        print_packages(&pkglist, &config.print_format, config,handle);
+        print_packages(&mut pkglist, &config.print_format, config,handle);
         if !trans_release(handle) {
             retval = 1;
         }
