@@ -334,7 +334,7 @@ struct fileconflict_t {
 
 /// Package group
 #[derive(Debug, Clone)]
-pub struct alpm_group_t {
+pub struct group_t {
     /// group name
     pub name: String,
     /// list of packages
@@ -1047,7 +1047,7 @@ type alpm_cb_fetch = fn(&String, &String, i32) -> i32;
 //  * @param name of the group
 //  * @return the groups entry on success, NULL on error
 //
-// alpm_group_t *alpm_db_get_group(alpm_db_t *db, const char *name);
+// group_t *alpm_db_get_group(alpm_db_t *db, const char *name);
 //
 // /// Get the group cache of a package database.
 //  * @param db pointer to the package database to get the group from

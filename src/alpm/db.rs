@@ -113,7 +113,7 @@ pub struct alpm_db_t {
     /// do not access directly, use _alpm_db_path(db) for lazy access
     pub _path: String,
     pub pkgcache: alpm_pkghash_t,
-    grpcache: Vec<alpm_group_t>,
+    grpcache: Vec<group_t>,
     pub servers: Vec<String>,
     // ops: db_operations,
     pub ops_type: db_ops_type, //I created this to deturmine if it is local or other stuff
@@ -1106,7 +1106,7 @@ impl alpm_db_t {
     }
 
     /// Get a group entry from a package database.
-    pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&alpm_group_t> {
+    pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&group_t> {
         // if name.len() ==0{
         //     return Err(errno_t::ALPM_ERR_WRONG_ARGS);
         // }
@@ -1114,7 +1114,7 @@ impl alpm_db_t {
         return self._alpm_db_get_groupfromcache(name);
     }
 
-    pub fn alpm_db_get_group_mut(&mut self, name: &String) -> Option<&mut alpm_group_t> {
+    pub fn alpm_db_get_group_mut(&mut self, name: &String) -> Option<&mut group_t> {
         // if name.len() ==0{
         //     return Err(errno_t::ALPM_ERR_WRONG_ARGS);
         // }
@@ -1122,7 +1122,7 @@ impl alpm_db_t {
         return self._alpm_db_get_groupfromcache_mut(name);
     }
 
-    fn _alpm_db_get_groupfromcache(&mut self, target: &String) -> Option<&alpm_group_t> {
+    fn _alpm_db_get_groupfromcache(&mut self, target: &String) -> Option<&group_t> {
         if target.len() == 0 {
             return None;
         }
@@ -1136,7 +1136,7 @@ impl alpm_db_t {
         return None;
     }
 
-    fn _alpm_db_get_groupfromcache_mut(&mut self, target: &String) -> Option<&mut alpm_group_t> {
+    fn _alpm_db_get_groupfromcache_mut(&mut self, target: &String) -> Option<&mut group_t> {
         if target.len() == 0 {
             return None;
         }
@@ -1150,7 +1150,7 @@ impl alpm_db_t {
         return None;
     }
 
-    fn _alpm_db_get_groupcache(&mut self) -> &mut Vec<alpm_group_t> {
+    fn _alpm_db_get_groupcache(&mut self) -> &mut Vec<group_t> {
         if self.status.DB_STATUS_VALID {
             unimplemented!();
             // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
@@ -1213,12 +1213,12 @@ impl alpm_db_t {
     }
 
     /// Get the group cache of a package database.
-    pub fn alpm_db_get_groupcache(&mut self) -> &Vec<alpm_group_t> {
+    pub fn alpm_db_get_groupcache(&mut self) -> &Vec<group_t> {
         return self._alpm_db_get_groupcache();
     }
 
     /// Get the group cache of a package database.
-    pub fn alpm_db_get_groupcache_mut(&mut self) -> &mut Vec<alpm_group_t> {
+    pub fn alpm_db_get_groupcache_mut(&mut self) -> &mut Vec<group_t> {
         return self._alpm_db_get_groupcache();
     }
 
