@@ -30,39 +30,28 @@ use super::*;
 // #include "ini.h"
 // #include "util.h"
 
-/*
- * @brief Parse a pacman-style INI config file.
- *
- * @param file path to the config file
- * @param cb callback for key/value pairs
- * @param data caller defined data to be passed to the callback
- *
- * @return the callback return value
- *
- * @note The callback will be called at the beginning of each section with an
- * empty key and value and for each key/value pair.
- *
- * @note If the parser encounters an error the callback will be called with
- * section, key, and value set to NULL and errno set by fopen, fgets, or
- * strdup.
- *
- * @note The @a key and @a value passed to @ cb will be overwritten between
- * calls.  The section name will remain valid until after @a cb is called to
- * begin a new section.
- *
- * @note Parsing will immediately stop if the callback returns non-zero.
- */
-
 pub type IniParserFn =
-    Fn(&String, i32, &String, &Option<String>, &Option<String>, &mut Section, &mut Config)
-        -> i32;
+    Fn(&String, i32, &String, &Option<String>, &Option<String>, &mut Section, &mut Config) -> i32;
 
-pub fn parse_ini(
-    file: &String,
-    cb: &IniParserFn,
-    data: &mut Section,
-    config: &mut Config,
-) -> i32 {
+/// Parse a pacman-style INI config file.
+/// * `file` path to the config file
+/// * `cb` callback for key/value pairs
+/// * `data` caller defined data to be passed to the callback
+/// * returns the callback return value
+///
+/// note: The callback will be called at the beginning of each section with an
+/// empty key and value and for each key/value pair.
+///
+/// note: If the parser encounters an error the callback will be called with
+/// section, key, and value set to NULL and errno set by fopen, fgets, or
+/// strdup.
+///
+/// note: The @a key and @a value passed to @ cb will be overwritten between
+/// calls.  The section name will remain valid until after @a cb is called to
+/// begin a new section.
+///
+/// note: Parsing will immediately stop if the callback returns non-zero.
+pub fn parse_ini(file: &String, cb: &IniParserFn, data: &mut Section, config: &mut Config) -> i32 {
     // char line[PATH_MAX], *section_name = NULL;
     let mut section_name = String::new();
     // FILE *fp = NULL;
@@ -144,5 +133,3 @@ pub fn parse_ini(
     }
     return ret;
 }
-
-/* vim: set noet: */
