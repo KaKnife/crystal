@@ -74,9 +74,9 @@ use super::deps::find_dep_satisfier;
 
 // #[derive(Default, Debug)]
 ///TODO: Implement this
-pub type alpm_list_t<T> = Vec<T>;
-pub struct archive {}
-pub struct archive_entry {}
+// pub type alpm_list_t<T> = Vec<T>;
+pub struct Archive {}
+pub struct ArchiveEntry {}
 
 impl Handle {
     /// Run ldconfig in a chroot. Returns 0 on success, 1 on error
@@ -200,7 +200,7 @@ impl Handle {
     }
 
     /** Commit a transaction. */
-    pub fn alpm_trans_commit<T>(&self, data: &alpm_list_t<T>) -> i32 {
+    pub fn alpm_trans_commit<T>(&self, data: &Vec<T>) -> i32 {
         unimplemented!();
         // 	alpm_trans_t *trans;
         // 	alpm_event_any_t event;
@@ -940,7 +940,7 @@ impl Handle {
         }
 
         /* add the package to the transaction */
-        pkg.reason = pkgreason_t::ALPM_PKG_REASON_EXPLICIT;
+        pkg.reason = PackageReason::ALPM_PKG_REASON_EXPLICIT;
         debug!(
             "adding package {}-{} to the transaction add list\n",
             pkgname, pkgver
@@ -951,8 +951,8 @@ impl Handle {
 
     pub fn perform_extraction(
         &self,
-        archive: &archive,
-        entry: &archive_entry,
+        archive: &Archive,
+        entry: &ArchiveEntry,
         filename: &String,
     ) -> i32 {
         unimplemented!();
@@ -1049,8 +1049,8 @@ impl Handle {
 
     pub fn extract_db_file(
         &self,
-        archive: &archive,
-        entry: &archive_entry,
+        archive: &Archive,
+        entry: &ArchiveEntry,
         newpkg: &Package,
         entryname: &String,
     ) -> i32 {
@@ -1077,8 +1077,8 @@ impl Handle {
 
     pub fn extract_single_file(
         &self,
-        archive: &archive,
-        entry: &archive_entry,
+        archive: &Archive,
+        entry: &ArchiveEntry,
         newpkg: &Package,
         oldpkg: &Package,
     ) -> i32 {

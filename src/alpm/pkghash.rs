@@ -37,7 +37,7 @@ pub struct PackageHash {
     /// data held by the hash table
     pub hash_table: Vec<Package>,
     /// head node of the hash table data in normal list format
-    pub list: alpm_list_t<Package>,
+    pub list: Vec<Package>,
     ///number of buckets in hash table
     pub buckets: usize,
     /// number of entries in hash table

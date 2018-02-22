@@ -76,7 +76,7 @@ use super::deps::dep_vercmp;
 //     // const char *(*get_packager) (Package *);
 //     // const char *(*get_arch) (Package *);
 //     // off_t (*get_isize) (Package *);
-//     // pkgreason_t (*get_reason) (Package *);
+//     // PackageReason (*get_reason) (Package *);
 //     // int (*get_validation) (Package *);
 //     // int (*has_scriptlet) (Package *);
 //
@@ -160,7 +160,7 @@ pub struct Package {
     pub file: String,
     // } origin_data;
     pub origin: PackageFrom,
-    pub reason: pkgreason_t,
+    pub reason: PackageReason,
     pub scriptlet: i32,
 
     /* Bitfield from alpm_dbinfrq_t */
@@ -203,7 +203,7 @@ fn alpm_pkg_checkmd5sum(pkg: &Package) -> i64 {
 // static const char *_pkg_get_packager(Package *pkg)    { return pkg->packager; }
 // static const char *_pkg_get_arch(Package *pkg)        { return pkg->arch; }
 // static off_t _pkg_get_isize(Package *pkg)             { return pkg->isize; }
-// static pkgreason_t _pkg_get_reason(Package *pkg) { return pkg->reason; }
+// static PackageReason _pkg_get_reason(Package *pkg) { return pkg->reason; }
 // static int _pkg_get_validation(Package *pkg) { return pkg->validation; }
 // static int _pkg_has_scriptlet(Package *pkg)           { return pkg->scriptlet; }
 //
@@ -444,14 +444,14 @@ impl Package {
         // return self.ops.get_isize(pkg);
     }
 
-    fn get_reason(&mut self, db: &mut Database) -> &pkgreason_t {
+    fn get_reason(&mut self, db: &mut Database) -> &PackageReason {
         match self.origin {
             PackageFrom::ALPM_PKG_FROM_LOCALDB => self._cache_get_reason(db),
             _ => unimplemented!(),
         }
     }
 
-    pub fn alpm_pkg_get_reason(&mut self, db: &mut Database) -> &pkgreason_t {
+    pub fn alpm_pkg_get_reason(&mut self, db: &mut Database) -> &PackageReason {
         self.get_reason(db)
         //return pkg.ops.get_reason(pkg);
     }
@@ -833,7 +833,7 @@ impl Package {
         return self.isize;
     }
 
-    pub fn _cache_get_reason(&mut self, db: &mut Database) -> &pkgreason_t {
+    pub fn _cache_get_reason(&mut self, db: &mut Database) -> &PackageReason {
         self.lazy_load(INFRQ_DESC, db);
         return &self.reason;
     }
@@ -1032,7 +1032,7 @@ impl Package {
         // 	fputc('', fp);
     }
 
-    pub fn alpm_pkg_set_reason(&self, reason: &pkgreason_t) -> i32 {
+    pub fn alpm_pkg_set_reason(&self, reason: &PackageReason) -> i32 {
         unimplemented!();
         // 	ASSERT(pkg != NULL, return -1);
         // 	ASSERT(pkg->origin == ALPM_PKG_FROM_LOCALDB,

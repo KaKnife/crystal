@@ -346,7 +346,7 @@ impl Database {
                         info.packager = String::from(line);
                     }
                     NextLineType::Reason => {
-                        info.reason = pkgreason_t::from(u8::from_str_radix(line, 10).unwrap());
+                        info.reason = PackageReason::from(u8::from_str_radix(line, 10).unwrap());
                     }
                     NextLineType::Validation => {
                         unimplemented!();
@@ -1388,12 +1388,12 @@ impl Database {
 
     /// Searches a database. */
     // pub fn alpm_db_search(&self, needles: &Vec<Package>) -> alpm_list_t {
-    pub fn alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<Package> {
+    pub fn alpm_db_search(&self, needles: &Vec<String>) -> &Vec<Package> {
         return self._alpm_db_search(needles);
     }
 
     // pub fn _alpm_db_search(&self, needles: &Vec<Package>) -> alpm_list_t {
-    pub fn _alpm_db_search(&self, needles: &Vec<String>) -> &alpm_list_t<Package> {
+    pub fn _alpm_db_search(&self, needles: &Vec<String>) -> &Vec<Package> {
         unimplemented!();
         // 	const alpm_list_t *i, *j, *k;
         // 	alpm_list_t *ret = NULL;

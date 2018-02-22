@@ -398,7 +398,7 @@ fn string_length(s: String) -> usize {
     // 	return len;
 }
 
-fn add_table_cell<T>(row: &alpm_list_t<T>, label: String, mode: i32) {
+fn add_table_cell<T>(row: &Vec<T>, label: String, mode: i32) {
     unimplemented!();
     // 	struct table_cell_t *cell = malloc(sizeof(struct table_cell_t));
     //
@@ -421,7 +421,7 @@ fn add_table_cell<T>(row: &alpm_list_t<T>, label: String, mode: i32) {
     // 	}
 }
 
-fn table_free<T1, T2>(headers: alpm_list_t<T1>, rows: alpm_list_t<T2>) {
+fn table_free<T1, T2>(headers: Vec<T1>, rows: Vec<T2>) {
     unimplemented!();
     // 	alpm_list_t *i;
     //
@@ -438,7 +438,7 @@ fn table_free<T1, T2>(headers: alpm_list_t<T1>, rows: alpm_list_t<T2>) {
 
 // type off_t = i64;
 
-fn add_transaction_sizes_row<T>(rows: alpm_list_t<T>, label: String, size: i64) {
+fn add_transaction_sizes_row<T>(rows: Vec<T>, label: String, size: i64) {
     unimplemented!()
     // 	alpm_list_t *row = NULL;
     // 	char *str;
@@ -466,7 +466,7 @@ pub fn string_display(title: &str, string: &String, cols: usize, config: &Config
 }
 
 fn table_print_line<T>(
-    line: alpm_list_t<T>,
+    line: Vec<T>,
     col_padding: i32,
     colcount: usize,
     widths: &usize,

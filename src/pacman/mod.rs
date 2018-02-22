@@ -22,7 +22,7 @@ use self::remove::*;
 use self::util::*;
 use self::database::*;
 use self::conf::*;
-use self::Operations::*;
+// use self::Operations::*;
 
 pub use self::conf::Config;
 pub use self::conf::Section;
@@ -527,27 +527,27 @@ pub fn main() {
     /* start the requested operation */
     // unimplemented!("Done with parsing");
     match &config.op {
-        &Some(database) => match pacman_database(pm_targets, &mut config,&mut handle) {
+        &Some(Operations::Database) => match pacman_database(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(REMOVE) => match pacman_remove(pm_targets, &mut config,&mut handle) {
+        &Some(Operations::REMOVE) => match pacman_remove(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(UPGRADE) => match pacman_upgrade(pm_targets, &mut config,&mut handle) {
+        &Some(Operations::UPGRADE) => match pacman_upgrade(pm_targets, &mut config,&mut handle) {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(QUERY) => match pacman_query(pm_targets, &mut config,&mut handle) {
+        &Some(Operations::QUERY) => match pacman_query(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(SYNC) => match pacman_sync(pm_targets, &mut config, &mut handle) {
+        &Some(Operations::SYNC) => match pacman_sync(pm_targets, &mut config, &mut handle) {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(DEPTEST) => match pacman_deptest(pm_targets, &mut config,&mut handle) {
+        &Some(Operations::DEPTEST) => match pacman_deptest(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },

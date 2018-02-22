@@ -265,23 +265,23 @@ pub fn dump_pkg_full(
 	}
 
 	reason = match pkg.alpm_pkg_get_reason(db_local) {
-		&pkgreason_t::ALPM_PKG_REASON_EXPLICIT => "Explicitly installed",
-		&pkgreason_t::ALPM_PKG_REASON_DEPEND => "Installed as a dependency for another package",
+		&PackageReason::ALPM_PKG_REASON_EXPLICIT => "Explicitly installed",
+		&PackageReason::ALPM_PKG_REASON_DEPEND => "Installed as a dependency for another package",
 		// _ => "Unknown",
 	};
 
 	let v = pkg.alpm_pkg_get_validation(db_local);
 	if v != 0 {
-		if v & pkgvalidation_t::ALPM_PKG_VALIDATION_NONE as i32 != 0 {
+		if v & PackageValidation::ALPM_PKG_VALIDATION_NONE as i32 != 0 {
 			validation.push(String::from("None"));
 		} else {
-			if v & pkgvalidation_t::ALPM_PKG_VALIDATION_MD5SUM as i32 != 0 {
+			if v & PackageValidation::ALPM_PKG_VALIDATION_MD5SUM as i32 != 0 {
 				validation.push(String::from("MD5 Sum"));
 			}
-			if v & pkgvalidation_t::ALPM_PKG_VALIDATION_SHA256SUM as i32 != 0 {
+			if v & PackageValidation::ALPM_PKG_VALIDATION_SHA256SUM as i32 != 0 {
 				validation.push(String::from("SHA-256 Sum"));
 			}
-			if v & pkgvalidation_t::ALPM_PKG_VALIDATION_SIGNATURE as i32 != 0 {
+			if v & PackageValidation::ALPM_PKG_VALIDATION_SIGNATURE as i32 != 0 {
 				validation.push(String::from("Signature"));
 			}
 		}

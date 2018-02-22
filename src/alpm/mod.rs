@@ -40,7 +40,7 @@ use self::db::*;
 pub use self::sync::alpm_sync_sysupgrade;
 pub use self::remove::alpm_remove_pkg;
 pub use self::package::Package;
-pub use self::handle::alpm_list_t;
+// pub use self::handle::alpm_list_t;
 pub use self::handle::Handle;
 pub use self::db::Database;
 pub use self::deps::alpm_dep_from_string;
@@ -89,30 +89,30 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 
 /* Opaque Structures */
 
-type __Handle = Handle;
-type __Database = Database;
-type __Package = Package;
-type __alpm_trans_t = Transaction;
+// type __Handle = Handle;
+// type __Database = Database;
+// type __Package = Package;
+// type __alpm_trans_t = Transaction;
 type alpm_time_t = i64;
 
 /// Package install reasons.
 #[derive(Debug, Clone)]
-pub enum pkgreason_t {
+pub enum PackageReason {
     /// Explicitly requested by the user.
     ALPM_PKG_REASON_EXPLICIT = 0,
     /// Installed as a dependency for another package.
     ALPM_PKG_REASON_DEPEND = 1,
 }
-impl Default for pkgreason_t {
+impl Default for PackageReason {
     fn default() -> Self {
-        pkgreason_t::ALPM_PKG_REASON_EXPLICIT
+        PackageReason::ALPM_PKG_REASON_EXPLICIT
     }
 }
-impl From<u8> for pkgreason_t {
-    fn from(n: u8) -> pkgreason_t {
+impl From<u8> for PackageReason {
+    fn from(n: u8) -> PackageReason {
         match n {
-            0 => pkgreason_t::ALPM_PKG_REASON_EXPLICIT,
-            1 => pkgreason_t::ALPM_PKG_REASON_DEPEND,
+            0 => PackageReason::ALPM_PKG_REASON_EXPLICIT,
+            1 => PackageReason::ALPM_PKG_REASON_DEPEND,
             _ => unimplemented!(),
         }
     }
@@ -133,7 +133,7 @@ pub enum PackageFrom {
 }
 
 /// Method used to validate a package.
-pub enum pkgvalidation_t {
+pub enum PackageValidation {
     ALPM_PKG_VALIDATION_UNKNOWN = 0,
     ALPM_PKG_VALIDATION_NONE = (1 << 0),
     ALPM_PKG_VALIDATION_MD5SUM = (1 << 1),
@@ -168,7 +168,7 @@ impl Default for Depmod {
 /// Whether the conflict results from a file existing on the filesystem, or with
 /// another target in the transaction.
 #[derive(Debug)]
-enum fileconflicttype_t {
+enum FileConflictType {
     ALPM_FILECONFLICT_TARGET = 1,
     ALPM_FILECONFLICT_FILESYSTEM,
 }
@@ -267,17 +267,17 @@ impl SigLevel {
 
 /// PGP signature verification status return codes
 #[derive(Debug, Clone)]
-enum sigstatus_t {
-    ALPM_SIGSTATUS_VALID,
-    ALPM_SIGSTATUS_KEY_EXPIRED,
-    ALPM_SIGSTATUS_SIG_EXPIRED,
-    ALPM_SIGSTATUS_KEY_UNKNOWN,
-    ALPM_SIGSTATUS_KEY_DISABLED,
-    ALPM_SIGSTATUS_INVALID,
+enum SignatureStatus {
+    Valid,
+    KeyExpired,
+    SigExpired,
+    Unknown,
+    KeyDisabled,
+    Invalid,
 }
-impl Default for sigstatus_t {
+impl Default for SignatureStatus {
     fn default() -> Self {
-        sigstatus_t::ALPM_SIGSTATUS_VALID
+        SignatureStatus::Valid
     }
 }
 
@@ -327,7 +327,7 @@ pub struct Conflict {
 /// File conflict
 struct FileConflict {
     target: String,
-    ttype: fileconflicttype_t, //used to be type
+    ttype: FileConflictType, //used to be type
     file: String,
     ctarget: String,
 }
@@ -396,7 +396,7 @@ struct PgpKey {
 #[derive(Debug, Clone, Default)]
 struct SignatureResult {
     key: PgpKey,
-    status: sigstatus_t,
+    status: SignatureStatus,
     validity: SigValidity,
 }
 
@@ -1270,7 +1270,7 @@ impl DatabaseUsage {
 //  * @param pkg a pointer to package
 //  * @return an enum member giving the install reason.
 //
-// pkgreason_t alpm_pkg_get_reason(Package *pkg);
+// PackageReason alpm_pkg_get_reason(Package *pkg);
 //
 // /// Returns the list of package licenses.
 //  * @param pkg a pointer to package
@@ -1432,7 +1432,7 @@ impl DatabaseUsage {
 //  * @param reason the new install reason
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int alpm_pkg_set_reason(Package *pkg, pkgreason_t reason);
+// int alpm_pkg_set_reason(Package *pkg, PackageReason reason);
 //
 //
 // /* End of alpm_pkg

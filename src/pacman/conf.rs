@@ -201,7 +201,7 @@ pub enum Operations {
     QUERY,
     SYNC,
     DEPTEST,
-    database,
+    Database,
     FILES,
 }
 
@@ -317,7 +317,7 @@ impl Config {
         }
         use pacman::conf::Operations::*;
         match self.op {
-            Some(database) => return self.op_q_check == 0,
+            Some(Database) => return self.op_q_check == 0,
             Some(UPGRADE) | Some(REMOVE) => return self.print,
             Some(SYNC) => {
                 return self.op_s_clean != 0 || self.op_s_sync != 0
@@ -433,7 +433,7 @@ impl Config {
 
         use self::Operations::*;
         match &self.op {
-            &Some(database) => {
+            &Some(Database) => {
                 self.parsearg_database(&matches);
                 self.checkargs_database();
             }
@@ -486,7 +486,7 @@ impl Config {
         if opts.opt_present("D") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(MAIN) => Some(database),
+                Some(MAIN) => Some(Operations::Database),
                 _ => None,
             }
         } else if opts.opt_present("F") {
