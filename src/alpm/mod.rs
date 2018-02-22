@@ -176,40 +176,40 @@ enum fileconflicttype_t {
 /// PGP signature verification options
 #[derive(Default, Clone, Debug, Copy)]
 pub struct SigLevel {
-    pub ALPM_SIG_PACKAGE: bool,
-    pub ALPM_SIG_PACKAGE_OPTIONAL: bool,
-    pub ALPM_SIG_PACKAGE_MARGINAL_OK: bool,
-    pub ALPM_SIG_PACKAGE_UNKNOWN_OK: bool,
+    pub package: bool,
+    pub package_optional: bool,
+    pub package_marginal_ok: bool,
+    pub package_unknown_ok: bool,
 
-    pub ALPM_SIG_DATABASE: bool,
-    pub ALPM_SIG_DATABASE_OPTIONAL: bool,
-    pub ALPM_SIG_DATABASE_MARGINAL_OK: bool,
-    pub ALPM_SIG_DATABASE_UNKNOWN_OK: bool,
+    pub database: bool,
+    pub database_optional: bool,
+    pub database_marginal_ok: bool,
+    pub database_unknown_ok: bool,
 
-    pub ALPM_SIG_USE_DEFAULT: bool,
+    pub use_default: bool,
 }
 use std;
 impl std::ops::BitOr for SigLevel {
     type Output = Self;
     fn bitor(self, rhs: Self) -> Self {
         let mut new = SigLevel::default();
-        new.ALPM_SIG_PACKAGE = self.ALPM_SIG_PACKAGE | rhs.ALPM_SIG_PACKAGE;
-        new.ALPM_SIG_PACKAGE_OPTIONAL =
-            self.ALPM_SIG_PACKAGE_OPTIONAL | rhs.ALPM_SIG_PACKAGE_OPTIONAL;
-        new.ALPM_SIG_PACKAGE_MARGINAL_OK =
-            self.ALPM_SIG_PACKAGE_MARGINAL_OK | rhs.ALPM_SIG_PACKAGE_MARGINAL_OK;
-        new.ALPM_SIG_PACKAGE_UNKNOWN_OK =
-            self.ALPM_SIG_PACKAGE_UNKNOWN_OK | rhs.ALPM_SIG_PACKAGE_UNKNOWN_OK;
+        new.package = self.package | rhs.package;
+        new.package_optional =
+            self.package_optional | rhs.package_optional;
+        new.package_marginal_ok =
+            self.package_marginal_ok | rhs.package_marginal_ok;
+        new.package_unknown_ok =
+            self.package_unknown_ok | rhs.package_unknown_ok;
 
-        new.ALPM_SIG_DATABASE = self.ALPM_SIG_DATABASE | rhs.ALPM_SIG_DATABASE;
-        new.ALPM_SIG_DATABASE_OPTIONAL =
-            self.ALPM_SIG_DATABASE_OPTIONAL | rhs.ALPM_SIG_DATABASE_OPTIONAL;
-        new.ALPM_SIG_DATABASE_MARGINAL_OK =
-            self.ALPM_SIG_DATABASE_MARGINAL_OK | rhs.ALPM_SIG_DATABASE_MARGINAL_OK;
-        new.ALPM_SIG_DATABASE_UNKNOWN_OK =
-            self.ALPM_SIG_DATABASE_UNKNOWN_OK | rhs.ALPM_SIG_DATABASE_UNKNOWN_OK;
+        new.database = self.database | rhs.database;
+        new.database_optional =
+            self.database_optional | rhs.database_optional;
+        new.database_marginal_ok =
+            self.database_marginal_ok | rhs.database_marginal_ok;
+        new.database_unknown_ok =
+            self.database_unknown_ok | rhs.database_unknown_ok;
 
-        new.ALPM_SIG_USE_DEFAULT = self.ALPM_SIG_USE_DEFAULT | rhs.ALPM_SIG_USE_DEFAULT;
+        new.use_default = self.use_default | rhs.use_default;
         new
     }
 }
@@ -217,23 +217,23 @@ impl std::ops::BitAnd for SigLevel {
     type Output = Self;
     fn bitand(self, rhs: Self) -> Self {
         let mut new = SigLevel::default();
-        new.ALPM_SIG_PACKAGE = self.ALPM_SIG_PACKAGE & rhs.ALPM_SIG_PACKAGE;
-        new.ALPM_SIG_PACKAGE_OPTIONAL =
-            self.ALPM_SIG_PACKAGE_OPTIONAL & rhs.ALPM_SIG_PACKAGE_OPTIONAL;
-        new.ALPM_SIG_PACKAGE_MARGINAL_OK =
-            self.ALPM_SIG_PACKAGE_MARGINAL_OK & rhs.ALPM_SIG_PACKAGE_MARGINAL_OK;
-        new.ALPM_SIG_PACKAGE_UNKNOWN_OK =
-            self.ALPM_SIG_PACKAGE_UNKNOWN_OK & rhs.ALPM_SIG_PACKAGE_UNKNOWN_OK;
+        new.package = self.package & rhs.package;
+        new.package_optional =
+            self.package_optional & rhs.package_optional;
+        new.package_marginal_ok =
+            self.package_marginal_ok & rhs.package_marginal_ok;
+        new.package_unknown_ok =
+            self.package_unknown_ok & rhs.package_unknown_ok;
 
-        new.ALPM_SIG_DATABASE = self.ALPM_SIG_DATABASE & rhs.ALPM_SIG_DATABASE;
-        new.ALPM_SIG_DATABASE_OPTIONAL =
-            self.ALPM_SIG_DATABASE_OPTIONAL & rhs.ALPM_SIG_DATABASE_OPTIONAL;
-        new.ALPM_SIG_DATABASE_MARGINAL_OK =
-            self.ALPM_SIG_DATABASE_MARGINAL_OK & rhs.ALPM_SIG_DATABASE_MARGINAL_OK;
-        new.ALPM_SIG_DATABASE_UNKNOWN_OK =
-            self.ALPM_SIG_DATABASE_UNKNOWN_OK & rhs.ALPM_SIG_DATABASE_UNKNOWN_OK;
+        new.database = self.database & rhs.database;
+        new.database_optional =
+            self.database_optional & rhs.database_optional;
+        new.database_marginal_ok =
+            self.database_marginal_ok & rhs.database_marginal_ok;
+        new.database_unknown_ok =
+            self.database_unknown_ok & rhs.database_unknown_ok;
 
-        new.ALPM_SIG_USE_DEFAULT = self.ALPM_SIG_USE_DEFAULT & rhs.ALPM_SIG_USE_DEFAULT;
+        new.use_default = self.use_default & rhs.use_default;
         new
     }
 }
@@ -241,27 +241,27 @@ impl std::ops::Not for SigLevel {
     type Output = Self;
     fn not(self) -> Self {
         let mut new = SigLevel::default();
-        new.ALPM_SIG_PACKAGE = self.ALPM_SIG_PACKAGE;
-        new.ALPM_SIG_PACKAGE_OPTIONAL = self.ALPM_SIG_PACKAGE_OPTIONAL;
-        new.ALPM_SIG_PACKAGE_MARGINAL_OK = self.ALPM_SIG_PACKAGE_MARGINAL_OK;
-        new.ALPM_SIG_PACKAGE_UNKNOWN_OK = self.ALPM_SIG_PACKAGE_UNKNOWN_OK;
+        new.package = self.package;
+        new.package_optional = self.package_optional;
+        new.package_marginal_ok = self.package_marginal_ok;
+        new.package_unknown_ok = self.package_unknown_ok;
 
-        new.ALPM_SIG_DATABASE = self.ALPM_SIG_DATABASE;
-        new.ALPM_SIG_DATABASE_OPTIONAL = self.ALPM_SIG_DATABASE_OPTIONAL;
-        new.ALPM_SIG_DATABASE_MARGINAL_OK = self.ALPM_SIG_DATABASE_MARGINAL_OK;
-        new.ALPM_SIG_DATABASE_UNKNOWN_OK = self.ALPM_SIG_DATABASE_UNKNOWN_OK;
+        new.database = self.database;
+        new.database_optional = self.database_optional;
+        new.database_marginal_ok = self.database_marginal_ok;
+        new.database_unknown_ok = self.database_unknown_ok;
 
-        new.ALPM_SIG_USE_DEFAULT = self.ALPM_SIG_USE_DEFAULT;
+        new.use_default = self.use_default;
         new
     }
 }
 impl SigLevel {
     pub fn not_zero(&self) -> bool {
-        !(self.ALPM_SIG_PACKAGE || self.ALPM_SIG_PACKAGE_OPTIONAL
-            || self.ALPM_SIG_PACKAGE_MARGINAL_OK || self.ALPM_SIG_PACKAGE_UNKNOWN_OK
-            || self.ALPM_SIG_DATABASE || self.ALPM_SIG_DATABASE_OPTIONAL
-            || self.ALPM_SIG_DATABASE_MARGINAL_OK || self.ALPM_SIG_DATABASE_UNKNOWN_OK
-            || self.ALPM_SIG_USE_DEFAULT)
+        !(self.package || self.package_optional
+            || self.package_marginal_ok || self.package_unknown_ok
+            || self.database || self.database_optional
+            || self.database_marginal_ok || self.database_unknown_ok
+            || self.use_default)
     }
 }
 
@@ -420,10 +420,10 @@ pub struct SignatureList {
 /// Logging Levels
 #[derive(Debug, Default)]
 pub struct LogLevel {
-    pub ALPM_LOG_ERROR: bool,    //    = 1,
-    pub ALPM_LOG_WARNING: bool,  //  = (1 << 1),
-    pub ALPM_LOG_DEBUG: bool,    //    = (1 << 2),
-    pub ALPM_LOG_FUNCTION: bool, // = (1 << 3)
+    pub error: bool,    //    = 1,
+    pub warning: bool,  //  = (1 << 1),
+    pub debug: bool,    //    = (1 << 2),
+    pub function: bool, // = (1 << 3)
 }
 
 // type alpm_cb_log = (alpm_loglevel_t, String, va_list);
@@ -452,10 +452,10 @@ pub struct LogLevel {
 //     ALPM_EVENT_TRANSACTION_DONE,
 //     /// Package will be installed/upgraded/downgraded/re-installed/removed; See
 //     /// alpm_event_package_operation_t for arguments.
-//     ALPM_EVENT_PACKAGE_OPERATION_START,
+//     ALPM_EVENT_package_OPERATION_START,
 //     /// Package was installed/upgraded/downgraded/re-installed/removed; See
 //     /// alpm_event_package_operation_t for arguments.
-//     ALPM_EVENT_PACKAGE_OPERATION_DONE,
+//     ALPM_EVENT_package_OPERATION_DONE,
 //     /// Target package's integrity will be checked.
 //     ALPM_EVENT_INTEGRITY_START,
 //     /// Target package's integrity was checked.
@@ -506,7 +506,7 @@ pub struct LogLevel {
 //     ALPM_EVENT_OPTDEP_REMOVAL,
 //     /// A configured repository database is missing; See
 //     /// alpm_event_database_missing_t for arguments.
-//     ALPM_EVENT_DATABASE_MISSING,
+//     ALPM_EVENT_database_MISSING,
 //     /// Checking keys used to create signatures are in keyring.
 //     ALPM_EVENT_KEYRING_START,
 //     /// Keyring checking is finished.
@@ -537,15 +537,15 @@ pub struct LogLevel {
 
 // typedef enum _alpm_package_operation_t {
 // 	/// Package (to be) installed. (No oldpkg)
-// 	ALPM_PACKAGE_INSTALL = 1,
+// 	ALPM_package_INSTALL = 1,
 // 	/// Package (to be) upgraded
-// 	ALPM_PACKAGE_UPGRADE,
+// 	ALPM_package_UPGRADE,
 // 	/// Package (to be) re-installed.
-// 	ALPM_PACKAGE_REINSTALL,
+// 	ALPM_package_REINSTALL,
 // 	/// Package (to be) downgraded.
-// 	ALPM_PACKAGE_DOWNGRADE,
+// 	ALPM_package_DOWNGRADE,
 // 	/// Package (to be) removed. (No newpkg)
-// 	ALPM_PACKAGE_REMOVE
+// 	ALPM_package_REMOVE
 // } alpm_package_operation_t;
 
 // typedef struct _alpm_event_package_operation_t {
@@ -1006,7 +1006,7 @@ type FetchCallback = fn(&String, &String, i32) -> i32;
 //
 // /// Get the signature verification level for a database.
 //  * Will return the default verification level if this database is set up
-//  * with ALPM_SIG_USE_DEFAULT.
+//  * with use_default.
 //  * @param db pointer to the package database
 //  * @return the signature verification level
 //
@@ -1066,17 +1066,17 @@ type FetchCallback = fn(&String, &String, i32) -> i32;
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct DatabaseUsage {
-    pub ALPM_DB_USAGE_SYNC: bool,
-    pub ALPM_DB_USAGE_SEARCH: bool,
-    pub ALPM_DB_USAGE_INSTALL: bool,
-    pub ALPM_DB_USAGE_UPGRADE: bool,
-    pub ALPM_DB_USAGE_ALL: bool,
+    pub sync: bool,
+    pub search: bool,
+    pub install: bool,
+    pub upgrade: bool,
+    pub all: bool,
 }
 
 impl DatabaseUsage {
     pub fn is_zero(&self) -> bool {
-        !(self.ALPM_DB_USAGE_SYNC && self.ALPM_DB_USAGE_SEARCH && self.ALPM_DB_USAGE_INSTALL
-            && self.ALPM_DB_USAGE_UPGRADE && self.ALPM_DB_USAGE_ALL)
+        !(self.sync && self.search && self.install
+            && self.upgrade && self.all)
     }
 }
 
@@ -1490,39 +1490,39 @@ impl DatabaseUsage {
 #[derive(Default, Debug, Clone)]
 pub struct TransactionFlag {
     /// Ignore dependency checks.
-    pub NODEPS: bool,
+    pub no_deps: bool,
     /// Ignore file conflicts and overwrite files.
-    pub FORCE: bool,
+    pub force: bool,
     /// Delete files even if they are tagged as backup.
-    pub NOSAVE: bool,
+    pub no_save: bool,
     /// Ignore version numbers when checking dependencies.
-    pub NODEPVERSION: bool,
+    pub no_depversion: bool,
     /// Remove also any packages depending on a package being removed.
-    pub CASCADE: bool,
+    pub cascade: bool,
     /// Remove packages and their unneeded deps (not explicitly installed).
-    pub RECURSE: bool,
+    pub recurse: bool,
     /// Modify database but do not commit changes to the filesystem.
-    pub DBONLY: bool,
+    pub db_only: bool,
     /* (1 << 7) flag can go here */
     /// Use ALPM_PKG_REASON_DEPEND when installing packages.
-    pub ALLDEPS: bool,
+    pub all_deps: bool,
     /// Only download packages and do not actually install.
-    pub DOWNLOADONLY: bool,
+    pub download_only: bool,
     /// Do not execute install scriptlets after installing.
-    pub NOSCRIPTLET: bool,
+    pub no_scriptlet: bool,
     /// Ignore dependency conflicts.
-    pub NOCONFLICTS: bool,
+    pub no_conflicts: bool,
     /* (1 << 12) flag can go here */
     /// Do not install a package if it is already installed and up to date.
-    pub NEEDED: bool,
+    pub needed: bool,
     /// Use ALPM_PKG_REASON_EXPLICIT when installing packages.
-    pub ALLEXPLICIT: bool,
+    pub all_explicit: bool,
     /// Do not remove a package if it is needed by another one.
-    pub UNNEEDED: bool,
+    pub unneeded: bool,
     /// Remove also explicitly installed unneeded deps (use with pub RECURSE).
-    pub RECURSEALL: bool,
+    pub recurse_all: bool,
     /// Do not lock the database during the operation.
-    pub NOLOCK: bool,
+    pub no_lock: bool,
 }
 //
 // /// Returns the bitfield of flags for the current transaction.
@@ -1641,9 +1641,9 @@ pub struct TransactionFlag {
 #[derive(Default)]
 // pub struct alpm_caps {
 pub struct Capabilities {
-    pub ALPM_CAPABILITY_NLS: bool,
-    pub ALPM_CAPABILITY_DOWNLOADER: bool,
-    pub ALPM_CAPABILITY_SIGNATURES: bool,
+    pub nls: bool,
+    pub downloader: bool,
+    pub signatures: bool,
 }
 
 // const char *alpm_version(void);

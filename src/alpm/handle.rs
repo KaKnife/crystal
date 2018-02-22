@@ -106,7 +106,7 @@ impl Handle {
         let mut trans: Transaction = Transaction::default();
 
         /* lock db */
-        if !flags.NOLOCK {
+        if !flags.no_lock {
             if self._alpm_handle_lock().is_err() {
                 return Err(Error::ALPM_ERR_HANDLE_LOCK);
             }
@@ -178,7 +178,7 @@ impl Handle {
             }
         }
 
-        if !trans.flags.NODEPS {
+        if !trans.flags.no_deps {
             debug!("sorting by dependencies");
             if !trans.add.is_empty() {
                 unimplemented!();
@@ -370,7 +370,7 @@ impl Handle {
     }
 
     fn no_dep_version(&self) -> bool {
-        self.trans.flags.NODEPVERSION
+        self.trans.flags.no_depversion
     }
 
     ///Checks dependencies and returns missing ones in a list.
@@ -541,7 +541,7 @@ impl Handle {
         db.ops_type = db_ops_type::sync;
         // db->ops = &sync_db_ops;
         // db.handle = handle;
-        db.SigLevel = level;
+        db.siglevel = level;
         db.create_path(&self.dbpath, &self.dbext);
         db.sync_db_validate(self);
 
@@ -866,7 +866,7 @@ impl Handle {
     pub fn alpm_register_syncdb(
         &mut self,
         treename: &String,
-        SigLevel: SigLevel,
+        siglevel: SigLevel,
     ) -> Result<Database> {
         /* ensure database name is unique */
         if treename == "local" {
@@ -878,7 +878,7 @@ impl Handle {
             }
         }
 
-        Ok(self._alpm_db_register_sync(&treename, SigLevel))
+        Ok(self._alpm_db_register_sync(&treename, siglevel))
     }
 
     pub fn _alpm_db_register_local(&mut self) -> Result<&Database> {
@@ -888,7 +888,7 @@ impl Handle {
         db = Database::_alpm_db_new(&String::from("local"), true);
         // db.ops = &local_db_ops;
         db.ops_type = db_ops_type::local;
-        db.usage.ALPM_DB_USAGE_ALL = true;
+        db.usage.all = true;
         db.create_path(&self.dbpath, &self.dbext)?;
         db.local_db_validate()?;
 
@@ -915,20 +915,20 @@ impl Handle {
                 let cmp: i8 = pkg._alpm_pkg_compare_versions(&local);
 
                 if cmp == 0 {
-                    if trans.flags.NEEDED {
+                    if trans.flags.needed {
                         /* with the NEEDED flag, packages up to date are not reinstalled */
                         warn!(
                             "{}-{} is up to date -- skipping\n",
                             localpkgname, localpkgver
                         );
                         return Ok(());
-                    } else if !trans.flags.DOWNLOADONLY {
+                    } else if !trans.flags.download_only {
                         warn!(
                             "{}-{} is up to date -- reinstalling\n",
                             localpkgname, localpkgver
                         );
                     }
-                } else if cmp < 0 && !trans.flags.DOWNLOADONLY {
+                } else if cmp < 0 && !trans.flags.download_only {
                     /* local version is newer */
                     warn!(
                         "downgrading package {} ({} => {})\n",
@@ -2010,7 +2010,7 @@ impl Handle {
 
     pub fn alpm_option_set_default_siglevel(&mut self, level: &SigLevel) -> i32 {
         // #ifdef HAVE_LIBGPGME
-        self.SigLevel = level.clone();
+        self.siglevel = level.clone();
         // #else
         // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
         // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
@@ -2021,16 +2021,16 @@ impl Handle {
 
     fn alpm_option_get_default_siglevel(&self) -> SigLevel {
         // CHECK_HANDLE(handle, return -1);
-        return self.SigLevel;
+        return self.siglevel;
     }
 
     pub fn alpm_option_set_local_file_siglevel(&mut self, level: SigLevel) -> Result<i32> {
         // CHECK_HANDLE(handle, return -1);
         if cfg!(HAVE_LIBGPGME) {
-            self.localfileSigLevel = level;
+            self.localfilesiglevel = level;
         } else if
         /*level != 0 &&*/
-        level.ALPM_SIG_USE_DEFAULT {
+        level.use_default {
             // RET_ERR!(self, ALPM_ERR_WRONG_ARGS, -1);
             return Err(Error::ALPM_ERR_WRONG_ARGS);
         }
@@ -2040,17 +2040,17 @@ impl Handle {
 
     pub fn alpm_option_get_local_file_siglevel(&self) -> SigLevel {
         // CHECK_HANDLE(handle, return -1);
-        if self.localfileSigLevel.ALPM_SIG_USE_DEFAULT {
-            return self.SigLevel;
+        if self.localfilesiglevel.use_default {
+            return self.siglevel;
         } else {
-            return self.localfileSigLevel;
+            return self.localfilesiglevel;
         }
     }
 
     pub fn alpm_option_set_remote_file_siglevel(&mut self, level: SigLevel) {
         // unimplemented!();
         // #ifdef HAVE_LIBGPGME
-        self.remotefileSigLevel = level;
+        self.remotefilesiglevel = level;
         // #else
         // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
         // 		RET_ERR(handle, ALPM_ERR_WRONG_ARGS, -1);
@@ -2061,10 +2061,10 @@ impl Handle {
 
     pub fn alpm_option_get_remote_file_siglevel(&self) -> SigLevel {
         // CHECK_HANDLE(handle, return -1);
-        if self.remotefileSigLevel.ALPM_SIG_USE_DEFAULT {
-            return self.SigLevel;
+        if self.remotefilesiglevel.use_default {
+            return self.siglevel;
         } else {
-            return self.remotefileSigLevel;
+            return self.remotefilesiglevel;
         }
     }
 
@@ -2243,18 +2243,18 @@ impl Handle {
 
         /* ensure all sync database are valid if we will be using them */
         for db in &self.dbs_sync {
-            if db.status.DB_STATUS_INVALID {
+            if db.status.invalid {
                 unimplemented!();
                 // RET_ERR(handle, ALPM_ERR_DB_INVALID, -1);
             }
             /* missing databases are not allowed if we have sync targets */
-            if from_sync && db.status.DB_STATUS_MISSING {
+            if from_sync && db.status.missing {
                 unimplemented!();
                 // RET_ERR(handle, ALPM_ERR_DB_NOT_FOUND, -1);
             }
         }
 
-        if !trans.flags.NODEPS {
+        if !trans.flags.no_deps {
             unimplemented!();
             // 		alpm_list_t *resolved = NULL;
             // 		alpm_list_t *remove = alpm_list_copy(trans.remove);
@@ -2345,7 +2345,7 @@ impl Handle {
             // 		EVENT(handle, &event);
         }
 
-        if !trans.flags.NOCONFLICTS {
+        if !trans.flags.no_conflicts {
             unimplemented!();
             // 		/* check for inter-conflicts and whatnot */
             // 		event.type = ALPM_EVENT_INTERCONFLICTS_START;
@@ -2487,7 +2487,7 @@ impl Handle {
         // 		}
         // 	}
 
-        if !trans.flags.NODEPS {
+        if !trans.flags.no_deps {
             debug!("checking dependencies");
             unimplemented!();
             // 		deps = alpm_checkdeps(handle, _alpm_db_get_pkgcache(handle->db_local),
@@ -2645,10 +2645,10 @@ pub struct Handle {
     /* TODO move to frontend */
     checkspace: i32,    /* Check disk space before installing */
     pub dbext: String,  /* Sync DB extension */
-    SigLevel: SigLevel, /* Default signature verification level */
-    localfileSigLevel: SigLevel, /* Signature verification level for local file
+    siglevel: SigLevel, /* Default signature verification level */
+    localfilesiglevel: SigLevel, /* Signature verification level for local file
                         // 	                                       upgrade operations */
-    remotefileSigLevel: SigLevel, /* Signature verification level for remote file
+    remotefilesiglevel: SigLevel, /* Signature verification level for remote file
                                   // 	                                       upgrade operations */
     //
     // 	/* error code */
@@ -2705,9 +2705,9 @@ impl Clone for Handle {
             usesyslog: self.usesyslog,
             checkspace: self.checkspace,
             dbext: self.dbext.clone(),
-            SigLevel: self.SigLevel,
-            localfileSigLevel: self.localfileSigLevel,
-            remotefileSigLevel: self.remotefileSigLevel,
+            siglevel: self.siglevel,
+            localfilesiglevel: self.localfilesiglevel,
+            remotefilesiglevel: self.remotefilesiglevel,
             // pub pm_errno: Error,
             lockfd: None,
             // 	int delta_regex_compiled;

@@ -787,109 +787,109 @@ impl Package {
         alpm_pkg_vercmp(&self.version, &localpkg.version)
     }
 
-    fn LAZY_LOAD(&mut self, info: i32, db: &mut Database) {
+    fn lazy_load(&mut self, info: i32, db: &mut Database) {
         if self.infolevel & info == 0 {
             db.local_db_read(self, info);
         }
     }
 
     pub fn _cache_get_base(&mut self, db: &mut Database) -> &String {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.base;
     }
 
     pub fn _cache_get_desc(&mut self, db: &mut Database) -> &String {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.desc;
     }
 
     pub fn _cache_get_url(&mut self, db: &mut Database) -> &String {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.url;
     }
 
     pub fn _cache_get_builddate(&mut self, db: &mut Database) -> alpm_time_t {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return self.builddate;
     }
 
     pub fn _cache_get_installdate(&mut self, db: &mut Database) -> alpm_time_t {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return self.installdate;
     }
 
     pub fn _cache_get_packager(&mut self, db: &mut Database) -> &String {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.packager;
     }
 
     pub fn _cache_get_arch(&mut self, db: &mut Database) -> &String {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.arch;
     }
 
     pub fn _cache_get_isize(&mut self, db: &mut Database) -> i64 {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return self.isize;
     }
 
     pub fn _cache_get_reason(&mut self, db: &mut Database) -> &pkgreason_t {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.reason;
     }
 
     pub fn _cache_get_validation(&mut self, db: &mut Database) -> i32 {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return self.validation;
     }
 
     pub fn _cache_get_licenses(&mut self, db: &mut Database) -> &Vec<String> {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.licenses;
     }
 
     pub fn _cache_get_groups(&mut self, db: &mut Database) -> &Vec<String> {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.groups;
     }
 
     pub fn _cache_has_scriptlet(&mut self, db: &mut Database) -> i32 {
-        self.LAZY_LOAD(INFRQ_SCRIPTLET, db);
+        self.lazy_load(INFRQ_SCRIPTLET, db);
         return self.scriptlet;
     }
 
     pub fn _cache_get_depends(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.depends;
     }
 
     pub fn _cache_get_optdepends(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.optdepends;
     }
 
     pub fn _cache_get_conflicts(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.conflicts;
     }
 
     pub fn _cache_get_provides(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.provides;
     }
 
     pub fn _cache_get_replaces(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.LAZY_LOAD(INFRQ_DESC, db);
+        self.lazy_load(INFRQ_DESC, db);
         return &self.replaces;
     }
 
     // pub fn _cache_get_files(&mut self, db: &mut Database) {
-    //     self.LAZY_LOAD(INFRQ_DESC, db);
+    //     self.lazy_load(INFRQ_DESC, db);
     //     return &self.files;
     // }
 
     pub fn _cache_get_backup(&mut self, db: &mut Database) -> &Vec<String> {
-        self.LAZY_LOAD(INFRQ_FILES, db);
+        self.lazy_load(INFRQ_FILES, db);
         return &self.backup;
     }
 

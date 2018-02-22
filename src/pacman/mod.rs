@@ -489,10 +489,10 @@ pub fn main() {
     /* set up the print operations */
     if config.print && config.op_s_clean == 0 {
         config.noconfirm = true;
-        config.flags.NOCONFLICTS = true;
-        config.flags.NOLOCK = true;
+        config.flags.no_conflicts = true;
+        config.flags.no_lock = true;
         /* Display only errors */
-        config.logmask.ALPM_LOG_WARNING = false;
+        config.logmask.warning = false;
     }
 
     if config.verbose > 0 {
@@ -527,7 +527,7 @@ pub fn main() {
     /* start the requested operation */
     // unimplemented!("Done with parsing");
     match &config.op {
-        &Some(DATABASE) => match pacman_database(pm_targets, &mut config,&mut handle) {
+        &Some(database) => match pacman_database(pm_targets, &mut config,&mut handle) {
             Err(e) => (ret = e),
             _ => {}
         },

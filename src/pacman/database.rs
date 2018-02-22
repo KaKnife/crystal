@@ -38,10 +38,10 @@ fn change_install_reason(
         return 1;
     }
 
-    if config.flags.ALLDEPS {
+    if config.flags.all_deps {
         /* --asdeps */
         reason = pkgreason_t::ALPM_PKG_REASON_DEPEND;
-    } else if config.flags.ALLEXPLICIT {
+    } else if config.flags.all_explicit {
         /* --asexplicit */
         reason = pkgreason_t::ALPM_PKG_REASON_EXPLICIT;
     } else {
@@ -304,7 +304,7 @@ pub fn pacman_database(
         }
     }
 
-    if config.flags.ALLDEPS && config.flags.ALLEXPLICIT {
+    if config.flags.all_deps && config.flags.all_explicit {
         ret = change_install_reason(targets, config, handle);
     }
 

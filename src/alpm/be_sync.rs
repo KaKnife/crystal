@@ -79,18 +79,14 @@ use std::fs;
  * @return 0 on success, -1 on error (pm_errno is set accordingly), 1 if up to
  * to date
  */
-pub fn alpm_db_update(
-    mut force: bool,
-    db: &mut Database,
-    handle: &mut Handle,
-) -> Result<i8> {
+pub fn alpm_db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Result<i8> {
     let syncpath;
     let mut updated = false;
     let mut ret = -1;
     // 	mode_t oldmask;
     let siglevel;
 
-    if !db.usage.ALPM_DB_USAGE_SYNC {
+    if !db.usage.sync {
         return Ok(0);
     }
 
@@ -102,7 +98,7 @@ pub fn alpm_db_update(
     };
 
     /* force update of invalid databases to fix potential mismatched database/signature */
-    if db.status.DB_STATUS_INVALID {
+    if db.status.invalid {
         force = true;
     }
 
@@ -120,9 +116,9 @@ pub fn alpm_db_update(
         let dbext = handle.alpm_option_get_dbext();
 
         for server in db.servers.clone() {
-            let mut final_db_url = String::new();
-            let mut payload = dload_payload::default();
-            let mut sig_ret = 0;
+            let mut final_db_url: String = String::new();
+            let mut payload: dload_payload = dload_payload::default();
+            let mut sig_ret: i32 = 0;
 
             /* set hard upper limit of 25MiB */
             payload.max_size = 25 * 1024 * 1024;
@@ -136,7 +132,7 @@ pub fn alpm_db_update(
             payload._alpm_dload_payload_reset();
             updated = updated || ret == 0;
 
-            if ret != -1 && updated && siglevel.ALPM_SIG_DATABASE {
+            if ret != -1 && updated && siglevel.database {
                 /* an existing sig file is no good at this point */
                 {
                     let dbpath = &db._alpm_db_path().ok();
@@ -165,7 +161,7 @@ pub fn alpm_db_update(
                 }
 
                 payload.force = true;
-                payload.errors_ok = siglevel.ALPM_SIG_DATABASE_OPTIONAL;
+                payload.errors_ok = siglevel.database_optional;
 
                 /* set hard upper limit of 16KiB */
                 payload.max_size = 16 * 1024;
@@ -186,10 +182,10 @@ pub fn alpm_db_update(
         db._alpm_db_free_pkgcache();
 
         /* clear all status flags regarding validity/existence */
-        db.status.DB_STATUS_VALID = false;
-        db.status.DB_STATUS_INVALID = false;
-        db.status.DB_STATUS_EXISTS = false;
-        db.status.DB_STATUS_MISSING = false;
+        db.status.valid = false;
+        db.status.invalid = false;
+        db.status.exists = false;
+        db.status.missing = false;
 
         /* if the download failed skip validation to preserve the download error */
         if ret != -1 && db.sync_db_validate(handle).is_err() {

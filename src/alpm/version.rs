@@ -30,7 +30,7 @@
 /// * ep - reference to epoch
 /// * vp - reference to version
 /// * rp - reference to release
-fn parseEVR(evr: String) -> (String, String, Option<String>) {
+fn parse_evr(evr: String) -> (String, String, Option<String>) {
     let mut tmp: Vec<&str>;
     let mut epoch = String::from("0");
     let version;
@@ -109,8 +109,8 @@ pub fn alpm_pkg_vercmp(a: &String, b: &String) -> i8 {
     let full2 = b.clone();
 
     /* parseEVR modifies passed in version, so have to dupe it first */
-    let (epoch1, ver1, rel1) = parseEVR(full1);
-    let (epoch2, ver2, rel2) = parseEVR(full2);
+    let (epoch1, ver1, rel1) = parse_evr(full1);
+    let (epoch2, ver2, rel2) = parse_evr(full2);
 
     ret = rpmvercmp(&epoch1, &epoch2);
     if ret == 0 {

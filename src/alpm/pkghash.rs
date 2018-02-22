@@ -81,14 +81,14 @@ pub struct PackageHash {
 //
 // #include "pkghash.h"
 // #include "util.h"
-//
-// /* List of primes for possible sizes of hash tables.
-//  *
-//  * The maximum table size is the last prime under 1,000,000.  That is
-//  * more than an order of magnitude greater than the number of packages
-//  * in any Linux distribution, and well under UINT_MAX.
-//  */
-const prime_list: [usize; 145] = [
+
+/* List of primes for possible sizes of hash tables.
+ *
+ * The maximum table size is the last prime under 1,000,000.  That is
+ * more than an order of magnitude greater than the number of packages
+ * in any Linux distribution, and well under UINT_MAX.
+ */
+const PRIME_LIST: [usize; 145] = [
     11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 103, 109,
     113, 127, 137, 139, 149, 157, 167, 179, 193, 199, 211, 227, 241, 257, 277, 293, 313, 337, 359,
     383, 409, 439, 467, 503, 541, 577, 619, 661, 709, 761, 823, 887, 953, 1031, 1109, 1193, 1289,
@@ -104,7 +104,7 @@ const prime_list: [usize; 145] = [
 // /* How far forward do we look when linear probing for a spot? */
 // static const unsigned int stride = 1;
 // /* What is the maximum load percentage of our hash table? */
-const max_hash_load: f32 = 0.68;
+const MAX_HASH_LOAD: f32 = 0.68;
 // /* Initial load percentage given a certain size */
 // static const double initial_hash_load = 0.58;
 //

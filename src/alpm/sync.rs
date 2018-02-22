@@ -152,7 +152,7 @@ pub fn alpm_sync_sysupgrade(handle: &mut Handle, enable_downgrade: bool) -> Resu
             // Database *sdb = j.data;
             // alpm_list_t *replacers;
 
-            if !sdb.usage.ALPM_DB_USAGE_UPGRADE {
+            if !sdb.usage.upgrade {
                 continue;
             }
             unimplemented!();

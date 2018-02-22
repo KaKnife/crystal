@@ -96,8 +96,8 @@ pub struct ConfigRepo {
     name: String,
     servers: Vec<String>,
     usage: DatabaseUsage,
-    SigLevel: SigLevel,
-    SigLevel_mask: SigLevel,
+    siglevel: SigLevel,
+    siglevel_mask: SigLevel,
 }
 
 #[derive(Default, Debug)]
@@ -157,13 +157,13 @@ pub struct Config {
     pub noask: bool,
     pub ask: u64,
     pub flags: alpm::TransactionFlag,
-    pub SigLevel: SigLevel,
-    pub localfileSigLevel: SigLevel,
-    pub remotefileSigLevel: SigLevel,
+    pub siglevel: SigLevel,
+    pub localfilesiglevel: SigLevel,
+    pub remotefilesiglevel: SigLevel,
 
-    pub SigLevel_mask: SigLevel,
-    pub localfileSigLevel_mask: SigLevel,
-    pub remotefileSigLevel_mask: SigLevel,
+    pub siglevel_mask: SigLevel,
+    pub localfilesiglevel_mask: SigLevel,
+    pub remotefilesiglevel_mask: SigLevel,
 
     /* conf file options */
     /* I Love Candy! */
@@ -201,15 +201,15 @@ pub enum Operations {
     QUERY,
     SYNC,
     DEPTEST,
-    DATABASE,
+    database,
     FILES,
 }
 
 /// clean method
 #[derive(Debug, Default)]
 pub struct CleanMethod {
-    PM_CLEAN_KEEPINST: bool,
-    PM_CLEAN_KEEPCUR: bool,
+    keepinst: bool,
+    keepcur: bool,
 }
 
 /** package locality */
@@ -286,16 +286,16 @@ impl Config {
 
         /* defaults which may get overridden later */
         newconfig.op = Some(Operations::MAIN);
-        newconfig.logmask.ALPM_LOG_ERROR = true;
-        newconfig.logmask.ALPM_LOG_WARNING = true;
+        newconfig.logmask.error = true;
+        newconfig.logmask.warning = true;
         newconfig.configfile = String::from(CONFFILE); //TODO: implement this
         newconfig.deltaratio = 0.0;
         //TODO: implement this
         // if(alpm_capabilities() & ALPM_CAPABILITY_SIGNATURES) {
-        // 	newconfig.SigLevel = ALPM_SIG_PACKAGE | ALPM_SIG_PACKAGE_OPTIONAL |
-        // 		ALPM_SIG_DATABASE | ALPM_SIG_DATABASE_OPTIONAL;
-        // 	newconfig.localfileSigLevel = ALPM_SIG_USE_DEFAULT;
-        // 	newconfig.remotefileSigLevel = ALPM_SIG_USE_DEFAULT;
+        // 	newconfig.SigLevel = package | package_optional |
+        // 		database | database_optional;
+        // 	newconfig.localfileSigLevel = USE_DEFAULT;
+        // 	newconfig.remotefileSigLevel = USE_DEFAULT;
         // }
 
         newconfig.colstr.colon = String::from(":: ");
@@ -317,7 +317,7 @@ impl Config {
         }
         use pacman::conf::Operations::*;
         match self.op {
-            Some(DATABASE) => return self.op_q_check == 0,
+            Some(database) => return self.op_q_check == 0,
             Some(UPGRADE) | Some(REMOVE) => return self.print,
             Some(SYNC) => {
                 return self.op_s_clean != 0 || self.op_s_sync != 0
@@ -433,7 +433,7 @@ impl Config {
 
         use self::Operations::*;
         match &self.op {
-            &Some(DATABASE) => {
+            &Some(database) => {
                 self.parsearg_database(&matches);
                 self.checkargs_database();
             }
@@ -486,7 +486,7 @@ impl Config {
         if opts.opt_present("D") {
             //if(dryrun) break;
             self.op = match self.op {
-                Some(MAIN) => Some(DATABASE),
+                Some(MAIN) => Some(database),
                 _ => None,
             }
         } else if opts.opt_present("F") {
@@ -585,10 +585,10 @@ impl Config {
                     let debug = d.parse().unwrap();
                     match debug {
                         2 => {
-                            self.logmask.ALPM_LOG_FUNCTION = true; /* fall through */
-                            self.logmask.ALPM_LOG_DEBUG = true;
+                            self.logmask.function = true; /* fall through */
+                            self.logmask.debug = true;
                         }
-                        1 => self.logmask.ALPM_LOG_DEBUG = true,
+                        1 => self.logmask.debug = true,
                         _ => {
                             unimplemented!();
                             error!("'{}' is not a valid debug level", d);
@@ -597,7 +597,7 @@ impl Config {
                     }
                 }
                 None => {
-                    self.logmask.ALPM_LOG_DEBUG = true;
+                    self.logmask.debug = true;
                 }
             }
             /* progress bars get wonky with debug on, shut them off */
@@ -639,10 +639,10 @@ impl Config {
 
     fn parsearg_database(&mut self, opts: &getopts::Matches) {
         if opts.opt_present("asdeps") {
-            self.flags.ALLDEPS = true;
+            self.flags.all_deps = true;
         }
         if opts.opt_present("asexplicit") {
-            self.flags.ALLEXPLICIT = true;
+            self.flags.all_explicit = true;
         }
         if opts.opt_present("check") {
             self.op_q_check = opts.opt_count("check") as u8;
@@ -654,14 +654,14 @@ impl Config {
 
     fn checkargs_database(&mut self) {
         invalid_opt(
-            self.flags.ALLDEPS && self.flags.ALLEXPLICIT,
+            self.flags.all_deps && self.flags.all_explicit,
             "--asdeps",
             "--asexplicit",
         );
 
         if self.op_q_check != 0 {
-            invalid_opt(self.flags.ALLDEPS, "--asdeps", "--check");
-            invalid_opt(self.flags.ALLEXPLICIT, "--asexplicit", "--check");
+            invalid_opt(self.flags.all_deps, "--asdeps", "--check");
+            invalid_opt(self.flags.all_explicit, "--asexplicit", "--check");
         }
     }
 
@@ -771,21 +771,21 @@ impl Config {
     /* options common to -S -R -U */
     fn parsearg_trans(&mut self, opts: &getopts::Matches) {
         if opts.opt_present("nodeps") {
-            if self.flags.NODEPVERSION {
-                self.flags.NODEPS = true;
+            if self.flags.no_depversion {
+                self.flags.no_deps = true;
             } else {
-                self.flags.NODEPVERSION = true;
+                self.flags.no_depversion = true;
             }
         }
         if opts.opt_present("dbonly") {
-            self.flags.DBONLY = true;
-            self.flags.NOSCRIPTLET = true;
+            self.flags.db_only = true;
+            self.flags.no_scriptlet = true;
         }
         if opts.opt_present("noprogressbar") {
             self.noprogressbar = 1;
         }
         if opts.opt_present("noscriptlet") {
-            self.flags.NOSCRIPTLET = true;
+            self.flags.no_scriptlet = true;
         }
         if opts.opt_present("print") {
             self.print = true;
@@ -802,8 +802,8 @@ impl Config {
 
     fn checkargs_trans(&mut self) {
         if self.print {
-            invalid_opt(self.flags.DBONLY, "--print", "--dbonly");
-            invalid_opt(self.flags.NOSCRIPTLET, "--print", "--noscriptlet");
+            invalid_opt(self.flags.db_only, "--print", "--dbonly");
+            invalid_opt(self.flags.no_scriptlet, "--print", "--noscriptlet");
         }
     }
 
@@ -811,28 +811,28 @@ impl Config {
         self.parsearg_trans(opts);
 
         if opts.opt_present("cascade") {
-            self.flags.CASCADE = true;
+            self.flags.cascade = true;
         }
         if opts.opt_present("nosave") {
-            self.flags.NOSAVE = true;
+            self.flags.no_save = true;
         }
         if opts.opt_present("recursive") {
-            if self.flags.RECURSE {
-                self.flags.RECURSEALL = true;
+            if self.flags.recurse {
+                self.flags.recurse_all = true;
             } else {
-                self.flags.RECURSE = true;
+                self.flags.recurse = true;
             }
         }
         if opts.opt_present("unneeded") {
-            self.flags.UNNEEDED = true;
+            self.flags.unneeded = true;
         }
     }
 
     fn checkargs_remove(&mut self) {
         self.checkargs_trans();
-        if self.flags.NOSAVE {
+        if self.flags.no_save {
             invalid_opt(self.print, "--nosave", "--print");
-            invalid_opt(self.flags.DBONLY, "--nosave", "--dbonly");
+            invalid_opt(self.flags.db_only, "--nosave", "--dbonly");
         }
     }
 
@@ -841,27 +841,27 @@ impl Config {
         self.parsearg_trans(opts);
 
         if opts.opt_present("force") {
-            self.flags.FORCE = true;
+            self.flags.force = true;
         }
         if opts.opt_present("overwrite") {
             unimplemented!();
             // parsearg_util_addlist(&(self.overwrite_files));
         }
         if opts.opt_present("asdeps") {
-            self.flags.ALLDEPS = true;
+            self.flags.all_deps = true;
         }
         if opts.opt_present("asexplicit") {
-            self.flags.ALLEXPLICIT = true;
+            self.flags.all_explicit = true;
         }
         if opts.opt_present("needed") {
-            self.flags.NEEDED = true;
+            self.flags.needed = true;
         }
     }
 
     fn checkargs_upgrade(&mut self) {
         self.checkargs_trans();
         invalid_opt(
-            self.flags.ALLDEPS && self.flags.ALLEXPLICIT,
+            self.flags.all_deps && self.flags.all_explicit,
             "--asdeps",
             "--asexplicit",
         );
@@ -927,8 +927,8 @@ impl Config {
         }
         if opts.opt_present("downloadonly") {
             self.op_s_downloadonly = 1;
-            self.flags.DOWNLOADONLY = true;
-            self.flags.NOCONFLICTS = true;
+            self.flags.download_only = true;
+            self.flags.no_conflicts = true;
         }
         if opts.opt_present("refresh") {
             self.op_s_sync = opts.opt_count("refresh") as u8;
@@ -1139,7 +1139,7 @@ fn process_siglevel(
         // 		const char *original = i.data, *value;
         // 		int package = 0, database = 0;
         let mut package = false;
-        let mut database = false;
+        let mut db = false;
 
         if original.starts_with("Package") {
             /* only packages are affected, don't flip flags for databases */
@@ -1148,83 +1148,83 @@ fn process_siglevel(
         } else if original.starts_with("Database") {
             /* only databases are affected, don't flip flags for packages */
             value = String::from(original.trim_left_matches("Database"));
-            database = true;
+            db = true;
         } else {
             /* no prefix, so anything found will affect both packages and dbs */
             value = original.clone();
             package = true;
-            database = true;
+            db = true;
         }
 
         /* now parse out and store actual flag if it is valid */
         if value == "Never" {
             if package {
-                level.ALPM_SIG_PACKAGE = false;
-                mask.ALPM_SIG_PACKAGE = false;
+                level.package = false;
+                mask.package = false;
             }
-            if database {
-                level.ALPM_SIG_DATABASE = false;
-                mask.ALPM_SIG_DATABASE = false;
+            if db {
+                level.database = false;
+                mask.database = false;
             }
         } else if value == "Optional" {
             if package {
-                level.ALPM_SIG_DATABASE = true;
-                mask.ALPM_SIG_DATABASE = true;
+                level.database = true;
+                mask.database = true;
 
-                level.ALPM_SIG_PACKAGE_OPTIONAL = true;
-                mask.ALPM_SIG_PACKAGE_OPTIONAL = true;
+                level.package_optional = true;
+                mask.package_optional = true;
             }
-            if database {
-                level.ALPM_SIG_DATABASE = true;
-                mask.ALPM_SIG_DATABASE = true;
+            if db {
+                level.database = true;
+                mask.database = true;
 
-                level.ALPM_SIG_DATABASE_OPTIONAL = true;
-                mask.ALPM_SIG_DATABASE_OPTIONAL = true;
+                level.database_optional = true;
+                mask.database_optional = true;
             }
         } else if value == "Required" {
             if package {
-                level.ALPM_SIG_PACKAGE = true;
-                mask.ALPM_SIG_PACKAGE = true;
+                level.package = true;
+                mask.package = true;
 
-                level.ALPM_SIG_PACKAGE_OPTIONAL = false;
-                mask.ALPM_SIG_PACKAGE_OPTIONAL = false;
+                level.package_optional = false;
+                mask.package_optional = false;
             }
-            if database {
-                level.ALPM_SIG_DATABASE = true;
-                mask.ALPM_SIG_DATABASE = true;
+            if db {
+                level.database = true;
+                mask.database = true;
 
-                level.ALPM_SIG_DATABASE_OPTIONAL = false;
-                mask.ALPM_SIG_DATABASE_OPTIONAL = false;
+                level.database_optional = false;
+                mask.database_optional = false;
             }
         } else if value == "TrustedOnly" {
             if package {
-                level.ALPM_SIG_PACKAGE_MARGINAL_OK = false;
-                mask.ALPM_SIG_PACKAGE_MARGINAL_OK = false;
+                level.package_marginal_ok = false;
+                mask.package_marginal_ok = false;
 
-                level.ALPM_SIG_PACKAGE_UNKNOWN_OK = false;
-                mask.ALPM_SIG_PACKAGE_UNKNOWN_OK = false;
+                level.package_unknown_ok = false;
+                mask.package_unknown_ok = false;
             }
-            if database {
-                level.ALPM_SIG_DATABASE_MARGINAL_OK = false;
-                mask.ALPM_SIG_DATABASE_MARGINAL_OK = false;
+            if db {
+                level.database_marginal_ok = false;
+                mask.database_marginal_ok = false;
 
-                level.ALPM_SIG_DATABASE_UNKNOWN_OK = false;
-                mask.ALPM_SIG_DATABASE_UNKNOWN_OK = false;
+                level.database_unknown_ok = false;
+                mask.database_unknown_ok = false;
             }
         } else if value == "TrustAll" {
             if package {
-                level.ALPM_SIG_PACKAGE_MARGINAL_OK = true;
-                mask.ALPM_SIG_PACKAGE_MARGINAL_OK = true;
+                level.package_marginal_ok = true;
+                mask.package_marginal_ok = true;
 
-                level.ALPM_SIG_PACKAGE_UNKNOWN_OK = true;
-                mask.ALPM_SIG_PACKAGE_UNKNOWN_OK = true;
+                level.package_unknown_ok = true;
+                mask.package_unknown_ok = true;
             }
-            if database {
-                level.ALPM_SIG_DATABASE_MARGINAL_OK = true;
-                mask.ALPM_SIG_DATABASE_MARGINAL_OK = true;
+            if db {
+                level.database_marginal_ok = true;
+                mask.database_marginal_ok = true;
 
-                level.ALPM_SIG_DATABASE_UNKNOWN_OK = true;
-                mask.ALPM_SIG_DATABASE_UNKNOWN_OK = true;
+                level.database_unknown_ok = true;
+                mask.database_unknown_ok = true;
             }
         } else {
             eprintln!(
@@ -1233,12 +1233,12 @@ fn process_siglevel(
             );
             ret = 1;
         }
-        level.ALPM_SIG_USE_DEFAULT = false;
+        level.use_default = false;
     }
 
     /* ensure we have sig checking ability and are actually turning it on */
-    if !(alpm::capabilities().ALPM_CAPABILITY_SIGNATURES && level.ALPM_SIG_PACKAGE
-        || level.ALPM_SIG_DATABASE)
+    if !(alpm::capabilities().signatures && level.package
+        || level.database)
     {
         eprintln!(
             "config file {}, line {}: '{}' option invalid, no signature support",
@@ -1274,9 +1274,9 @@ pub fn process_cleanmethods(
 ) -> i32 {
     for value in values {
         if value == "KeepInstalled" {
-            config.cleanmethod.PM_CLEAN_KEEPINST = true;
+            config.cleanmethod.keepinst = true;
         } else if value == "KeepCurrent" {
-            config.cleanmethod.PM_CLEAN_KEEPCUR = true;
+            config.cleanmethod.keepcur = true;
         } else {
             error!(
                 "config file {}, line {}: invalid value for '{}' : '{}'",
@@ -1430,8 +1430,8 @@ fn _parse_options(
                 setrepeatingoption(value, "SigLevel", &mut values);
                 if process_siglevel(
                     values,
-                    &mut config.SigLevel,
-                    &mut config.SigLevel_mask,
+                    &mut config.siglevel,
+                    &mut config.siglevel_mask,
                     file,
                     linenum,
                 ) != 0
@@ -1443,8 +1443,8 @@ fn _parse_options(
                 setrepeatingoption(value, "LocalFileSigLevel", &mut values);
                 if process_siglevel(
                     values,
-                    &mut config.localfileSigLevel,
-                    &mut config.localfileSigLevel_mask,
+                    &mut config.localfilesiglevel,
+                    &mut config.localfilesiglevel_mask,
                     file,
                     linenum,
                 ) != 0
@@ -1456,8 +1456,8 @@ fn _parse_options(
                 setrepeatingoption(value, "RemoteFileSigLevel", &mut values);
                 if process_siglevel(
                     values,
-                    &mut config.remotefileSigLevel,
-                    &mut config.remotefileSigLevel_mask,
+                    &mut config.remotefilesiglevel,
+                    &mut config.remotefilesiglevel_mask,
                     file,
                     linenum,
                 ) != 0
@@ -1514,9 +1514,9 @@ fn register_repo(
     config_siglevel: SigLevel,
     arch: &String,
 ) -> i32 {
-    repo.SigLevel = merge_siglevel(config_siglevel, repo.SigLevel, repo.SigLevel_mask);
+    repo.siglevel = merge_siglevel(config_siglevel, repo.siglevel, repo.siglevel_mask);
 
-    let mut db = match config_handle.alpm_register_syncdb(&repo.name, repo.SigLevel) {
+    let mut db = match config_handle.alpm_register_syncdb(&repo.name, repo.siglevel) {
         Err(e) => {
             eprintln!(
                 "could not register '{}' database ({})",
@@ -1541,7 +1541,7 @@ fn register_repo(
     //     repo.name
     // );
     if repo.usage.is_zero() {
-        repo.usage.ALPM_DB_USAGE_ALL = true;
+        repo.usage.all = true;
     }
     db.alpm_db_set_usage(repo.usage);
 
@@ -1701,25 +1701,25 @@ fn setup_libalpm(config: &mut Config) -> Result<Handle> {
 
     handle.alpm_option_set_overwrite_files(&config.overwrite_files);
 
-    handle.alpm_option_set_default_siglevel(&config.SigLevel);
+    handle.alpm_option_set_default_siglevel(&config.siglevel);
 
-    config.localfileSigLevel = merge_siglevel(
-        config.SigLevel,
-        config.localfileSigLevel,
-        config.localfileSigLevel_mask,
+    config.localfilesiglevel = merge_siglevel(
+        config.siglevel,
+        config.localfilesiglevel,
+        config.localfilesiglevel_mask,
     );
-    config.remotefileSigLevel = merge_siglevel(
-        config.SigLevel,
-        config.remotefileSigLevel,
-        config.remotefileSigLevel_mask,
+    config.remotefilesiglevel = merge_siglevel(
+        config.siglevel,
+        config.remotefilesiglevel,
+        config.remotefilesiglevel_mask,
     );
 
-    handle.alpm_option_set_local_file_siglevel(config.localfileSigLevel)?;
+    handle.alpm_option_set_local_file_siglevel(config.localfilesiglevel)?;
 
-    handle.alpm_option_set_remote_file_siglevel(config.remotefileSigLevel);
+    handle.alpm_option_set_remote_file_siglevel(config.remotefilesiglevel);
 
     for mut data in &mut config.repos {
-        register_repo(&mut data, &mut handle, config.SigLevel, &config.arch);
+        register_repo(&mut data, &mut handle, config.siglevel, &config.arch);
     }
 
     // if config.xfercommand!="" {
@@ -1775,15 +1775,15 @@ fn process_usage(
 
     for key in values {
         if key == "Sync" {
-            level.ALPM_DB_USAGE_SYNC = true;
+            level.sync = true;
         } else if key == "Search" {
-            level.ALPM_DB_USAGE_SEARCH = true;
+            level.search = true;
         } else if key == "Install" {
-            level.ALPM_DB_USAGE_INSTALL = true;
+            level.install = true;
         } else if key == "Upgrade" {
-            level.ALPM_DB_USAGE_UPGRADE = true;
+            level.upgrade = true;
         } else if key == "All" {
-            level.ALPM_DB_USAGE_ALL = true;
+            level.all = true;
         } else {
             error!(
                 "config file {}, line {}: '{}' option '{}' not recognized",
@@ -1837,8 +1837,8 @@ fn _parse_repo(
                         if !values.is_empty() {
                             ret = process_siglevel(
                                 values,
-                                &mut repo.SigLevel,
-                                &mut repo.SigLevel_mask,
+                                &mut repo.siglevel,
+                                &mut repo.siglevel_mask,
                                 file,
                                 line,
                             );
@@ -1974,7 +1974,7 @@ fn _parse_directive(
             } else {
                 let mut repo = ConfigRepo::default();
                 repo.name = name.clone();
-                repo.SigLevel.ALPM_SIG_USE_DEFAULT = true;
+                repo.siglevel.use_default = true;
                 section.repo = Some(repo.clone());
                 config.repos.push(repo);
             }

@@ -83,19 +83,19 @@ pub const INFRQ_ERROR: i32 = (1 << 30);
 /// Database status. Bitflags. */
 #[derive(Debug, Clone, Default)]
 pub struct dbstatus_t {
-    pub DB_STATUS_VALID: bool,
-    pub DB_STATUS_INVALID: bool,
-    pub DB_STATUS_EXISTS: bool,
-    pub DB_STATUS_MISSING: bool,
+    pub valid: bool,
+    pub invalid: bool,
+    pub exists: bool,
+    pub missing: bool,
 
-    pub DB_STATUS_LOCAL: bool,
-    pub DB_STATUS_PKGCACHE: bool,
-    pub DB_STATUS_GRPCACHE: bool,
+    pub local: bool,
+    pub pkgcache: bool,
+    pub grpcache: bool,
 }
 
 // impl Default for dbstatus_t {
 //     fn default() -> Self {
-//         dbstatus_t::DB_STATUS_VALID
+//         dbstatus_t::VALID
 //     }
 // }
 
@@ -120,7 +120,7 @@ pub struct Database {
 
     /* bitfields for validity, local, loaded caches, etc. */
     pub status: dbstatus_t,
-    pub SigLevel: SigLevel,
+    pub siglevel: SigLevel,
     pub usage: DatabaseUsage,
 }
 
@@ -138,10 +138,10 @@ impl Default for db_ops_type {
 
 impl Database {
     pub fn sync_db_validate(&mut self, handle: &Handle) -> Result<bool> {
-        if self.status.DB_STATUS_VALID || self.status.DB_STATUS_MISSING {
+        if self.status.valid || self.status.missing {
             return Ok(true);
         }
-        if self.status.DB_STATUS_INVALID {
+        if self.status.invalid {
             return Err(Error::ALPM_ERR_DB_INVALID_SIG);
         }
 
@@ -160,11 +160,11 @@ impl Database {
                     // 	etype: alpm_event_type_t::ALPM_EVENT_DATABASE_MISSING,
                     // 	dbname: self.treename.clone(),
                     // };
-                    self.status.DB_STATUS_EXISTS = false;
-                    self.status.DB_STATUS_MISSING = true;
+                    self.status.exists = false;
+                    self.status.missing = true;
                     // EVENT!(handle, &alpm_event_t::database_missing(event));
-                    self.status.DB_STATUS_VALID = true;
-                    self.status.DB_STATUS_INVALID = false;
+                    self.status.valid = true;
+                    self.status.invalid = false;
                     return Ok(true);
                 }
                 _ => {}
@@ -172,14 +172,14 @@ impl Database {
             _ => {}
         }
 
-        self.status.DB_STATUS_EXISTS = true;
-        self.status.DB_STATUS_MISSING = false;
+        self.status.exists = true;
+        self.status.missing = false;
 
         /* this takes into account the default verification level if UNKNOWN
          * was assigned to this db */
-        let SigLevel = self.alpm_db_get_siglevel();
+        let siglevel = self.alpm_db_get_siglevel();
 
-        if SigLevel.ALPM_SIG_DATABASE {
+        if siglevel.database {
             let mut ret = 0;
             let mut retry = 1;
             while retry != 0 {
@@ -189,9 +189,9 @@ impl Database {
                     handle,
                     &dbpath,
                     None,
-                    SigLevel.ALPM_SIG_DATABASE_OPTIONAL,
-                    SigLevel.ALPM_SIG_DATABASE_MARGINAL_OK,
-                    SigLevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
+                    siglevel.database_optional,
+                    siglevel.database_marginal_ok,
+                    siglevel.database_unknown_ok,
                     &siglist,
                 );
                 if ret != 0 {
@@ -199,23 +199,23 @@ impl Database {
                         &handle,
                         &self.treename,
                         &siglist,
-                        SigLevel.ALPM_SIG_DATABASE_OPTIONAL,
-                        SigLevel.ALPM_SIG_DATABASE_MARGINAL_OK,
-                        SigLevel.ALPM_SIG_DATABASE_UNKNOWN_OK,
+                        siglevel.database_optional,
+                        siglevel.database_marginal_ok,
+                        siglevel.database_unknown_ok,
                     );
                 }
             }
 
             if ret != 0 {
-                self.status.DB_STATUS_VALID = false;
-                self.status.DB_STATUS_INVALID = true;
+                self.status.valid = false;
+                self.status.invalid = true;
                 return Err(Error::ALPM_ERR_DB_INVALID_SIG);
             }
         }
 
         /* valid: */
-        self.status.DB_STATUS_VALID = true;
-        self.status.DB_STATUS_INVALID = false;
+        self.status.valid = true;
+        self.status.invalid = false;
         return Ok(true);
     }
 
@@ -585,7 +585,7 @@ impl Database {
         // 	alpm_list_t *lp;
         // 	int retval = 0;
         //
-        // 	if(db == NULL || info == NULL || !(db.status & DB_STATUS_LOCAL)) {
+        // 	if(db == NULL || info == NULL || !(db.status & LOCAL)) {
         // 		return -1;
         // 	}
         //
@@ -786,10 +786,10 @@ impl Database {
         let dbdir;
         let dbpath;
 
-        if self.status.DB_STATUS_INVALID {
+        if self.status.invalid {
             return Err(ALPM_ERR_DB_INVALID);
         }
-        if self.status.DB_STATUS_MISSING {
+        if self.status.missing {
             return Err(ALPM_ERR_DB_NOT_FOUND);
         }
 
@@ -799,8 +799,8 @@ impl Database {
             Err(_e) => return Err(ALPM_ERR_DB_OPEN),
             Ok(d) => d,
         };
-        self.status.DB_STATUS_EXISTS = true;
-        self.status.DB_STATUS_MISSING = false;
+        self.status.exists = true;
+        self.status.missing = false;
         self.pkgcache = _alpm_pkghash_create();
 
         for ent in dbdir {
@@ -878,10 +878,10 @@ impl Database {
         let version: usize;
         let mut dbverfile;
 
-        if self.status.DB_STATUS_VALID {
+        if self.status.valid {
             return Ok(true);
         }
-        if self.status.DB_STATUS_INVALID {
+        if self.status.invalid {
             return Ok(false);
         }
 
@@ -900,15 +900,15 @@ impl Database {
                         /* local database dir doesn't exist yet - create it */
                         match self.local_db_create(&dbpath) {
                             Ok(_) => {
-                                self.status.DB_STATUS_VALID = true;
-                                self.status.DB_STATUS_INVALID = false;
-                                self.status.DB_STATUS_EXISTS = true;
-                                self.status.DB_STATUS_MISSING = false;
+                                self.status.valid = true;
+                                self.status.invalid = false;
+                                self.status.exists = true;
+                                self.status.missing = false;
                                 return Ok(true);
                             }
                             Err(e) => {
-                                self.status.DB_STATUS_EXISTS = false;
-                                self.status.DB_STATUS_MISSING = true;
+                                self.status.exists = false;
+                                self.status.missing = true;
                                 return Err(e);
                             }
                         }
@@ -919,8 +919,8 @@ impl Database {
                 }
             }
         };
-        self.status.DB_STATUS_EXISTS = true;
-        self.status.DB_STATUS_MISSING = false;
+        self.status.exists = true;
+        self.status.missing = false;
 
         dbverpath = format!("{}ALPM_DB_VERSION", dbpath);
 
@@ -934,8 +934,8 @@ impl Database {
                             if name == "." || name == ".." {
                                 continue;
                             } else {
-                                self.status.DB_STATUS_VALID = false;
-                                self.status.DB_STATUS_INVALID = true;
+                                self.status.valid = false;
+                                self.status.invalid = true;
                                 return Err(Error::ALPM_ERR_DB_VERSION);
                             }
                         }
@@ -944,13 +944,13 @@ impl Database {
                 }
 
                 if self.local_db_add_version(&dbpath).is_err() {
-                    self.status.DB_STATUS_VALID = false;
-                    self.status.DB_STATUS_INVALID = true;
+                    self.status.valid = false;
+                    self.status.invalid = true;
                     return Err(Error::ALPM_ERR_DB_VERSION);
                 }
 
-                self.status.DB_STATUS_VALID = true;
-                self.status.DB_STATUS_INVALID = false;
+                self.status.valid = true;
+                self.status.invalid = false;
                 return Ok(true);
             }
             Ok(f) => f,
@@ -962,21 +962,21 @@ impl Database {
         dbverfilestr = String::from(dbverfilestr.trim());
         version = match dbverfilestr.parse() {
             Err(e) => {
-                self.status.DB_STATUS_VALID = false;
-                self.status.DB_STATUS_INVALID = true;
+                self.status.valid = false;
+                self.status.invalid = true;
                 return Err(Error::ALPM_ERR_DB_VERSION);
             }
             Ok(v) => v,
         };
 
         if version != ALPM_LOCAL_DB_VERSION {
-            self.status.DB_STATUS_VALID = false;
-            self.status.DB_STATUS_INVALID = true;
+            self.status.valid = false;
+            self.status.invalid = true;
             return Err(Error::ALPM_ERR_DB_VERSION);
         }
 
-        self.status.DB_STATUS_VALID = true;
-        self.status.DB_STATUS_INVALID = false;
+        self.status.valid = true;
+        self.status.invalid = false;
         return Ok(true);
     }
 
@@ -1151,12 +1151,12 @@ impl Database {
     }
 
     fn _alpm_db_get_groupcache(&mut self) -> &mut Vec<Group> {
-        if self.status.DB_STATUS_VALID {
+        if self.status.valid {
             unimplemented!();
             // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
         }
 
-        if self.status.DB_STATUS_GRPCACHE {
+        if self.status.grpcache {
             self.load_grpcache();
         }
 
@@ -1208,7 +1208,7 @@ impl Database {
         //     }
         // }
         //
-        // self.status = dbstatus_t::DB_STATUS_GRPCACHE;
+        // self.status = dbstatus_t::GRPCACHE;
         // return 0;
     }
 
@@ -1236,7 +1236,7 @@ impl Database {
     }
 
     fn _alpm_db_get_pkgcache_hash(&mut self) -> Result<&PackageHash> {
-        if !self.status.DB_STATUS_VALID {
+        if !self.status.valid {
             // debug!(
             //     "returning error {} from {} : {}\n",
             //     ALPM_ERR_DB_INVALID,
@@ -1247,7 +1247,7 @@ impl Database {
             // return None;
         }
 
-        if !self.status.DB_STATUS_PKGCACHE {
+        if !self.status.pkgcache {
             if self.load_pkgcache() != 0 {
                 /* handle->error set in local/sync-db-populate */
                 unimplemented!();
@@ -1258,7 +1258,7 @@ impl Database {
     }
 
     fn _alpm_db_get_pkgcache_hash_mut(&mut self) -> Result<&mut PackageHash> {
-        if !self.status.DB_STATUS_VALID {
+        if !self.status.valid {
             // debug!(
             //     "returning error {} from {} : {}\n",
             //     ALPM_ERR_DB_INVALID,
@@ -1269,7 +1269,7 @@ impl Database {
             // return None;
         }
 
-        if !self.status.DB_STATUS_PKGCACHE {
+        if !self.status.pkgcache {
             if self.load_pkgcache() != 0 {
                 /* handle->error set in local/sync-db-populate */
                 unimplemented!();
@@ -1292,7 +1292,7 @@ impl Database {
             );
             return -1;
         }
-        self.status.DB_STATUS_PKGCACHE = true;
+        self.status.pkgcache = true;
         return 0;
     }
 
@@ -1378,11 +1378,11 @@ impl Database {
 
     /// Get the signature verification level for a database. */
     pub fn alpm_db_get_siglevel(&self) -> SigLevel {
-        if self.SigLevel.ALPM_SIG_USE_DEFAULT {
+        if self.siglevel.use_default {
             unimplemented!();
         // return self.handle.SigLevel;
         } else {
-            return self.SigLevel;
+            return self.siglevel;
         }
     }
 
@@ -1509,7 +1509,7 @@ impl Database {
                 return Err(ALPM_ERR_DB_OPEN);
             }
 
-            if self.status.DB_STATUS_LOCAL {
+            if self.status.local {
                 self._path = format!("{}/{}/", dbpath, self.treename);
             } else {
                 /* all sync DBs now reside in the sync/ subdir of the dbpath */
@@ -1524,7 +1524,7 @@ impl Database {
     }
 
     pub fn _alpm_db_free_pkgcache(&mut self) {
-        if !self.status.DB_STATUS_PKGCACHE {
+        if !self.status.pkgcache {
             return;
         }
         self.pkgcache = PackageHash::default();
@@ -1537,7 +1537,7 @@ impl Database {
         // 				(alpm_list_fn_free)_alpm_pkg_free);
         // 		_alpm_pkghash_free(db->pkgcache);
         // 	}
-        self.status.DB_STATUS_PKGCACHE = false;
+        self.status.pkgcache = false;
 
         self.free_groupcache();
     }
@@ -1545,7 +1545,7 @@ impl Database {
     pub fn free_groupcache(&mut self) {
         // 	alpm_list_t *lg;
         //
-        // 	if(db == NULL || !(db->status & DB_STATUS_GRPCACHE)) {
+        // 	if(db == NULL || !(db->status & GRPCACHE)) {
         // 		return;
         // 	}
         //
@@ -1557,18 +1557,18 @@ impl Database {
         // 		lg->data = NULL;
         // 	}
         // 	FREELIST(db->grpcache);
-        self.status.DB_STATUS_GRPCACHE = false;
+        self.status.grpcache = false;
     }
 
     pub fn _alpm_db_new(treename: &String, is_local: bool) -> Self {
         let mut db = Self::default();
         db.treename = treename.clone();
         if is_local {
-            db.status.DB_STATUS_LOCAL = true;
+            db.status.local = true;
         } else {
-            db.status.DB_STATUS_LOCAL = false;
+            db.status.local = false;
         }
-        db.usage.ALPM_DB_USAGE_ALL = true;
+        db.usage.all = true;
 
         return db;
     }
@@ -1613,7 +1613,7 @@ fn sanitize_url(url: &String) -> String {
 // {
 // 	Package *newpkg = NULL;
 //
-// 	if(db == NULL || pkg == NULL || !(db->status & DB_STATUS_PKGCACHE)) {
+// 	if(db == NULL || pkg == NULL || !(db->status & PKGCACHE)) {
 // 		return -1;
 // 	}
 //
@@ -1628,7 +1628,7 @@ fn sanitize_url(url: &String) -> String {
 // 	if(newpkg->origin == ALPM_PKG_FROM_FILE) {
 // 		free(newpkg->origin_data.file);
 // 	}
-// 	newpkg->origin = (db->status & DB_STATUS_LOCAL)
+// 	newpkg->origin = (db->status & LOCAL)
 // 		? ALPM_PKG_FROM_LOCALDB
 // 		: ALPM_PKG_FROM_SYNCDB;
 // 	newpkg->origin_data.db = db;
@@ -1643,7 +1643,7 @@ fn sanitize_url(url: &String) -> String {
 // {
 // 	Package *data = NULL;
 //
-// 	if(db == NULL || pkg == NULL || !(db->status & DB_STATUS_PKGCACHE)) {
+// 	if(db == NULL || pkg == NULL || !(db->status & PKGCACHE)) {
 // 		return -1;
 // 	}
 //

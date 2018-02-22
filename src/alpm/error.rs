@@ -114,9 +114,9 @@ impl Error {
         use self::Error::*;
         match self {
 		/* System */
-		 &ALPM_ERR_MEMORY=>
+		 &Memory=>
 			return String::from("out of memory!"),
-		 &ALPM_ERR_SYSTEM=>
+		 &System=>
 			return String::from("unexpected system error"),
 		 &ALPM_ERR_BADPERMS=>
 			return String::from("permission denied"),
