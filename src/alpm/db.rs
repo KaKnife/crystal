@@ -540,7 +540,7 @@ impl Database {
         // 	return -1;
     }
 
-    pub fn checkdbdir(&mut self) -> Result<()> {
+    pub fn checkdbdir(&self) -> Result<()> {
         let path = self._alpm_db_path().unwrap();
         match std::fs::metadata(&path) {
             Err(_) => {
@@ -559,7 +559,7 @@ impl Database {
         return Ok(());
     }
 
-    pub fn _alpm_local_db_prepare(&mut self, info: &Package) -> i32 {
+    pub fn _alpm_local_db_prepare(&self, info: &Package) -> i32 {
         let pkgpath;
 
         if self.checkdbdir().is_err() {
@@ -779,6 +779,7 @@ impl Database {
         // 	return ret;
     }
 
+    /*True Mut*/
     pub fn local_db_populate(&mut self) -> Result<()> {
         use std::fs;
         let mut count = 0;
@@ -870,6 +871,7 @@ impl Database {
         Ok(())
     }
 
+    /*True Mut*/
     pub fn local_db_validate(&mut self) -> Result<bool> {
         let dbpath;
         let dbdir;
@@ -979,8 +981,7 @@ impl Database {
         return Ok(true);
     }
 
-    fn local_db_create(&mut self, dbpath: &String) -> Result<i32> {
-        // if (std::fs::create_dir(dbpath, 0755) != 0) {
+    fn local_db_create(&self, dbpath: &String) -> Result<i32> {
         match std::fs::create_dir(dbpath) {
             Err(e) => {
                 eprintln!("could not create directory {}: {}", dbpath, e);
@@ -1005,7 +1006,7 @@ impl Database {
     }
 
     /* Note: the return value must be freed by the caller */
-    fn _alpm_local_db_pkgpath(&mut self, info: &Package, filename: &String) -> String {
+    fn _alpm_local_db_pkgpath(&self, info: &Package, filename: &String) -> String {
         let pkgpath: String;
         let dbpath: String;
 
@@ -1105,7 +1106,7 @@ impl Database {
     }
 
     /// Get a group entry from a package database.
-    pub fn alpm_db_get_group(&mut self, name: &String) -> Option<&Group> {
+    pub fn alpm_db_get_group(&self, name: &String) -> Option<&Group> {
         // if name.len() ==0{
         //     return Err(Error::WrongArgs);
         // }
@@ -1121,7 +1122,7 @@ impl Database {
         return self._alpm_db_get_groupfromcache_mut(name);
     }
 
-    fn _alpm_db_get_groupfromcache(&mut self, target: &String) -> Option<&Group> {
+    fn _alpm_db_get_groupfromcache(&self, target: &String) -> Option<&Group> {
         if target.len() == 0 {
             return None;
         }
@@ -1140,7 +1141,7 @@ impl Database {
             return None;
         }
 
-        for info in self._alpm_db_get_groupcache() {
+        for info in self._alpm_db_get_groupcache_mut() {
             if info.name == *target {
                 return Some(info);
             }
@@ -1149,7 +1150,7 @@ impl Database {
         return None;
     }
 
-    fn _alpm_db_get_groupcache(&mut self) -> &mut Vec<Group> {
+    fn _alpm_db_get_groupcache_mut(&mut self) -> &mut Vec<Group> {
         if self.status.valid {
             unimplemented!();
             // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
@@ -1160,6 +1161,19 @@ impl Database {
         }
 
         return &mut self.grpcache;
+    }
+
+    fn _alpm_db_get_groupcache(&self) -> &Vec<Group> {
+        if self.status.valid {
+            unimplemented!();
+            // RET_ERR(db->handle, ALPM_ERR_DB_INVALID, NULL);
+        }
+
+        if self.status.grpcache {
+            self.load_grpcache();
+        }
+
+        return &self.grpcache;
     }
 
     /* Returns a new group cache from db.
@@ -1212,13 +1226,13 @@ impl Database {
     }
 
     /// Get the group cache of a package database.
-    pub fn alpm_db_get_groupcache(&mut self) -> &Vec<Group> {
+    pub fn alpm_db_get_groupcache(&self) -> &Vec<Group> {
         return self._alpm_db_get_groupcache();
     }
 
     /// Get the group cache of a package database.
     pub fn alpm_db_get_groupcache_mut(&mut self) -> &mut Vec<Group> {
-        return self._alpm_db_get_groupcache();
+        return self._alpm_db_get_groupcache_mut();
     }
 
     pub fn _alpm_db_get_pkgfromcache(&mut self, target: &String) -> Option<Package> {
@@ -1492,11 +1506,12 @@ impl Database {
         self.usage = usage;
     }
 
-    pub fn _alpm_db_path(&mut self) -> Result<String> {
+    pub fn _alpm_db_path(&self) -> Result<String> {
         if self._path == "" {
-            panic!("no db path");
+            Err(Error::no_db_path)
+        } else {
+            Ok(self._path.clone())
         }
-        return Ok(self._path.clone());
     }
 
     pub fn create_path(&mut self, dbpath: &String, dbext: &String) -> Result<()> {

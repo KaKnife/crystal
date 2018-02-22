@@ -56,6 +56,7 @@ pub enum Error {
     ALPM_ERR_DB_VERSION,
     ALPM_ERR_DB_WRITE,
     ALPM_ERR_DB_REMOVE,
+    no_db_path,
     /* Servers */
     ALPM_ERR_SERVER_BAD_URL,
     ALPM_ERR_SERVER_NONE,
@@ -225,8 +226,9 @@ impl Error {
 		 &LibCurl=> String::from("download library error"),
 		 &GpgMe=> String::from("gpgme error"),
 		 &Download=> String::from("error invoking external downloader"),
+         &Error::no_db_path => String::from("no database path"),
 		/* Unknown error! */
-		_=> String::from("unexpected error"),
+		// _=> String::from("unexpected error"),
 	}
     }
 }
