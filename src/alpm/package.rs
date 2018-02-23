@@ -385,17 +385,17 @@ impl Package {
         return self.origin;
     }
 
-    pub fn get_desc(&mut self, db: &mut Database) -> &String {
+    pub fn get_desc(&self, db: &mut Database) -> Result<&String> {
         match self.get_origin() {
-            PackageFrom::LocalDatabase => self._cache_get_desc(db),
+            PackageFrom::LocalDatabase => self._cache_get_desc(),
             _ => unimplemented!(),
         }
         // return self.ops.get_desc(self);
     }
 
-    pub fn get_url(&mut self, db: &mut Database) -> &String {
+    pub fn get_url(&self, db: &mut Database) -> Result<&String> {
         match self.get_origin() {
-            PackageFrom::LocalDatabase => self._cache_get_url(db),
+            PackageFrom::LocalDatabase => self._cache_get_url(),
             _ => unimplemented!(),
         }
         // return self.ops.get_url(self);
@@ -791,19 +791,25 @@ impl Package {
         }
     }
 
-    fn _cache_get_base(&mut self, db: &mut Database) -> &String {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.base;
+    fn _cache_get_base(&self) -> Result<&String> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        return Ok(&self.base);
     }
 
-    fn _cache_get_desc(&mut self, db: &mut Database) -> &String {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.desc;
+    fn _cache_get_desc(&self) -> Result<&String> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        return Ok(&self.desc);
     }
 
-    fn _cache_get_url(&mut self, db: &mut Database) -> &String {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.url;
+    fn _cache_get_url(&self) -> Result<&String> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        return Ok(&self.url);
     }
 
     fn _cache_get_builddate(&mut self, db: &mut Database) -> Time {

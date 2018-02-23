@@ -51,12 +51,13 @@ pub enum Error {
     DatabaseNull,
     DatabaseNotNull,
     DatabaseNotFound,
-    DatabaseNotInvalid,
-    DatabaseNotInvalidSig,
+    DatabaseInvalid,
+    DatabaseInvalidSig,
     DatabaseVersion,
     DatabaseWrite,
     DatabaseRemove,
     NoDbPath,
+    PkgCacheNotLoaded,
     /* Servers */
     ServerBadUrl,
     ServerNone,
@@ -66,17 +67,18 @@ pub enum Error {
     TransactionDupTarget,
     TransactionNotInitialized,
     TransactionNotPrepared,
-    ALPM_ERR_TRANS_ABORT,
-    ALPM_ERR_TRANS_TYPE,
-    ALPM_ERR_TRANS_NOT_LOCKED,
-    ALPM_ERR_TRANS_HOOK_FAILED,
+    TransactionAbort,
+    TransactionType,
+    TransactionNotLocked,
+    TransactionHookFailed,
     /* Packages */
-    ALPM_ERR_PKG_NOT_FOUND,
-    ALPM_ERR_PKG_IGNORED,
-    ALPM_ERR_PKG_INVALID,
-    ALPM_ERR_PKG_INVALID_CHECKSUM,
-    ALPM_ERR_PKG_INVALID_SIG,
-    ALPM_ERR_PKG_MISSING_SIG,
+    PkgNotLoaded,
+    PkgNotFound,
+    PkgIgnored,
+    PkgInvalid,
+    PkgInvalidChecksum,
+    PkgInvalidSig,
+    PkgMissingSig,
     PkgOpen,
     PkgCantRemove,
     PkgInvalidName,
@@ -139,9 +141,9 @@ impl Error {
 			return String::from("database already registered"),
 		 &Error::DatabaseNotFound=>
 			return String::from("could not find database"),
-		 &Error::DatabaseNotInvalid=>
+		 &Error::DatabaseInvalid=>
 			return String::from("invalid or corrupted database"),
-		 &Error::DatabaseNotInvalidSig=>
+		 &Error::DatabaseInvalidSig=>
 			return String::from("invalid or corrupted database (PGP signature)"),
 		 &Error::DatabaseVersion=>
 			return String::from("database is incorrect version"),
@@ -165,26 +167,26 @@ impl Error {
 			return String::from("transaction not initialized"),
 		 &Error::TransactionNotPrepared=>
 			return String::from("transaction not prepared"),
-		 &Error::ALPM_ERR_TRANS_ABORT=>
+		 &Error::TransactionAbort=>
 			return String::from("transaction aborted"),
-		 &Error::ALPM_ERR_TRANS_TYPE=>
+		 &Error::TransactionType=>
 			return String::from("operation not compatible with the transaction type"),
-		 &Error::ALPM_ERR_TRANS_NOT_LOCKED=>
+		 &Error::TransactionNotLocked=>
 			return String::from("transaction commit attempt when database is not locked"),
-		 &Error::ALPM_ERR_TRANS_HOOK_FAILED=>
+		 &Error::TransactionHookFailed=>
 			return String::from("failed to run transaction hooks"),
 		/* Packages */
-		 &Error::ALPM_ERR_PKG_NOT_FOUND=>
+		 &Error::PkgNotFound=>
 			return String::from("could not find or read package"),
-		 &Error::ALPM_ERR_PKG_IGNORED=>
+		 &Error::PkgIgnored=>
 			return String::from("operation cancelled due to ignorepkg"),
-		 &Error::ALPM_ERR_PKG_INVALID=>
+		 &Error::PkgInvalid=>
 			return String::from("invalid or corrupted package"),
-		 &Error::ALPM_ERR_PKG_INVALID_CHECKSUM=>
+		 &Error::PkgInvalidChecksum=>
 			return String::from("invalid or corrupted package (checksum)"),
-		 &Error::ALPM_ERR_PKG_INVALID_SIG=>
+		 &Error::PkgInvalidSig=>
 			return String::from("invalid or corrupted package (PGP signature)"),
-		 &Error::ALPM_ERR_PKG_MISSING_SIG=>
+		 &Error::PkgMissingSig=>
 			return String::from("package missing required signature"),
 		 &Error::PkgOpen=>
 			return String::from("cannot open package file"),
@@ -230,7 +232,7 @@ impl Error {
          &Error::GroupNotFound=>
 			return String::from("could not find or read group"),
 		/* Unknown error! */
-		// _=> String::from("unexpected error"),
+		_=> String::from("unexpected error"),
 	}
     }
 }

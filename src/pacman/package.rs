@@ -308,14 +308,14 @@ pub fn dump_pkg_full(
 	// }
 	string_display(T_NAME, &pkg.get_name(), cols, config);
 	string_display(T_VERSION, &pkg.get_version(), cols, config);
-	string_display(T_DESCRIPTION, pkg.get_desc(db_local), cols, config);
+	string_display(T_DESCRIPTION, pkg.get_desc(db_local).unwrap(), cols, config);
 	string_display(
 		T_ARCHITECTURE,
 		&pkg.get_arch(db_local),
 		cols,
 		config,
 	);
-	string_display(T_URL, &pkg.get_url(db_local), cols, config);
+	string_display(T_URL, &pkg.get_url(db_local).unwrap(), cols, config);
 	list_display(T_LICENSES, pkg.get_licenses(db_local), cols);
 	list_display(T_GROUPS, pkg.get_groups(db_local), cols);
 	deplist_display(T_PROVIDES, pkg.get_provides(db_local), cols);

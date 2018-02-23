@@ -514,7 +514,7 @@ impl Handle {
         //
         // 		if(_alpm_remove_single_package(handle, pkg, NULL,
         // 					targ_count, pkg_count) == -1) {
-        // 			handle->pm_errno = ALPM_ERR_TRANS_ABORT;
+        // 			handle->pm_errno = TransactionAbort;
         // 			/* running ldconfig at this point could possibly screw system */
         // 			run_ldconfig = 0;
         // 			ret = -1;
@@ -1213,7 +1213,7 @@ impl Handle {
                 self.trans.state = AlpmTransstate::Initialized;
                 /* running ldconfig at this point could possibly screw system */
                 skip_ldconfig = true;
-                ret = Err(Error::ALPM_ERR_TRANS_ABORT);
+                ret = Err(Error::TransactionAbort);
             }
 
             pkg_current += 1;
@@ -1570,7 +1570,7 @@ impl Handle {
         // 	if(oldpkg) {
         // 		/* set up fake remove transaction */
         // 		if(_alpm_remove_single_package(handle, oldpkg, newpkg, 0, 0) == -1) {
-        // 			handle->pm_errno = ALPM_ERR_TRANS_ABORT;
+        // 			handle->pm_errno = TransactionAbort;
         // 			ret = -1;
         // 			goto cleanup;
         // 		}

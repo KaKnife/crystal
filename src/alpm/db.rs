@@ -120,7 +120,7 @@ impl Database {
             return Ok(true);
         }
         if self.status.invalid {
-            return Err(Error::DatabaseNotInvalidSig);
+            return Err(Error::DatabaseInvalidSig);
         }
 
         let dbpath = match self.path() {
@@ -187,7 +187,7 @@ impl Database {
             if ret != 0 {
                 self.status.valid = false;
                 self.status.invalid = true;
-                return Err(Error::DatabaseNotInvalidSig);
+                return Err(Error::DatabaseInvalidSig);
             }
         }
 
@@ -241,7 +241,8 @@ impl Database {
 
         info!(
             "loading package data for {} : level=0x{:x}",
-            pkg.get_name(), inforeq
+            pkg.get_name(),
+            inforeq
         );
 
         /* DESC */
@@ -278,7 +279,8 @@ impl Database {
                         if line != pkg.get_name() {
                             error!(
                                 "{} database is inconsistent: name mismatch on package {}",
-                                self.treename, pkg.get_name()
+                                self.treename,
+                                pkg.get_name()
                             );
                         }
                     }
@@ -286,7 +288,8 @@ impl Database {
                         if line != pkg.version {
                             error!(
                                 "{} database is inconsistent: version mismatch on package {}",
-                                self.treename, pkg.get_name()
+                                self.treename,
+                                pkg.get_name()
                             );
                         }
                     }
@@ -354,8 +357,7 @@ impl Database {
                     }
                     NextLineType::Replaces => {
                         if line != "" {
-                            pkg.replaces
-                                .push(alpm_dep_from_string(&String::from(line)));
+                            pkg.replaces.push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
                     }
@@ -381,8 +383,7 @@ impl Database {
                     }
                     NextLineType::Provides => {
                         if line != "" {
-                            pkg.provides
-                                .push(alpm_dep_from_string(&String::from(line)));
+                            pkg.provides.push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
                     }
@@ -765,7 +766,7 @@ impl Database {
         let dbpath;
 
         if self.status.invalid {
-            return Err(Error::DatabaseNotInvalid);
+            return Err(Error::DatabaseInvalid);
         }
         if self.status.missing {
             return Err(Error::DatabaseNotFound);
@@ -830,7 +831,8 @@ impl Database {
                     /* add to the collection */
                     info!(
                         "adding '{}' to package cache for db '{}'",
-                        pkg.get_name(), self.treename
+                        pkg.get_name(),
+                        self.treename
                     );
                     self.pkgcache._alpm_pkghash_add(pkg);
                     count += 1;
@@ -1188,7 +1190,7 @@ impl Database {
         return &self.grpcache;
     }
 
-    pub fn get_pkgfromcache(&mut self, target: &String) -> Option<Package> {
+    pub fn get_pkgfromcache(&self, target: &String) -> Option<Package> {
         let pkgcache = self.get_pkgcache_hash();
         match pkgcache {
             Err(_) => {
@@ -1201,26 +1203,19 @@ impl Database {
         }
     }
 
-    fn get_pkgcache_hash(&mut self) -> Result<&PackageHash> {
+    fn get_pkgcache_hash(&self) -> Result<&PackageHash> {
         if !self.status.valid {
-            // debug!(
-            //     "returning error {} from {} : {}\n",
-            //     DatabaseNotInvalid,
-            //     __func__,
-            //     Error::DatabaseNotInvalid
-            // );
-            return Err(Error::DatabaseNotInvalid);
-            // return None;
+            Err(Error::DatabaseInvalid)
+        } else if !self.status.pkgcache {
+            Err(Error::PkgCacheNotLoaded)
+        // if self.load_pkgcache() != 0 {
+        //     /* handle->error set in local/sync-db-populate */
+        //     unimplemented!();
+        //     // return None;
+        // }
+        } else {
+            Ok(&self.pkgcache)
         }
-
-        if !self.status.pkgcache {
-            if self.load_pkgcache() != 0 {
-                /* handle->error set in local/sync-db-populate */
-                unimplemented!();
-                // return None;
-            }
-        }
-        return Ok(&self.pkgcache);
     }
 
     fn get_pkgcache_hash_mut(&mut self) -> Result<&mut PackageHash> {
@@ -1231,7 +1226,7 @@ impl Database {
             //     __func__,
             //     Error::DatabaseNotInvalid
             // );
-            return Err(Error::DatabaseNotInvalid);
+            return Err(Error::DatabaseInvalid);
             // return None;
         }
 
@@ -1248,8 +1243,6 @@ impl Database {
     /// Returns a new package cache from db.
     /// It frees the cache if it already exists.
     pub fn load_pkgcache(&mut self) -> i32 {
-        // _alpm_db_free_pkgcache(db);
-
         debug!("loading package cache for repository '{}'", self.treename);
         if self.populate().is_err() {
             debug!(
@@ -1393,10 +1386,10 @@ impl Database {
     }
 
     /// Get the package cache of a package database.
-    pub fn get_pkgcache(&mut self) -> Result<&Vec<Package>> {
-        match self.get_pkgcache_hash_mut() {
+    pub fn get_pkgcache(&self) -> Result<&Vec<Package>> {
+        match self.get_pkgcache_hash() {
             Err(e) => Err(e),
-            Ok(hash) => Ok(&mut hash.list),
+            Ok(hash) => Ok(&hash.list),
         }
     }
 

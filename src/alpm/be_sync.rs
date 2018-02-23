@@ -20,29 +20,10 @@ use std::fs;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// #include <errno.h>
-// #include <sys/types.h>
-// #include <sys/stat.h>
-// #include <fcntl.h>
-// #include <limits.h>
-// #include <unistd.h>
-//
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>
-//
-// /* libalpm */
-// #include "util.h"
-// #include "log.h"
-// #include "libarchive-compat.h"
-// #include "alpm.h"
-// #include "alpm_list.h"
-// #include "package.h"
-// #include "handle.h"
-// #include "delta.h"
-// #include "deps.h"
-// #include "dload.h"
-// #include "filelist.h"
+
 
 /** Update a package database
  *
