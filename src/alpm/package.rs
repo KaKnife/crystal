@@ -116,36 +116,36 @@ pub struct Package {
     filename: String,
     base: String,
     name: String,
-    pub version: String,
-    pub desc: String,
-    pub url: String,
-    pub packager: String,
-    pub md5sum: String,
-    pub sha256sum: String,
-    pub base64_sig: String,
-    pub arch: String,
+    version: String,
+    desc: String,
+    url: String,
+    packager: String,
+    md5sum: String,
+    sha256sum: String,
+    base64_sig: String,
+    arch: String,
 
-    pub builddate: Time,
-    pub installdate: Time,
+    builddate: Time,
+    installdate: Time,
 
     size: i64,
-    pub isize: i64,
+    isize: i64,
     download_size: i64,
 
     // pub handle: alpm_handle_t,
-    pub licenses: Vec<String>,
-    pub replaces: Vec<Dependency>,
-    pub groups: Vec<String>,
-    pub backup: Vec<String>,
-    pub depends: Vec<Dependency>,
-    pub optdepends: Vec<Dependency>,
-    pub checkdepends: Vec<Dependency>,
-    pub makedepends: Vec<Dependency>,
-    pub conflicts: Vec<Dependency>,
-    pub provides: Vec<Dependency>,
-    pub deltas: Vec<Dependency>,
-    pub delta_path: Vec<Dependency>,
-    pub removes: Vec<Dependency>,
+    licenses: Vec<String>,
+    replaces: Vec<Dependency>,
+    groups: Vec<String>,
+    backup: Vec<String>,
+    depends: Vec<Dependency>,
+    optdepends: Vec<Dependency>,
+    checkdepends: Vec<Dependency>,
+    makedepends: Vec<Dependency>,
+    conflicts: Vec<Dependency>,
+    provides: Vec<Dependency>,
+    deltas: Vec<Dependency>,
+    delta_path: Vec<Dependency>,
+    removes: Vec<Dependency>,
     /* in transaction targets only */
     // pub oldpkg: Option<Package>, /* in transaction targets only */
 
@@ -157,16 +157,16 @@ pub struct Package {
      * origin == PKG_FROM_*DB, use pkg->origin_data.db */
     // union {
     // pub db: Database,
-    pub file: String,
+    file: String,
     // } origin_data;
-    pub origin: PackageFrom,
-    pub reason: PackageReason,
-    pub scriptlet: i32,
+    origin: PackageFrom,
+    reason: PackageReason,
+    scriptlet: i32,
 
     /* Bitfield from alpm_dbinfrq_t */
-    pub infolevel: i32,
+    infolevel: i32,
     /* Bitfield from alpm_pkgvalidation_t */
-    pub validation: i32,
+    validation: i32,
 }
 
 // /* Default package accessor functions. These will get overridden by any
@@ -381,11 +381,20 @@ impl Package {
         return &self.version;
     }
 
+    pub fn set_version(&mut self, ver: String) {
+        self.version = ver.clone();
+    }
+
     pub fn get_origin(&self) -> PackageFrom {
         return self.origin;
     }
 
-    pub fn get_desc(&self, db: &mut Database) -> Result<&String> {
+    // Sets the origin of the package
+    pub fn set_origin(&mut self, origin: PackageFrom) {
+        self.origin = origin;
+    }
+
+    pub fn get_desc(&self) -> Result<&String> {
         match self.get_origin() {
             PackageFrom::LocalDatabase => self._cache_get_desc(),
             _ => unimplemented!(),
@@ -393,7 +402,13 @@ impl Package {
         // return self.ops.get_desc(self);
     }
 
-    pub fn get_url(&self, db: &mut Database) -> Result<&String> {
+    /// Sets the Description of the Package
+    pub fn set_desc(&mut self, desc: String) {
+        self.desc = desc
+    }
+
+    /// Gets the URL of the Package
+    pub fn get_url(&self) -> Result<&String> {
         match self.get_origin() {
             PackageFrom::LocalDatabase => self._cache_get_url(),
             _ => unimplemented!(),
@@ -401,23 +416,28 @@ impl Package {
         // return self.ops.get_url(self);
     }
 
-    pub fn get_builddate(&mut self, db: &mut Database) -> Time {
+    /// Set the URL of the Package
+    pub fn set_url(&mut self, url: String) {
+        self.url = url;
+    }
+
+    pub fn get_builddate(&self) -> Result<Time> {
         match self.get_origin() {
-            PackageFrom::LocalDatabase => self._cache_get_builddate(db),
+            PackageFrom::LocalDatabase => self._cache_get_builddate(),
             _ => unimplemented!(),
         }
     }
 
-    pub fn get_installdate(&mut self, db: &mut Database) -> Time {
+    pub fn get_installdate(&self) -> Result<Time> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_installdate(db),
+            PackageFrom::LocalDatabase => self._cache_get_installdate(),
             _ => unimplemented!(),
         }
     }
 
-    pub fn get_packager(&mut self, db: &mut Database) -> &String {
+    pub fn get_packager(&mut self) -> Result<&String> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_packager(db),
+            PackageFrom::LocalDatabase => self._cache_get_packager(),
             _ => unimplemented!(),
         }
         // 	return pkg->ops->get_packager(pkg);
@@ -435,9 +455,9 @@ impl Package {
         return &self.base64_sig;
     }
 
-    pub fn get_arch(&mut self, db: &mut Database) -> &String {
+    pub fn get_arch(&self) -> Result<&String> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_arch(db),
+            PackageFrom::LocalDatabase => self._cache_get_arch(),
             _ => unimplemented!(),
         }
         // return self.ops.get_arch(self);
@@ -447,7 +467,7 @@ impl Package {
         return self.size;
     }
 
-    pub fn get_isize(&mut self, db: &mut Database) -> i64 {
+    pub fn get_isize(&mut self, db: &mut Database) -> Result<i64> {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_isize(db),
             _ => unimplemented!(),
@@ -455,7 +475,7 @@ impl Package {
         // return self.ops.get_isize(pkg);
     }
 
-    pub fn get_reason(&mut self, db: &mut Database) -> &PackageReason {
+    pub fn get_reason(&mut self, db: &mut Database) -> Result<&PackageReason> {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_reason(db),
             _ => unimplemented!(),
@@ -463,7 +483,7 @@ impl Package {
         //return pkg.ops.get_reason(pkg);
     }
 
-    pub fn get_validation(&mut self, db: &mut Database) -> i32 {
+    pub fn get_validation(&mut self, db: &mut Database) -> Result<i32> {
         match self.origin {
             PackageFrom::LocalDatabase => self._cache_get_validation(db),
             _ => unimplemented!(),
@@ -486,8 +506,8 @@ impl Package {
         // 	return pkg->ops->get_groups(pkg);
     }
 
-    pub fn get_depends(&mut self) -> &Vec<Dependency> {
-        return &mut self.depends;
+    pub fn get_depends(&self) -> &Vec<Dependency> {
+        return &self.depends;
     }
 
     pub fn get_optdepends(&mut self, db: &mut Database) -> &Vec<Dependency> {
@@ -787,7 +807,7 @@ impl Package {
 
     fn lazy_load(&mut self, info: i32, db: &mut Database) {
         if self.infolevel & info == 0 {
-            db.local_db_read(self, info);
+            self.local_db_read(db, info);
         }
     }
 
@@ -812,39 +832,53 @@ impl Package {
         return Ok(&self.url);
     }
 
-    fn _cache_get_builddate(&mut self, db: &mut Database) -> Time {
-        self.lazy_load(INFRQ_DESC, db);
-        return self.builddate;
+    fn _cache_get_builddate(&self) -> Result<Time> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        return Ok(self.builddate);
     }
 
-    fn _cache_get_installdate(&mut self, db: &mut Database) -> Time {
-        self.lazy_load(INFRQ_DESC, db);
-        return self.installdate;
+    fn _cache_get_installdate(&self) -> Result<Time> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        Ok(self.installdate)
     }
 
-    fn _cache_get_packager(&mut self, db: &mut Database) -> &String {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.packager;
+    fn _cache_get_packager(&self) -> Result<&String> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        Ok(&self.packager)
     }
 
-    fn _cache_get_arch(&mut self, db: &mut Database) -> &String {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.arch;
+    fn _cache_get_arch(&self) -> Result<&String> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        Ok(&self.arch)
     }
 
-    fn _cache_get_isize(&mut self, db: &mut Database) -> i64 {
-        self.lazy_load(INFRQ_DESC, db);
-        return self.isize;
+    fn _cache_get_isize(&mut self, db: &mut Database) -> Result<i64> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        Ok(self.isize)
     }
 
-    fn _cache_get_reason(&mut self, db: &mut Database) -> &PackageReason {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.reason;
+    fn _cache_get_reason(&mut self, db: &mut Database) -> Result<&PackageReason> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        Ok(&self.reason)
     }
 
-    fn _cache_get_validation(&mut self, db: &mut Database) -> i32 {
-        self.lazy_load(INFRQ_DESC, db);
-        return self.validation;
+    fn _cache_get_validation(&mut self, db: &mut Database) -> Result<i32> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        }
+        Ok(self.validation)
     }
 
     fn _cache_get_licenses(&mut self, db: &mut Database) -> &Vec<String> {
@@ -995,7 +1029,7 @@ impl Package {
     // }
 
     fn _cache_force_load(&mut self, db: &mut Database) -> i32 {
-        return db.local_db_read(self, INFRQ_ALL);
+        return self.local_db_read(db, INFRQ_ALL);
     }
 
     // fn is_dir(path: &Path, entry: dirent) -> i32 {
@@ -1036,28 +1070,16 @@ impl Package {
         // 	fputc('', fp);
     }
 
-    pub fn set_reason(&self, reason: &PackageReason) -> i32 {
-        unimplemented!();
-        // 	ASSERT(pkg != NULL, return -1);
-        // 	ASSERT(pkg->origin == LocalDatabase,
-        // 			RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1));
-        // 	ASSERT(pkg->origin_data.db == pkg->handle->db_local,
-        // 			RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1));
-        //
-        // 	_alpm_log(pkg->handle, ALPM_LOG_DEBUG,
-        // 			"setting install reason %u for {}", reason, pkg->name);
-        // 	if(alpm_pkg_get_reason(pkg) == reason) {
-        // 		/* we are done */
-        // 		return 0;
-        // 	}
-        // 	/* set reason (in pkgcache) */
-        // 	pkg->reason = reason;
+    pub fn set_reason(&mut self, reason: PackageReason) -> i32 {
+        // debug!("setting install reason {} for {}", reason, self.get_name());
+        /* set reason (in pkgcache) */
+        self.reason = reason;
         // 	/* write DESC */
         // 	if(_alpm_local_db_write(pkg->handle->db_local, pkg, INFRQ_DESC)) {
         // 		RET_ERR(pkg->handle, ALPM_ERR_DB_WRITE, -1);
         // 	}
         //
-        // 	return 0;
+        return 0;
     }
 
     /** Compute the size of the files that will be downloaded to install a
@@ -1132,6 +1154,328 @@ impl Package {
         //
         // 	return ret;
         unimplemented!();
+    }
+
+    pub fn local_db_read(&mut self, db: &Database, inforeq: i32) -> i32 {
+        enum NextLineType {
+            None,
+            Name,
+            Version,
+            Base,
+            Desc,
+            Groups,
+            Url,
+            License,
+            Arch,
+            BuildDate,
+            InstallDate,
+            Packager,
+            Reason,
+            Validation,
+            Size,
+            Replaces,
+            Depends,
+            OptDepends,
+            Confilcts,
+            Provides,
+            Files,
+            Backup,
+        }
+
+        /* bitmask logic here:
+         * infolevel: 00001111
+         * inforeq:   00010100
+         * & result:  00000100
+         * == to inforeq? nope, we need to load more info. */
+        if (self.infolevel & inforeq) == inforeq {
+            /* already loaded all of this info, do nothing */
+            return 0;
+        }
+
+        if self.infolevel & INFRQ_ERROR != 0 {
+            /* We've encountered an error loading this package before. Don't attempt
+             * repeated reloads, just give up. */
+            return -1;
+        }
+
+        info!(
+            "loading package data for {} : level=0x{:x}",
+            self.get_name(),
+            inforeq
+        );
+
+        /* DESC */
+        if inforeq & INFRQ_DESC != 0 && (self.infolevel & INFRQ_DESC) == 0 {
+            let path = db.local_db_pkgpath(self, &String::from("desc"));
+            let mut fp = match std::fs::File::open(&path) {
+                Ok(f) => f,
+                Err(e) => {
+                    error!("could not open file {}: {}", path, e);
+                    self.infolevel |= INFRQ_ERROR;
+                    return -1;
+                }
+            };
+            use std::io::prelude::*;
+            let mut lines: String = String::new();
+            match fp.read_to_string(&mut lines) {
+                Ok(_) => {}
+                Err(_) => {
+                    return -1;
+                }
+            }
+
+            let lines_iter = lines.lines();
+            let mut next_line_type = NextLineType::None;
+            for mut line in lines_iter {
+                if String::from(line).trim().len() == 0 {
+                    /* length of stripped line was zero */
+                    continue;
+                }
+
+                match next_line_type {
+                    NextLineType::None => {}
+                    NextLineType::Name => {
+                        if line != self.get_name() {
+                            error!(
+                                "{} database is inconsistent: name mismatch on package {}",
+                                db.get_name(),
+                                self.get_name()
+                            );
+                        }
+                    }
+                    NextLineType::Version => {
+                        if line != self.get_version() {
+                            error!(
+                                "{} database is inconsistent: version mismatch on package {}",
+                                db.get_name(),
+                                self.get_name()
+                            );
+                        }
+                    }
+                    NextLineType::Base => {
+                        self.set_base(line);
+                    }
+                    NextLineType::Desc => {
+                        self.set_desc(String::from(line));
+                    }
+                    NextLineType::Groups => {
+                        if line != "" {
+                            self.groups.push(String::from(line));
+                            continue;
+                        }
+                    }
+                    NextLineType::Url => {
+                        self.set_url(String::from(line));
+                    }
+                    NextLineType::License => {
+                        if line != "" {
+                            self.licenses.push(String::from(line));
+                            continue;
+                        }
+                    }
+                    NextLineType::Arch => {
+                        self.arch = String::from(line);
+                    }
+                    NextLineType::BuildDate => {
+                        self.builddate = _alpm_parsedate(line);
+                    }
+                    NextLineType::InstallDate => {
+                        self.installdate = _alpm_parsedate(line);
+                    }
+                    NextLineType::Packager => {
+                        self.packager = String::from(line);
+                    }
+                    NextLineType::Reason => {
+                        self.reason = PackageReason::from(u8::from_str_radix(line, 10).unwrap());
+                    }
+                    NextLineType::Validation => {
+                        unimplemented!();
+                        // // alpm_list_t *i, *v = NULL;
+                        // READ_AND_STORE_ALL(v);
+                        // // for(i = v; i; i = alpm_list_next(i))
+                        // {
+                        //     if (strcmp(i.data, "none") == 0) {
+                        //         info.validation |= ALPM_PKG_VALIDATION_NONE;
+                        //     } else if (strcmp(i.data, "md5") == 0) {
+                        //         info.validation |= ALPM_PKG_VALIDATION_MD5SUM;
+                        //     } else if (strcmp(i.data, "sha256") == 0) {
+                        //         info.validation |= ALPM_PKG_VALIDATION_SHA256SUM;
+                        //     } else if (strcmp(i.data, "pgp") == 0) {
+                        //         info.validation |= ALPM_PKG_VALIDATION_SIGNATURE;
+                        //     } else {
+                        //         info!(
+                        //             "unknown validation type for package {}: {}",
+                        //             pkg.get_name(), i.data
+                        //         );
+                        //     }
+                        // }
+                        // FREELIST(v);
+                    }
+                    NextLineType::Size => {
+                        self.isize = _alpm_strtoofft(&String::from(line));
+                    }
+                    NextLineType::Replaces => {
+                        if line != "" {
+                            self.replaces.push(alpm_dep_from_string(&String::from(line)));
+                            continue;
+                        };
+                    }
+                    NextLineType::Depends => {
+                        if line != "" {
+                            self.depends.push(alpm_dep_from_string(&String::from(line)));
+                            continue;
+                        };
+                    }
+                    NextLineType::OptDepends => {
+                        if line != "" {
+                            self.optdepends
+                                .push(alpm_dep_from_string(&String::from(line)));
+                            continue;
+                        };
+                    }
+                    NextLineType::Confilcts => {
+                        if line != "" {
+                            self.conflicts
+                                .push(alpm_dep_from_string(&String::from(line)));
+                            continue;
+                        };
+                    }
+                    NextLineType::Provides => {
+                        if line != "" {
+                            self.provides.push(alpm_dep_from_string(&String::from(line)));
+                            continue;
+                        };
+                    }
+                    _ => {}
+                }
+
+                next_line_type = NextLineType::None;
+
+                if line == "%NAME%" {
+                    next_line_type = NextLineType::Name;
+                } else if line == "%VERSION%" {
+                    next_line_type = NextLineType::Version;
+                } else if line == "%BASE%" {
+                    next_line_type = NextLineType::Base;
+                } else if line == "%DESC%" {
+                    next_line_type = NextLineType::Desc;
+                } else if line == "%GROUPS%" {
+                    next_line_type = NextLineType::Groups;
+                } else if line == "%URL%" {
+                    next_line_type = NextLineType::Url;
+                } else if line == "%LICENSE%" {
+                    next_line_type = NextLineType::License;
+                } else if line == "%ARCH%" {
+                    next_line_type = NextLineType::Arch;
+                } else if line == "%BUILDDATE%" {
+                    next_line_type = NextLineType::BuildDate;
+                } else if line == "%INSTALLDATE%" {
+                    next_line_type = NextLineType::InstallDate;
+                } else if line == "%PACKAGER%" {
+                    next_line_type = NextLineType::Packager;
+                } else if line == "%REASON%" {
+                    next_line_type = NextLineType::Reason;
+                } else if line == "%VALIDATION%" {
+                    next_line_type = NextLineType::Validation;
+                } else if line == "%SIZE%" {
+                    next_line_type = NextLineType::Size;
+                } else if line == "%REPLACES%" {
+                    next_line_type = NextLineType::Replaces;
+                } else if line == "%DEPENDS%" {
+                    next_line_type = NextLineType::Depends;
+                } else if line == "%OPTDEPENDS%" {
+                    next_line_type = NextLineType::OptDepends;
+                } else if line == "%CONFLICTS%" {
+                    next_line_type = NextLineType::Confilcts;
+                } else if line == "%PROVIDES%" {
+                    next_line_type = NextLineType::Provides;
+                }
+            }
+            self.infolevel |= INFRQ_DESC;
+        }
+
+        /* FILES */
+        if inforeq & INFRQ_FILES != 0 && (self.infolevel & INFRQ_FILES) == 0 {
+            unimplemented!();
+            let path = db.local_db_pkgpath(self, &String::from("desc"));
+            let mut fp = match std::fs::File::open(&path) {
+                Ok(f) => f,
+                Err(e) => {
+                    error!("could not open file {}: {}", path, e);
+                    self.infolevel |= INFRQ_ERROR;
+                    return -1;
+                }
+            };
+            use std::io::prelude::*;
+            let mut lines: String = String::new();
+            match fp.read_to_string(&mut lines) {
+                Ok(_) => {}
+                Err(e) => {
+                    return -1;
+                }
+            }
+
+            let lines_iter = lines.lines();
+            let mut next_line_type = NextLineType::None;
+            let mut files_count = 0;
+            let mut files_size = 0;
+            let mut len = 0;
+            let mut files = Vec::new();
+            for mut line in lines_iter {
+                match next_line_type {
+                    NextLineType::Files => {
+                        if line == "" {
+                            next_line_type = NextLineType::None;
+                            // info.files.count = files_count;
+                            // info.files.files = files;
+                            // _alpm_filelist_sort(&info.files);
+                            continue;
+                        }
+                        files.push(line);
+                    }
+                    NextLineType::Backup => {
+                        if line == "" {
+                            next_line_type = NextLineType::None;
+                            continue;
+                        }
+                        // let backup: alpm_backup_t;
+                        // if (_alpm_split_backup(line, &backup)) {
+                        //     info.infolevel |= INFRQ_ERROR;
+                        //     return -1;
+                        // }
+                        // info.backup.push(backup);
+                    }
+                    _ => {}
+                }
+                unimplemented!();
+                if line == "%FILES%" {
+                    next_line_type = NextLineType::Files;
+                } else if line == "%BACKUP%" {
+                    next_line_type = NextLineType::Backup;
+                }
+            }
+            self.infolevel |= INFRQ_FILES;
+        }
+
+        /* INSTALL */
+        if inforeq & INFRQ_SCRIPTLET != 0 && (self.infolevel & INFRQ_SCRIPTLET) == 0 {
+            let path = db.local_db_pkgpath(self, &String::from("install"));
+            use std::path::Path;
+            let install_path = Path::new(&path);
+            if install_path.exists() {
+                self.scriptlet = 1;
+            }
+            self.infolevel |= INFRQ_SCRIPTLET;
+        }
+
+        return 0;
+
+        // error:
+        // 	info->infolevel |= INFRQ_ERROR;
+        // 	if(fp) {
+        // 		fclose(fp);
+        // 	}
+        // 	return -1;
     }
 }
 

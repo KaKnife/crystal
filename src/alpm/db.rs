@@ -197,327 +197,7 @@ impl Database {
         return Ok(true);
     }
 
-    pub fn local_db_read(&mut self, pkg: &mut Package, inforeq: i32) -> i32 {
-        enum NextLineType {
-            None,
-            Name,
-            Version,
-            Base,
-            Desc,
-            Groups,
-            Url,
-            License,
-            Arch,
-            BuildDate,
-            InstallDate,
-            Packager,
-            Reason,
-            Validation,
-            Size,
-            Replaces,
-            Depends,
-            OptDepends,
-            Confilcts,
-            Provides,
-            Files,
-            Backup,
-        }
 
-        /* bitmask logic here:
-         * infolevel: 00001111
-         * inforeq:   00010100
-         * & result:  00000100
-         * == to inforeq? nope, we need to load more info. */
-        if (pkg.infolevel & inforeq) == inforeq {
-            /* already loaded all of this info, do nothing */
-            return 0;
-        }
-
-        if pkg.infolevel & INFRQ_ERROR != 0 {
-            /* We've encountered an error loading this package before. Don't attempt
-             * repeated reloads, just give up. */
-            return -1;
-        }
-
-        info!(
-            "loading package data for {} : level=0x{:x}",
-            pkg.get_name(),
-            inforeq
-        );
-
-        /* DESC */
-        if inforeq & INFRQ_DESC != 0 && (pkg.infolevel & INFRQ_DESC) == 0 {
-            let path = self.local_db_pkgpath(pkg, &String::from("desc"));
-            let mut fp = match std::fs::File::open(&path) {
-                Ok(f) => f,
-                Err(e) => {
-                    error!("could not open file {}: {}", path, e);
-                    pkg.infolevel |= INFRQ_ERROR;
-                    return -1;
-                }
-            };
-            use std::io::prelude::*;
-            let mut lines: String = String::new();
-            match fp.read_to_string(&mut lines) {
-                Ok(_) => {}
-                Err(_) => {
-                    return -1;
-                }
-            }
-
-            let lines_iter = lines.lines();
-            let mut next_line_type = NextLineType::None;
-            for mut line in lines_iter {
-                if String::from(line).trim().len() == 0 {
-                    /* length of stripped line was zero */
-                    continue;
-                }
-
-                match next_line_type {
-                    NextLineType::None => {}
-                    NextLineType::Name => {
-                        if line != pkg.get_name() {
-                            error!(
-                                "{} database is inconsistent: name mismatch on package {}",
-                                self.treename,
-                                pkg.get_name()
-                            );
-                        }
-                    }
-                    NextLineType::Version => {
-                        if line != pkg.version {
-                            error!(
-                                "{} database is inconsistent: version mismatch on package {}",
-                                self.treename,
-                                pkg.get_name()
-                            );
-                        }
-                    }
-                    NextLineType::Base => {
-                        pkg.set_base(line);
-                    }
-                    NextLineType::Desc => {
-                        pkg.desc = String::from(line);
-                    }
-                    NextLineType::Groups => {
-                        if line != "" {
-                            pkg.groups.push(String::from(line));
-                            continue;
-                        }
-                    }
-                    NextLineType::Url => {
-                        pkg.url = String::from(line);
-                    }
-                    NextLineType::License => {
-                        if line != "" {
-                            pkg.licenses.push(String::from(line));
-                            continue;
-                        }
-                    }
-                    NextLineType::Arch => {
-                        pkg.arch = String::from(line);
-                    }
-                    NextLineType::BuildDate => {
-                        pkg.builddate = _alpm_parsedate(line);
-                    }
-                    NextLineType::InstallDate => {
-                        pkg.installdate = _alpm_parsedate(line);
-                    }
-                    NextLineType::Packager => {
-                        pkg.packager = String::from(line);
-                    }
-                    NextLineType::Reason => {
-                        pkg.reason = PackageReason::from(u8::from_str_radix(line, 10).unwrap());
-                    }
-                    NextLineType::Validation => {
-                        unimplemented!();
-                        // // alpm_list_t *i, *v = NULL;
-                        // READ_AND_STORE_ALL(v);
-                        // // for(i = v; i; i = alpm_list_next(i))
-                        // {
-                        //     if (strcmp(i.data, "none") == 0) {
-                        //         info.validation |= ALPM_PKG_VALIDATION_NONE;
-                        //     } else if (strcmp(i.data, "md5") == 0) {
-                        //         info.validation |= ALPM_PKG_VALIDATION_MD5SUM;
-                        //     } else if (strcmp(i.data, "sha256") == 0) {
-                        //         info.validation |= ALPM_PKG_VALIDATION_SHA256SUM;
-                        //     } else if (strcmp(i.data, "pgp") == 0) {
-                        //         info.validation |= ALPM_PKG_VALIDATION_SIGNATURE;
-                        //     } else {
-                        //         info!(
-                        //             "unknown validation type for package {}: {}",
-                        //             pkg.get_name(), i.data
-                        //         );
-                        //     }
-                        // }
-                        // FREELIST(v);
-                    }
-                    NextLineType::Size => {
-                        pkg.isize = _alpm_strtoofft(&String::from(line));
-                    }
-                    NextLineType::Replaces => {
-                        if line != "" {
-                            pkg.replaces.push(alpm_dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    NextLineType::Depends => {
-                        if line != "" {
-                            pkg.depends.push(alpm_dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    NextLineType::OptDepends => {
-                        if line != "" {
-                            pkg.optdepends
-                                .push(alpm_dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    NextLineType::Confilcts => {
-                        if line != "" {
-                            pkg.conflicts
-                                .push(alpm_dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    NextLineType::Provides => {
-                        if line != "" {
-                            pkg.provides.push(alpm_dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    _ => {}
-                }
-
-                next_line_type = NextLineType::None;
-
-                if line == "%NAME%" {
-                    next_line_type = NextLineType::Name;
-                } else if line == "%VERSION%" {
-                    next_line_type = NextLineType::Version;
-                } else if line == "%BASE%" {
-                    next_line_type = NextLineType::Base;
-                } else if line == "%DESC%" {
-                    next_line_type = NextLineType::Desc;
-                } else if line == "%GROUPS%" {
-                    next_line_type = NextLineType::Groups;
-                } else if line == "%URL%" {
-                    next_line_type = NextLineType::Url;
-                } else if line == "%LICENSE%" {
-                    next_line_type = NextLineType::License;
-                } else if line == "%ARCH%" {
-                    next_line_type = NextLineType::Arch;
-                } else if line == "%BUILDDATE%" {
-                    next_line_type = NextLineType::BuildDate;
-                } else if line == "%INSTALLDATE%" {
-                    next_line_type = NextLineType::InstallDate;
-                } else if line == "%PACKAGER%" {
-                    next_line_type = NextLineType::Packager;
-                } else if line == "%REASON%" {
-                    next_line_type = NextLineType::Reason;
-                } else if line == "%VALIDATION%" {
-                    next_line_type = NextLineType::Validation;
-                } else if line == "%SIZE%" {
-                    next_line_type = NextLineType::Size;
-                } else if line == "%REPLACES%" {
-                    next_line_type = NextLineType::Replaces;
-                } else if line == "%DEPENDS%" {
-                    next_line_type = NextLineType::Depends;
-                } else if line == "%OPTDEPENDS%" {
-                    next_line_type = NextLineType::OptDepends;
-                } else if line == "%CONFLICTS%" {
-                    next_line_type = NextLineType::Confilcts;
-                } else if line == "%PROVIDES%" {
-                    next_line_type = NextLineType::Provides;
-                }
-            }
-            pkg.infolevel |= INFRQ_DESC;
-        }
-
-        /* FILES */
-        if inforeq & INFRQ_FILES != 0 && (pkg.infolevel & INFRQ_FILES) == 0 {
-            unimplemented!();
-            let path = self.local_db_pkgpath(pkg, &String::from("desc"));
-            let mut fp = match std::fs::File::open(&path) {
-                Ok(f) => f,
-                Err(e) => {
-                    error!("could not open file {}: {}", path, e);
-                    pkg.infolevel |= INFRQ_ERROR;
-                    return -1;
-                }
-            };
-            use std::io::prelude::*;
-            let mut lines: String = String::new();
-            match fp.read_to_string(&mut lines) {
-                Ok(_) => {}
-                Err(e) => {
-                    return -1;
-                }
-            }
-
-            let lines_iter = lines.lines();
-            let mut next_line_type = NextLineType::None;
-            let mut files_count = 0;
-            let mut files_size = 0;
-            let mut len = 0;
-            let mut files = Vec::new();
-            for mut line in lines_iter {
-                match next_line_type {
-                    NextLineType::Files => {
-                        if line == "" {
-                            next_line_type = NextLineType::None;
-                            // info.files.count = files_count;
-                            // info.files.files = files;
-                            // _alpm_filelist_sort(&info.files);
-                            continue;
-                        }
-                        files.push(line);
-                    }
-                    NextLineType::Backup => {
-                        if line == "" {
-                            next_line_type = NextLineType::None;
-                            continue;
-                        }
-                        // let backup: alpm_backup_t;
-                        // if (_alpm_split_backup(line, &backup)) {
-                        //     info.infolevel |= INFRQ_ERROR;
-                        //     return -1;
-                        // }
-                        // info.backup.push(backup);
-                    }
-                    _ => {}
-                }
-                unimplemented!();
-                if line == "%FILES%" {
-                    next_line_type = NextLineType::Files;
-                } else if line == "%BACKUP%" {
-                    next_line_type = NextLineType::Backup;
-                }
-            }
-            pkg.infolevel |= INFRQ_FILES;
-        }
-
-        /* INSTALL */
-        if inforeq & INFRQ_SCRIPTLET != 0 && (pkg.infolevel & INFRQ_SCRIPTLET) == 0 {
-            let path = self.local_db_pkgpath(pkg, &String::from("install"));
-            use std::path::Path;
-            let install_path = Path::new(&path);
-            if install_path.exists() {
-                pkg.scriptlet = 1;
-            }
-            pkg.infolevel |= INFRQ_SCRIPTLET;
-        }
-
-        return 0;
-
-        // error:
-        // 	info->infolevel |= INFRQ_ERROR;
-        // 	if(fp) {
-        // 		fclose(fp);
-        // 	}
-        // 	return -1;
-    }
 
     fn checkdbdir(&self) -> Result<()> {
         let path = self.path().unwrap();
@@ -809,7 +489,7 @@ impl Database {
                             Ok(d) => d,
                         };
                         pkg.set_name(&name);
-                        pkg.version = version;
+                        pkg.set_version(version);
                         pkg.set_name_hash(name_hash);
                     }
 
@@ -820,10 +500,10 @@ impl Database {
                     // 			continue;
                     // 		}
 
-                    pkg.origin = PackageFrom::LocalDatabase;
+                    pkg.set_origin(PackageFrom::LocalDatabase);
 
                     /* explicitly read with only 'BASE' data, accessors will handle the rest */
-                    if self.local_db_read(&mut pkg, INFRQ_BASE) == -1 {
+                    if pkg.local_db_read(self, INFRQ_BASE) == -1 {
                         debug!("corrupted database entry '{}'", name);
                         continue;
                     }
@@ -986,12 +666,12 @@ impl Database {
     }
 
     /* Note: the return value must be freed by the caller */
-    fn local_db_pkgpath(&self, pkg: &Package, filename: &String) -> String {
+    pub fn local_db_pkgpath(&self, pkg: &Package, filename: &String) -> String {
         let pkgpath: String;
         let dbpath: String;
 
         dbpath = self.path().unwrap();
-        pkgpath = format!("{}{}-{}/{}", dbpath, pkg.get_name(), pkg.version, filename);
+        pkgpath = format!("{}{}-{}/{}", dbpath, pkg.get_name(), pkg.get_version(), filename);
         return pkgpath;
     }
 
@@ -1269,6 +949,22 @@ impl Database {
 
     /// Get a package entry from a package database. */
     pub fn get_pkg(&self, name: &String) -> Option<&Package> {
+        unimplemented!()
+        // Package *pkg;
+        // ASSERT(db != NULL, return NULL);
+        // db->handle->pm_errno = ALPM_ERR_OK;
+        // ASSERT(name != NULL && strlen(name) != 0,
+        // 		RET_ERR(db->handle, WrongArgs, NULL));
+        //
+        // pkg = _alpm_db_get_pkgfromcache(db, name);
+        // if(!pkg) {
+        // 	RET_ERR(db->handle, ALPM_ERR_PKG_NOT_FOUND, NULL);
+        // }
+        // return pkg;
+    }
+
+    /// Get a package entry from a package database. */
+    pub fn get_pkg_mut(&mut self, name: &String) -> Option<&mut Package> {
         unimplemented!()
         // Package *pkg;
         // ASSERT(db != NULL, return NULL);

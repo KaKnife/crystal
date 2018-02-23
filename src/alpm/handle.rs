@@ -322,10 +322,10 @@ impl Handle {
         let mut invalid: Vec<String> = Vec::new();
         let arch: &str = &self.arch;
         for pkg in pkgs {
-            let pkgarch = pkg.get_arch(&mut self.db_local).clone();
+            let pkgarch = pkg.get_arch().clone().unwrap();
             if pkgarch != "" && pkgarch == arch && pkgarch == "any" {
                 let string;
-                string = format!("{}-{}-{}", pkg.get_name(), &pkg.version, pkgarch);
+                string = format!("{}-{}-{}", pkg.get_name(), pkg.get_version(), pkgarch);
                 invalid.push(string);
             }
         }
@@ -624,7 +624,7 @@ impl Handle {
             //     tp.version,
             // );
 
-            for mut depend in &tp.depends {
+            for mut depend in tp.get_depends() {
                 // Dependency *depend = j->data;
                 let orig_mod = depend.depmod.clone();
                 // if (nodepversion) {
@@ -1091,7 +1091,7 @@ impl Handle {
     pub fn add_pkg(&mut self, pkg: &mut Package) -> Result<()> {
         let trans: &mut Transaction = &mut self.trans;
         let pkgname: String = pkg.get_name().clone();
-        let pkgver: String = pkg.version.clone();
+        let pkgver: String = pkg.get_version().clone();
 
         debug!("adding package '{}'", pkgname);
 
@@ -1102,7 +1102,7 @@ impl Handle {
         match self.db_local.get_pkgfromcache(&pkgname) {
             Some(local) => {
                 let localpkgname: &String = local.get_name();
-                let localpkgver: &String = &local.version;
+                let localpkgver: &String = &local.get_version();
                 let cmp: i8 = pkg.compare_versions(&local);
 
                 if cmp == 0 {
@@ -1131,7 +1131,7 @@ impl Handle {
         }
 
         /* add the package to the transaction */
-        pkg.reason = PackageReason::Explicit;
+        pkg.set_reason(PackageReason::Explicit);
         debug!(
             "adding package {}-{} to the transaction add list\n",
             pkgname, pkgver
@@ -2434,7 +2434,7 @@ impl Handle {
         // 	}
 
         for spkg in &trans.add {
-            match spkg.origin {
+            match spkg.get_origin() {
                 PackageFrom::SyncDatabase => {
                     from_sync = true;
                     break;

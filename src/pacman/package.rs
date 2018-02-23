@@ -184,7 +184,7 @@ fn deplist_display(title: &str, deps: &Vec<Dependency>, cols: usize) {
 	for dep in deps {
 		text.push(dep.alpm_dep_compute_string());
 	}
-	list_display(title, &text, cols);
+	list_display(title, &text);
 }
 
 // /** Turn a optdepends list into a text list.
@@ -253,24 +253,24 @@ pub fn dump_pkg_full(
 	from = pkg.get_origin();
 
 	/* set variables here, do all output below */
-	bdate = pkg.get_builddate(db_local);
-	if bdate != 0 {
+	bdate = pkg.get_builddate();
+	if bdate.is_ok() {
 		// unimplemented!();
 		// bdatestr = time::strftime("%c", localtime(&bdate));
 	}
-	idate = pkg.get_installdate(db_local);
-	if idate != 0 {
+	idate = pkg.get_installdate();
+	if idate.unwrap() != 0 {
 		// unimplemented!();
 		// strftime(idatestr, 50, "%c", localtime(&idate));
 	}
 
 	reason = match pkg.get_reason(db_local) {
-		&PackageReason::Explicit => "Explicitly installed",
-		&PackageReason::Dependency => "Installed as a dependency for another package",
-		// _ => "Unknown",
+		Ok(&PackageReason::Explicit) => "Explicitly installed",
+		Ok(&PackageReason::Dependency) => "Installed as a dependency for another package",
+		_ => "Unknown",
 	};
 
-	let v = pkg.get_validation(db_local);
+	let v = pkg.get_validation(db_local).unwrap();
 	if v != 0 {
 		if v & PackageValidation::None as i32 != 0 {
 			validation.push(String::from("None"));
@@ -308,16 +308,16 @@ pub fn dump_pkg_full(
 	// }
 	string_display(T_NAME, &pkg.get_name(), cols, config);
 	string_display(T_VERSION, &pkg.get_version(), cols, config);
-	string_display(T_DESCRIPTION, pkg.get_desc(db_local).unwrap(), cols, config);
+	string_display(T_DESCRIPTION, pkg.get_desc().unwrap(), cols, config);
 	string_display(
 		T_ARCHITECTURE,
-		&pkg.get_arch(db_local),
+		&pkg.get_arch().unwrap(),
 		cols,
 		config,
 	);
-	string_display(T_URL, &pkg.get_url(db_local).unwrap(), cols, config);
-	list_display(T_LICENSES, pkg.get_licenses(db_local), cols);
-	list_display(T_GROUPS, pkg.get_groups(db_local), cols);
+	string_display(T_URL, &pkg.get_url().unwrap(), cols, config);
+	list_display(T_LICENSES, pkg.get_licenses(db_local));
+	list_display(T_GROUPS, pkg.get_groups(db_local));
 	deplist_display(T_PROVIDES, pkg.get_provides(db_local), cols);
 	deplist_display(T_DEPENDS_ON, pkg.get_depends(), cols);
 	// optdeplist_display(pkg, cols);
@@ -343,14 +343,14 @@ pub fn dump_pkg_full(
 		_ => {}
 	}
 	size = humanize_size(
-		pkg.get_isize(db_local),
+		pkg.get_isize(db_local).unwrap(),
 		label.chars().collect::<Vec<char>>()[0],
 		2,
 		&mut label,
 	);
 	println!("{} {} {}", T_INSTALLED_SIZE, size, label);
 
-	string_display(T_PACKAGER, &pkg.get_packager(db_local), cols, config);
+	string_display(T_PACKAGER, pkg.get_packager().unwrap(), cols, config);
 	// string_display(T_BUILD_DATE, bdatestr, cols);
 	match from {
 		PackageFrom::LocalDatabase => {
@@ -389,10 +389,10 @@ pub fn dump_pkg_full(
 
 			string_display(T_MD5_SUM, &pkg.md5sum(), cols, config);
 			string_display(T_SHA_256_SUM, &pkg.sha256sum(), cols, config);
-			list_display(T_SIGNATURES, &keys, cols);
+			list_display(T_SIGNATURES, &keys);
 		}
 		_ => {
-			list_display(T_VALIDATED_BY, &validation, cols);
+			list_display(T_VALIDATED_BY, &validation);
 		}
 	}
 

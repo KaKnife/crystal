@@ -25,7 +25,6 @@ use super::alpm::*;
 /// * `targets` - a list of packages (as strings) to modify
 /// * return - 0 on success, 1 on failure
 fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut Handle) -> i32 {
-    let db_local: &Database;
     let mut ret: i32 = 0;
     let reason: PackageReason;
 
@@ -49,37 +48,38 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
     if trans_init(&TransactionFlag::default(), false, handle) == -1 {
         return 1;
     }
-
-    db_local = handle.get_localdb();
-    for pkgname in targets {
-        match db_local.get_pkg(&pkgname) {
-            None => {
-                eprintln!(
-                    "could not set install reason for package {} ()",
-                    pkgname /*alpm_strerror(alpm_errno(config->handle))*/,
-                );
-                ret = 1;
-            }
-            Some(pkg) => {
-                if pkg.set_reason(&reason) != 0 {
+    {
+        let db_local: &mut Database = handle.get_localdb_mut();
+        for pkgname in targets {
+            match db_local.get_pkg_mut(&pkgname) {
+                None => {
                     eprintln!(
                         "could not set install reason for package {} ()",
                         pkgname /*alpm_strerror(alpm_errno(config->handle))*/,
                     );
                     ret = 1;
-                } else if !config.quiet {
-                    match reason {
-                        PackageReason::Dependency => {
-                            println!(
-                                "{}: install reason has been set to 'installed as dependency'",
-                                pkgname
-                            );
-                        }
-                        _ => {
-                            println!(
-                                "{}: install reason has been set to 'explicitly installed'",
-                                pkgname
-                            );
+                }
+                Some(pkg) => {
+                    if pkg.set_reason(reason) != 0 {
+                        eprintln!(
+                            "could not set install reason for package {} ()",
+                            pkgname /*alpm_strerror(alpm_errno(config->handle))*/,
+                        );
+                        ret = 1;
+                    } else if !config.quiet {
+                        match reason {
+                            PackageReason::Dependency => {
+                                println!(
+                                    "{}: install reason has been set to 'installed as dependency'",
+                                    pkgname
+                                );
+                            }
+                            _ => {
+                                println!(
+                                    "{}: install reason has been set to 'explicitly installed'",
+                                    pkgname
+                                );
+                            }
                         }
                     }
                 }

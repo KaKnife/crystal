@@ -282,9 +282,9 @@ fn is_unrequired(
 fn filter(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
     match pkg.get_reason(handle.get_localdb_mut()) {
         /* check if this package was installed as a dependency */
-        &PackageReason::Dependency if config.op_q_explicit != 0 => return 0,
+        Ok(&PackageReason::Dependency) if config.op_q_explicit != 0 => return 0,
         /* check if this package was explicitly installed */
-        &PackageReason::Explicit if config.op_q_deps != 0 => return 0,
+        Ok(&PackageReason::Explicit) if config.op_q_deps != 0 => return 0,
         _ => {}
     }
     /* check if this pkg is or isn't in a sync DB */

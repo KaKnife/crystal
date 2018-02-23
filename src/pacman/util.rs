@@ -634,12 +634,8 @@ fn table_print_line<T>(
 // 	return ret;
 // }
 
-pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
-    // 	const alpm_list_t *i;
-    let len;
-
+pub fn list_display(title: &str, list: &Vec<String>) {
     if !title.is_empty() {
-        len = title.len() + 1;
         print!("{} ", title);
     }
 
@@ -650,32 +646,6 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
             print!("{} ", item);
         }
         println!();
-        //TODO: actually do something here
-        // unimplemented!();
-        // let cols = len;
-        // 		const char *str = list->data;
-        // 		fputs(str, stdout);
-        // 		cols += string_length(str);
-        // 		for(i = alpm_list_next(list); i; i = alpm_list_next(i)) {
-        // 			str = i->data;
-        // 			size_t s = string_length(str);
-        // 			/* wrap only if we have enough usable column space */
-        // 			if(maxcols > len && cols + s + 2 >= maxcols) {
-        // 				size_t j;
-        // 				cols = len;
-        // 				printf("\n");
-        // 				for(j = 1; j <= len; j++) {
-        // 					printf(" ");
-        // 				}
-        // 			} else if(cols != len) {
-        // 				/* 2 spaces are added if this is not the first element on a line. */
-        // 				printf("  ");
-        // 				cols += 2;
-        // 			}
-        // 			fputs(str, stdout);
-        // 			cols += s;
-        // 		}
-        // 		putchar('\n');
     }
 }
 
@@ -993,10 +963,10 @@ pub fn list_display(title: &str, list: &Vec<String>, maxcols: usize) {
 // 	FREELIST(targets);
 // }
 
-fn pkg_get_size(pkg: &mut Package, config: &Config, db: &mut Database) -> i64 {
+fn pkg_get_size(pkg: &mut Package, config: &Config, db: &mut Database) -> Result<i64> {
     match config.op {
-        Some(Operations::SYNC) => pkg.download_size(),
-        Some(Operations::UPGRADE) => pkg.get_size(),
+        Some(Operations::SYNC) => Ok(pkg.download_size()),
+        Some(Operations::UPGRADE) => Ok(pkg.get_size()),
         _ => pkg.get_isize(db),
     }
 }
@@ -1106,7 +1076,7 @@ pub fn print_packages(
         /* %n : pkgname */
         string.replace("%n", &pkg.get_name());
         /* %v : pkgver */
-        string.replace("%v", &pkg.version);
+        string.replace("%v", &pkg.get_version());
         /* %l : location */
         string.replace("%l", &pkg_get_location(&pkg, handle));
         /* %r : repo */
@@ -1114,7 +1084,7 @@ pub fn print_packages(
         /* %s : size */
         if string.contains("%s") {
             // 	char *size;
-            let size = format!("{}", pkg_get_size(pkg, config, handle.get_localdb_mut()));
+            let size = format!("{}", pkg_get_size(pkg, config, handle.get_localdb_mut()).unwrap());
             string.replace("%s", &size);
             // 	free(size);
             // 	free(temp);

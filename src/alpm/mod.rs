@@ -1,21 +1,21 @@
 #[macro_use]
-pub mod util;
-pub mod handle;
-pub mod deps;
-pub mod db;
-pub mod package;
-pub mod trans;
-pub mod version;
-pub mod conflict;
-pub mod error;
-pub mod remove;
-pub mod be_package;
-pub mod dload;
-pub mod sync;
-pub mod pkghash;
-pub mod be_sync;
-pub mod signing;
-pub mod alpm_list;
+mod util;
+mod handle;
+mod deps;
+mod db;
+mod package;
+mod trans;
+mod version;
+mod conflict;
+mod error;
+mod remove;
+mod be_package;
+mod dload;
+mod sync;
+mod pkghash;
+mod be_sync;
+mod signing;
+mod alpm_list;
 // use self::alpm_list::*;
 use self::signing::*;
 // use self::be_sync::*;
@@ -95,7 +95,7 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 type Time = i64;
 
 /// Package install reasons.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum PackageReason {
     /// Explicitly requested by the user.
     Explicit = 0,
