@@ -1,4 +1,3 @@
-use super::*;
 /*
  *  query.c
  *
@@ -18,24 +17,8 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <stdint.h>
-// #include <limits.h>
-// #include <sys/stat.h>
-// #include <unistd.h>
-// #include <errno.h>
-//
-// #include <alpm.h>
-// #include <alpm_list.h>
-//
-// /* pacman */
-// #include "pacman.h"
-// #include "package.h"
-// #include "check.h"
-// #include "conf.h"
-// #include "util.h"
+use super::*;
+use super::alpm::*;
 
 const LOCAL_PREFIX: &str = "local/";
 
@@ -84,8 +67,8 @@ const LOCAL_PREFIX: &str = "local/";
 fn print_query_fileowner(filename: &String, info: &Package, config: &Config) {
     if !config.quiet {
         let colstr = &config.colstr;
-        println!(
-            "{} is owned by {}{} {}{}{}",
+        print!(
+            "{} is owned by {}{} {}{}{}\n",
             filename,
             colstr.title,
             info.get_name(),
@@ -94,7 +77,7 @@ fn print_query_fileowner(filename: &String, info: &Package, config: &Config) {
             colstr.nocolor
         );
     } else {
-        println!("{}", info.get_name());
+        print!("{}\n", info.get_name());
     }
 }
 
@@ -141,7 +124,7 @@ fn print_query_fileowner(filename: &String, info: &Package, config: &Config) {
 // 	return (success ? resolved_path : NULL);
 // }
 
-fn query_fileowner(targets: &Vec<String>) -> i32 {
+fn query_fileowner(targets: &Vec<String>) -> Result<()> {
     unimplemented!();
     // 	int ret = 0;
     // 	const char *root = alpm_option_get_root(config.handle);
@@ -236,17 +219,17 @@ fn query_fileowner(targets: &Vec<String>) -> i32 {
 }
 
 /// search the local database for a matching package
-fn query_search(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i32 {
+fn query_search(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> Result<()> {
     let tem_handle = &handle.clone();
     let db_local: &mut Database = handle.get_localdb_mut();
-    return dump_pkg_search(
+    dump_pkg_search(
         db_local,
         targets,
         0,
         &config.colstr,
         tem_handle,
         config.quiet,
-    );
+    )
 }
 
 fn pkg_get_locality(pkg: &Package, handle: &Handle) -> u8 {
@@ -254,23 +237,18 @@ fn pkg_get_locality(pkg: &Package, handle: &Handle) -> u8 {
     let sync_dbs = handle.get_syncdbs();
 
     for data in sync_dbs {
-        if data.get_pkg(pkgname).is_some() {
+        if data.get_pkg(pkgname).is_ok() {
             return PKG_LOCALITY_NATIVE;
         }
     }
     return PKG_LOCALITY_FOREIGN;
 }
 
-fn is_unrequired(
-    pkg: &Package,
-    level: u8,
-    db_local: &mut Database,
-    dbs_sync: &mut Vec<Database>,
-) -> bool {
-    let mut requiredby = pkg.compute_requiredby(0, db_local, dbs_sync);
+fn is_unrequired(pkg: &Package, level: u8, db_local: &Database, dbs_sync: &Vec<Database>) -> bool {
+    let mut requiredby = pkg.compute_requiredby(false, db_local, dbs_sync).unwrap();
     if requiredby.is_empty() {
         if level == 1 {
-            requiredby = pkg.compute_optionalfor(db_local, dbs_sync);
+            requiredby = pkg.compute_optionalfor(db_local, dbs_sync).unwrap();
         }
         if requiredby.is_empty() {
             return true;
@@ -279,111 +257,87 @@ fn is_unrequired(
     return false;
 }
 
-fn filter(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
-    match pkg.get_reason(handle.get_localdb_mut()) {
+fn filter(pkg: &Package, config: &Config, handle: &Handle) -> bool {
+    match pkg.get_reason() {
         /* check if this package was installed as a dependency */
-        Ok(&PackageReason::Dependency) if config.op_q_explicit != 0 => return 0,
+        Ok(&PackageReason::Dependency) if config.op_q_explicit != 0 => return false,
         /* check if this package was explicitly installed */
-        Ok(&PackageReason::Explicit) if config.op_q_deps != 0 => return 0,
+        Ok(&PackageReason::Explicit) if config.op_q_deps != 0 => return false,
         _ => {}
     }
     /* check if this pkg is or isn't in a sync DB */
     if config.op_q_locality != 0 && config.op_q_locality != pkg_get_locality(pkg, handle) {
-        return 0;
+        return false;
     }
     /* check if this pkg is unrequired */
     if config.op_q_unrequired != 0
         && !is_unrequired(
             pkg,
             config.op_q_unrequired,
-            &mut handle.db_local,
-            &mut handle.dbs_sync,
+            &handle.db_local,
+            &handle.dbs_sync,
         ) {
-        return 0;
+        return false;
     }
     /* check if this pkg is outdated */
-    if config.op_q_upgrade != 0
-        && pkg.newversion(handle.get_syncdbs())
-            .is_none()
-    {
-        return 0;
+    if config.op_q_upgrade != 0 && pkg.newversion(handle.get_syncdbs()).is_none() {
+        return false;
     }
-    return 1;
+    return true;
 }
 
-fn display(pkg: &mut Package, config: &Config, handle: &mut Handle) -> i32 {
+fn display(pkg: &Package, config: &Config, handle: &Handle) -> i32 {
     let mut ret = 0;
 
     if config.op_q_info != 0 {
         if config.op_q_isfile != 0 {
-            dump_pkg_full(
-                pkg,
-                false,
-                config,
-                &mut handle.db_local,
-                &mut handle.dbs_sync,
-            );
+            match pkg.dump_full(false, &handle.db_local, &handle.dbs_sync) {
+                Err(e) => error!("Error dumping package {} ({})", pkg.get_name(), e),
+                Ok(_) => {}
+            };
         } else {
-            dump_pkg_full(
-                pkg,
-                config.op_q_info > 1,
-                config,
-                &mut handle.db_local,
-                &mut handle.dbs_sync,
-            );
+            match pkg.dump_full(config.op_q_info > 1, &handle.db_local, &handle.dbs_sync) {
+                Err(e) => error!("Error dumping package {} ({})", pkg.get_name(), e),
+                Ok(_) => {}
+            };;
         }
     }
-    if config.op_q_list != 0 {
+    if config.op_q_list {
         dump_pkg_files(pkg, config.quiet);
     }
     if config.op_q_changelog != 0 {
         dump_pkg_changelog(pkg);
     }
-    if config.op_q_check != 0 {
-        if config.op_q_check == 1 {
-            ret = check_pkg_fast(pkg);
-        } else {
-            ret = check_pkg_full(pkg);
-        }
+    match config.op_q_check {
+        0 => {}
+        1 => ret = pkg.check_fast(),
+        _ => ret = pkg.check_full(),
     }
-    if config.op_q_info == 0 && config.op_q_list == 0 && config.op_q_changelog == 0
+    if config.op_q_info == 0 && !config.op_q_list && config.op_q_changelog == 0
         && config.op_q_check == 0
     {
         if !config.quiet {
             let colstr = &config.colstr;
-            print!(
-                "{}{} {}{}{}",
-                colstr.title,
-                pkg.get_name(),
-                colstr.version,
-                pkg.get_version(),
-                colstr.nocolor
-            );
+            print!("{} {}", pkg.get_name(), pkg.get_version(),);
 
             if config.op_q_upgrade != 0 {
-                unimplemented!();
                 let newpkg = pkg.newversion(handle.get_syncdbs()).unwrap();
-                print!(
-                    " . {}{}{}",
-                    colstr.version,
-                    newpkg.get_version(),
-                    colstr.nocolor
-                );
+                print!(" . {}", newpkg.get_version(),);
 
                 if handle.pkg_should_ignore(pkg) {
                     print!(" {}", "[ignored]");
                 }
             }
 
-            println!();
+            print!("\n");
         } else {
-            println!("{}", pkg.get_name());
+            print!("{}\n", pkg.get_name());
         }
     }
     return ret;
 }
 
-fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i32 {
+fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> Result<()> {
     let mut ret = 0;
     let handle_clone = &mut handle.clone();
     let db_local: &mut Database = handle.get_localdb_mut();
@@ -394,23 +348,23 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i
     if targets.is_empty() {
         for grp in db_local.get_groupcache_mut() {
             for pkg in &mut grp.packages {
-                if filter(pkg, config, handle_clone) == 0 {
+                if !filter(pkg, config, handle_clone) {
                     continue;
                 }
-                println!("{} {}", grp.name, pkg.get_name());
+                print!("{} {}\n", grp.name, pkg.get_name());
             }
         }
     } else {
         for grpname in targets {
             match db_local.get_group_mut(grpname) {
                 Ok(grp) => for ref mut data in &mut grp.packages {
-                    if filter(data, config, handle_clone) == 0 {
+                    if !filter(data, config, handle_clone) {
                         continue;
                     }
                     if !config.quiet {
-                        println!("{} {}", grpname, data.get_name());
+                        print!("{} {}\n", grpname, data.get_name());
                     } else {
-                        println!("{}", data.get_name());
+                        print!("{}\n", data.get_name());
                     }
                 },
                 Err(_) => {
@@ -420,69 +374,57 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> i
             }
         }
     }
-    return ret;
+    return Err(Error::Other);
 }
 
-pub fn pacman_query(
-    targets: Vec<String>,
-    config: &mut Config,
-    handle: &mut Handle,
-) -> std::result::Result<(), i32> {
-    // 	int ret = 0;
-    let mut ret = Ok(());
-    let mut handle_clone = &mut handle.clone();
-    // 	int match = 0;
-    let mut is_match = false;
-    // 	alpm_list_t *i;
-    // 	Package *pkg = NULL;
-    let mut pkg;
-    // 	Database *db_local;
+pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Handle) -> Result<()> {
+    // let handle_clone: &Handle = &handle.clone();
+    let op_q_explicit = config.op_q_explicit;
+    let op_q_deps = config.op_q_deps;
+    let pkg_cache;
+    let mut ret: Result<()> = Ok(());
+    let mut is_match: bool = false;
+    let mut pkg: &Package;
+    let mut db_local: &Database;
 
-    let mut db_local;
-    // let op_q_explicit = config.op_q_explicit;
-    // let op_q_deps = config.op_q_deps;
+    {
+        // let handle_clone = &handle.clone();
+        handle.get_localdb_mut().load_pkgcache();
+    }
 
     /* First: operations that do not require targets */
 
     /* search for a package */
-    if config.op_q_search != 0 {
-        match query_search(&targets, config, handle) {
-            0 => return Ok(()),
-            e => return Err(e),
-        };
+    if config.op_q_search {
+        return query_search(&targets, config, handle);
     }
 
     /* looking for groups */
     if config.group != 0 {
-        match query_group(&targets, config, handle) {
-            0 => return Ok(()),
-            e => return Err(e),
-        };
+        return query_group(&targets, config, handle);
     }
 
     if config.op_q_locality != 0 || config.op_q_upgrade != 0 {
-        if check_syncdbs(1, true, handle).is_err() {
-            return Err(1);
-        }
+        check_syncdbs(1, true, handle)?;
     }
-    // let handle_clone = &handle.clone();
-    db_local = handle.get_localdb_mut();
 
+    db_local = handle.get_localdb();
+    pkg_cache = db_local.get_pkgcache()?;
     /* operations on all packages in the local DB
      * valid: no-op (plain -Q), list, info, check
      * invalid: isfile, owns */
     if targets.is_empty() {
         if config.op_q_isfile != 0 || config.op_q_owns != 0 {
             error!("no targets specified (use -h for help)");
-            return Err(1);
+            return Err(Error::Other);
         }
 
-        match db_local.get_pkgcache_mut() {
+        match db_local.get_pkgcache() {
             Ok(d) => for mut pkg in d {
-                if filter(pkg, config, handle_clone) != 0 {
-                    let value = display(&mut pkg, config, handle_clone);
+                if filter(pkg, config, handle) {
+                    let value = display(&mut pkg, config, handle);
                     if value != 0 {
-                        ret = Err(1);
+                        ret = Err(Error::Other);
                     }
                     is_match = true;
                 }
@@ -491,7 +433,7 @@ pub fn pacman_query(
         }
 
         if !is_match {
-            ret = Err(1);
+            ret = Err(Error::Other);
         }
         return ret;
     }
@@ -500,11 +442,7 @@ pub fn pacman_query(
 
     /* determine the owner of a file */
     if config.op_q_owns != 0 {
-        ret = match query_fileowner(&targets) {
-            0 => Ok(()),
-            e => Err(e),
-        };
-        return ret;
+        return query_fileowner(&targets);
     }
 
     /* operations on named packages in the local DB
@@ -513,46 +451,42 @@ pub fn pacman_query(
         /* strip leading part of "local/pkgname" */
         let strname = String::from(strname.trim_left_matches(LOCAL_PREFIX));
         if config.op_q_isfile != 0 {
-            pkg = match handle_clone.pkg_load(&strname, 1, &SigLevel::default()) {
+            pkg = match handle.pkg_load(&strname, 1, &SigLevel::default()) {
                 Ok(pkg) => pkg,
                 Err(e) => {
                     error!("could not load package '{}': {}", strname, e);
-                    ret = Err(1);
+                    ret = Err(Error::Other);
                     continue;
                 }
             }
         } else {
-            unimplemented!();
-            // pkg = match db_local_tmp.get_pkg(&strname) {
-            //     None => {
-            //         match alpm::alpm_find_satisfier(db_local.get_pkgcache().unwrap(), &strname){
-            //             None => {
-            //                 error!("package '{}' was not found", strname);
-            //                 unimplemented!();
-            //                 // 	if(!config.op_q_isfile && access(strname, R_OK) == 0) {
-            //                 // 		pm_printf(ALPM_LOG_WARNING,
-            //                 // 				_("'{}' is a file, you might want to use {}.\n"),
-            //                 // 				strname, "-p/--file");
-            //                 // 	}
-            //                 ret = Err(1);
-            //                 continue;
-            //             }
-            //             Some(pkg) => pkg,
-            //         }
-            //     }
-            //     Some(pkg) => pkg,
-            // };
-
+            pkg = match db_local.get_pkg(&strname) {
+                Err(_) => {
+                    match alpm::alpm_find_satisfier(&pkg_cache, &strname) {
+                        None => {
+                            error!("package '{}' was not found", strname);
+                            unimplemented!();
+                            // if(!config.op_q_isfile && access(strname, R_OK) == 0) {
+                            // 	pm_printf(ALPM_LOG_WARNING,
+                            // 			_("'{}' is a file, you might want to use {}.\n"),
+                            // 			strname, "-p/--file");
+                            // }
+                            ret = Err(Error::Other);
+                            continue;
+                        }
+                        Some(pkg) => pkg,
+                    }
+                }
+                Ok(pkg) => pkg,
+            };
         }
-        unimplemented!();
 
-        // if(filter(pkg)) {
-        // 	int value = display(pkg);
-        // 	if(value != 0) {
-        // 		ret = 1;
-        // 	}
-        // 	match = 1;
-        // }
+        if filter(pkg, config, handle) {
+            if display(pkg, config, handle) != 0 {
+                ret = Err(Error::Other);
+            }
+            is_match = true;
+        }
 
         if config.op_q_isfile != 0 {
             unimplemented!();
@@ -562,7 +496,7 @@ pub fn pacman_query(
     }
 
     if !is_match {
-        ret = Err(1);
+        ret = Err(Error::Other);
     }
 
     return ret;

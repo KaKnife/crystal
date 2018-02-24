@@ -124,59 +124,6 @@ use super::*;
 // 	return replacers;
 // }
 
-/// Search for packages to upgrade and add them to the transaction.
-pub fn alpm_sync_sysupgrade(handle: &mut Handle, enable_downgrade: bool) -> Result<i32> {
-    let handle_clone = &handle.clone();
-    let trans = &mut handle.trans;
-
-    //
-    // 	CHECK_HANDLE(handle, return -1);
-    // 	trans = handle->trans;
-    // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-    // 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
-    //
-    debug!("checking for package upgrades");
-    for lpkg in handle.db_local.get_pkgcache().unwrap() {
-        if alpm_pkg_find(&mut trans.remove, lpkg.get_name()).is_some() {
-            debug!("{} is marked for removal -- skipping", lpkg.get_name());
-            continue;
-        }
-
-        if alpm_pkg_find(&mut trans.add, lpkg.get_name()).is_some() {
-            debug!("{} is already in the target list -- skipping", lpkg.get_name());
-            continue;
-        }
-
-        /* Search for replacers then literal (if no replacer) in each sync database. */
-        for sdb in &handle.dbs_sync {
-            // Database *sdb = j.data;
-            // alpm_list_t *replacers;
-
-            if !sdb.get_usage().upgrade {
-                continue;
-            }
-            unimplemented!();
-            /* Check sdb */
-            // replacers = check_replacers(handle, lpkg, sdb);
-            // if (replacers) {
-            // 	// trans.add = alpm_list_join(trans.add, replacers);
-            // 	/* jump to next local package */
-            // 	// break;
-            // } else {
-            // 	// 				Package *spkg = _alpm_db_get_pkgfromcache(sdb, lpkg.name);
-            // 	// 				if(spkg) {
-            // 	// 					if(check_literal(handle, lpkg, spkg, enable_downgrade)) {
-            // 	// 						trans.add = alpm_list_add(trans.add, spkg);
-            // 	// 					}
-            // 	// 					/* jump to next local package */
-            // 	// 					break;
-            // 	// 				}
-            // }
-        }
-    }
-
-    Ok(0)
-}
 
 /// Find group members across a list of databases.
 /// If a member exists in several databases, only the first database is used.

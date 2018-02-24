@@ -30,13 +30,12 @@ pub mod query;
 pub mod deptest;
 pub mod package;
 pub mod check;
-use self::check::*;
 use self::package::*;
 use self::deptest::*;
 use self::query::*;
 use self::sync::*;
 use self::upgrade::*;
-use self::alpm::*;
+// use self::alpm::*;
 use self::remove::*;
 use self::util::*;
 use self::database::*;
@@ -52,7 +51,6 @@ use super::common::*;
 // use pacman::conf::PKG_LOCALITY_NATIVE;
 
 use std;
-
 
 /* special handling of package version for GIT */
 // #if defined(GIT_VERSION)
@@ -276,19 +274,12 @@ use std;
 // #endif
 
 /// Set user agent environment variable.
-fn setuseragent() {
-    let agent = format!("crystal/{} ({} {})", PACKAGE_VERSION, "linux", "x86_64");
-    // 	if(len >= 100) {
-    // 		pm_printf(ALPM_LOG_WARNING, _("HTTP_USER_AGENT truncated\n"));
-    // 	}
-    //
+pub fn setuseragent() {
+    let agent: String = format!("crystal/{} ({} {})", PACKAGE_VERSION, "linux", "x86_64");
     env::set_var("HTTP_USER_AGENT", agent);
 }
 
-/// Free the resources.
-///
-/// * `ret` the return value
-fn cleanup(ret: i32) {
+pub fn cleanup(ret: i32) {
     //TODO:implement this
     // remove_soft_interrupt_handler();
     // if(config) {
@@ -306,49 +297,14 @@ fn cleanup(ret: i32) {
     std::process::exit(ret);
 }
 
-// /** Print command line to logfile.
-//  * @param argc
-//  * @param argv
-//  */
-// static void cl_to_log(int argc, char *argv[])
-// {
-// 	size_t size = 0;
-// 	int i;
-// 	for(i = 0; i < argc; i++) {
-// 		size += strlen(argv[i]) + 1;
-// 	}
-// 	if(!size) {
-// 		return;
-// 	}
-// 	char *cl_text = malloc(size);
-// 	if(!cl_text) {
-// 		return;
-// 	}
-// 	char *p = cl_text;
-// 	for(i = 0; i < argc - 1; i++) {
-// 		strcpy(p, argv[i]);
-// 		p += strlen(argv[i]);
-// 		*p++ = ' ';
-// 	}
-// 	strcpy(p, argv[i]);
-// 	alpm_logaction(config.handle, PACMAN_CALLER_PREFIX,
-// 			"Running '%s'\n", cl_text);
-// 	free(cl_text);
-// }
-
 /// Main function.
 pub fn main() {
     let argv: Vec<String> = env::args().collect();
     let mut ret: i32 = 0;
     let mut config: Config;
-    let mut handle: Handle;
-    let myuid: u32 = unsafe { libc::getuid() }; //uid_t myuid = getuid();
+    let mut handle: alpm::Handle;
+    let myuid: u32 = unsafe { libc::getuid() };
     let pm_targets: Vec<String>;
-
-    /* i18n init */
-    // #if defined(ENABLE_NLS)
-    // 	localize();
-    // #endif
 
     /* set user agent for downloading */
     setuseragent();
@@ -450,9 +406,18 @@ pub fn main() {
     // }
 
     /* parse the config file */
-    handle = match parseconfig(&config.configfile.clone(), &mut config) {
-        Err(ret) => {
-            cleanup(ret as i32);
+
+    match parseconfig(&config.configfile.clone(), &mut config) {
+        Err(_) => {
+            cleanup(-1);
+            return;
+        }
+        Ok(h) => h,
+    };
+
+    handle = match setup_libalpm(&mut config) {
+        Err(_) => {
+            cleanup(-1);
             return;
         }
         Ok(h) => h,
@@ -473,27 +438,27 @@ pub fn main() {
     }
 
     if config.verbose > 0 {
-        println!("Root      : {}", handle.get_root());
-        println!("Conf File : {}", config.configfile);
-        println!("DB Path   : {}", handle.get_dbpath());
+        print!("Root      : {}\n", handle.get_root());
+        print!("Conf File : {}\n", config.configfile);
+        print!("DB Path   : {}\n", handle.get_dbpath());
         print!("Cache Dirs: ");
         for dir in handle.option_get_cachedirs() {
             print!("{}  ", dir);
         }
-        println!();
+        print!("\n");
         print!("Hook Dirs : ");
         for dir in handle.get_hookdirs() {
             print!("{}  ", dir);
         }
-        println!();
-        println!("Lock File : {}", handle.get_lockfile());
-        println!("Log File  : {}", handle.option_get_logfile());
-        println!("GPG Dir   : {}", handle.option_get_gpgdir());
+        print!("\n");
+        print!("Lock File : {}\n", handle.get_lockfile());
+        print!("Log File  : {}\n", handle.option_get_logfile());
+        print!("GPG Dir   : {}\n", handle.option_get_gpgdir());
         print!("Targets   :");
         for target in &pm_targets {
             print!("{}  ", target);
         }
-        println!();
+        print!("\n");
     }
 
     // /* Log command line */
@@ -519,7 +484,7 @@ pub fn main() {
             _ => {}
         },
         &Some(Operations::QUERY) => match pacman_query(pm_targets, &mut config, &mut handle) {
-            Err(e) => (ret = e),
+            Err(e) => (ret = 1),
             _ => {}
         },
         &Some(Operations::SYNC) => match pacman_sync(pm_targets, &mut config, &mut handle) {
@@ -527,7 +492,7 @@ pub fn main() {
             _ => {}
         },
         &Some(Operations::DEPTEST) => match pacman_deptest(pm_targets, &mut config, &mut handle) {
-            Err(e) => (ret = e),
+            Err(e) => (ret = 1),
             _ => {}
         },
         // &Some(FILES) => match pacman_files(pm_targets, &mut config) {

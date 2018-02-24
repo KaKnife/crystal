@@ -149,16 +149,12 @@ pub struct Package {
     /* in transaction targets only */
     // pub oldpkg: Option<Package>, /* in transaction targets only */
 
-    // pub ops: pkg_operations,
-
     // alpm_filelist_t files;
 
     /* origin == PKG_FROM_FILE, use pkg->origin_data.file
      * origin == PKG_FROM_*DB, use pkg->origin_data.db */
-    // union {
     // pub db: Database,
     file: String,
-    // } origin_data;
     origin: PackageFrom,
     reason: PackageReason,
     scriptlet: i32,
@@ -169,33 +165,34 @@ pub struct Package {
     validation: i32,
 }
 
-// /* Default package accessor functions. These will get overridden by any
-//  * backend logic that needs lazy access, such as the local database through
-//  * a lazy-load cache. However, the defaults will work just fine for fully-
-//  * populated package structures. */
-// static const char *_pkg_get_base(Package *pkg)        { return pkg->base; }
-// static const char *_pkg_get_desc(Package *pkg)        { return pkg->desc; }
-// static const char *_pkg_get_url(Package *pkg)         { return pkg->url; }
-// static alpm_time_t _pkg_get_builddate(Package *pkg)   { return pkg->builddate; }
-// static alpm_time_t _pkg_get_installdate(Package *pkg) { return pkg->installdate; }
-// static const char *_pkg_get_packager(Package *pkg)    { return pkg->packager; }
-// static const char *_pkg_get_arch(Package *pkg)        { return pkg->arch; }
-// static off_t _pkg_get_isize(Package *pkg)             { return pkg->isize; }
-// static PackageReason _pkg_get_reason(Package *pkg) { return pkg->reason; }
-// static int _pkg_get_validation(Package *pkg) { return pkg->validation; }
-// static int _pkg_has_scriptlet(Package *pkg)           { return pkg->scriptlet; }
-//
-// static alpm_list_t *_pkg_get_licenses(Package *pkg)   { return pkg->licenses; }
-// static alpm_list_t *_pkg_get_groups(Package *pkg)     { return pkg->groups; }
-// static alpm_list_t *_pkg_get_depends(Package *pkg)    { return pkg->depends; }
-// static alpm_list_t *_pkg_get_optdepends(Package *pkg) { return pkg->optdepends; }
-// static alpm_list_t *_pkg_get_checkdepends(Package *pkg) { return pkg->checkdepends; }
-// static alpm_list_t *_pkg_get_makedepends(Package *pkg) { return pkg->makedepends; }
-// static alpm_list_t *_pkg_get_conflicts(Package *pkg)  { return pkg->conflicts; }
-// static alpm_list_t *_pkg_get_provides(Package *pkg)   { return pkg->provides; }
-// static alpm_list_t *_pkg_get_replaces(Package *pkg)   { return pkg->replaces; }
-// static alpm_filelist_t *_pkg_get_files(Package *pkg)  { return &(pkg->files); }
-// static alpm_list_t *_pkg_get_backup(Package *pkg)     { return pkg->backup; }
+const T_ARCHITECTURE: &str = "Architecture";
+const T_BACKUP_FILES: &str = "Backup Files";
+const T_BUILD_DATE: &str = "Build Date";
+const T_COMPRESSED_SIZE: &str = "Compressed Size";
+const T_CONFLICTS_WITH: &str = "Conflicts With";
+const T_DEPENDS_ON: &str = "Depends On";
+const T_DESCRIPTION: &str = "Description";
+const T_DOWNLOAD_SIZE: &str = "Download Size";
+const T_GROUPS: &str = "Groups";
+const T_INSTALL_DATE: &str = "Install Date";
+const T_INSTALL_REASON: &str = "Install Reason";
+const T_INSTALL_SCRIPT: &str = "Install Script";
+const T_INSTALLED_SIZE: &str = "Installed Size";
+const T_LICENSES: &str = "Licenses";
+const T_MD5_SUM: &str = "MD5 Sum";
+const T_NAME: &str = "Name";
+const T_OPTIONAL_DEPS: &str = "Optional Deps";
+const T_OPTIONAL_FOR: &str = "Optional For";
+const T_PACKAGER: &str = "Packager";
+const T_PROVIDES: &str = "Provides";
+const T_REPLACES: &str = "Replaces";
+const T_REPOSITORY: &str = "Repository";
+const T_REQUIRED_BY: &str = "Required By";
+const T_SHA_256_SUM: &str = "SHA-256 Sum";
+const T_SIGNATURES: &str = "Signatures";
+const T_URL: &str = "URL";
+const T_VALIDATED_BY: &str = "Validated By";
+const T_VERSION: &str = "Version";
 
 // static void *_pkg_changelog_open(Package UNUSED *pkg)
 // {
@@ -341,7 +338,7 @@ impl Package {
     }
 
     fn depcmp_literal(&self, dep: &Dependency) -> bool {
-        if self.name_hash != dep.name_hash || self.name != dep.name {
+        if self.name != dep.name {
             /* skip more expensive checks */
             return false;
         }
@@ -349,7 +346,7 @@ impl Package {
     }
 
     pub fn depcmp(&self, dep: &Dependency) -> bool {
-        return self.depcmp_literal(dep) || dep._alpm_depcmp_provides(&self.provides);
+        return self.depcmp_literal(dep) || dep.provides(&self.provides);
     }
 
     pub fn get_filename(&self) -> String {
@@ -361,9 +358,9 @@ impl Package {
         // return self.ops.get_base(self);
     }
 
-    pub fn set_base(&mut self, base: &str) {
-        self.name = String::from(base);
-    }
+    // pub fn set_base(&mut self, base: &str) {
+    //     self.name = String::from(base);
+    // }
 
     pub fn get_name(&self) -> &String {
         &self.name
@@ -375,6 +372,10 @@ impl Package {
 
     pub fn set_name_hash(&mut self, name_hash: u64) {
         self.name_hash = name_hash;
+    }
+
+    pub fn get_name_hash(&mut self) -> u64 {
+        self.name_hash
     }
 
     pub fn get_version(&self) -> &String {
@@ -394,59 +395,69 @@ impl Package {
         self.origin = origin;
     }
 
+    /// Get the description of the package
     pub fn get_desc(&self) -> Result<&String> {
         match self.get_origin() {
-            PackageFrom::LocalDatabase => self._cache_get_desc(),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    return Err(Error::PkgNotLoaded);
+                }
+                return Ok(&self.desc);
+            }
             _ => unimplemented!(),
         }
         // return self.ops.get_desc(self);
     }
 
-    /// Sets the Description of the Package
+    /// Sets the description of the package
     pub fn set_desc(&mut self, desc: String) {
         self.desc = desc
     }
 
     /// Gets the URL of the Package
     pub fn get_url(&self) -> Result<&String> {
-        match self.get_origin() {
-            PackageFrom::LocalDatabase => self._cache_get_url(),
-            _ => unimplemented!(),
+        if self.infolevel & INFRQ_DESC == 0 {
+            Err(Error::PkgNotLoaded)
+        } else {
+            Ok(&self.url)
         }
         // return self.ops.get_url(self);
     }
 
-    /// Set the URL of the Package
-    pub fn set_url(&mut self, url: String) {
-        self.url = url;
-    }
-
+    /// Get the build date
     pub fn get_builddate(&self) -> Result<Time> {
-        match self.get_origin() {
-            PackageFrom::LocalDatabase => self._cache_get_builddate(),
-            _ => unimplemented!(),
+        if self.infolevel & INFRQ_DESC == 0 {
+            Err(Error::PkgNotLoaded)
+        } else {
+            Ok(self.builddate)
         }
     }
 
+    /// Get the install date of the package
     pub fn get_installdate(&self) -> Result<Time> {
-        match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_installdate(),
-            _ => unimplemented!(),
+        if self.infolevel & INFRQ_DESC == 0 {
+            Err(Error::PkgNotLoaded)
+        } else {
+            Ok(self.installdate)
         }
     }
 
-    pub fn get_packager(&mut self) -> Result<&String> {
-        match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_packager(),
-            _ => unimplemented!(),
+    /// Get the packager of the package
+    pub fn packager(&self) -> Result<&String> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            Err(Error::PkgNotLoaded)
+        } else {
+            Ok(&self.packager)
         }
         // 	return pkg->ops->get_packager(pkg);
     }
 
+    /// Gets the md5sum of the package
     pub fn md5sum(&self) -> &String {
         return &self.md5sum;
     }
 
+    /// Gets the sha256sum of the package
     pub fn sha256sum(&self) -> &String {
         return &self.sha256sum;
     }
@@ -455,64 +466,103 @@ impl Package {
         return &self.base64_sig;
     }
 
+    /// Get the architecture of the package
     pub fn get_arch(&self) -> Result<&String> {
-        match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_arch(),
-            _ => unimplemented!(),
+        if self.infolevel & INFRQ_DESC == 0 {
+            Err(Error::PkgNotLoaded)
+        } else {
+            Ok(&self.arch)
         }
         // return self.ops.get_arch(self);
     }
 
+    /// Get the size of the package
     pub fn get_size(&self) -> i64 {
         return self.size;
     }
 
-    pub fn get_isize(&mut self, db: &mut Database) -> Result<i64> {
+    pub fn get_isize(&self) -> Result<i64> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_isize(db),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    return Err(Error::PkgNotLoaded);
+                }
+                Ok(self.isize)
+            }
             _ => unimplemented!(),
         }
         // return self.ops.get_isize(pkg);
     }
 
-    pub fn get_reason(&mut self, db: &mut Database) -> Result<&PackageReason> {
+    pub fn get_reason(&self) -> Result<&PackageReason> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_reason(db),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    return Err(Error::PkgNotLoaded);
+                }
+                Ok(&self.reason)
+            }
             _ => unimplemented!(),
         }
         //return pkg.ops.get_reason(pkg);
     }
 
-    pub fn get_validation(&mut self, db: &mut Database) -> Result<i32> {
+    pub fn get_validation(&self) -> Result<i32> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_validation(db),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    return Err(Error::PkgNotLoaded);
+                }
+                Ok(self.validation)
+            }
             _ => unimplemented!(),
         }
     }
 
-    pub fn get_licenses(&mut self, db: &mut Database) -> &Vec<String> {
+    pub fn get_licenses(&self) -> Result<&Vec<String>> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_licenses(db),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    return Err(Error::PkgNotLoaded);
+                }
+                Ok(&self.licenses)
+            }
             _ => unimplemented!(),
         }
         // 	return pkg->ops->get_licenses(pkg);
     }
 
-    pub fn get_groups(&mut self, db: &mut Database) -> &Vec<String> {
+    pub fn get_groups(&self) -> Result<&Vec<String>> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_groups(db),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    Err(Error::PkgNotLoaded)
+                } else {
+                    Ok(&self.groups)
+                }
+            }
             _ => unimplemented!(),
         }
         // 	return pkg->ops->get_groups(pkg);
     }
 
-    pub fn get_depends(&self) -> &Vec<Dependency> {
-        return &self.depends;
+    pub fn get_depends(&self) -> Result<&Vec<Dependency>> {
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
+        } else {
+            Ok(&self.depends)
+        }
     }
 
-    pub fn get_optdepends(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    pub fn get_optdepends(&self) -> Result<&Vec<Dependency>> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_optdepends(db),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    Err(Error::PkgNotLoaded)
+                } else {
+                    Ok(&self.optdepends)
+                }
+            }
             _ => unimplemented!(),
         }
         // return pkg->ops->get_optdepends(pkg);
@@ -528,25 +578,42 @@ impl Package {
         // return pkg->ops->get_makedepends(pkg);
     }
 
-    pub fn get_conflicts(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    pub fn get_conflicts(&self) -> Result<&Vec<Dependency>> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_conflicts(db),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    Err(Error::PkgNotLoaded)
+                } else {
+                    Ok(&self.conflicts)
+                }
+            }
             _ => unimplemented!(),
         }
         // return pkg->ops->get_conflicts(pkg);
     }
 
-    pub fn get_provides(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    pub fn get_provides(&self) -> Result<&Vec<Dependency>> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_provides(db),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    Err(Error::PkgNotLoaded)
+                } else {
+                    Ok(&self.provides)
+                }
+            }
             _ => unimplemented!(),
         }
         // return pkg->ops->get_provides(pkg);
     }
 
-    pub fn get_replaces(&mut self, db: &mut Database) -> &Vec<Dependency> {
+    pub fn get_replaces(&self) -> Result<&Vec<Dependency>> {
         match self.origin {
-            PackageFrom::LocalDatabase => self._cache_get_replaces(db),
+            PackageFrom::LocalDatabase => {
+                if self.infolevel & INFRQ_DESC == 0 {
+                    return Err(Error::PkgNotLoaded);
+                }
+                Ok(&self.replaces)
+            }
             _ => unimplemented!(),
         }
         // return pkg->ops->get_replaces(pkg);
@@ -572,11 +639,11 @@ impl Package {
     //     // return &self.db;
     // }
 
-    /** Open a package changelog for reading. */
-    pub fn changelog_open(&self) {
-        unimplemented!();
-        // return pkg->ops->changelog_open(pkg);
-    }
+    // / Open a package changelog for reading.
+    // pub fn changelog_open(&self) {
+    //     unimplemented!();
+    //     // return pkg->ops->changelog_open(pkg);
+    // }
 
     // /// Read data from an open changelog 'file stream'.
     // pub fn changelog_read(void *ptr, size_t size,
@@ -586,20 +653,20 @@ impl Package {
     // 	// return pkg->ops->changelog_read(ptr, size, pkg, fp);
     // }
 
-    /// Close a package changelog for reading.
+    // / Close a package changelog for reading.
     // pub fn changelog_close(const &self, void *fp) -> i64
     // {
     //     unimplemented!();
     // 	// return pkg->ops->changelog_close(pkg, fp);
     // }
 
-    /// Open a package mtree file for reading.
+    // / Open a package mtree file for reading.
     // pub fn mtree_open(&self) -> archive {
     //     unimplemented!();
     //     // return pkg->ops->mtree_open(pkg);
     // }
 
-    /// Read entry from an open mtree file.
+    // / Read entry from an open mtree file.
     // int SYMEXPORT _mtree_next(const Package * pkg, struct archive *archive,
     // 	struct archive_entry **entry)
     // {
@@ -608,30 +675,32 @@ impl Package {
     // 	return pkg->ops->mtree_next(pkg, archive, entry);
     // }
 
-    /// Close a package mtree file for reading.
+    // / Close a package mtree file for reading.
     // pub fn mtree_close(&self, archive: &archive) -> i64 {
     //     unimplemented!();
     //     // 	return pkg->ops->mtree_close(pkg, archive);
     // }
 
-    pub fn has_scriptlet(&mut self, db: &mut Database) -> i32 {
-        match self.origin {
-            PackageFrom::LocalDatabase => self._cache_has_scriptlet(db),
-            _ => unimplemented!(),
+    /// Checks if the package has a scriptlet
+    pub fn has_scriptlet(&self) -> Result<i32> {
+        if self.infolevel & INFRQ_SCRIPTLET == 0 {
+            Err(Error::PkgNotLoaded)
+        } else {
+            Ok(self.scriptlet)
         }
         // 	return pkg->ops->has_scriptlet(pkg);
     }
 
-    fn find_requiredby(&self, db: &mut Database, reqs: &mut Vec<String>, optional: i8) {
-        let mut db_clone = db.clone();
-        for cachepkg in db.get_pkgcache_mut().unwrap() {
+    fn find_requiredby(&self, db: &Database, optional: bool) -> Result<Vec<String>> {
+        let mut reqs: Vec<String> = Vec::new();
+        for cachepkg in db.get_pkgcache()? {
             let j;
             let cachepkgname = cachepkg.name.clone();
 
-            if optional == 0 {
-                j = cachepkg.get_depends();
+            if optional {
+                j = cachepkg.get_optdepends()?;
             } else {
-                j = cachepkg.get_optdepends(&mut db_clone);
+                j = cachepkg.get_depends()?;
             }
             for data in j {
                 if self.depcmp(data) {
@@ -641,51 +710,45 @@ impl Package {
                 }
             }
         }
+
+        Ok(reqs)
     }
 
-    /** Compute the packages requiring a given package. */
+    /// Compute the packages requiring a given package.
     pub fn compute_requiredby(
         &self,
-        optional: i8,
-        db_local: &mut Database,
-        dbs_sync: &mut Vec<Database>,
-    ) -> Vec<String> {
-        // 	const alpm_list_t *i;
-        // 	alpm_list_t *reqs = NULL;
-        // 	Database *db;
-        let db: Database;
+        optional: bool,
+        db_local: &Database,
+        dbs_sync: &Vec<Database>,
+    ) -> Result<Vec<String>> {
         let mut reqs = Vec::new();
-        //
-        // 	ASSERT(pkg != NULL, return NULL);
-        // 	pkg->handle->pm_errno = ALPM_ERR_OK;
+
         match self.origin {
             PackageFrom::File => {
                 /* The sane option; search locally for things that require this. */
-                self.find_requiredby(db_local, &mut reqs, optional);
+                reqs = self.find_requiredby(db_local, optional)?;
             }
             PackageFrom::LocalDatabase => {
-                self.find_requiredby(db_local, &mut reqs, optional);
+                reqs = self.find_requiredby(db_local, optional)?;
             }
             PackageFrom::SyncDatabase => {
                 for db in dbs_sync {
-                    // db = i->data;
-                    self.find_requiredby(db, &mut reqs, optional);
+                    reqs = self.find_requiredby(db, optional)?;
                 }
-                unimplemented!();
-                // reqs = alpm_list_msort(reqs, alpm_list_count(reqs), _alpm_str_cmp);
+                reqs.sort();
             }
         }
 
-        return reqs;
+        Ok(reqs)
     }
 
-    /** Compute the packages optionally requiring a given package. */
+    /// Compute the packages optionally requiring a given package.
     pub fn compute_optionalfor(
         &self,
-        db_local: &mut Database,
-        dbs_sync: &mut Vec<Database>,
-    ) -> Vec<String> {
-        self.compute_requiredby(1, db_local, dbs_sync)
+        db_local: &Database,
+        dbs_sync: &Vec<Database>,
+    ) -> Result<Vec<String>> {
+        self.compute_requiredby(true, db_local, dbs_sync)
     }
 
     // alpm_file_t *_alpm_file_copy(alpm_file_t *dest,
@@ -709,9 +772,6 @@ impl Package {
     //
 
     /// Duplicate a package data struct.
-    /// * `pkg` - the package to duplicate
-    /// * `new_ptr` - location to store duplicated package pointer
-    /// * returns 0 on success, -1 on fatal error, 1 on non-fatal error
     pub fn dup(&self) -> Result<Package> {
         unimplemented!();
         // 	Package *newpkg;
@@ -805,136 +865,15 @@ impl Package {
         alpm_pkg_vercmp(&self.version, &localpkg.version)
     }
 
-    fn lazy_load(&mut self, info: i32, db: &mut Database) {
-        if self.infolevel & info == 0 {
-            self.local_db_read(db, info);
-        }
-    }
-
-    fn _cache_get_base(&self) -> Result<&String> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        return Ok(&self.base);
-    }
-
-    fn _cache_get_desc(&self) -> Result<&String> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        return Ok(&self.desc);
-    }
-
-    fn _cache_get_url(&self) -> Result<&String> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        return Ok(&self.url);
-    }
-
-    fn _cache_get_builddate(&self) -> Result<Time> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        return Ok(self.builddate);
-    }
-
-    fn _cache_get_installdate(&self) -> Result<Time> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        Ok(self.installdate)
-    }
-
-    fn _cache_get_packager(&self) -> Result<&String> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        Ok(&self.packager)
-    }
-
-    fn _cache_get_arch(&self) -> Result<&String> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        Ok(&self.arch)
-    }
-
-    fn _cache_get_isize(&mut self, db: &mut Database) -> Result<i64> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        Ok(self.isize)
-    }
-
-    fn _cache_get_reason(&mut self, db: &mut Database) -> Result<&PackageReason> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        Ok(&self.reason)
-    }
-
-    fn _cache_get_validation(&mut self, db: &mut Database) -> Result<i32> {
-        if self.infolevel & INFRQ_DESC == 0 {
-            return Err(Error::PkgNotLoaded);
-        }
-        Ok(self.validation)
-    }
-
-    fn _cache_get_licenses(&mut self, db: &mut Database) -> &Vec<String> {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.licenses;
-    }
-
-    fn _cache_get_groups(&mut self, db: &mut Database) -> &Vec<String> {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.groups;
-    }
-
-    fn _cache_has_scriptlet(&mut self, db: &mut Database) -> i32 {
-        self.lazy_load(INFRQ_SCRIPTLET, db);
-        return self.scriptlet;
-    }
-
-    fn _cache_get_depends(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.depends;
-    }
-
-    fn _cache_get_optdepends(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.optdepends;
-    }
-
-    fn _cache_get_conflicts(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.conflicts;
-    }
-
-    fn _cache_get_provides(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.provides;
-    }
-
-    fn _cache_get_replaces(&mut self, db: &mut Database) -> &Vec<Dependency> {
-        self.lazy_load(INFRQ_DESC, db);
-        return &self.replaces;
-    }
-
-    // pub fn _cache_get_files(&mut self, db: &mut Database) {
-    //     self.lazy_load(INFRQ_DESC, db);
-    //     return &self.files;
+    // fn lazy_load(&mut self, info: i32, db: &mut Database) {
+    //     if self.infolevel & info == 0 {
+    //         self.local_db_read(db, info);
+    //     }
     // }
 
-    fn _cache_get_backup(&mut self, db: &mut Database) -> &Vec<String> {
-        self.lazy_load(INFRQ_FILES, db);
-        return &self.backup;
-    }
-
-    ///Open a package changelog for reading. Similar to fopen in functionality,
-    ///except that the returned 'file stream' is from the database.
-    ///@param pkg the package (from db) to read the changelog
-    ///@return a 'file stream' to the package changelog
+    /// Open a package changelog for reading. Similar to fopen in functionality,
+    /// except that the returned 'file stream' is from the database.
+    /// * `pkg` the package (from db) to read the changelog
     fn _cache_changelog_open(&self) -> std::fs::File {
         unimplemented!();
         //     let db = self.alpm_pkg_get_db();
@@ -944,32 +883,32 @@ impl Package {
         //     return f.unwrap();
     }
 
-    ///Read data from an open changelog 'file stream'. Similar to fread in
-    ///functionality, this function takes a buffer and amount of data to read.
-    ///@param ptr a buffer to fill with raw changelog data
-    ///@param size the size of the buffer
-    ///@param pkg the package that the changelog is being read from
-    ///@param fp a 'file stream' to the package changelog
-    ///@return the number of characters read, or 0 if there is no more data
+    // /Read data from an open changelog 'file stream'. Similar to fread in
+    // /functionality, this function takes a buffer and amount of data to read.
+    // /@param ptr a buffer to fill with raw changelog data
+    // /@param size the size of the buffer
+    // /@param pkg the package that the changelog is being read from
+    // /@param fp a 'file stream' to the package changelog
+    // /@return the number of characters read, or 0 if there is no more data
     // static size_t _cache_changelog_read(void *ptr, size_t size,
     // 		const Package UNUSED *pkg, void *fp)
     // {
     // 	return fread(ptr, 1, size, (FILE *)fp);
     // }
 
-    ///Close a package changelog for reading. Similar to fclose in functionality,
-    ///except that the 'file stream' is from the database.
-    ///@param pkg the package that the changelog was read from
-    ///@param fp a 'file stream' to the package changelog
-    ///@return whether closing the package changelog stream was successful
+    // /Close a package changelog for reading. Similar to fclose in functionality,
+    // /except that the 'file stream' is from the database.
+    // /@param pkg the package that the changelog was read from
+    // /@param fp a 'file stream' to the package changelog
+    // /@return whether closing the package changelog stream was successful
     // static int _cache_changelog_close(const Package UNUSED *pkg, void *fp)
     // {
     // 	return fclose((FILE *)fp);
     // }
 
-    ///Open a package mtree file for reading.
-    ///@param pkg the local package to read the changelog of
-    ///@return a archive structure for the package mtree file
+    // /Open a package mtree file for reading.
+    // /@param pkg the local package to read the changelog of
+    // /@return a archive structure for the package mtree file
     // static struct archive *_cache_mtree_open(&self)
     // {
     // 	int r;
@@ -1007,29 +946,29 @@ impl Package {
     // 	return NULL;
     // }
 
-    ///Read next entry from a package mtree file.
-    /// @param pkg the package that the mtree file is being read from
-    /// @param archive the archive structure reading from the mtree file
-    /// @param entry an archive_entry to store the entry header information
-    ///@return 0 if end of archive is reached, non-zero otherwise.
+    // ///Read next entry from a package mtree file.
+    // /// @param pkg the package that the mtree file is being read from
+    // /// @param archive the archive structure reading from the mtree file
+    // /// @param entry an archive_entry to store the entry header information
+    // ///@return 0 if end of archive is reached, non-zero otherwise.
     // static int _cache_mtree_next(const Package UNUSED *pkg,
     // 		struct archive *mtree, struct archive_entry **entry)
     // {
     // 	return archive_read_next_header(mtree, entry);
     // }
 
-    ///Close a package mtree file for reading.
-    ///@param pkg the package that the mtree file was read from
-    ///@param mtree the archive structure use for reading from the mtree file
-    ///@return whether closing the package changelog stream was successful
+    // /// Close a package mtree file for reading.
+    // /// @param pkg the package that the mtree file was read from
+    // /// * `mtree` the archive structure use for reading from the mtree file
+    // /// @return whether closing the package changelog stream was successful
     // static int _cache_mtree_close(const Package UNUSED *pkg,
     // 		struct archive *mtree)
     // {
     // 	return _alpm_archive_read_free(mtree);
     // }
 
-    fn _cache_force_load(&mut self, db: &mut Database) -> i32 {
-        return self.local_db_read(db, INFRQ_ALL);
+    pub fn _cache_force_load(&mut self, db: &mut Database) -> Result<()> {
+        self.local_db_read(db, INFRQ_ALL)
     }
 
     // fn is_dir(path: &Path, entry: dirent) -> i32 {
@@ -1082,10 +1021,7 @@ impl Package {
         return 0;
     }
 
-    /** Compute the size of the files that will be downloaded to install a
-     * package.
-     * @param newpkg the new package to upgrade to
-     */
+    /// Compute the size of the files that will be downloaded to install a package.
     pub fn compute_download_size(&self) -> i32 {
         // 	const char *fname;
         // 	char *fpath, *fnamepart = NULL;
@@ -1156,7 +1092,7 @@ impl Package {
         unimplemented!();
     }
 
-    pub fn local_db_read(&mut self, db: &Database, inforeq: i32) -> i32 {
+    pub fn local_db_read(&mut self, db: &Database, inforeq: i32) -> Result<()> {
         enum NextLineType {
             None,
             Name,
@@ -1189,13 +1125,13 @@ impl Package {
          * == to inforeq? nope, we need to load more info. */
         if (self.infolevel & inforeq) == inforeq {
             /* already loaded all of this info, do nothing */
-            return 0;
+            return Ok(());
         }
 
         if self.infolevel & INFRQ_ERROR != 0 {
             /* We've encountered an error loading this package before. Don't attempt
              * repeated reloads, just give up. */
-            return -1;
+            return Err(Error::PkgInvalid);
         }
 
         info!(
@@ -1206,34 +1142,70 @@ impl Package {
 
         /* DESC */
         if inforeq & INFRQ_DESC != 0 && (self.infolevel & INFRQ_DESC) == 0 {
-            let path = db.local_db_pkgpath(self, &String::from("desc"));
+            let path = db.local_db_pkgpath(self, &String::from("desc"))?;
             let mut fp = match std::fs::File::open(&path) {
                 Ok(f) => f,
                 Err(e) => {
                     error!("could not open file {}: {}", path, e);
                     self.infolevel |= INFRQ_ERROR;
-                    return -1;
+                    return Err(Error::from(e));
                 }
             };
             use std::io::prelude::*;
             let mut lines: String = String::new();
-            match fp.read_to_string(&mut lines) {
-                Ok(_) => {}
-                Err(_) => {
-                    return -1;
-                }
-            }
+            fp.read_to_string(&mut lines)?;
 
             let lines_iter = lines.lines();
             let mut next_line_type = NextLineType::None;
             for mut line in lines_iter {
-                if String::from(line).trim().len() == 0 {
-                    /* length of stripped line was zero */
-                    continue;
-                }
+                // if String::from(line).trim().len() == 0 {
+                //     /* length of stripped line was zero */
+                //     continue;
+                // }
 
                 match next_line_type {
-                    NextLineType::None => {}
+                    NextLineType::None => {
+                        if line == "%NAME%" {
+                            next_line_type = NextLineType::Name;
+                        } else if line == "%VERSION%" {
+                            next_line_type = NextLineType::Version;
+                        } else if line == "%BASE%" {
+                            next_line_type = NextLineType::Base;
+                        } else if line == "%DESC%" {
+                            next_line_type = NextLineType::Desc;
+                        } else if line == "%GROUPS%" {
+                            next_line_type = NextLineType::Groups;
+                        } else if line == "%URL%" {
+                            next_line_type = NextLineType::Url;
+                        } else if line == "%LICENSE%" {
+                            next_line_type = NextLineType::License;
+                        } else if line == "%ARCH%" {
+                            next_line_type = NextLineType::Arch;
+                        } else if line == "%BUILDDATE%" {
+                            next_line_type = NextLineType::BuildDate;
+                        } else if line == "%INSTALLDATE%" {
+                            next_line_type = NextLineType::InstallDate;
+                        } else if line == "%PACKAGER%" {
+                            next_line_type = NextLineType::Packager;
+                        } else if line == "%REASON%" {
+                            next_line_type = NextLineType::Reason;
+                        } else if line == "%VALIDATION%" {
+                            next_line_type = NextLineType::Validation;
+                        } else if line == "%SIZE%" {
+                            next_line_type = NextLineType::Size;
+                        } else if line == "%REPLACES%" {
+                            next_line_type = NextLineType::Replaces;
+                        } else if line == "%DEPENDS%" {
+                            next_line_type = NextLineType::Depends;
+                        } else if line == "%OPTDEPENDS%" {
+                            next_line_type = NextLineType::OptDepends;
+                        } else if line == "%CONFLICTS%" {
+                            next_line_type = NextLineType::Confilcts;
+                        } else if line == "%PROVIDES%" {
+                            next_line_type = NextLineType::Provides;
+                        }
+                        continue;
+                    }
                     NextLineType::Name => {
                         if line != self.get_name() {
                             error!(
@@ -1253,7 +1225,7 @@ impl Package {
                         }
                     }
                     NextLineType::Base => {
-                        self.set_base(line);
+                        self.base = String::from(line);
                     }
                     NextLineType::Desc => {
                         self.set_desc(String::from(line));
@@ -1265,13 +1237,14 @@ impl Package {
                         }
                     }
                     NextLineType::Url => {
-                        self.set_url(String::from(line));
+                        self.url = String::from(line);
                     }
                     NextLineType::License => {
                         if line != "" {
                             self.licenses.push(String::from(line));
                             continue;
                         }
+                        next_line_type = NextLineType::None;
                     }
                     NextLineType::Arch => {
                         self.arch = String::from(line);
@@ -1289,7 +1262,7 @@ impl Package {
                         self.reason = PackageReason::from(u8::from_str_radix(line, 10).unwrap());
                     }
                     NextLineType::Validation => {
-                        unimplemented!();
+                        // unimplemented!();
                         // // alpm_list_t *i, *v = NULL;
                         // READ_AND_STORE_ALL(v);
                         // // for(i = v; i; i = alpm_list_next(i))
@@ -1316,7 +1289,8 @@ impl Package {
                     }
                     NextLineType::Replaces => {
                         if line != "" {
-                            self.replaces.push(alpm_dep_from_string(&String::from(line)));
+                            self.replaces
+                                .push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
                     }
@@ -1342,7 +1316,8 @@ impl Package {
                     }
                     NextLineType::Provides => {
                         if line != "" {
-                            self.provides.push(alpm_dep_from_string(&String::from(line)));
+                            self.provides
+                                .push(alpm_dep_from_string(&String::from(line)));
                             continue;
                         };
                     }
@@ -1350,70 +1325,24 @@ impl Package {
                 }
 
                 next_line_type = NextLineType::None;
-
-                if line == "%NAME%" {
-                    next_line_type = NextLineType::Name;
-                } else if line == "%VERSION%" {
-                    next_line_type = NextLineType::Version;
-                } else if line == "%BASE%" {
-                    next_line_type = NextLineType::Base;
-                } else if line == "%DESC%" {
-                    next_line_type = NextLineType::Desc;
-                } else if line == "%GROUPS%" {
-                    next_line_type = NextLineType::Groups;
-                } else if line == "%URL%" {
-                    next_line_type = NextLineType::Url;
-                } else if line == "%LICENSE%" {
-                    next_line_type = NextLineType::License;
-                } else if line == "%ARCH%" {
-                    next_line_type = NextLineType::Arch;
-                } else if line == "%BUILDDATE%" {
-                    next_line_type = NextLineType::BuildDate;
-                } else if line == "%INSTALLDATE%" {
-                    next_line_type = NextLineType::InstallDate;
-                } else if line == "%PACKAGER%" {
-                    next_line_type = NextLineType::Packager;
-                } else if line == "%REASON%" {
-                    next_line_type = NextLineType::Reason;
-                } else if line == "%VALIDATION%" {
-                    next_line_type = NextLineType::Validation;
-                } else if line == "%SIZE%" {
-                    next_line_type = NextLineType::Size;
-                } else if line == "%REPLACES%" {
-                    next_line_type = NextLineType::Replaces;
-                } else if line == "%DEPENDS%" {
-                    next_line_type = NextLineType::Depends;
-                } else if line == "%OPTDEPENDS%" {
-                    next_line_type = NextLineType::OptDepends;
-                } else if line == "%CONFLICTS%" {
-                    next_line_type = NextLineType::Confilcts;
-                } else if line == "%PROVIDES%" {
-                    next_line_type = NextLineType::Provides;
-                }
             }
             self.infolevel |= INFRQ_DESC;
         }
 
         /* FILES */
         if inforeq & INFRQ_FILES != 0 && (self.infolevel & INFRQ_FILES) == 0 {
-            unimplemented!();
-            let path = db.local_db_pkgpath(self, &String::from("desc"));
+            let path = db.local_db_pkgpath(self, &String::from("desc"))?;
             let mut fp = match std::fs::File::open(&path) {
                 Ok(f) => f,
                 Err(e) => {
                     error!("could not open file {}: {}", path, e);
                     self.infolevel |= INFRQ_ERROR;
-                    return -1;
+                    return Err(Error::from(e));
                 }
             };
             use std::io::prelude::*;
             let mut lines: String = String::new();
-            match fp.read_to_string(&mut lines) {
-                Ok(_) => {}
-                Err(e) => {
-                    return -1;
-                }
-            }
+            fp.read_to_string(&mut lines)?;
 
             let lines_iter = lines.lines();
             let mut next_line_type = NextLineType::None;
@@ -1426,6 +1355,7 @@ impl Package {
                     NextLineType::Files => {
                         if line == "" {
                             next_line_type = NextLineType::None;
+                            unimplemented!();
                             // info.files.count = files_count;
                             // info.files.files = files;
                             // _alpm_filelist_sort(&info.files);
@@ -1438,6 +1368,7 @@ impl Package {
                             next_line_type = NextLineType::None;
                             continue;
                         }
+                        unimplemented!();
                         // let backup: alpm_backup_t;
                         // if (_alpm_split_backup(line, &backup)) {
                         //     info.infolevel |= INFRQ_ERROR;
@@ -1447,7 +1378,6 @@ impl Package {
                     }
                     _ => {}
                 }
-                unimplemented!();
                 if line == "%FILES%" {
                     next_line_type = NextLineType::Files;
                 } else if line == "%BACKUP%" {
@@ -1459,7 +1389,7 @@ impl Package {
 
         /* INSTALL */
         if inforeq & INFRQ_SCRIPTLET != 0 && (self.infolevel & INFRQ_SCRIPTLET) == 0 {
-            let path = db.local_db_pkgpath(self, &String::from("install"));
+            let path = db.local_db_pkgpath(self, &String::from("install"))?;
             use std::path::Path;
             let install_path = Path::new(&path);
             if install_path.exists() {
@@ -1468,7 +1398,7 @@ impl Package {
             self.infolevel |= INFRQ_SCRIPTLET;
         }
 
-        return 0;
+        return Ok(());
 
         // error:
         // 	info->infolevel |= INFRQ_ERROR;
@@ -1477,16 +1407,452 @@ impl Package {
         // 	}
         // 	return -1;
     }
+
+    /// Display the details of a package.
+    /// Extra information entails 'required by' info for sync packages and backup
+    /// files info for local packages.
+    pub fn dump_full(
+        &self,
+        extra: bool,
+        // config: &Config,
+        db_local: &Database,
+        dbs_sync: &Vec<Database>,
+    ) -> Result<()> {
+
+        // unimplemented!();
+        // unsigned short cols;
+        let bdate: i64;
+        let idate: i64;
+        let from: PackageFrom;
+        let mut size: f64;
+        let mut label: String = String::from("\0");
+        let reason: String;
+        let mut validation: Vec<String> = Vec::new();
+        let requiredby: Vec<String>;
+        let optionalfor: Vec<String>;
+
+        /* make aligned titles once only */
+        // static int need_alignment = 1;
+        // static mut need_alignment: bool = true;
+        // if need_alignment {
+        // 	need_alignment = false;
+        // 	make_aligned_titles();
+        // }
+
+        from = self.get_origin();
+
+        /* set variables here, do all output below */
+        bdate = match self.get_builddate() {
+            Err(e) => unimplemented!(),
+            Ok(d) => d,
+        };
+        if bdate != 0 {
+            // unimplemented!();
+            // bdatestr = time::strftime("%c", localtime(&bdate));
+        }
+        idate = match self.get_installdate() {
+            Err(e) => unimplemented!(),
+            Ok(d) => d,
+        };
+        if idate != 0 {
+            // unimplemented!();
+            // strftime(idatestr, 50, "%c", localtime(&idate));
+        }
+
+        reason = match self.get_reason() {
+            Ok(&PackageReason::Explicit) => "Explicitly installed".to_owned(),
+            Ok(&PackageReason::Dependency) => {
+                "Installed as a dependency for another package".to_owned()
+            }
+            _ => "Unknown".to_owned(),
+        };
+        let v = self.get_validation()?;
+        if v != 0 {
+            if v & PackageValidation::None as i32 != 0 {
+                validation.push(String::from("None"));
+            } else {
+                if v & PackageValidation::MD5Sum as i32 != 0 {
+                    validation.push(String::from("MD5 Sum"));
+                }
+                if v & PackageValidation::SHA256Sum as i32 != 0 {
+                    validation.push(String::from("SHA-256 Sum"));
+                }
+                if v & PackageValidation::Signature as i32 != 0 {
+                    validation.push(String::from("Signature"));
+                }
+            }
+        } else {
+            validation.push(String::from("Unknown"));
+        }
+
+        match (&from, extra) {
+            (&PackageFrom::LocalDatabase, _) | (_, true) => {
+                /* compute this here so we don't get a pause in the middle of output */
+                requiredby = self.compute_requiredby(false, db_local, dbs_sync)?;
+                optionalfor = self.compute_optionalfor(db_local, dbs_sync)?;
+            }
+            _ => {}
+        }
+
+        // let cols = getcols();
+        /* actual output */
+        match from {
+            PackageFrom::SyncDatabase => {
+                // string_display(T_REPOSITORY, pkg.alpm_db_get_name(get_db(pkg)), config)
+            }
+            _ => {}
+        }
+        string_display(T_NAME, self.get_name());
+        string_display(T_VERSION, self.get_version());
+        string_display(T_DESCRIPTION, self.get_desc()?);
+        string_display(T_ARCHITECTURE, self.get_arch()?);
+        string_display(T_URL, self.get_url()?);
+        list_display(T_LICENSES, self.get_licenses()?);
+        list_display(T_GROUPS, self.get_groups()?);
+        deplist_display(T_PROVIDES, self.get_provides()?);
+        deplist_display(T_DEPENDS_ON, self.get_depends()?);
+        // optdeplist_display(pkg);
+
+        match from {
+            PackageFrom::LocalDatabase if extra => {
+                // list_display(T_REQUIRED_BY, requiredby);
+                // list_display(T_OPTIONAL_FOR, optionalfor);
+            }
+            _ => {}
+        }
+        deplist_display(T_CONFLICTS_WITH, self.get_conflicts()?);
+        deplist_display(T_REPLACES, self.get_replaces()?);
+
+        size = humanize_size(self.get_size(), '\0', 2, &mut label);
+        match from {
+            PackageFrom::SyncDatabase => {
+                print!("{} {} {}\n", T_DOWNLOAD_SIZE, size, label);
+            }
+            PackageFrom::File => {
+                print!("{} {} {}\n", T_COMPRESSED_SIZE, size, label);
+            }
+            _ => {}
+        }
+        size = humanize_size(
+            self.get_isize()?,
+            label.chars().collect::<Vec<char>>()[0],
+            2,
+            &mut label,
+        );
+        string_display(T_INSTALLED_SIZE, &format!("{} {}", size, label));
+
+        string_display(T_PACKAGER, self.packager()?);
+        // string_display(T_BUILD_DATE, bdatestr);
+        match from {
+            PackageFrom::LocalDatabase => {
+                // string_display(T_INSTALL_DATE, idatestr);
+                string_display(T_INSTALL_REASON, &reason);
+            }
+            _ => {}
+        }
+        let has_scriptlet = if self.has_scriptlet()? != 0 {
+            String::from("Yes")
+        } else {
+            String::from("No")
+        };
+        match from {
+            PackageFrom::File | PackageFrom::LocalDatabase => {
+                string_display(T_INSTALL_SCRIPT, &has_scriptlet);
+            }
+            _ => {}
+        }
+
+        match from {
+            PackageFrom::SyncDatabase if extra => {
+                unimplemented!();
+                let base64_sig = self.base64_sig();
+                let mut keys = Vec::new();
+                if !base64_sig.is_empty() {
+                    unimplemented!();
+                // unsigned char *decoded_sigdata = NULL;
+                // size_t data_len;
+                // alpm_decode_signature(base64_sig, &decoded_sigdata, &data_len);
+                // alpm_extract_keyid(config.handle, get_name(pkg),
+                // 		decoded_sigdata, data_len, &keys);
+                } else {
+                    keys.push(String::from("None"));
+                }
+
+                string_display(T_MD5_SUM, &self.md5sum());
+                string_display(T_SHA_256_SUM, &self.sha256sum());
+                list_display(T_SIGNATURES, &keys);
+            }
+            _ => {
+                list_display(T_VALIDATED_BY, &validation);
+            }
+        }
+
+        /* Print additional package info if info flag passed more than once */
+        match from {
+            PackageFrom::File => {
+                unimplemented!();
+                // 		alpm_siglist_t siglist;
+                // 		int err = check_pgp_signature(pkg, &siglist);
+                // 		if(err && alpm_errno(config->handle) == ALPM_ERR_SIG_MISSING) {
+                // 			string_display(titles[T_SIGNATURES], _("None"));
+                // 		} else if(err) {
+                // 			string_display(titles[T_SIGNATURES],
+                // 					alpm_strerror(alpm_errno(config->handle)));
+                // 		} else {
+                // 			signature_display(titles[T_SIGNATURES], &siglist);
+                // 		}
+                // 		alpm_siglist_cleanup(&siglist);
+            }
+            PackageFrom::LocalDatabase if extra => {
+                unimplemented!();
+                // pkg.dump_pkg_backups();
+            }
+            _ => {}
+        }
+
+        /* final newline to separate packages */
+        print!("\n");
+        Ok(())
+    }
+
+    /// Loop through the files of the package to check if they exist.
+    pub fn check_fast(&self) -> i32 {
+        unimplemented!();
+        // 	const char *root, *pkgname;
+        // 	size_t errors = 0;
+        // 	size_t rootlen;
+        // 	char filepath[PATH_MAX];
+        // 	alpm_filelist_t *filelist;
+        // 	size_t i;
+        //
+        // 	root = alpm_option_get_root(config->handle);
+        // 	rootlen = strlen(root);
+        // 	if(rootlen + 1 > PATH_MAX) {
+        // 		/* we are in trouble here */
+        // 		pm_printf(ALPM_LOG_ERROR, _("path too long: %s%s\n"), root, "");
+        // 		return 1;
+        // 	}
+        // 	strcpy(filepath, root);
+        //
+        // 	pkgname = alpm_pkg_get_name(pkg);
+        // 	filelist = alpm_pkg_get_files(pkg);
+        // 	for(i = 0; i < filelist->count; i++) {
+        // 		const alpm_file_t *file = filelist->files + i;
+        // 		struct stat st;
+        // 		int exists;
+        // 		const char *path = file->name;
+        // 		size_t plen = strlen(path);
+        //
+        // 		if(rootlen + 1 + plen > PATH_MAX) {
+        // 			pm_printf(ALPM_LOG_WARNING, _("path too long: %s%s\n"), root, path);
+        // 			continue;
+        // 		}
+        // 		strcpy(filepath + rootlen, path);
+        //
+        // 		exists = check_file_exists(pkgname, filepath, rootlen, &st);
+        // 		if(exists == 0) {
+        // 			int expect_dir = path[plen - 1] == '/' ? 1 : 0;
+        // 			int is_dir = S_ISDIR(st.st_mode) ? 1 : 0;
+        // 			if(expect_dir != is_dir) {
+        // 				pm_printf(ALPM_LOG_WARNING, _("%s: %s (File type mismatch)\n"),
+        // 						pkgname, filepath);
+        // 				++errors;
+        // 			}
+        // 		} else if(exists == 1) {
+        // 			++errors;
+        // 		}
+        // 	}
+        //
+        // 	if(!config->quiet) {
+        // 		printf(_n("%s: %jd total file, ", "%s: %jd total files, ",
+        // 					(unsigned long)filelist->count), pkgname, (intmax_t)filelist->count);
+        // 		printf(_n("%jd missing file\n", "%jd missing files\n",
+        // 					(unsigned long)errors), (intmax_t)errors);
+        // 	}
+        //
+        // 	return (errors != 0 ? 1 : 0);
+    }
+
+    /// Loop though files in a package and perform full file property checking.
+    pub fn check_full(&self) -> i32 {
+        unimplemented!();
+        // 	const char *root, *pkgname;
+        // 	size_t errors = 0;
+        // 	size_t rootlen;
+        // 	struct archive *mtree;
+        // 	struct archive_entry *entry = NULL;
+        // 	size_t file_count = 0;
+        // 	const alpm_list_t *lp;
+        //
+        // 	root = alpm_option_get_root(config->handle);
+        // 	rootlen = strlen(root);
+        // 	if(rootlen + 1 > PATH_MAX) {
+        // 		/* we are in trouble here */
+        // 		pm_printf(ALPM_LOG_ERROR, _("path too long: %s%s\n"), root, "");
+        // 		return 1;
+        // 	}
+        //
+        // 	pkgname = alpm_pkg_get_name(pkg);
+        // 	mtree = alpm_pkg_mtree_open(pkg);
+        // 	if(mtree == NULL) {
+        // 		/* TODO: check error to confirm failure due to no mtree file */
+        // 		if(!config->quiet) {
+        // 			printf(_("%s: no mtree file\n"), pkgname);
+        // 		}
+        // 		return 0;
+        // 	}
+        //
+        // 	while(alpm_pkg_mtree_next(pkg, mtree, &entry) == ARCHIVE_OK) {
+        // 		struct stat st;
+        // 		const char *path = archive_entry_pathname(entry);
+        // 		char filepath[PATH_MAX];
+        // 		int filepath_len;
+        // 		mode_t type;
+        // 		size_t file_errors = 0;
+        // 		int backup = 0;
+        // 		int exists;
+        //
+        // 		/* strip leading "./" from path entries */
+        // 		if(path[0] == '.' && path[1] == '/') {
+        // 			path += 2;
+        // 		}
+        //
+        // 		if(*path == '.') {
+        // 			const char *dbfile = NULL;
+        //
+        // 			if(strcmp(path, ".INSTALL") == 0) {
+        // 				dbfile = "install";
+        // 			} else if(strcmp(path, ".CHANGELOG") == 0) {
+        // 				dbfile = "changelog";
+        // 			} else {
+        // 				continue;
+        // 			}
+        //
+        // 			/* Do not append root directory as alpm_option_get_dbpath is already
+        // 			 * an absoute path */
+        // 			filepath_len = snprintf(filepath, PATH_MAX, "%slocal/%s-%s/%s",
+        // 					alpm_option_get_dbpath(config->handle),
+        // 					pkgname, alpm_pkg_get_version(pkg), dbfile);
+        // 			if(filepath_len >= PATH_MAX) {
+        // 				pm_printf(ALPM_LOG_WARNING, _("path too long: %slocal/%s-%s/%s\n"),
+        // 						alpm_option_get_dbpath(config->handle),
+        // 						pkgname, alpm_pkg_get_version(pkg), dbfile);
+        // 				continue;
+        // 			}
+        // 		} else {
+        // 			filepath_len = snprintf(filepath, PATH_MAX, "%s%s", root, path);
+        // 			if(filepath_len >= PATH_MAX) {
+        // 				pm_printf(ALPM_LOG_WARNING, _("path too long: %s%s\n"), root, path);
+        // 				continue;
+        // 			}
+        // 		}
+        //
+        // 		file_count++;
+        //
+        // 		exists = check_file_exists(pkgname, filepath, rootlen, &st);
+        // 		if(exists == 1) {
+        // 			errors++;
+        // 			continue;
+        // 		} else if(exists == -1) {
+        // 			/* NoExtract */
+        // 			continue;
+        // 		}
+        //
+        // 		type = archive_entry_filetype(entry);
+        //
+        // 		if(type != AE_IFDIR && type != AE_IFREG && type != AE_IFLNK) {
+        // 			pm_printf(ALPM_LOG_WARNING, _("file type not recognized: %s%s\n"), root, path);
+        // 			continue;
+        // 		}
+        //
+        // 		if(check_file_type(pkgname, filepath, &st, entry) == 1) {
+        // 			errors++;
+        // 			continue;
+        // 		}
+        //
+        // 		file_errors += check_file_permissions(pkgname, filepath, &st, entry);
+        //
+        // 		if(type == AE_IFLNK) {
+        // 			file_errors += check_file_link(pkgname, filepath, &st, entry);
+        // 		}
+        //
+        // 		/* the following checks are expected to fail if a backup file has been
+        // 		   modified */
+        // 		for(lp = alpm_pkg_get_backup(pkg); lp; lp = lp->next) {
+        // 			alpm_backup_t *bl = lp->data;
+        //
+        // 			if(strcmp(path, bl->name) == 0) {
+        // 				backup = 1;
+        // 				break;
+        // 			}
+        // 		}
+        //
+        // 		if(type != AE_IFDIR) {
+        // 			/* file or symbolic link */
+        // 			file_errors += check_file_time(pkgname, filepath, &st, entry, backup);
+        // 		}
+        //
+        // 		if(type == AE_IFREG) {
+        // 			file_errors += check_file_size(pkgname, filepath, &st, entry, backup);
+        // 			/* file_errors += check_file_md5sum(pkgname, filepath, &st, entry, backup); */
+        // 		}
+        //
+        // 		if(config->quiet && file_errors) {
+        // 			printf("%s %s\n", pkgname, filepath);
+        // 		}
+        //
+        // 		errors += (file_errors != 0 ? 1 : 0);
+        // 	}
+        //
+        // 	alpm_pkg_mtree_close(pkg, mtree);
+        //
+        // 	if(!config->quiet) {
+        // 		printf(_n("%s: %jd total file, ", "%s: %jd total files, ",
+        // 					(unsigned long)file_count), pkgname, (intmax_t)file_count);
+        // 		printf(_n("%jd altered file\n", "%jd altered files\n",
+        // 					(unsigned long)errors), (intmax_t)errors);
+        // 	}
+        //
+        // 	return (errors != 0 ? 1 : 0);
+    }
+
+    // /* Default package accessor functions. These will get overridden by any
+    //  * backend logic that needs lazy access, such as the local database through
+    //  * a lazy-load cache. However, the defaults will work just fine for fully-
+    //  * populated package structures. */
+    // static const char *_pkg_get_base(Package *pkg)        { return pkg->base; }
+    // static const char *_pkg_get_desc(Package *pkg)        { return pkg->desc; }
+    // static const char *_pkg_get_url(Package *pkg)         { return pkg->url; }
+    // static alpm_time_t _pkg_get_builddate(Package *pkg)   { return pkg->builddate; }
+    // static alpm_time_t _pkg_get_installdate(Package *pkg) { return pkg->installdate; }
+    // static const char *_pkg_get_packager(Package *pkg)    { return pkg->packager; }
+    // static const char *_pkg_get_arch(Package *pkg)        { return pkg->arch; }
+    // static off_t _pkg_get_isize(Package *pkg)             { return pkg->isize; }
+    // static PackageReason _pkg_get_reason(Package *pkg) { return pkg->reason; }
+    // static int _pkg_get_validation(Package *pkg) { return pkg->validation; }
+    // static int _pkg_has_scriptlet(Package *pkg)           { return pkg->scriptlet; }
+    //
+    // static alpm_list_t *_pkg_get_licenses(Package *pkg)   { return pkg->licenses; }
+    // static alpm_list_t *_pkg_get_groups(Package *pkg)     { return pkg->groups; }
+    // static alpm_list_t *_pkg_get_depends(Package *pkg)    { return pkg->depends; }
+    // static alpm_list_t *_pkg_get_optdepends(Package *pkg) { return pkg->optdepends; }
+    // static alpm_list_t *_pkg_get_checkdepends(Package *pkg) { return pkg->checkdepends; }
+    // static alpm_list_t *_pkg_get_makedepends(Package *pkg) { return pkg->makedepends; }
+    // static alpm_list_t *_pkg_get_conflicts(Package *pkg)  { return pkg->conflicts; }
+    // static alpm_list_t *_pkg_get_provides(Package *pkg)   { return pkg->provides; }
+    // static alpm_list_t *_pkg_get_replaces(Package *pkg)   { return pkg->replaces; }
+    // static alpm_filelist_t *_pkg_get_files(Package *pkg)  { return &(pkg->files); }
+    // static alpm_list_t *_pkg_get_backup(Package *pkg)     { return pkg->backup; }
 }
 
-use std::cmp;
-impl cmp::Ord for Package {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
+impl std::cmp::Ord for Package {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.name.cmp(&other.name)
     }
 }
+
 impl PartialOrd for Package {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -1496,24 +1862,5 @@ impl PartialEq for Package {
         self.name == other.name
     }
 }
-impl Eq for Package {}
-/// Helper function for comparing packages
-pub fn pkg_cmp(pkg1: &Package, pkg2: &Package) -> std::cmp::Ordering {
-    pkg1.name.cmp(&pkg2.name)
-}
 
-/// Find a package in a list by name.
-///
-/// * `haystack` - a Vec of Package
-/// * `needle` - the package name
-///
-/// returns a pointer to the package if found or None
-pub fn alpm_pkg_find<'a>(haystack: &'a mut Vec<Package>, needle: &String) -> Option<&'a Package> {
-    haystack.sort();
-    match haystack.binary_search_by_key(needle, |ref a| a.name.clone()) {
-        Ok(i) => {
-            return Some(&haystack[i]);
-        }
-        Err(_) => return None,
-    }
-}
+impl Eq for Package {}

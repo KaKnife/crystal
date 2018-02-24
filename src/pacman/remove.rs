@@ -27,17 +27,17 @@ fn fnmatch_cmp(pattern: &String, string: &String) -> std::cmp::Ordering {
 
 fn remove_target(target: String, config: &mut Config, handle:&mut Handle) -> i32 {
     match handle.db_local.get_pkg(&target) {
-        Some(pkg) => {
+        Ok(pkg) => {
             match alpm_remove_pkg(&mut handle.trans, &pkg) {
                 Err(err) => {
                     match err {
                         Error::TransactionDupTarget => {
                             /* just skip duplicate targets */
-                            println!("skipping target: {}", target);
+                            print!("skipping target: {}\n", target);
                             return 0;
                         }
                         _ => {
-                            eprintln!("'{}': {}\n", target, err.alpm_strerror());
+                            error!("'{}': {}\n", target, err);
                             return -1;
                         }
                     }
@@ -58,7 +58,7 @@ fn remove_target(target: String, config: &mut Config, handle:&mut Handle) -> i32
             for pkg in &grp.packages {
                 match alpm_remove_pkg(&mut handle.trans, &pkg) {
                     Err(e) => {
-                        eprintln!("'{}': {}", target, e.alpm_strerror());
+                        error!("'{}': {}", target, e);
                         return -1;
                     }
                     Ok(_) => {}
@@ -70,7 +70,7 @@ fn remove_target(target: String, config: &mut Config, handle:&mut Handle) -> i32
             return 0;
         }
         Err(_) => {
-            eprintln!("target not found: {}", target);
+            error!("target not found: {}", target);
             return -1;
         }
     }
@@ -87,12 +87,12 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut Config, handle:&mut Hand
     // 	alpm_list_t *i, *data = NULL;
 
     if targets.is_empty() {
-        eprintln!("no targets specified (use -h for help)");
+        error!("no targets specified (use -h for help)");
         return Err(1);
     }
 
     /* Step 0: create a new transaction */
-    if trans_init(&config.flags.clone(), false, handle) == -1 {
+    if trans_init(&config.flags.clone(), false, handle).is_err() {
         return Err(1);
     }
 
@@ -117,7 +117,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut Config, handle:&mut Hand
     // if alpm_trans_prepare(&config.handle, &data) == -1 {
     //     unimplemented!();
     //     let err = alpm_errno(&config.handle);
-    //     eprintln!("failed to prepare transaction ({})", alpm_strerror(err));
+    //     error!("failed to prepare transaction ({})", alpm_strerror(err));
     //     match err {
     //         errno_t::ALPM_ERR_UNSATISFIED_DEPS => {
     //             for miss in data {
@@ -143,7 +143,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut Config, handle:&mut Hand
             .binary_search_by(|other| fnmatch_cmp(pkg.get_name(), other))
             .is_ok()
         {
-            println!("{} is designated as a HoldPkg.", pkg.get_name());
+            print!("{} is designated as a HoldPkg.\n", pkg.get_name());
             holdpkg = 1;
         }
     }
@@ -160,7 +160,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut Config, handle:&mut Hand
     /* Step 3: actually perform the removal */
     let mut pkglist = handle.trans.remove.clone();
     if pkglist.is_empty() {
-        println!(" there is nothing to do");
+        print!(" there is nothing to do\n");
         if !trans_release(handle) {
             retval = 1;
         }
@@ -184,7 +184,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut Config, handle:&mut Hand
     // 	}
     //
     // if alpm_trans_commit(config.handle, &data) == -1 {
-    //     eprintln!(
+    //     error!(
     //         "failed to commit transaction ({})\n",
     //         alpm_strerror(alpm_errno(&config.handle))
     //     );

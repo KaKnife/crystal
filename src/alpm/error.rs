@@ -18,6 +18,10 @@
  *  along with this program.  If not, see <http=>//www.gnu.org/licenses/>.
  */
 
+use std::error::Error as StdError;
+use std::io;
+use std::ffi;
+
 // impl Default for Error {
 //     fn default() -> Self {
 //         Error::ALPM_ERR_OK
@@ -26,12 +30,12 @@
 use std::fmt;
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.alpm_strerror())
+        write!(f, "{}", self.description())
     }
 }
 
 /// Error Codes
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub enum Error {
     // Ok = 0,
     Memory,
@@ -103,136 +107,90 @@ pub enum Error {
     Download,
     GpgMe,
     GroupNotFound,
+    IO(io::Error),
+    OsStr(ffi::OsString),
+    Other,
 }
 
-impl Error {
-    pub fn alpm_strerror(&self) -> String {
+impl From<io::Error> for Error {
+    fn from(err: io::Error) -> Self {
+        Error::IO(err)
+    }
+}
+
+impl From<ffi::OsString> for Error {
+    fn from(err: ffi::OsString) -> Self {
+        Error::OsStr(err)
+    }
+}
+impl StdError for Error {
+    fn description(&self) -> &str {
         match self {
-		/* System */
-		 &Error::Memory=>
-			return String::from("out of memory!"),
-		 &Error::System=>
-			return String::from("unexpected system error"),
-		 &Error::BadPerms=>
-			return String::from("permission denied"),
-		 &Error::NotAFile=>
-			return String::from("could not find or read file"),
-		 &Error::NotADirectory=>
-			return String::from("could not find or read directory"),
-		 &Error::WrongArgs=>
-			return String::from("wrong or NULL argument passed"),
-		 &Error::DiskSpace=>
-			return String::from("not enough free disk space"),
-		/* Interface */
-		 &Error::HandleNull=>
-			return String::from("library not initialized"),
-		 &Error::HandleNotNull=>
-			return String::from("library already initialized"),
-		 &Error::HandleLock=>
-			return String::from("unable to lock database"),
-		/* Databases */
-		 &Error::DatabaseOpen=>
-			return String::from("could not open database"),
-		 &Error::DatabaseCreate=>
-			return String::from("could not create database"),
-		 &Error::DatabaseNull=>
-			return String::from("database not initialized"),
-		 &Error::DatabaseNotNull=>
-			return String::from("database already registered"),
-		 &Error::DatabaseNotFound=>
-			return String::from("could not find database"),
-		 &Error::DatabaseInvalid=>
-			return String::from("invalid or corrupted database"),
-		 &Error::DatabaseInvalidSig=>
-			return String::from("invalid or corrupted database (PGP signature)"),
-		 &Error::DatabaseVersion=>
-			return String::from("database is incorrect version"),
-		 &Error::DatabaseWrite=>
-			return String::from("could not update database"),
-		 &Error::DatabaseRemove=>
-			return String::from("could not remove database entry"),
-		/* Servers */
-		 &Error::ServerBadUrl=>
-			return String::from("invalid url for server"),
-		 &Error::ServerNone=>
-			return String::from("no servers configured for repository"),
-		/* Transactions */
-		 &Error::TransactionNotNull=>
-			return String::from("transaction already initialized"),
-		 &Error::TransactionNull=>
-			return String::from("transaction not initialized"),
-		 &Error::TransactionDupTarget=>
-			return String::from("duplicate target"),
-		 &Error::TransactionNotInitialized=>
-			return String::from("transaction not initialized"),
-		 &Error::TransactionNotPrepared=>
-			return String::from("transaction not prepared"),
-		 &Error::TransactionAbort=>
-			return String::from("transaction aborted"),
-		 &Error::TransactionType=>
-			return String::from("operation not compatible with the transaction type"),
-		 &Error::TransactionNotLocked=>
-			return String::from("transaction commit attempt when database is not locked"),
-		 &Error::TransactionHookFailed=>
-			return String::from("failed to run transaction hooks"),
-		/* Packages */
-		 &Error::PkgNotFound=>
-			return String::from("could not find or read package"),
-		 &Error::PkgIgnored=>
-			return String::from("operation cancelled due to ignorepkg"),
-		 &Error::PkgInvalid=>
-			return String::from("invalid or corrupted package"),
-		 &Error::PkgInvalidChecksum=>
-			return String::from("invalid or corrupted package (checksum)"),
-		 &Error::PkgInvalidSig=>
-			return String::from("invalid or corrupted package (PGP signature)"),
-		 &Error::PkgMissingSig=>
-			return String::from("package missing required signature"),
-		 &Error::PkgOpen=>
-			return String::from("cannot open package file"),
-		 &Error::PkgCantRemove=>
-			return String::from("cannot remove all files for package"),
-		 &Error::PkgInvalidName=>
-			return String::from("package filename is not valid"),
-		 &Error::PkgInvalidArch=>
-			return String::from("package architecture is not valid"),
-		 &Error::RepoNotFound=>
-			return String::from("could not find repository for target"),
-		/* Signatures */
-		 &Error::SigMissing=>
-			return String::from("missing PGP signature"),
-		 &Error::SigInvalid=>
-			return String::from("invalid PGP signature"),
-		/* Deltas */
-		 &Error::DltInvalid=>
-			return String::from("invalid or corrupted delta"),
-		 &Error::DltPatchFailed=>
-			return String::from("delta patch failed"),
-		/* Dependencies */
-		 &Error::UnsatisfiedDeps=>
-			return String::from("could not satisfy dependencies"),
-		 &Error::ConflictingDeps=>
-			return String::from("conflicting dependencies"),
-		 &Error::FileConflicts=>
-			return String::from("conflicting files"),
-		/* Miscellaenous */
-		 &Error::Retrive=>
-			return String::from("failed to retrieve some files"),
-		 &Error::InvalidRegex=>String::from("invalid regular expression"),
-		/* Errors from external libraries- our own wrapper error */
-		 &Error::LibArchive=>
-			/* it would be nice to use archive_error_string() here, but that
-			 * requires the archive struct, so we can't. Just use a generic
-			 * error string instead. */
-			return String::from("libarchive error"),
-		 &Error::LibCurl=> String::from("download library error"),
-		 &Error::GpgMe=> String::from("gpgme error"),
-		 &Error::Download=> String::from("error invoking external downloader"),
-         &Error::NoDbPath => String::from("no database path"),
-         &Error::GroupNotFound=>
-			return String::from("could not find or read group"),
-		/* Unknown error! */
-		_=> String::from("unexpected error"),
-	}
+            &Error::Memory => "out of memory!",
+            &Error::System => "unexpected system error",
+            &Error::BadPerms => "permission denied",
+            &Error::NotAFile => "could not find or read file",
+            &Error::NotADirectory => "could not find or read directory",
+            &Error::WrongArgs => "wrong or NULL argument passed",
+            &Error::DiskSpace => "not enough free disk space",
+            &Error::HandleNull => "library not initialized",
+            &Error::HandleNotNull => "library already initialized",
+            &Error::HandleLock => "unable to lock database",
+            &Error::DatabaseOpen => "could not open database",
+            &Error::DatabaseCreate => "could not create database",
+            &Error::DatabaseNull => "database not initialized",
+            &Error::DatabaseNotNull => "database already registered",
+            &Error::DatabaseNotFound => "could not find database",
+            &Error::DatabaseInvalid => "invalid or corrupted database",
+            &Error::DatabaseInvalidSig => "invalid or corrupted database (PGP signature)",
+            &Error::DatabaseVersion => "database is incorrect version",
+            &Error::DatabaseWrite => "could not update database",
+            &Error::DatabaseRemove => "could not remove database entry",
+            &Error::ServerBadUrl => "invalid url for server",
+            &Error::ServerNone => "no servers configured for repository",
+            &Error::TransactionNotNull => "transaction already initialized",
+            &Error::TransactionNull => "transaction not initialized",
+            &Error::TransactionDupTarget => "duplicate target",
+            &Error::TransactionNotInitialized => "transaction not initialized",
+            &Error::TransactionNotPrepared => "transaction not prepared",
+            &Error::TransactionAbort => "transaction aborted",
+            &Error::TransactionType => "operation not compatible with the transaction type",
+            &Error::TransactionNotLocked => {
+                "transaction commit attempt when database is not locked"
+            }
+            &Error::TransactionHookFailed => "failed to run transaction hooks",
+            &Error::PkgNotFound => "could not find or read package",
+            &Error::PkgIgnored => "operation cancelled due to ignorepkg",
+            &Error::PkgInvalid => "invalid or corrupted package",
+            &Error::PkgInvalidChecksum => "invalid or corrupted package (checksum)",
+            &Error::PkgInvalidSig => "invalid or corrupted package (PGP signature)",
+            &Error::PkgMissingSig => "package missing required signature",
+            &Error::PkgOpen => "cannot open package file",
+            &Error::PkgCantRemove => "cannot remove all files for package",
+            &Error::PkgInvalidName => "package filename is not valid",
+            &Error::PkgInvalidArch => "package architecture is not valid",
+            &Error::RepoNotFound => "could not find repository for target",
+            &Error::SigMissing => "missing PGP signature",
+            &Error::SigInvalid => "invalid PGP signature",
+            &Error::DltInvalid => "invalid or corrupted delta",
+            &Error::DltPatchFailed => "delta patch failed",
+            &Error::UnsatisfiedDeps => "could not satisfy dependencies",
+            &Error::ConflictingDeps => "conflicting dependencies",
+            &Error::FileConflicts => "conflicting files",
+            &Error::Retrive => "failed to retrieve some files",
+            &Error::InvalidRegex => "invalid regular expression",
+            &Error::LibArchive => "libarchive error",
+            &Error::LibCurl => "download library error",
+            &Error::GpgMe => "gpgme error",
+            &Error::Download => "error invoking external downloader",
+            &Error::NoDbPath => "no database path",
+            &Error::GroupNotFound => "could not find or read group",
+            &Error::PkgCacheNotLoaded => "package cache was not loaded",
+            &Error::PkgNotLoaded => "package was not loaded",
+            &Error::OsStr(_) => "error translating from OsString",
+            &Error::IO(ref err) => err.description(),
+            &Error::Other => "unknown error",
+            // _ => "Unnkown error",
+        }
     }
 }

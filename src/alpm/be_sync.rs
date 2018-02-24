@@ -1,5 +1,3 @@
-use super::*;
-use std::fs;
 /*
  *  be_sync.c : backend for sync databases
  *
@@ -24,6 +22,12 @@ use std::fs;
 // #include <archive.h>
 // #include <archive_entry.h>
 
+use super::Handle;
+use super::Database;
+use super::DownloadPayload;
+use super::Result;
+use super::Error;
+use std::fs;
 
 /** Update a package database
  *
@@ -71,12 +75,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
         return Ok(0);
     }
 
-    syncpath = match handle.get_sync_dir() {
-        Err(e) => {
-            return Err(e);
-        }
-        Ok(s) => s,
-    };
+    syncpath = handle.get_sync_dir()?;
 
     /* force update of invalid databases to fix potential mismatched database/signature */
     if db.status.invalid {
@@ -90,12 +89,10 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 
     /* attempt to grab a lock */
     if handle.handle_lock().is_err() {
-        // umask(oldmask);
         return Err(Error::HandleLock);
     }
     {
         let dbext = handle.get_dbext();
-
         for server in db.get_servers() {
             let mut final_db_url: String = String::new();
             let mut payload: DownloadPayload = DownloadPayload::default();
@@ -115,17 +112,16 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 
             if ret != -1 && updated && siglevel.database {
                 /* an existing sig file is no good at this point */
-                {
-                    let dbpath = &db.path().ok();
-                    let sigpath = match handle._sigpath(dbpath) {
-                        Some(s) => s,
-                        None => {
-                            ret = -1;
-                            break;
-                        }
-                    };
-                    fs::remove_file(sigpath).unwrap();
-                }
+
+                let dbpath = &db.path().ok();
+                let sigpath = match handle._sigpath(dbpath) {
+                    Some(s) => s,
+                    None => {
+                        ret = -1;
+                        break;
+                    }
+                };
+                fs::remove_file(sigpath)?;
 
                 /* check if the final URL from internal downloader looks reasonable */
                 if final_db_url != "" {
@@ -169,21 +165,20 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
         db.status.missing = false;
 
         /* if the download failed skip validation to preserve the download error */
-        if ret != -1 && db.sync_db_validate(handle).is_err() {
-            /* pm_errno should be set */
-            ret = -1;
+        if ret != -1 {
+            db.sync_db_validate(handle)?;
         }
     }
 
     if ret == -1 {
         /* pm_errno was set by the download code */
-        // _alpm_log(handle, ALPM_LOG_DEBUG, "failed to sync db: %s\n",
+        // _debug!("failed to sync db: {}",
         // 		alpm_strerror(handle->pm_errno));
     } else {
         // handle.pm_errno = Error::ALPM_ERR_OK;
     }
 
-    handle.handle_unlock().unwrap();
+    handle.handle_unlock()?;
     // umask(oldmask);
     if ret == 1 || ret == 0 {
         Ok(ret as i8)

@@ -1,7 +1,8 @@
 use std::fs::File;
-use std::io::BufReader;
-use std::io::BufRead;
-use super::*;
+use std::io::Read;
+use super::Result;
+use super::Config;
+use super::Section;
 /*
  *  ini.c
  *
@@ -21,67 +22,44 @@ use super::*;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// #include <errno.h>
-// #include <limits.h>
-// #include <string.h> /* strdup */
-//
-// #include <alpm.h>
-//
-// #include "ini.h"
-// #include "util.h"
-
 pub type IniParserFn =
-    Fn(&String, i32, &String, &Option<String>, &Option<String>, &mut Section, &mut Config) -> i32;
+    Fn(&String, usize, &String, &Option<String>, &Option<String>, &mut Section, &mut Config)
+        -> Result<()>;
 
 /// Parse a pacman-style INI config file.
-/// * `file` path to the config file
-/// * `cb` callback for key/value pairs
-/// * `data` caller defined data to be passed to the callback
-/// * returns the callback return value
 ///
-/// note: The callback will be called at the beginning of each section with an
+/// Note: The callback will be called at the beginning of each section with an
 /// empty key and value and for each key/value pair.
 ///
-/// note: If the parser encounters an error the callback will be called with
+/// Note: If the parser encounters an error the callback will be called with
 /// section, key, and value set to NULL and errno set by fopen, fgets, or
 /// strdup.
 ///
-/// note: The @a key and @a value passed to @ cb will be overwritten between
-/// calls.  The section name will remain valid until after @a cb is called to
+/// Note: The key and value passed to cb will be overwritten between
+/// calls.  The section name will remain valid until after cb is called to
 /// begin a new section.
 ///
-/// note: Parsing will immediately stop if the callback returns non-zero.
-pub fn parse_ini(file: &String, cb: &IniParserFn, data: &mut Section, config: &mut Config) -> i32 {
-    // char line[PATH_MAX], *section_name = NULL;
+/// Note: Parsing will immediately stop if the callback returns non-zero.
+pub fn parse_ini(
+    file: &String,
+    cb: &IniParserFn,
+    data: &mut Section,
+    config: &mut Config,
+) -> Result<()> {
     let mut section_name = String::new();
-    // FILE *fp = NULL;
-    let mut linenum = 0;
-    let mut ret = 0;
-    // int linenum = 0;
-    // int ret = 0;
-    let fp = match File::open(file) {
-        Ok(f) => BufReader::new(f),
-        Err(e) => unimplemented!("{}:{}", e, file),
-    };
-    // if fp == NULL {
-    // 	return cb(file, 0, NULL, NULL, NULL, data);
-    // }
+    // let mut ret = Ok(());
+    let mut input: String = String::new();
+    let mut fp = File::open(file)?;
+    let lines;
 
-    for linew in fp.lines() {
-        let line;
-        match linew {
-            Ok(l) => line = l,
-            Err(_) => continue,
-        }
+    fp.read_to_string(&mut input)?;
+    lines = input.lines();
+
+    for (linenum, mut line) in lines.enumerate() {
         let key: String;
-        let value;
-        // size_t line_len;
-        // let line_len;
+        let value: Option<String>;
 
-        linenum += 1;
-
-        line.trim();
-        // line_len = strtrim(line);
+        line = line.trim();
 
         if line.len() == 0 || line.starts_with('#') {
             continue;
@@ -91,19 +69,20 @@ pub fn parse_ini(file: &String, cb: &IniParserFn, data: &mut Section, config: &m
             let mut name;
             /* new config section, skip the '[' */
             name = line;
-            name = String::from(name.trim_left_matches('['));
-            name = String::from(name.trim_right_matches("]"));
-            // name[line_len - 2] = '\0';
+            name = name.trim_left_matches('[');
+            name = name.trim_right_matches("]");
 
-            ret = cb(file, linenum, &name, &None, &None, data, config);
-            // free(section_name);
-            section_name = name;
+            cb(
+                file,
+                linenum,
+                &name.to_string(),
+                &None,
+                &None,
+                data,
+                config,
+            )?;
+            section_name = name.to_string();
 
-            /* we're at a new section; perform any post-actions for the prior */
-            if ret != 0 {
-                return ret;
-                // goto cleanup;
-            }
             continue;
         }
 
@@ -117,7 +96,7 @@ pub fn parse_ini(file: &String, cb: &IniParserFn, data: &mut Section, config: &m
         } else {
             None
         };
-        ret = cb(
+        cb(
             file,
             linenum,
             &section_name,
@@ -125,11 +104,7 @@ pub fn parse_ini(file: &String, cb: &IniParserFn, data: &mut Section, config: &m
             &value,
             data,
             config,
-        );
-        if ret != 0 {
-            // goto cleanup;
-            return ret;
-        }
+        )?;
     }
-    return ret;
+    return Ok(());
 }

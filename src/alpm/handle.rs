@@ -29,6 +29,7 @@ use std::fs::File;
 // use std::ffi::OsString;
 use std::fs;
 use super::deps::find_dep_satisfier;
+use super::deps::find_dep_satisfier_ref;
 const LDCONFIG: &str = "/sbin/ldconfig";
 
 // alpm_cb_log SYMEXPORT alpm_option_get_logcb(Handle *handle)
@@ -87,9 +88,7 @@ impl Handle {
 
         debug!("running ldconfig");
 
-        line = format!("{}etc/ld.so.conf", self.root);
-        if metadata(line).is_ok() {
-            unimplemented!();
+        if metadata(format!("{}etc/ld.so.conf", self.root)).is_ok() {
             line = format!("{}{}", self.root, LDCONFIG);
             if metadata(line).is_ok() {
                 let argv: Vec<String> = vec!["ldconfig".to_string()];
@@ -318,18 +317,18 @@ impl Handle {
         Ok(())
     }
 
-    fn check_arch(&mut self, pkgs: &mut Vec<Package>) -> Vec<String> {
+    fn check_arch(&mut self, pkgs: &mut Vec<Package>) -> Result<Vec<String>> {
         let mut invalid: Vec<String> = Vec::new();
         let arch: &str = &self.arch;
         for pkg in pkgs {
-            let pkgarch = pkg.get_arch().clone().unwrap();
+            let pkgarch = pkg.get_arch()?;
             if pkgarch != "" && pkgarch == arch && pkgarch == "any" {
                 let string;
                 string = format!("{}-{}-{}", pkg.get_name(), pkg.get_version(), pkgarch);
                 invalid.push(string);
             }
         }
-        return invalid;
+        return Ok(invalid);
     }
 
     /// Prepare a transaction.
@@ -352,20 +351,13 @@ impl Handle {
         }
 
         // 	alpm_list_t *invalid = check_arch(handle, trans->add);
-        let invalid = &self.check_arch(&mut trans.add);
-        if !invalid.is_empty() {
-            // if data {
-            *data = invalid.clone();
-            // }
-            return Err(Error::PkgInvalidArch);
-        }
+        *data = match self.check_arch(&mut trans.add) {
+            Ok(ref data) if !data.is_empty() => data.clone(),
+            _ => return Err(Error::PkgInvalidArch),
+        };
 
         if trans.add.is_empty() {
-            if self.remove_prepare(data) == -1 {
-                /* pm_errno is set by _alpm_remove_prepare() */
-                // return -1;
-                unimplemented!();
-            }
+            self.remove_prepare(data)?;
         } else {
             if self.sync_prepare(data) == -1 {
                 /* pm_errno is set by _alpm_sync_prepare() */
@@ -532,28 +524,18 @@ impl Handle {
     }
 
     /// Release a transaction.
-    pub fn trans_release(&self) -> Result<i32> {
-        unimplemented!();
-        // 	alpm_trans_t *trans;
-        //
-        // 	/* Sanity checks */
-        // 	CHECK_HANDLE(handle, return -1);
-        //
-        // 	trans = handle->trans;
-        // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-        // 	ASSERT(trans->state != STATE_IDLE, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-        //
-        // 	int nolock_flag = trans->flags & ALPM_TRANS_FLAG_NOLOCK;
-        //
-        // 	_alpm_trans_free(trans);
-        // 	handle->trans = NULL;
-        //
-        // 	/* unlock db */
-        // 	if(!nolock_flag) {
-        // 		_alpm_handle_unlock(handle);
-        // 	}
-        //
-        // 	return 0;
+    pub fn trans_release(&mut self) -> Result<i32> {
+        match self.trans.state {
+            AlpmTransstate::Idle => {}
+            _ => return Err(Error::TransactionNull),
+        }
+
+        /* unlock db */
+        if !self.trans.flags.no_lock {
+            self.unlock()?;
+        }
+
+        return Ok(0);
     }
 
     ///Form a signature path given a file path.
@@ -580,35 +562,35 @@ impl Handle {
     pub fn checkdeps(
         &self,
         pkglist: Option<Vec<Package>>,
-        remw: Option<Vec<Package>>,
-        upgrade: &mut Vec<Package>,
+        remw: Option<Vec<&Package>>,
+        upgrade: &Vec<&Package>,
         reversedeps: i32,
-    ) -> Vec<DepMissing> {
+    ) -> Result<Vec<DepMissing>> {
         unimplemented!();
         // 	alpm_list_t *i, *j;
         // 	alpm_list_t *dblist = NULL, *modified = NULL;
-        let mut dblist = Vec::new();
+        let mut dblist: Vec<Package> = Vec::new();
         let mut modified = Vec::new();
         let mut baddeps = Vec::new(); // 	alpm_list_t *baddeps = NULL;
         let nodepversion; // 	int nodepversion;
         let mut rem; //
 
-        if remw.is_some() {
-            rem = remw.unwrap();
-        } else {
-            rem = Vec::new();
-        }
-        if pkglist.is_some() {
-            for pkg in pkglist.unwrap() {
-                // Package *pkg = i->data;
-                if alpm_pkg_find(upgrade, pkg.get_name()).is_some()
-                    || alpm_pkg_find(&mut rem, pkg.get_name()).is_some()
-                {
-                    modified.push(pkg);
-                } else {
-                    dblist.push(pkg);
+        rem = match remw {
+            Some(r) => r,
+            None => Vec::new(),
+        };
+        match pkglist {
+            Some(pkglist) => {
+                for pkg in pkglist {
+                    // Package *pkg = i->data;
+                    if upgrade.contains(&&pkg) || rem.contains(&&pkg) {
+                        modified.push(pkg);
+                    } else {
+                        dblist.push(pkg);
+                    }
                 }
             }
+            None => {}
         }
 
         nodepversion = self.no_dep_version();
@@ -624,7 +606,7 @@ impl Handle {
             //     tp.version,
             // );
 
-            for mut depend in tp.get_depends() {
+            for mut depend in tp.get_depends()? {
                 // Dependency *depend = j->data;
                 let orig_mod = depend.depmod.clone();
                 // if (nodepversion) {
@@ -633,9 +615,9 @@ impl Handle {
                 /* 1. we check the upgrade list */
                 /* 2. we check database for untouched satisfying packages */
                 /* 3. we check the dependency ignore list */
-                if find_dep_satisfier(upgrade, &depend).is_none()
+                if find_dep_satisfier_ref(upgrade, &depend).is_none()
                     && find_dep_satisfier(&dblist, &depend).is_none()
-                    && depend._alpm_depcmp_provides(&self.assumeinstalled)
+                    && depend.provides(&self.assumeinstalled)
                 {
                     unimplemented!();
                     /* Unsatisfied dependency in the upgrade list */
@@ -687,10 +669,7 @@ impl Handle {
             // 		}
         }
 
-        // 	alpm_list_free(modified);
-        // 	alpm_list_free(dblist);
-        //
-        return baddeps;
+        Ok(baddeps)
     }
 
     /// Find a package satisfying a specified dependency.
@@ -719,13 +698,13 @@ impl Handle {
     ///Check the package conflicts in a database
     ///* `pkglist` the list of packages to check
     ///* returns an alpm_list_t of conflict_t
-    pub fn checkconflicts(&self, pkglist: &Vec<Package>) -> Vec<Conflict> {
+    pub fn checkconflicts(&self, pkglist: &Vec<&Package>) -> Vec<Conflict> {
         unimplemented!();
         // CHECK_HANDLE(handle, return NULL);
         // return _alpm_innerconflicts(handle, pkglist);
     }
 
-    pub fn _db_register_sync(&mut self, treename: &String, level: SigLevel) -> Database {
+    pub fn _db_register_sync(&mut self, treename: &String, level: SigLevel) -> Result<Database> {
         // 	_alpm_log(handle, ALPM_LOG_DEBUG, "registering sync database '%s'\n", treename);
 
         // #ifndef HAVE_LIBGPGME
@@ -738,14 +717,14 @@ impl Handle {
         // db->ops = &sync_db_ops;
         // db.handle = handle;
         db.set_siglevel(level);
-        db.create_path(&self.dbpath, &self.dbext);
-        db.sync_db_validate(self);
+        db.create_path(&self.dbpath, &self.dbext)?;
+        db.sync_db_validate(self)?;
 
         // handle.dbs_sync.push(db);
-        return db;
+        return Ok(db);
     }
 
-    pub fn get_sync_dir(&mut self) -> Result<String> {
+    pub fn get_sync_dir(&self) -> Result<String> {
         let syncpath = format!("{}{}", self.dbpath, "sync/");
         match std::fs::metadata(&syncpath) {
             Err(_e) => {
@@ -1070,7 +1049,7 @@ impl Handle {
             }
         }
 
-        Ok(self._db_register_sync(&treename, siglevel))
+        self._db_register_sync(&treename, siglevel)
     }
 
     pub fn _db_register_local(&mut self) -> Result<&Database> {
@@ -1079,7 +1058,7 @@ impl Handle {
 
         db = Database::new(&String::from("local"), true, DbOpsType::Local);
         // db.ops = &local_db_ops;
-        db.get_usage_mut().all = true;
+        db.get_usage_mut().set_all();
         db.create_path(&self.dbpath, &self.dbext)?;
         db.local_db_validate()?;
 
@@ -1095,39 +1074,35 @@ impl Handle {
 
         debug!("adding package '{}'", pkgname);
 
-        if alpm_pkg_find(&mut trans.add, &pkgname).is_some() {
+        if trans.add.contains(&pkg) {
             return Err(Error::TransactionDupTarget);
         }
 
-        match self.db_local.get_pkgfromcache(&pkgname) {
-            Some(local) => {
-                let localpkgname: &String = local.get_name();
-                let localpkgver: &String = &local.get_version();
-                let cmp: i8 = pkg.compare_versions(&local);
+        let local = self.db_local.get_pkgfromcache(&pkgname)?;
+        let localpkgname: &String = local.get_name();
+        let localpkgver: &String = &local.get_version();
+        let cmp: i8 = pkg.compare_versions(&local);
 
-                if cmp == 0 {
-                    if trans.flags.needed {
-                        /* with the NEEDED flag, packages up to date are not reinstalled */
-                        warn!(
-                            "{}-{} is up to date -- skipping\n",
-                            localpkgname, localpkgver
-                        );
-                        return Ok(());
-                    } else if !trans.flags.download_only {
-                        warn!(
-                            "{}-{} is up to date -- reinstalling\n",
-                            localpkgname, localpkgver
-                        );
-                    }
-                } else if cmp < 0 && !trans.flags.download_only {
-                    /* local version is newer */
-                    warn!(
-                        "downgrading package {} ({} => {})\n",
-                        localpkgname, localpkgver, pkgver
-                    );
-                }
+        if cmp == 0 {
+            if trans.flags.needed {
+                /* with the NEEDED flag, packages up to date are not reinstalled */
+                warn!(
+                    "{}-{} is up to date -- skipping\n",
+                    localpkgname, localpkgver
+                );
+                return Ok(());
+            } else if !trans.flags.download_only {
+                warn!(
+                    "{}-{} is up to date -- reinstalling\n",
+                    localpkgname, localpkgver
+                );
             }
-            None => {}
+        } else if cmp < 0 && !trans.flags.download_only {
+            /* local version is newer */
+            warn!(
+                "downgrading package {} ({} => {})\n",
+                localpkgname, localpkgver, pkgver
+            );
         }
 
         /* add the package to the transaction */
@@ -1885,18 +1860,14 @@ impl Handle {
     // 	return 0;
     // }
 
-    pub fn option_add_hookdir(&mut self, hookdir: &String) -> Result<i32> {
-        // 	char *newhookdir;
+    pub fn option_add_hookdir(&mut self, hookdir: &String) -> Result<()> {
         let newhookdir = match std::fs::canonicalize(hookdir) {
-            Err(_) => {
-                return Err(Error::Memory);
-            }
-            Ok(h) => h,
+            Err(e) => return Err(Error::from(e)),
+            Ok(h) => h.into_os_string().into_string()?,
         };
-        self.hookdirs
-            .push(newhookdir.into_os_string().into_string().unwrap());
-        // 	_alpm_log(handle, ALPM_LOG_DEBUG, "option 'hookdir' = %s\n", newhookdir);
-        return Ok(0);
+        debug!("option 'hookdir' = {}", newhookdir);
+        self.hookdirs.push(newhookdir);
+        return Ok(());
     }
 
     // int SYMEXPORT alpm_option_set_hookdirs(Handle *handle, alpm_list_t *hookdirs)
@@ -1936,24 +1907,20 @@ impl Handle {
     // }
 
     pub fn option_add_cachedir(&mut self, cachedir: &String) -> Result<i32> {
-        // 	char *newcachedir;
-        //
         /* don't stat the cachedir yet, as it may not even be needed. we can
          * fail later if it is needed and the path is invalid. */
-        //
         let newcachedir = match std::fs::canonicalize(cachedir) {
             Err(_) => {
                 return Err(Error::Memory);
             }
-            Ok(n) => n.into_os_string(),
+            Ok(n) => n.into_os_string().into_string()?,
         };
-        self.cachedirs.push(newcachedir.into_string().unwrap());
-        // 	_alpm_log(handle, ALPM_LOG_DEBUG, "option 'cachedir' = %s\n", newcachedir);
+        debug!("option 'cachedir' = {}", newcachedir);
+        self.cachedirs.push(newcachedir);
         return Ok(0);
     }
 
     pub fn option_set_cachedirs(&mut self, cachedirs: &Vec<String>) -> Result<i32> {
-        // 	alpm_list_t *i;
         for dir in cachedirs {
             self.option_add_cachedir(&dir)?;
         }
@@ -1998,11 +1965,9 @@ impl Handle {
     }
 
     pub fn option_set_gpgdir(&mut self, gpgdir: &String) -> Result<()> {
-        match _alpm_set_directory_option(gpgdir, &mut self.gpgdir, false) {
-            Err(err) => return Err(err),
-            Ok(_) => Ok(()),
-        }
-        // 	_alpm_log(handle, ALPM_LOG_DEBUG, "option 'gpgdir' = %s\n", handle->gpgdir);
+        self.gpgdir = _alpm_set_directory_option(gpgdir, false)?;
+        debug!("option 'gpgdir' = {}", self.gpgdir);
+        Ok(())
     }
 
     pub fn option_set_usesyslog(&mut self, usesyslog: i32) {
@@ -2114,14 +2079,8 @@ impl Handle {
     // 	return _alpm_option_strlist_rem(handle, &(handle->overwrite_files), glob);
     // }
 
-    pub fn option_add_assumeinstalled(&mut self, dep: &Dependency) {
-        use std::hash::{Hash, Hasher};
-        let mut depcpy = Dependency::default();
-        let mut hasher = SdbmHasher::default();
-        /* fill in name_hash in case dep was built by hand */
-        dep.name.hash(&mut hasher);
-        depcpy.name_hash = hasher.finish();
-        self.assumeinstalled.push(depcpy);
+    pub fn add_assumeinstalled(&mut self, dep: Dependency) {
+        self.assumeinstalled.push(dep);
     }
 
     // int SYMEXPORT alpm_option_set_assumeinstalled(Handle *handle, alpm_list_t *deps)
@@ -2323,7 +2282,7 @@ impl Handle {
     pub fn handle_unlock(&mut self) -> std::io::Result<()> {
         match self.unlock() {
             Err(e) => {
-                eprintln!("{}", e);
+                eprint!("{}\n", e);
                 return Err(e);
                 // if(errno == ENOENT) {
                 // 	_alpm_log(handle, ALPM_LOG_WARNING,
@@ -2352,7 +2311,7 @@ impl Handle {
     /// * `handle` the context handle
     /// *`data` a pointer to an alpm_list_t* to fill
     /// * return 0 on success, -1 on error
-    fn remove_prepare(&self, data: &Vec<String>) -> i32 {
+    fn remove_prepare(&self, data: &Vec<String>) -> Result<i32> {
         unimplemented!();
         // 	alpm_list_t *lp;
         // 	alpm_trans_t *trans = handle->trans;
@@ -2715,19 +2674,70 @@ impl Handle {
                 return -1;
             }
             match lpkg {
-                Some(lpkg) => {
+                Ok(lpkg) => {
                     unimplemented!();
                     // spkg.oldpkg = match lpkg._alpm_pkg_dup() {
                     //     Some(pkg) => pkg,
                     //     None => return -1,
                     // };
                 }
-                None => {}
+                Err(_) => {}
             }
         }
 
         // cleanup:
         ret
+    }
+
+    /// Search for packages to upgrade and add them to the transaction.
+    pub fn alpm_sync_sysupgrade(&mut self, enable_downgrade: bool) -> Result<i32> {
+        self.get_localdb_mut().load_pkgcache();
+        let trans = &mut self.trans;
+
+        debug!("checking for package upgrades");
+        for lpkg in self.db_local.get_pkgcache()? {
+            if trans.remove.contains(&&lpkg) {
+                debug!("{} is marked for removal -- skipping", lpkg.get_name());
+                continue;
+            }
+
+            if trans.add.contains(&&lpkg) {
+                debug!(
+                    "{} is already in the target list -- skipping",
+                    lpkg.get_name()
+                );
+                continue;
+            }
+            /* Search for replacers then literal (if no replacer) in each sync database. */
+            for sdb in &self.dbs_sync {
+                // Database *sdb = j.data;
+                // alpm_list_t *replacers;
+
+                debug!("TEPM: {}", sdb.get_usage().upgrade);
+                if !sdb.get_usage().upgrade {
+                    continue;
+                }
+                unimplemented!();
+                /* Check sdb */
+                // let replacers = handle.check_replacers(lpkg, sdb);
+                // if (replacers) {
+                // 	// trans.add = alpm_list_join(trans.add, replacers);
+                // 	/* jump to next local package */
+                // 	// break;
+                // } else {
+                // 	// 				Package *spkg = _alpm_db_get_pkgfromcache(sdb, lpkg.name);
+                // 	// 				if(spkg) {
+                // 	// 					if(check_literal(handle, lpkg, spkg, enable_downgrade)) {
+                // 	// 						trans.add = alpm_list_add(trans.add, spkg);
+                // 	// 					}
+                // 	// 					/* jump to next local package */
+                // 	// 					break;
+                // 	// 				}
+                // }
+            }
+        }
+
+        Ok(0)
     }
 }
 
@@ -2742,26 +2752,23 @@ pub fn canonicalize_path(path: &String) -> String {
 
 pub fn _alpm_set_directory_option(
     value: &String,
-    storage: &mut String,
+    //storage: &mut String,
     must_exist: bool,
-) -> Result<()> {
-    let mut path = value.clone();
+) -> Result<String> {
+    // let mut path = value.clone();
 
     if must_exist {
-        match std::fs::metadata(&path) {
+        match std::fs::metadata(value) {
             Ok(ref f) if f.is_dir() => {}
             _ => return Err(Error::NotADirectory),
         }
-        match std::fs::canonicalize(&path) {
-            Ok(p) => {
-                *storage = p.into_os_string().into_string().unwrap();
-            }
-            Err(_) => return Err(Error::NotADirectory),
-        }
+        Ok(std::fs::canonicalize(value)?
+            .into_os_string()
+            .into_string()?)
     } else {
-        *storage = canonicalize_path(&path);
+        Ok(canonicalize_path(value))
     }
-    return Ok(());
+    // return Ok(());
 }
 
 // #ifdef HAVE_LIBCURL

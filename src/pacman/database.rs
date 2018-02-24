@@ -29,7 +29,7 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
     let reason: PackageReason;
 
     if targets.len() == 0 {
-        eprintln!("no targets specified (use -h for help)");
+        error!("no targets specified (use -h for help)");
         return 1;
     }
 
@@ -40,12 +40,12 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
         /* --asexplicit */
         reason = PackageReason::Explicit;
     } else {
-        eprintln!("no install reason specified (use -h for help)");
+        error!("no install reason specified (use -h for help)");
         return 1;
     }
 
     /* Lock database */
-    if trans_init(&TransactionFlag::default(), false, handle) == -1 {
+    if trans_init(&TransactionFlag::default(), false, handle).is_err() {
         return 1;
     }
     {
@@ -53,7 +53,7 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
         for pkgname in targets {
             match db_local.get_pkg_mut(&pkgname) {
                 None => {
-                    eprintln!(
+                    error!(
                         "could not set install reason for package {} ()",
                         pkgname /*alpm_strerror(alpm_errno(config->handle))*/,
                     );
@@ -61,7 +61,7 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
                 }
                 Some(pkg) => {
                     if pkg.set_reason(reason) != 0 {
-                        eprintln!(
+                        error!(
                             "could not set install reason for package {} ()",
                             pkgname /*alpm_strerror(alpm_errno(config->handle))*/,
                         );
@@ -69,14 +69,14 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
                     } else if !config.quiet {
                         match reason {
                             PackageReason::Dependency => {
-                                println!(
-                                    "{}: install reason has been set to 'installed as dependency'",
+                                print!(
+                                    "{}: install reason has been set to 'installed as dependency'\n",
                                     pkgname
                                 );
                             }
                             _ => {
-                                println!(
-                                    "{}: install reason has been set to 'explicitly installed'",
+                                print!(
+                                    "{}: install reason has been set to 'explicitly installed'\n",
                                     pkgname
                                 );
                             }
@@ -94,16 +94,16 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
     return ret;
 }
 
-fn check_db_missing_deps(
-    config: &conf::Config,
-    pkglist: &mut Vec<Package>,
-    handle: &mut Handle,
-) -> i32 {
+fn check_db_missing_deps(pkglist: &Vec<&Package>, handle: &Handle) -> i32 {
     let mut ret: i32 = 0;
     /* check dependencies */
-    for miss in handle.checkdeps(None, None, pkglist, 0) {
+    let deps = match handle.checkdeps(None, None, pkglist, 0) {
+        Err(_) => return -1,
+        Ok(deps) => deps,
+    };
+    for miss in deps {
         let depstring: String = miss.depend.alpm_dep_compute_string();
-        eprintln!("missing '{}' dependency for '{}'", depstring, miss.target);
+        error!("missing '{}' dependency for '{}'", depstring, miss.target);
         ret += 1;
     }
     return ret;
@@ -121,7 +121,7 @@ fn check_db_local_files(config: &conf::Config, handle: &mut Handle) -> i32 {
     dbdir = match fs::read_dir(path) {
         Ok(d) => d,
         Err(e) => {
-            eprintln!("could not open local database directory: {}", e);
+            error!("could not open local database directory: {}", e);
             return 1;
         }
     };
@@ -137,7 +137,7 @@ fn check_db_local_files(config: &conf::Config, handle: &mut Handle) -> i32 {
         match fs::File::open(path) {
             Ok(_) => {}
             Err(_e) => {
-                eprintln!("'{}': description file is missing", file_name);
+                error!("'{}': description file is missing", file_name);
                 ret += 1;
             }
         }
@@ -145,7 +145,7 @@ fn check_db_local_files(config: &conf::Config, handle: &mut Handle) -> i32 {
         match fs::File::open(path) {
             Ok(_) => {}
             Err(_e) => {
-                eprintln!("'{}': file list is missing", file_name);
+                error!("'{}': file list is missing", file_name);
                 ret += 1;
             }
         }
@@ -154,16 +154,12 @@ fn check_db_local_files(config: &conf::Config, handle: &mut Handle) -> i32 {
     return ret;
 }
 
-fn check_db_local_package_conflicts(
-    pkglist: &Vec<Package>,
-    config: &conf::Config,
-    handle: &mut Handle,
-) -> i32 {
+fn check_db_local_package_conflicts(pkglist: &Vec<&Package>, handle: &Handle) -> i32 {
     let mut ret: i32 = 0;
     /* check conflicts */
     let data = handle.checkconflicts(&pkglist);
     for conflict in data {
-        eprintln!(
+        error!(
             "'{}' conflicts with '{}'",
             conflict.package1, conflict.package2
         );
@@ -184,7 +180,7 @@ struct FileItem {
 // 	return strcmp(fi1->file->name, fi2->file->name);
 // }
 
-fn check_db_local_filelist_conflicts(pkglist: &Vec<Package>) -> i32 {
+fn check_db_local_filelist_conflicts(pkglist: &Vec<&Package>) -> i32 {
     unimplemented!();
     // 	alpm_list_t *i;
     let mut ret = 0;
@@ -237,7 +233,7 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<Package>) -> i32 {
 /// * return - 0 on success, >=1 on failure
 fn check_db_local(config: &mut Config, handle: &mut Handle) -> i32 {
     let mut ret: i32 = 0;
-    let mut pkglist: Vec<Package>;
+    let mut pkglist: Vec<&Package>;
     let handle_clone = &handle.clone();
 
     ret = check_db_local_files(&config, handle);
@@ -245,12 +241,18 @@ fn check_db_local(config: &mut Config, handle: &mut Handle) -> i32 {
         return ret;
     }
     {
-        let db: &mut Database;
-        db = handle.get_localdb_mut();
-        pkglist = db.get_pkgcache().unwrap().clone();
+        let db: &Database;
+        db = handle.get_localdb();
+        pkglist = match db.get_pkgcache() {
+            Err(e) => {
+                debug!("{}", e);
+                return 1;
+            }
+            Ok(pkglist) => pkglist,
+        };
     }
-    ret += check_db_missing_deps(config, &mut pkglist, handle);
-    ret += check_db_local_package_conflicts(&pkglist, config, handle);
+    ret += check_db_missing_deps(&mut pkglist, handle);
+    ret += check_db_local_package_conflicts(&pkglist, handle);
     ret += check_db_local_filelist_conflicts(&pkglist);
 
     ret
@@ -264,21 +266,18 @@ fn check_db_sync(config: &mut Config, handle: &mut Handle) -> i32 {
     let handle_clone = &handle.clone();
 
     for mut db in &mut handle.dbs_sync {
-        let mut pkglist: Vec<Package>;
-        pkglist = db.get_pkgcache().unwrap().clone();
+        let mut pkglist: Vec<&Package>;
+        pkglist = match db.get_pkgcache() {
+            Err(e) => {
+                debug!("{}", e);
+                return 1;
+            }
+            Ok(pkglist) => pkglist,
+        };
         syncpkglist.append(&mut pkglist);
     }
 
-    // match config.handle.dbs_sync {
-    //     Some(ref mut dblist) => for mut db in dblist {
-    //         let mut pkglist: Vec<Package>;
-    //         pkglist = db.get_pkgcache();
-    //         syncpkglist.append(&mut pkglist);
-    //     },
-    //     _ => unimplemented!(),
-    // };
-
-    check_db_missing_deps(config, &mut syncpkglist, handle)
+    check_db_missing_deps(&mut syncpkglist, handle_clone)
 }
 
 pub fn pacman_database(
@@ -296,7 +295,7 @@ pub fn pacman_database(
         }
 
         if ret == 0 && !config.quiet {
-            println!("No database errors have been found!");
+            print!("No database errors have been found!\n");
         }
     }
 

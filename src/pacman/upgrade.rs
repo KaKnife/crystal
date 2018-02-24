@@ -1,4 +1,3 @@
-use super::*;
 /*
  *  upgrade.c
  *
@@ -18,33 +17,24 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <string.h>
-//
-// #include <alpm.h>
-// #include <alpm_list.h>
-//
-// /* pacman */
-// #include "pacman.h"
-// #include "conf.h"
-// #include "util.h"
+use super::alpm::Handle;
+use super::sync_prepare_execute;
+use super::trans_init;
+use super::Config;
+use super::alpm::Result;
+use super::alpm::Error;
 
 /// Upgrade a specified list of packages.
-///
-/// * `targets` - a list of packages (as strings) to upgrade
-/// * return - Ok(()) on success, Err(()) on failure
 pub fn pacman_upgrade(
     mut targets: Vec<String>,
     config: &mut Config,
     handle: &mut Handle,
-) -> std::result::Result<(), ()> {
+) -> Result<()> {
     let mut retval = Ok(());
     let mut file_is_remote: Vec<bool>;
     if targets.is_empty() {
-        eprintln!("no targets specified (use -h for help)");
-        return Err(());
+        error!("no targets specified (use -h for help)");
+        return Err(Error::WrongArgs);
     }
 
     file_is_remote = Vec::new();
@@ -53,8 +43,8 @@ pub fn pacman_upgrade(
         if target.contains("://") {
             match handle.alpm_fetch_pkgurl(&target) {
                 Err(e) => {
-                    eprintln!("'{}': {}\n", target, e);
-                    retval = Err(());
+                    error!("'{}': {}\n", target, e);
+                    retval = Err(e);
                     file_is_remote.push(false);
                 }
                 Ok(url) => {
@@ -72,11 +62,9 @@ pub fn pacman_upgrade(
     }
 
     /* Step 1: create a new transaction */
-    if trans_init(&config.flags.clone(), true,  handle) == -1 {
-        return Err(());
-    }
+    trans_init(&config.flags.clone(), true,  handle)?;
 
-    println!("loading packages...");
+    print!("loading packages...\n");
     /* add targets to the created transaction */
     for (n, targ) in targets.clone().iter().enumerate() {
         let mut pkg;
@@ -89,16 +77,16 @@ pub fn pacman_upgrade(
         }
         pkg = match handle.pkg_load(targ, 1, &siglevel) {
             Err(e) => {
-                eprintln!("'{}': {}", targ, e);
-                retval = Err(());
+                error!("'{}': {}", targ, e);
+                retval = Err(e);
                 continue;
             }
             Ok(p) => p.clone(),
         };
         match handle.add_pkg(&mut pkg) {
             Err(e) => {
-                eprintln!("'{}': {}", targ, e);
-                retval = Err(());
+                error!("'{}': {}", targ, e);
+                retval = Err(e);
                 continue;
             }
             Ok(_) => {}

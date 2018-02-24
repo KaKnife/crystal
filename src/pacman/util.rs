@@ -67,108 +67,85 @@ pub fn trans_init(
     flags: &alpm::TransactionFlag,
     check_valid: bool,
     handle: &mut Handle,
-) -> i32 {
-    match check_syncdbs(0, check_valid, handle) {
-        Ok(_) => {}
-        Err(e) => panic!(),
-    }
+) -> Result<()> {
+    check_syncdbs(0, check_valid, handle)?;
 
     match handle.trans_init(flags) {
         Err(e) => {
-            trans_init_error(e);
-            return -1;
+            trans_init_error(&e, &handle);
+            return Err(e);
         }
         Ok(()) => {}
     }
 
-    return 0;
+    Ok(())
 }
 
-fn trans_init_error(err: Error) {
-    eprintln!("failed to init transaction ({})", err.alpm_strerror());
+fn trans_init_error(err: &Error, handle: &Handle) {
+    error!("failed to init transaction ({})", err);
     match err {
-        Error::HandleLock => {
-            unimplemented!();
-            // const char *lockfile = alpm_option_get_lockfile(config.handle);
-            // let lockfile = alpm_option_get_lockfile(config.handle);
-            // eprintln!("could not lock database: {}", strerror(errno));
-            // if(access(lockfile, F_OK) == 0) {
-            // 	fprintf(stderr, _("  if you're sure a package manager is not already\n"
-            // 				"  running, you can remove %s\n"), lockfile);
-            // }
+        &Error::HandleLock => {
+            let lockfile = handle.get_lockfile();
+            error!("could not lock database: {}", err);
+            error!(
+                "if you're sure a package manager is not already running, you can remove {}",
+                lockfile
+            );
         }
         _ => {}
     }
 }
 
-pub fn trans_release(handle: &Handle) -> bool {
+pub fn trans_release(handle: &mut Handle) -> bool {
     match handle.trans_release() {
         Err(e) => {
-            eprintln!("failed to release transaction: {}", e.alpm_strerror());
-            return false;
+            error!("failed to release transaction: {}", e);
+            false
         }
-        Ok(_) => {}
+        Ok(_) => true,
     }
-
-    return true;
 }
 
-pub fn check_syncdbs(
-    need_repos: usize,
-    check_valid: bool,
-    handle: &mut Handle,
-) -> std::result::Result<(), ()> {
-    let mut ret = Ok(());
+pub fn check_syncdbs(need_repos: usize, check_valid: bool, handle: &mut Handle) -> Result<()> {
     if handle.dbs_sync.len() == 0 && need_repos != 0 {
-        eprintln!("no usable package repositories configured.");
-        return Err(());
-    }
-    if check_valid {
+        error!("no usable package repositories configured.");
+        return Err(Error::WrongArgs);
+    } else if check_valid {
+        let mut ret = Ok(());
         for mut db in handle.dbs_sync.clone() {
             match db.get_valid(handle) {
                 Err(e) => {
-                    eprintln!(
-                        "database '{}' is not valid ({})",
-                        db.get_name(),
-                        e.alpm_strerror()
-                    );
-                    ret = Err(());
+                    error!("database '{}' is not valid ({})", db.get_name(), e);
+                    ret = Err(e);
                 }
                 Ok(_) => {}
             }
         }
+        ret
+    } else {
+        Ok(())
     }
-    return ret;
 }
 
-pub fn sync_syncdbs(
-    level: i32,
-    syncs: &mut Vec<Database>,
-    handle: &mut Handle,
-) -> std::result::Result<(), ()> {
-    let mut success = Ok(());
+pub fn sync_syncdbs(level: i32, syncs: &mut Vec<Database>, handle: &mut Handle) -> Result<()> {
+    let mut ret = Ok(());
     for mut db in syncs {
-        let ret = db_update(level >= 2, &mut db, handle);
-        match ret {
+        match db_update(level >= 2, &mut db, handle) {
             Err(e) => {
-                eprintln!(
-                    "failed to update {} ({})",
-                    db.get_name(),
-                    e.alpm_strerror()
-                );
-                success = Err(());
+                error!("failed to update {} ({})", db.get_name(), e);
+                ret = Err(e);
             }
             Ok(1) => {
-                println!(" {} is up to date", db.get_name());
+                print!(" {} is up to date\n", db.get_name());
             }
             _ => {}
         }
     }
 
-    if success.is_err() {
-        eprintln!("failed to synchronize all databases");
+    if ret.is_err() {
+        error!("failed to synchronize all databases");
     }
-    return success;
+    return ret;
 }
 
 // /* discard unhandled input on the terminal's input buffer */
@@ -452,9 +429,13 @@ fn add_transaction_sizes_row<T>(rows: Vec<T>, label: String, size: i64) {
     // 	*rows = alpm_list_add(*rows, row);
 }
 
-pub fn string_display(title: &str, string: &String, cols: usize, config: &Config) {
+pub fn string_display(title: &str, string: &String, cols: usize) {
     if title != "" {
-        print!("{}{}{} ", config.colstr.title, title, config.colstr.nocolor);
+        print!("{}", title);
+        for _ in 0..15 - title.len() {
+            print!(" ")
+        }
+        print!(": ")
     }
     if string == "" {
         print!("None");
@@ -462,7 +443,7 @@ pub fn string_display(title: &str, string: &String, cols: usize, config: &Config
         /* compute the length of title + a space */
         indentprint(string, title.len() + 1, cols);
     }
-    println!();
+    print!("\n");
 }
 
 fn table_print_line<T>(
@@ -634,20 +615,7 @@ fn table_print_line<T>(
 // 	return ret;
 // }
 
-pub fn list_display(title: &str, list: &Vec<String>) {
-    if !title.is_empty() {
-        print!("{} ", title);
-    }
 
-    if !list.is_empty() {
-        println!("None");
-    } else {
-        for item in list {
-            print!("{} ", item);
-        }
-        println!();
-    }
-}
 
 // void list_display_linebreak(const char *title, const alpm_list_t *list,
 // 		unsigned short maxcols)
@@ -963,11 +931,11 @@ pub fn list_display(title: &str, list: &Vec<String>) {
 // 	FREELIST(targets);
 // }
 
-fn pkg_get_size(pkg: &mut Package, config: &Config, db: &mut Database) -> Result<i64> {
+fn pkg_get_size(pkg: &mut Package, config: &Config) -> Result<i64> {
     match config.op {
         Some(Operations::SYNC) => Ok(pkg.download_size()),
         Some(Operations::UPGRADE) => Ok(pkg.get_size()),
-        _ => pkg.get_isize(db),
+        _ => pkg.get_isize(),
     }
 }
 
@@ -1021,44 +989,7 @@ fn simple_pow(base: i32, exp: i32) -> f64 {
     result
 }
 
-/** Converts sizes in bytes into human readable units.
- *
- * @param bytes the size in bytes
- * @param target_unit '\0' or a short label. If equal to one of the short unit
- * labels ('B', 'K', ...) bytes is converted to target_unit; if '\0', the first
- * unit which will bring the value to below a threshold of 2048 will be chosen.
- * @param precision number of decimal places, ensures -0.00 gets rounded to
- * 0.00; -1 if no rounding desired
- * @param label will be set to the appropriate unit label
- *
- * @return the size in the appropriate unit
- */
-pub fn humanize_size(bytes: i64, target_unit: char, precision: i8, label: &mut String) -> f64 {
-    let labels = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
-    let unitcount = labels.len();
 
-    let mut val = bytes as f64;
-    let mut index = 0;
-
-    while index < unitcount - 1 {
-        if target_unit != '\0' && labels[index].chars().collect::<Vec<char>>()[0] == target_unit {
-            break;
-        } else if target_unit == '\0' && val <= 2048.0 && val >= -2048.0 {
-            break;
-        }
-        val /= 1024.0;
-        index += 1;
-    }
-
-    *label = String::from(labels[index]);
-
-    /* do not display negative zeroes */
-    if precision >= 0 && val < 0.0 && val > (-0.5 / simple_pow(10, precision as i32)) {
-        val = 0.0;
-    }
-
-    val
-}
 
 // pub fn print_packages(packages: &Vec<Package>, config: &Config)
 pub fn print_packages(
@@ -1069,7 +1000,7 @@ pub fn print_packages(
 ) {
     for pkg in packages {
         if print_format == "" {
-            println!("{}", pkg_get_location(&pkg, handle));
+            print!("{}\n", pkg_get_location(&pkg, handle));
             continue;
         }
         let string = &print_format;
@@ -1084,12 +1015,12 @@ pub fn print_packages(
         /* %s : size */
         if string.contains("%s") {
             // 	char *size;
-            let size = format!("{}", pkg_get_size(pkg, config, handle.get_localdb_mut()).unwrap());
+            let size = format!("{}", pkg_get_size(pkg, config).unwrap());
             string.replace("%s", &size);
             // 	free(size);
             // 	free(temp);
         }
-        println!("{}", string);
+        print!("{}\n", string);
     }
 }
 
@@ -1473,11 +1404,11 @@ fn question(preset: bool, format: String, config: &Config) -> bool {
     // 	int fd_in = fileno(stdin);
     let stream_write = |s: &str| {
         if config.noconfirm {
-            write!(io::stdout(), "{}", s);
+            write!(io::stdout(), "{}", s).expect("Failed to write to stdout");
             io::stdout().flush().unwrap();
         } else {
             /* Use stderr so questions are always displayed when redirecting output */
-            write!(io::stderr(), "{}", s);
+            write!(io::stderr(), "{}", s).expect("Failed to write to stdout");
             io::stderr().flush().unwrap();
         }
     };

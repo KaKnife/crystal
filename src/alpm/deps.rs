@@ -72,6 +72,21 @@ pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &Dependency) -> Optio
     return None;
 }
 
+pub fn find_dep_satisfier_ref<'a>(
+    pkgs: &'a Vec<&Package>,
+    dep: &Dependency,
+) -> Option<&'a Package> {
+    // alpm_list_t *i;
+
+    for pkg in pkgs {
+        // Package *pkg = i->data;
+        if pkg.depcmp(dep) {
+            return Some(pkg);
+        }
+    }
+    return None;
+}
+
 // /* Convert a list of Package * to a graph structure,
 //  * with a edge for each dependency.
 //  * Returns a list of vertices (one vertex = one package)
@@ -160,11 +175,11 @@ pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &Dependency) -> Optio
 // 		_alpm_log(handle, ALPM_LOG_WARNING, _("dependency cycle detected:\n"));
 // 		if(reverse) {
 // 			_alpm_log(handle, ALPM_LOG_WARNING,
-// 					_("%s will be removed after its %s dependency\n"),
+// 					_("{} will be removed after its {} dependency\n"),
 // 					ancestorpkg->name, childpkg->name);
 // 		} else {
 // 			_alpm_log(handle, ALPM_LOG_WARNING,
-// 					_("%s will be installed before its %s dependency\n"),
+// 					_("{} will be installed before its {} dependency\n"),
 // 					ancestorpkg->name, childpkg->name);
 // 		}
 // 	}
@@ -261,13 +276,13 @@ fn _alpm_sortbydeps<T>(
  * @param depstring package or provision name, versioned or not
  * @return a Package* satisfying depstring
  */
-pub fn alpm_find_satisfier<'a>(pkgs: &'a Vec<Package>, depstring: &String) -> Option<&'a Package> {
+pub fn alpm_find_satisfier<'a>(pkgs: &'a Vec<&Package>, depstring: &String) -> Option<&'a Package> {
     // Dependency *dep = alpm_dep_from_string(depstring);
     let dep = &alpm_dep_from_string(depstring);
     // if(!dep) {
     // 	return NULL;
     // }
-    let pkg = find_dep_satisfier(pkgs, dep);
+    let pkg = find_dep_satisfier_ref(pkgs, dep);
     return pkg;
 }
 
@@ -288,72 +303,53 @@ pub fn dep_vercmp(version1: &String, depmod: &Depmod, version2: &String) -> bool
 
 /// Return a newly allocated dependency information parsed from a string
 /// * `depstring` - a formatted string, e.g. "glibc=2.12"
-/// * return - a dependency info structure
 pub fn alpm_dep_from_string(depstring: &String) -> Dependency {
-    unimplemented!()
-    // 	Dependency *depend;
-    // 	const char *ptr, *version, *desc;
-    // 	size_t deplen;
-    //
-    // 	if(depstring == NULL) {
-    // 		return NULL;
-    // 	}
-    //
-    // 	CALLOC(depend, 1, sizeof(Dependency), return NULL);
-    //
-    // 	/* Note the extra space in ": " to avoid matching the epoch */
-    // 	if((desc = strstr(depstring, ": ")) != NULL) {
-    // 		STRDUP(depend->desc, desc + 2, goto error);
-    // 		deplen = desc - depstring;
-    // 	} else {
-    // 		/* no description- point desc at NULL at end of string for later use */
-    // 		depend->desc = NULL;
-    // 		deplen = strlen(depstring);
-    // 		desc = depstring + deplen;
-    // 	}
-    //
-    // 	/* Find a version comparator if one exists. If it does, set the type and
-    // 	 * increment the ptr accordingly so we can copy the right strings. */
-    // 	if((ptr = memchr(depstring, '<', deplen))) {
-    // 		if(ptr[1] == '=') {
-    // 			depend->mod = LE;
-    // 			version = ptr + 2;
-    // 		} else {
-    // 			depend->mod = LT;
-    // 			version = ptr + 1;
-    // 		}
-    // 	} else if((ptr = memchr(depstring, '>', deplen))) {
-    // 		if(ptr[1] == '=') {
-    // 			depend->mod = GE;
-    // 			version = ptr + 2;
-    // 		} else {
-    // 			depend->mod = GT;
-    // 			version = ptr + 1;
-    // 		}
-    // 	} else if((ptr = memchr(depstring, '=', deplen))) {
-    // 		/* Note: we must do =,<,> checks after <=, >= checks */
-    // 		depend->mod = EQ;
-    // 		version = ptr + 1;
-    // 	} else {
-    // 		/* no version specified, set ptr to end of string and version to NULL */
-    // 		ptr = depstring + deplen;
-    // 		depend->mod = ANY;
-    // 		depend->version = NULL;
-    // 		version = NULL;
-    // 	}
-    //
-    // 	/* copy the right parts to the right places */
-    // 	STRNDUP(depend->name, depstring, ptr - depstring, goto error);
-    // 	depend->name_hash = _alpm_hash_sdbm(depend->name);
-    // 	if(version) {
-    // 		STRNDUP(depend->version, version, desc - version, goto error);
-    // 	}
-    //
-    // 	return depend;
-    //
-    // error:
-    // 	alpm_dep_free(depend);
-    // 	return NULL;
+    let mut depend: Dependency = Dependency::default();
+    let tmp: String;
+    let mut desc: Vec<&str>;
+
+    /* Note the extra space in ": " to avoid matching the epoch */
+    desc = depstring.splitn(2, ": ").collect();
+    if desc.len() == 2 {
+        depend.desc = desc[1].to_string();
+    }
+
+    /* Find a version comparator if one exists. If it does, set the type and
+     * increment the ptr accordingly so we can copy the right strings. */
+    tmp = desc[0].to_string();
+    depend.name = desc[0].to_string();
+    desc = tmp.splitn(2, "=").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::EQ;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+    desc = tmp.splitn(2, "<=").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::LE;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+    desc = tmp.splitn(2, "<").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::LT;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+    desc = tmp.splitn(2, ">=").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::GE;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+    desc = tmp.splitn(2, ">").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::GT;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+
+    depend
 }
 
 impl Dependency {
@@ -362,7 +358,7 @@ impl Dependency {
      * @param provisions provision list
      * @return 1 if provider is found, 0 otherwise
      */
-    pub fn _alpm_depcmp_provides(&self, provisions: &Vec<Dependency>) -> bool {
+    pub fn provides(&self, provisions: &Vec<Dependency>) -> bool {
         let satisfy = false;
         // alpm_list_t * i;
 
@@ -373,14 +369,14 @@ impl Dependency {
             match self.depmod {
                 Depmod::Any => {
                     /* any version will satisfy the requirement */
-                    return provision.name_hash == self.name_hash && provision.name == self.name;
+                    return provision.name == self.name;
                 }
                 _ => {}
             }
             match provision.depmod {
                 Depmod::EQ => {
                     /* provision specifies a version, so try it out */
-                    return provision.name_hash == self.name_hash && provision.name == self.name
+                    return provision.name == self.name
                         && dep_vercmp(&provision.version, &self.depmod, &self.version);
                 }
                 _ => {}
@@ -475,7 +471,7 @@ impl Dependency {
     // 	for(i = rem; i; i = i->next) {
     // 		Package *pkg = i->data, *copy = NULL;
     // 		_alpm_log(db->handle, ALPM_LOG_DEBUG,
-    // 				"adding '%s' to the targets\n", pkg->name);
+    // 				"adding '{}' to the targets\n", pkg->name);
     // 		if(_alpm_pkg_dup(pkg, &copy)) {
     // 			/* we return memory on "non-fatal" error in _alpm_pkg_dup */
     // 			_alpm_pkg_free(copy);
@@ -532,7 +528,7 @@ impl Dependency {
     // 				if(prompt) {
     // 					QUESTION(handle, &question);
     // 				} else {
-    // 					_alpm_log(handle, ALPM_LOG_WARNING, _("ignoring package %s-%s\n"),
+    // 					_alpm_log(handle, ALPM_LOG_WARNING, _("ignoring package {}-{}\n"),
     // 							pkg->name, pkg->version);
     // 				}
     // 				if(!question.install) {
@@ -564,7 +560,7 @@ impl Dependency {
     // 					if(prompt) {
     // 						QUESTION(handle, &question);
     // 					} else {
-    // 						_alpm_log(handle, ALPM_LOG_WARNING, _("ignoring package %s-%s\n"),
+    // 						_alpm_log(handle, ALPM_LOG_WARNING, _("ignoring package {}-{}\n"),
     // 								pkg->name, pkg->version);
     // 					}
     // 					if(!question.install) {
@@ -572,7 +568,7 @@ impl Dependency {
     // 						continue;
     // 					}
     // 				}
-    // 				_alpm_log(handle, ALPM_LOG_DEBUG, "provider found (%s provides %s)\n",
+    // 				_alpm_log(handle, ALPM_LOG_DEBUG, "provider found ({} provides {})\n",
     // 						pkg->name, dep->name);
     // 				providers = alpm_list_add(providers, pkg);
     // 				/* keep looking for other providers in the all dbs */
@@ -685,7 +681,7 @@ impl Dependency {
     // 		}
     // 		if(spkg && _alpm_resolvedeps(handle, localpkgs, spkg, preferred, packages, rem, data) == 0) {
     // 			_alpm_log(handle, ALPM_LOG_DEBUG,
-    // 					"pulling dependency %s (needed by %s)\n",
+    // 					"pulling dependency {} (needed by {})\n",
     // 					spkg->name, pkg->name);
     // 			alpm_depmissing_free(miss);
     // } else if(resolvedep(handle, missdep, (targ = alpm_list_add(NULL, handle->db_local)), rem, 0)) {
@@ -694,7 +690,7 @@ impl Dependency {
     // 			handle->pm_errno = ALPM_ERR_UNSATISFIED_DEPS;
     // 			char *missdepstring = alpm_dep_compute_string(missdep);
     // 			_alpm_log(handle, ALPM_LOG_WARNING,
-    // 					_("cannot resolve \"%s\", a dependency of \"%s\"\n"),
+    // 					_("cannot resolve \"{}\", a dependency of \"{}\"\n"),
     // 					missdepstring, pkg->name);
     // 			free(missdepstring);
     // 			if(data) {
@@ -720,65 +716,29 @@ impl Dependency {
     /// Reverse of splitdep; make a dep string from a Dependency struct.
     /// returns a string-formatted dependency with operator if necessary
     pub fn alpm_dep_compute_string(&self) -> String {
-        unimplemented!();
-        // 	const char *name, *opr, *ver, *desc_delim, *desc;
-        // 	char *str;
-        // 	size_t len;
-        //
-        // 	ASSERT(dep != NULL, return NULL);
-        //
-        // 	if(dep->name) {
-        // 		name = dep->name;
-        // 	} else {
-        // 		name = "";
-        // 	}
-        //
-        // 	switch(dep->mod) {
-        // 		case ANY:
-        // 			opr = "";
-        // 			break;
-        // 		case GE:
-        // 			opr = ">=";
-        // 			break;
-        // 		case LE:
-        // 			opr = "<=";
-        // 			break;
-        // 		case EQ:
-        // 			opr = "=";
-        // 			break;
-        // 		case LT:
-        // 			opr = "<";
-        // 			break;
-        // 		case GT:
-        // 			opr = ">";
-        // 			break;
-        // 		default:
-        // 			opr = "";
-        // 			break;
-        // 	}
-        //
-        // 	if(dep->mod != ANY && dep->version) {
-        // 		ver = dep->version;
-        // 	} else {
-        // 		ver = "";
-        // 	}
-        //
-        // 	if(dep->desc) {
-        // 		desc_delim = ": ";
-        // 		desc = dep->desc;
-        // 	} else {
-        // 		desc_delim = "";
-        // 		desc = "";
-        // 	}
-        //
-        // 	/* we can always compute len and print the string like this because opr
-        // 	 * and ver will be empty when ANY is the depend type. the
-        // 	 * reassignments above also ensure we do not do a strlen(NULL). */
-        // 	len = strlen(name) + strlen(opr) + strlen(ver)
-        // 		+ strlen(desc_delim) + strlen(desc) + 1;
-        // 	MALLOC(str, len, return NULL);
-        // 	snprintf(str, len, "%s%s%s%s%s", name, opr, ver, desc_delim, desc);
-        //
-        // 	return str;
+        let name: &str;
+        let opr: &str;
+        let ver: &str;
+        let desc: &str;
+        let desc_delim: &str;
+
+        name = &self.name;
+        match self.depmod {
+            Depmod::Any => opr = "",
+            Depmod::GE => opr = ">=",
+            Depmod::LE => opr = "<=",
+            Depmod::EQ => opr = "=",
+            Depmod::LT => opr = "<",
+            Depmod::GT => opr = ">",
+        }
+        ver = &self.version;
+        desc = &self.desc;
+        if self.desc != "" {
+            desc_delim = ": ";
+        } else {
+            desc_delim = "";
+        }
+
+        format!("{}{}{}{}{}", name, opr, ver, desc_delim, desc)
     }
 }

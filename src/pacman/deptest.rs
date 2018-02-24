@@ -1,4 +1,3 @@
-use super::*;
 /*
  *  deptest.c
  *
@@ -18,15 +17,17 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+ use super::*;
+ use super::alpm::*;
 
-pub fn pacman_deptest(targets: Vec<String>, config: &mut Config, handle:&mut Handle) -> std::result::Result<(), i32> {
+pub fn pacman_deptest(targets: Vec<String>, config: &mut Config, handle:&mut Handle) -> Result<()> {
     let mut deps: Vec<String> = Vec::new();
     let handle_clone = &handle.clone();
     let localdb = handle.get_localdb_mut();
 
     for target in targets {
         // unimplemented!();
-        if alpm_find_satisfier(&localdb.get_pkgcache().unwrap(), &target).is_none() {
+        if alpm_find_satisfier(&localdb.get_pkgcache()?, &target).is_none() {
             deps.push(target);
         }
     }
@@ -36,7 +37,7 @@ pub fn pacman_deptest(targets: Vec<String>, config: &mut Config, handle:&mut Han
     }
 
     for dep in deps {
-        println!("{}", dep);
+        print!("{}\n", dep);
     }
-    return Err(127);
+    return Err(Error::Other);
 }

@@ -12,14 +12,13 @@ mod remove;
 mod be_package;
 mod dload;
 mod sync;
-mod pkghash;
 mod be_sync;
 mod signing;
 mod alpm_list;
 // use self::alpm_list::*;
 use self::signing::*;
 // use self::be_sync::*;
-use self::pkghash::*;
+// use self::pkghash::*;
 // use self::sync::*;
 use self::util::*;
 use self::dload::*;
@@ -31,12 +30,11 @@ use self::dload::*;
 // use self::be_local::*;
 use self::version::*;
 use self::trans::*;
-use self::package::*;
 use self::handle::*;
 use self::db::*;
 // use self::deps::*;
 
-pub use self::sync::alpm_sync_sysupgrade;
+// pub use self::sync::alpm_sync_sysupgrade;
 pub use self::remove::alpm_remove_pkg;
 pub use self::package::Package;
 // pub use self::handle::alpm_list_t;
@@ -144,7 +142,7 @@ pub enum PackageValidation {
 #[derive(Debug, Clone)]
 pub enum Depmod {
     /// No version constraint
-    Any = 1,
+    Any,
     /// Test version equality (package=x.y.z)
     EQ,
     /// Test for at least a version (package>=x.y.z)
@@ -288,7 +286,6 @@ pub struct Dependency {
     pub name: String,
     pub version: String,
     desc: String,
-    name_hash: u64,
     depmod: Depmod,
 }
 
@@ -1055,12 +1052,17 @@ pub struct DatabaseUsage {
     pub search: bool,
     pub install: bool,
     pub upgrade: bool,
-    pub all: bool,
 }
 
 impl DatabaseUsage {
     pub fn is_zero(&self) -> bool {
-        !(self.sync && self.search && self.install && self.upgrade && self.all)
+        !self.sync && !self.search && !self.install && !self.upgrade
+    }
+    pub fn set_all(&mut self) {
+        self.sync=true;
+        self.search=true;
+        self.install=true;
+        self.upgrade=true;
     }
 }
 
@@ -1566,12 +1568,6 @@ pub struct TransactionFlag {
 // /// @name Common Transactions
 // /// @{
 //
-// /// Search for packages to upgrade and add them to the transaction.
-//  * @param handle the context handle
-//  * @param enable_downgrade allow downgrading of packages if the remote version is lower
-//  * @return 0 on success, -1 on error (pm_errno is set accordingly)
-//
-// int alpm_sync_sysupgrade(Handle *handle, int enable_downgrade);
 //
 // /// Add a package to the transaction.
 //  * If the package was loaded by alpm_pkg_load(), it will be freed upon
@@ -1674,8 +1670,8 @@ pub fn initialize(root: &String, dbpath: &String) -> Result<Handle> {
     let hookdir;
     let mut myhandle = Handle::handle_new();
 
-    _alpm_set_directory_option(root, myhandle.get_root_mut(), true)?;
-    _alpm_set_directory_option(dbpath, myhandle.get_dbpath_mut(), true)?;
+    *myhandle.get_root_mut() = _alpm_set_directory_option(root, true)?;
+    *myhandle.get_dbpath_mut() = _alpm_set_directory_option(dbpath, true)?;
 
     /* to concatenate myhandle->root (ends with a slash) with SYSHOOKDIR (starts
      * with a slash) correctly, we skip SYSHOOKDIR[0]; the regular +1 therefore

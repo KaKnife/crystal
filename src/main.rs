@@ -7,7 +7,7 @@
 #![allow(unused_mut)]
 #![allow(unused_assignments)]
 // #![allow(unused_imports)]
-#![allow(unused_must_use)]
+// #![allow(unused_must_use)]
 pub mod pacman;
 pub mod common;
 pub mod alpm;
@@ -16,13 +16,13 @@ extern crate env_logger;
 extern crate getopts;
 extern crate glob;
 extern crate libc;
-extern crate time;
+// extern crate time;
 #[macro_use]
 extern crate log;
 const PACKAGE_VERSION: &str = "0.0.1";
-fn main() {
-    // std::env::set_var("RUST_LOG", "debug");
+pub fn main() {
+    std::env::set_var("RUST_LOG", "crystal=debug");
     // std::env::set_var("RUST_LOG", "error");
-    env_logger::init().unwrap();
+    env_logger::init();
     pacman::main();
 }

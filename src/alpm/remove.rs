@@ -62,7 +62,7 @@ pub fn alpm_remove_pkg(trans: &mut Transaction, pkg: &Package) -> Result<i32> {
 
     let pkgname = &pkg.get_name();
 
-    if alpm_pkg_find(&mut trans.remove, &pkgname).is_some() {
+    if trans.remove.contains(&pkg) {
         // unimplemented!();
         // RET_ERR!(handle, errno_t::TransactionDupTarget, -1);
         return Err(Error::TransactionDupTarget);
@@ -186,7 +186,6 @@ pub fn alpm_remove_pkg(trans: &mut Transaction, pkg: &Package) -> Result<i32> {
 // 		}
 // 	}
 // }
-
 
 // /**
 //  * @brief Test if a directory is being used as a mountpoint.

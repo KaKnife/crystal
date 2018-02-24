@@ -550,9 +550,6 @@ use super::*;
 // 	return 0;
 // }
 
-
-
-
 // /** Helper function for comparing strings using the alpm "compare func"
 //  * signature.
 //  * @param s1 first string to be compared
@@ -1054,21 +1051,19 @@ impl Hasher for SdbmHasher {
     }
 }
 
-
 /** Convert a string to a file offset.
  * This parses bare positive integers only.
  * @param line string to convert
  * @return off_t on success, -1 on error
  */
-pub fn _alpm_strtoofft(line: &String) -> i64
-{
-	/* we are trying to parse bare numbers only, no leading anything */
-	if line.chars().collect::<Vec<char>>()[0].is_numeric() {
-		return -1;
-	}
-	match i64::from_str_radix(line, 10){
+pub fn _alpm_strtoofft(line: &String) -> i64 {
+    /* we are trying to parse bare numbers only, no leading anything */
+    if !line.chars().collect::<Vec<char>>()[0].is_numeric() {
+        return -1;
+    }
+    match i64::from_str_radix(line, 10) {
         Ok(r) => r,
-        Err(_)=> -1,
+        Err(_) => -1,
     }
 }
 
@@ -1435,3 +1430,153 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 // 	// }
 // }}
 // }
+
+pub fn string_display(title: &str, string: &String) {
+    if title != "" {
+        print!("{}", title);
+        for _ in 0..15 - title.len() {
+            print!(" ")
+        }
+        print!(": ")
+    }
+    if string == "" {
+        print!("None");
+    } else {
+        /* compute the length of title + a space */
+        indentprint(string, title.len() + 1);
+    }
+    print!("\n");
+}
+
+/// output a string, but wrap words properly with a specified indentation
+fn indentprint(sstr: &String, indent: usize) {
+    print!("{}", sstr);
+    //TODO: actually do this
+    // unimplemented!();
+    // // 	wchar_t *wcstr;
+    // // 	const wchar_t *p;
+    // // 	size_t len, cidx;
+    // let len;
+    // let cidx;
+
+    /* if we're not a tty, or our tty is not wide enough that wrapping even makes
+     * sense, print without indenting */
+    // if cols == 0 || indent > cols {
+    //     print!("{}", sstr);
+    //     return;
+    // }
+
+    // len = sstr.len() + 1;
+    // // 	wcstr = calloc(len, sizeof(wchar_t));
+    // // len = mbstowcs(wcstr, sstr, len);
+    // // 	p = wcstr;
+    // cidx = indent;
+    // //
+    // // 	if(!p || !len) {
+    // // 		free(wcstr);
+    // // 		return;
+    // // 	}
+    // //
+    // for p in sstr.chars() {
+    //     if p == ' ' {
+    //         			// const wchar_t *q, *next;
+    //         			p++;
+    //         			if(p == NULL || *p == L' ') continue;
+    //         			next = wcschr(p, L' ');
+    //         			if(next == NULL) {
+    //         				next = p + wcslen(p);
+    //         			}
+    //         			/* len captures # cols */
+    //         			len = 0;
+    //         			q = p;
+    //         			while(q < next) {
+    //         				len += wcwidth(*q++);
+    //         			}
+    //         			if((len + 1) > (cols - cidx)) {
+    //         				/* wrap to a newline and reindent */
+    //         				printf("\n%-*s", (int)indent, "");
+    //         				cidx = indent;
+    //         			} else {
+    //         				printf(" ");
+    //         				cidx++;
+    //         			}
+    //         			continue;
+    //     }
+    //     		printf("{}", (p);
+    //     // 		cidx += wcwidth(*p);
+    //     // 		p++;
+    // }
+    // // 	free(wcstr);
+}
+
+pub fn list_display(title: &str, list: &Vec<String>) {
+    if title != "" {
+        print!("{}", title);
+        for _ in 0..15 - title.len() {
+            print!(" ")
+        }
+        print!(": ")
+    }
+    let mut len = 17;
+    if list.is_empty() {
+        print!("None\n");
+    } else {
+        for (i, item) in list.iter().enumerate() {
+            len += item.len();
+            if len > 80 {
+                print!("\n                 ");
+                len = 17;
+            }
+            print!("{} ", item);
+        }
+        print!("\n");
+    }
+}
+
+/// Turn a depends list into a text list.
+pub fn deplist_display(title: &str, deps: &Vec<Dependency>) {
+	let mut text = Vec::new();
+	for dep in deps {
+		text.push(dep.alpm_dep_compute_string());
+	}
+	list_display(title, &text);
+}
+
+/** Converts sizes in bytes into human readable units.
+ *
+ * @param bytes the size in bytes
+ * @param target_unit '\0' or a short label. If equal to one of the short unit
+ * labels ('B', 'K', ...) bytes is converted to target_unit; if '\0', the first
+ * unit which will bring the value to below a threshold of 2048 will be chosen.
+ * @param precision number of decimal places, ensures -0.00 gets rounded to
+ * 0.00; -1 if no rounding desired
+ * @param label will be set to the appropriate unit label
+ *
+ * @return the size in the appropriate unit
+ */
+pub fn humanize_size(bytes: i64, target_unit: char, precision: i8, label: &mut String) -> f64 {
+    let labels = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
+    let unitcount = labels.len();
+
+    let mut val = bytes as f64;
+    let mut index = 0;
+
+    while index < unitcount - 1 {
+        if target_unit != '\0' && labels[index].chars().collect::<Vec<char>>()[0] == target_unit {
+            break;
+        } else if target_unit == '\0' && val <= 2048.0 && val >= -2048.0 {
+            break;
+        }
+        val /= 1024.0;
+        index += 1;
+    }
+
+    *label = String::from(labels[index]);
+
+    /* do not display negative zeroes */
+    if precision >= 0 && val < 0.0 && val > (-0.5 / 10f64.powf(precision as f64)) {
+        val = 0.0;
+    }
+
+    val
+}

@@ -1,4 +1,10 @@
-use super::*;
+use super::alpm;
+use super::util::*;
+// use super::alpm::*;
+use super::alpm::Error;
+use super::alpm::Result;
+use super::alpm::Package;
+use super::ColStr;
 // /*
 //  *  package.c
 //  *
@@ -88,34 +94,7 @@ use super::*;
 //  * allocated and naively truncated to TITLE_MAXLEN characters.
 //  */
 
-const T_ARCHITECTURE: &str = "Architecture";
-const T_BACKUP_FILES: &str = "Backup Files";
-const T_BUILD_DATE: &str = "Build Date";
-const T_COMPRESSED_SIZE: &str = "Compressed Size";
-const T_CONFLICTS_WITH: &str = "Conflicts With";
-const T_DEPENDS_ON: &str = "Depends On";
-const T_DESCRIPTION: &str = "Description";
-const T_DOWNLOAD_SIZE: &str = "Download Size";
-const T_GROUPS: &str = "Groups";
-const T_INSTALL_DATE: &str = "Install Date";
-const T_INSTALL_REASON: &str = "Install Reason";
-const T_INSTALL_SCRIPT: &str = "Install Script";
-const T_INSTALLED_SIZE: &str = "Installed Size";
-const T_LICENSES: &str = "Licenses";
-const T_MD5_SUM: &str = "MD5 Sum";
-const T_NAME: &str = "Name";
-const T_OPTIONAL_DEPS: &str = "Optional Deps";
-const T_OPTIONAL_FOR: &str = "Optional For";
-const T_PACKAGER: &str = "Packager";
-const T_PROVIDES: &str = "Provides";
-const T_REPLACES: &str = "Replaces";
-const T_REPOSITORY: &str = "Repository";
-const T_REQUIRED_BY: &str = "Required By";
-const T_SHA_256_SUM: &str = "SHA-256 Sum";
-const T_SIGNATURES: &str = "Signatures";
-const T_URL: &str = "URL";
-const T_VALIDATED_BY: &str = "Validated By";
-const T_VERSION: &str = "Version";
+
 
 pub fn make_aligned_titles() {
 	unimplemented!();
@@ -176,16 +155,7 @@ pub fn make_aligned_titles() {
 	// 	}
 }
 
-/** Turn a depends list into a text list.
- * @param deps a list with items of type depend_t
- */
-fn deplist_display(title: &str, deps: &Vec<Dependency>, cols: usize) {
-	let mut text = Vec::new();
-	for dep in deps {
-		text.push(dep.alpm_dep_compute_string());
-	}
-	list_display(title, &text);
-}
+
 
 // /** Turn a optdepends list into a text list.
 //  * @param optdeps a list with items of type depend_t
@@ -210,218 +180,7 @@ fn deplist_display(title: &str, deps: &Vec<Dependency>, cols: usize) {
 // 	FREELIST(text);
 // }
 
-/**
- * Display the details of a package.
- * Extra information entails 'required by' info for sync packages and backup
- * files info for local packages.
- * @param pkg package to display information for
- * @param extra should we show extra information
- */
-pub fn dump_pkg_full(
-	pkg: &mut Package,
-	extra: bool,
-	config: &Config,
-	db_local: &mut Database,
-	dbs_sync: &mut Vec<Database>,
-) {
-	// unimplemented!();
-	// unsigned short cols;
-	// time_t bdate, idate;
-	let bdate;
-	let idate;
-	// PackageFrom from;
-	let from;
-	let reason;
-	// double size;
-	let mut size;
-	// char bdatestr[50] = "", idatestr[50] = "";
-	// const char *label, *reason;
-	let mut label = String::from("\0");
-	// alpm_list_t *validation = NULL, *requiredby = NULL, *optionalfor = NULL;
-	let mut validation: Vec<String> = Vec::new();
-	let requiredby;
-	let optionalfor;
 
-	/* make aligned titles once only */
-	// static int need_alignment = 1;
-	// static mut need_alignment: bool = true;
-	// if need_alignment {
-	// 	need_alignment = false;
-	// 	make_aligned_titles();
-	// }
-
-	from = pkg.get_origin();
-
-	/* set variables here, do all output below */
-	bdate = pkg.get_builddate();
-	if bdate.is_ok() {
-		// unimplemented!();
-		// bdatestr = time::strftime("%c", localtime(&bdate));
-	}
-	idate = pkg.get_installdate();
-	if idate.unwrap() != 0 {
-		// unimplemented!();
-		// strftime(idatestr, 50, "%c", localtime(&idate));
-	}
-
-	reason = match pkg.get_reason(db_local) {
-		Ok(&PackageReason::Explicit) => "Explicitly installed",
-		Ok(&PackageReason::Dependency) => "Installed as a dependency for another package",
-		_ => "Unknown",
-	};
-
-	let v = pkg.get_validation(db_local).unwrap();
-	if v != 0 {
-		if v & PackageValidation::None as i32 != 0 {
-			validation.push(String::from("None"));
-		} else {
-			if v & PackageValidation::MD5Sum as i32 != 0 {
-				validation.push(String::from("MD5 Sum"));
-			}
-			if v & PackageValidation::SHA256Sum as i32 != 0 {
-				validation.push(String::from("SHA-256 Sum"));
-			}
-			if v & PackageValidation::Signature as i32 != 0 {
-				validation.push(String::from("Signature"));
-			}
-		}
-	} else {
-		validation.push(String::from("Unknown"));
-	}
-
-	match (&from, extra) {
-		(&PackageFrom::LocalDatabase, _) | (_, true) => {
-			/* compute this here so we don't get a pause in the middle of output */
-			requiredby = pkg.compute_requiredby(0, db_local, dbs_sync);
-			optionalfor = pkg.compute_optionalfor(db_local, dbs_sync);
-		}
-		_ => {}
-	}
-
-	let cols = getcols();
-	/* actual output */
-	// match from {
-	// 	PackageFrom::SyncDatabase => {
-	// 		string_display(T_REPOSITORY, alpm_db_get_name(get_db(pkg)), cols, config)
-	// 	}
-	// 	_ => {}
-	// }
-	string_display(T_NAME, &pkg.get_name(), cols, config);
-	string_display(T_VERSION, &pkg.get_version(), cols, config);
-	string_display(T_DESCRIPTION, pkg.get_desc().unwrap(), cols, config);
-	string_display(
-		T_ARCHITECTURE,
-		&pkg.get_arch().unwrap(),
-		cols,
-		config,
-	);
-	string_display(T_URL, &pkg.get_url().unwrap(), cols, config);
-	list_display(T_LICENSES, pkg.get_licenses(db_local));
-	list_display(T_GROUPS, pkg.get_groups(db_local));
-	deplist_display(T_PROVIDES, pkg.get_provides(db_local), cols);
-	deplist_display(T_DEPENDS_ON, pkg.get_depends(), cols);
-	// optdeplist_display(pkg, cols);
-
-	match from {
-		PackageFrom::LocalDatabase if extra => {
-			// list_display(T_REQUIRED_BY, requiredby, cols);
-			// list_display(T_OPTIONAL_FOR, optionalfor, cols);
-		}
-		_ => {}
-	}
-	deplist_display(T_CONFLICTS_WITH, pkg.get_conflicts(db_local), cols);
-	deplist_display(T_REPLACES, pkg.get_replaces(db_local), cols);
-
-	size = humanize_size(pkg.get_size(), '\0', 2, &mut label);
-	match from {
-		PackageFrom::SyncDatabase => {
-			println!("{} {} {}", T_DOWNLOAD_SIZE, size, label);
-		}
-		PackageFrom::File => {
-			println!("{} {} {}", T_COMPRESSED_SIZE, size, label);
-		}
-		_ => {}
-	}
-	size = humanize_size(
-		pkg.get_isize(db_local).unwrap(),
-		label.chars().collect::<Vec<char>>()[0],
-		2,
-		&mut label,
-	);
-	println!("{} {} {}", T_INSTALLED_SIZE, size, label);
-
-	string_display(T_PACKAGER, pkg.get_packager().unwrap(), cols, config);
-	// string_display(T_BUILD_DATE, bdatestr, cols);
-	match from {
-		PackageFrom::LocalDatabase => {
-			// string_display(T_INSTALL_DATE, idatestr, cols, config);
-			// string_display(T_INSTALL_REASON, reason, cols, config);
-		}
-		_ => {}
-	}
-	let has_scriptlet = if pkg.has_scriptlet(db_local) != 0 {
-		String::from("Yes")
-	} else {
-		String::from("No")
-	};
-	match from {
-		PackageFrom::File | PackageFrom::LocalDatabase => {
-			string_display(T_INSTALL_SCRIPT, &has_scriptlet, cols, config);
-		}
-		_ => {}
-	}
-
-	match from {
-		PackageFrom::SyncDatabase if extra => {
-			unimplemented!();
-			let base64_sig = pkg.base64_sig();
-			let mut keys = Vec::new();
-			if !base64_sig.is_empty() {
-				unimplemented!();
-			// unsigned char *decoded_sigdata = NULL;
-			// size_t data_len;
-			// alpm_decode_signature(base64_sig, &decoded_sigdata, &data_len);
-			// alpm_extract_keyid(config.handle, get_name(pkg),
-			// 		decoded_sigdata, data_len, &keys);
-			} else {
-				keys.push(String::from("None"));
-			}
-
-			string_display(T_MD5_SUM, &pkg.md5sum(), cols, config);
-			string_display(T_SHA_256_SUM, &pkg.sha256sum(), cols, config);
-			list_display(T_SIGNATURES, &keys);
-		}
-		_ => {
-			list_display(T_VALIDATED_BY, &validation);
-		}
-	}
-
-	/* Print additional package info if info flag passed more than once */
-	match from {
-		PackageFrom::File => {
-			unimplemented!();
-			// 		alpm_siglist_t siglist;
-			// 		int err = check_pgp_signature(pkg, &siglist);
-			// 		if(err && alpm_errno(config->handle) == ALPM_ERR_SIG_MISSING) {
-			// 			string_display(titles[T_SIGNATURES], _("None"), cols);
-			// 		} else if(err) {
-			// 			string_display(titles[T_SIGNATURES],
-			// 					alpm_strerror(alpm_errno(config->handle)), cols);
-			// 		} else {
-			// 			signature_display(titles[T_SIGNATURES], &siglist, cols);
-			// 		}
-			// 		alpm_siglist_cleanup(&siglist);
-		}
-		PackageFrom::LocalDatabase if extra => {
-			unimplemented!();
-			// pkg.dump_pkg_backups();
-		}
-		_ => {}
-	}
-
-	/* final newline to separate packages */
-	println!();
-}
 
 // static const char *get_backup_file_status(const char *root,
 // 		const alpm_backup_t *backup)
@@ -488,8 +247,7 @@ pub fn dump_pkg_full(
 // 	}
 // }
 
-/* List all files contained in a package
- */
+/// List all files contained in a package
 pub fn dump_pkg_files(pkg: &Package, quiet: bool) {
 	unimplemented!();
 	// 	const char *pkgname, *root;
@@ -514,8 +272,7 @@ pub fn dump_pkg_files(pkg: &Package, quiet: bool) {
 	// 	fflush(stdout);
 }
 
-/* Display the changelog of a package
- */
+/// Display the changelog of a package
 pub fn dump_pkg_changelog(pkg: &Package) {
 	unimplemented!();
 	// 	void *fp = NULL;
@@ -558,20 +315,15 @@ pub fn dump_pkg_changelog(pkg: &Package) {
 // 	}
 // }
 
-/**
- * Display the details of a search.
- * @param db the database we're searching
- * @param targets the targets we're searching for
- * @param show_status show if the package is also in the local db
- */
+/// Display the details of a search.
 pub fn dump_pkg_search(
-	db: &mut Database,
+	db: &mut alpm::Database,
 	targets: &Vec<String>,
 	show_status: i32,
 	colstr: &ColStr,
-	handle: &Handle,
+	handle: &alpm::Handle,
 	quiet: bool,
-) -> i32 {
+) -> Result<()> {
 	unimplemented!();
 	// 	int freelist = 0;
 	// 	Database *db_local;
@@ -593,11 +345,11 @@ pub fn dump_pkg_search(
 		searchlist = db.search(targets).clone();
 		freelist = 1;
 	} else {
-		searchlist = db.get_pkgcache().unwrap().clone();
+		searchlist = db.get_pkgcache()?;
 		freelist = 0;
 	}
 	if searchlist.is_empty() {
-		return 1;
+		return Err(Error::Other);
 	}
 
 	cols = getcols();
@@ -651,5 +403,5 @@ pub fn dump_pkg_search(
 	// 	alpm_list_free(searchlist);
 	// }
 
-	return 0;
+	return Ok(());
 }

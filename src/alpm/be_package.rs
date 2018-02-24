@@ -1,4 +1,4 @@
-use super::*;
+use super::Package;
 /*
  *  be_package.c : backend for packages
  *
@@ -162,8 +162,7 @@ fn _package_changelog_open(pkg: &Package) {
 // 		 * we can be sure the " = " exists, so look for that */
 // 		ptr = memchr(key, ' ', len);
 // 		if(!ptr || (size_t)(ptr - key + 2) > len || memcmp(ptr, " = ", 3) != 0) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG,
-// 					"%s: syntax error in description file line %d\n",
+// 			debug!("{}: syntax error in description file line {}",
 // 					newpkg->name ? newpkg->name : "error", linenum);
 // 		} else {
 // 			/* NULL the end of the key portion, move ptr to start of value */

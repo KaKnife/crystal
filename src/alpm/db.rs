@@ -42,7 +42,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 use super::*;
-
+use std::collections::HashMap;
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>
@@ -90,7 +90,7 @@ pub struct Database {
     treename: String,
     /// do not access directly, use path(db) for lazy access
     _path: String,
-    pub pkgcache: PackageHash,
+    pub pkgcache: std::collections::HashMap<String, Package>,
     grpcache: Vec<Group>,
     servers: Vec<String>,
     // ops: db_operations,
@@ -197,10 +197,8 @@ impl Database {
         return Ok(true);
     }
 
-
-
     fn checkdbdir(&self) -> Result<()> {
-        let path = self.path().unwrap();
+        let path = self.path()?;
         match std::fs::metadata(&path) {
             Err(_) => {
                 debug!("database dir '{}' does not exist, creating it", path);
@@ -218,23 +216,21 @@ impl Database {
         return Ok(());
     }
 
-    fn local_db_prepare(&self, info: &Package) -> i32 {
+    fn local_db_prepare(&self, info: &Package) -> Result<()> {
         let pkgpath;
 
-        if self.checkdbdir().is_err() {
-            return -1;
-        }
+        self.checkdbdir()?;
 
-        pkgpath = self.local_db_pkgpath(info, &String::new());
+        pkgpath = self.local_db_pkgpath(info, &String::new())?;
 
         match std::fs::create_dir(&pkgpath) {
             Err(e) => {
                 error!("could not create directory {}: {}", pkgpath, e);
-                return -1;
+                return Err(Error::from(e));
             }
             _ => {}
         }
-        0
+        Ok(())
     }
 
     fn local_db_write(&self, info: &Package, inforeq: i32) -> i32 {
@@ -460,13 +456,13 @@ impl Database {
         };
         self.status.exists = true;
         self.status.missing = false;
-        self.pkgcache = _alpm_pkghash_create();
+        self.pkgcache = HashMap::new();
 
         for ent in dbdir {
             match ent {
                 Ok(ent) => {
                     let mut pkg;
-                    let name = ent.file_name().into_string().unwrap();
+                    let name = ent.file_name().into_string()?;
 
                     if name == "." || name == ".." {
                         continue;
@@ -502,8 +498,7 @@ impl Database {
 
                     pkg.set_origin(PackageFrom::LocalDatabase);
 
-                    /* explicitly read with only 'BASE' data, accessors will handle the rest */
-                    if pkg.local_db_read(self, INFRQ_BASE) == -1 {
+                    if pkg.local_db_read(self, INFRQ_ALL).is_err() {
                         debug!("corrupted database entry '{}'", name);
                         continue;
                     }
@@ -514,16 +509,13 @@ impl Database {
                         pkg.get_name(),
                         self.treename
                     );
-                    self.pkgcache._alpm_pkghash_add(pkg);
+                    self.pkgcache.insert(pkg.get_name().clone(), pkg);
                     count += 1;
                 }
                 Err(_e) => unimplemented!(),
             }
         }
 
-        if count > 0 {
-            self.pkgcache.list.sort_by(pkg_cmp);
-        }
         debug!(
             "added {} packages to package cache for db '{}'",
             count, self.treename
@@ -619,10 +611,10 @@ impl Database {
 
         use std::io::Read;
         let mut dbverfilestr = String::new();
-        dbverfile.read_to_string(&mut dbverfilestr).unwrap();
+        dbverfile.read_to_string(&mut dbverfilestr)?;
         dbverfilestr = String::from(dbverfilestr.trim());
         version = match dbverfilestr.parse() {
-            Err(e) => {
+            Err(_) => {
                 self.status.valid = false;
                 self.status.invalid = true;
                 return Err(Error::DatabaseVersion);
@@ -644,7 +636,7 @@ impl Database {
     fn local_db_create(&self, dbpath: &String) -> Result<i32> {
         match std::fs::create_dir(dbpath) {
             Err(e) => {
-                eprintln!("could not create directory {}: {}", dbpath, e);
+                error!("could not create directory {}: {}", dbpath, e);
                 return Err(Error::DatabaseCreate);
             }
             _ => {}
@@ -666,13 +658,19 @@ impl Database {
     }
 
     /* Note: the return value must be freed by the caller */
-    pub fn local_db_pkgpath(&self, pkg: &Package, filename: &String) -> String {
+    pub fn local_db_pkgpath(&self, pkg: &Package, filename: &String) -> Result<String> {
         let pkgpath: String;
         let dbpath: String;
 
-        dbpath = self.path().unwrap();
-        pkgpath = format!("{}{}-{}/{}", dbpath, pkg.get_name(), pkg.get_version(), filename);
-        return pkgpath;
+        dbpath = self.path()?;
+        pkgpath = format!(
+            "{}{}-{}/{}",
+            dbpath,
+            pkg.get_name(),
+            pkg.get_version(),
+            filename
+        );
+        return Ok(pkgpath);
     }
 
     fn validate(&mut self, handle: &Handle) -> Result<bool> {
@@ -870,54 +868,22 @@ impl Database {
         return &self.grpcache;
     }
 
-    pub fn get_pkgfromcache(&self, target: &String) -> Option<Package> {
-        let pkgcache = self.get_pkgcache_hash();
-        match pkgcache {
-            Err(_) => {
-                return None;
-            }
-
-            Ok(pkgcache) => {
-                return Some(pkgcache._alpm_pkghash_find(&target));
-            }
+    pub fn get_pkgfromcache(&self, target: &String) -> Result<&Package> {
+        let pkgcache = self.get_pkgcache_hash()?;
+        match pkgcache.get(target) {
+            None => Err(Error::PkgNotFound),
+            Some(pkg) => Ok(pkg),
         }
     }
 
-    fn get_pkgcache_hash(&self) -> Result<&PackageHash> {
+    fn get_pkgcache_hash(&self) -> Result<&HashMap<String, Package>> {
         if !self.status.valid {
             Err(Error::DatabaseInvalid)
         } else if !self.status.pkgcache {
             Err(Error::PkgCacheNotLoaded)
-        // if self.load_pkgcache() != 0 {
-        //     /* handle->error set in local/sync-db-populate */
-        //     unimplemented!();
-        //     // return None;
-        // }
         } else {
             Ok(&self.pkgcache)
         }
-    }
-
-    fn get_pkgcache_hash_mut(&mut self) -> Result<&mut PackageHash> {
-        if !self.status.valid {
-            // debug!(
-            //     "returning error {} from {} : {}\n",
-            //     DatabaseNotInvalid,
-            //     __func__,
-            //     Error::DatabaseNotInvalid
-            // );
-            return Err(Error::DatabaseInvalid);
-            // return None;
-        }
-
-        if !self.status.pkgcache {
-            if self.load_pkgcache() != 0 {
-                /* handle->error set in local/sync-db-populate */
-                unimplemented!();
-                // return None;
-            }
-        }
-        return Ok(&mut self.pkgcache);
     }
 
     /// Returns a new package cache from db.
@@ -948,19 +914,13 @@ impl Database {
     }
 
     /// Get a package entry from a package database. */
-    pub fn get_pkg(&self, name: &String) -> Option<&Package> {
-        unimplemented!()
-        // Package *pkg;
-        // ASSERT(db != NULL, return NULL);
-        // db->handle->pm_errno = ALPM_ERR_OK;
-        // ASSERT(name != NULL && strlen(name) != 0,
-        // 		RET_ERR(db->handle, WrongArgs, NULL));
-        //
-        // pkg = _alpm_db_get_pkgfromcache(db, name);
-        // if(!pkg) {
-        // 	RET_ERR(db->handle, ALPM_ERR_PKG_NOT_FOUND, NULL);
-        // }
-        // return pkg;
+    pub fn get_pkg(&self, name: &String) -> Result<&Package> {
+        let pkg = self.get_pkgfromcache(name);
+        if pkg.is_err() {
+            Err(Error::PkgNotFound)
+        } else {
+            pkg
+        }
     }
 
     /// Get a package entry from a package database. */
@@ -1000,7 +960,7 @@ impl Database {
 
     /// Searches a database.
     // pub fn alpm_db_search(&self, needles: &Vec<Package>) -> alpm_list_t {
-    pub fn search(&self, needles: &Vec<String>) -> &Vec<Package> {
+    pub fn search(&self, needles: &Vec<String>) -> &Vec<&Package> {
         unimplemented!();
         // 	const alpm_list_t *i, *j, *k;
         // 	alpm_list_t *ret = NULL;
@@ -1082,19 +1042,10 @@ impl Database {
     }
 
     /// Get the package cache of a package database.
-    pub fn get_pkgcache(&self) -> Result<&Vec<Package>> {
-        match self.get_pkgcache_hash() {
-            Err(e) => Err(e),
-            Ok(hash) => Ok(&hash.list),
-        }
-    }
-
-    /// Get the package cache of a package database.
-    pub fn get_pkgcache_mut(&mut self) -> Result<&mut Vec<Package>> {
-        match self.get_pkgcache_hash_mut() {
-            Err(e) => Err(e),
-            Ok(hash) => Ok(&mut hash.list),
-        }
+    pub fn get_pkgcache(&self) -> Result<Vec<&Package>> {
+        let mut cache: Vec<&Package> = self.get_pkgcache_hash()?.values().collect();
+        cache.sort();
+        Ok(cache)
     }
 
     /// Sets the usage bitmask for a repo
@@ -1114,7 +1065,7 @@ impl Database {
         if self._path == "" {
             // let dbpath = &handle.dbpathhandle;
             if dbpath == "" {
-                eprintln!("database path is undefined");
+                error!("database path is undefined");
                 return Err(Error::DatabaseOpen);
             }
 
@@ -1136,7 +1087,7 @@ impl Database {
         if !self.status.pkgcache {
             return;
         }
-        self.pkgcache = PackageHash::default();
+        self.pkgcache = HashMap::new();
         debug!("freeing package cache for repository '{}'", self.treename);
         self.status.pkgcache = false;
         self.free_groupcache();
@@ -1157,7 +1108,7 @@ impl Database {
         } else {
             db.status.local = false;
         }
-        db.usage.all = true;
+        db.usage.set_all();
         db.ops_type = op_type;
         return db;
     }
