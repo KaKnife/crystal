@@ -191,29 +191,8 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 // /* Forward decl so I don't reorganize the whole file right now */
 // static int sync_db_read(Database *db, struct archive *archive,
 // 		struct archive_entry *entry, pkg_t **likely_pkg);
-//
-// static int _sync_get_validation(pkg_t *pkg)
-// {
-// 	if(pkg->validation) {
-// 		return pkg->validation;
-// 	}
-//
-// 	if(pkg->md5sum) {
-// 		pkg->validation |= ALPM_PKG_VALIDATION_MD5SUM;
-// 	}
-// 	if(pkg->sha256sum) {
-// 		pkg->validation |= ALPM_PKG_VALIDATION_SHA256SUM;
-// 	}
-// 	if(pkg->base64_sig) {
-// 		pkg->validation |= ALPM_PKG_VALIDATION_SIGNATURE;
-// 	}
-//
-// 	if(!pkg->validation) {
-// 		pkg->validation |= ALPM_PKG_VALIDATION_NONE;
-// 	}
-//
-// 	return pkg->validation;
-// }
+
+
 
 // static pkg_t *load_pkg_for_entry(Database *db, const char *entryname,
 // 		const char **entry_filename, pkg_t *likely_pkg)

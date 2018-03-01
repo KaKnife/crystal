@@ -278,8 +278,6 @@ impl Default for SigValidity {
     }
 }
 
-//Structures
-
 /// Dependency
 #[derive(Debug, Clone, Default)]
 pub struct Dependency {
@@ -298,18 +296,18 @@ pub struct DepMissing {
 }
 
 /// Conflict
-pub struct Conflict {
-    // unsigned long package1_hash;
-    // unsigned long package2_hash;
+pub struct Conflict<'a> {
+    package1_hash: u64,
+    package2_hash: u64,
     pub package1: String,
     pub package2: String,
-    // Dependency *reason;
+    reason: &'a Dependency,
 }
 
 /// File conflict
 struct FileConflict {
     target: String,
-    ttype: FileConflictType, //used to be type
+    ttype: FileConflictType,
     file: String,
     ctarget: String,
 }
@@ -325,35 +323,34 @@ pub struct Group {
 
 /// Package upgrade delta
 struct Delta {
-    // /// filename of the delta patch
-    // delta: String,
-    // /// md5sum of the delta file
-    // 	char *delta_md5;
-    // /// filename of the 'before' file
-    // 	char *from;
-    // /// filename of the 'after' file
-    // 	char *to;
-    // /// filesize of the delta file
-    // 	off_t delta_size;
-    // /// download filesize of the delta file
-    // download_size: off_t,
+    /// filename of the delta patch
+    delta: String,
+    /// md5sum of the delta file
+    delta_md5: String,
+    /// filename of the 'before' file
+    from: String,
+    /// filename of the 'after' file
+    to: String,
+    /// filesize of the delta file
+    delta_size: usize,
+    /// download filesize of the delta file
+    download_size: usize,
 }
 
 /// File in a package
 pub struct File {
-	// char *name;
-	// off_t size;
-	// mode_t mode;
+    name: String,
+    size: usize,
+    // mode_t mode: Mode
 }
 
 /// Package filelist container
 struct FileList {
-	// size_t count;
-	// alpm_file_t *files;
+    count: usize,
+    files: File,
 }
 
 /// Local package or package file backup entry
-// aka _alpm_backup_t oralpm_backup_t
 struct Backup {
     name: String,
     hash: String,
@@ -390,12 +387,11 @@ pub struct SignatureList {
     results: SignatureResult,
 }
 
-//Hooks
 
-// typedef enum _alpm_hook_when_t {
-// 	ALPM_HOOK_PRE_TRANSACTION = 1,
-// 	ALPM_HOOK_POST_TRANSACTION
-// } alpm_hook_when_t;
+enum HookWhen {
+    PreTransaction = 1,
+    PostTransaction,
+}
 
 // Logging facilities
 
@@ -410,8 +406,8 @@ pub struct LogLevel {
 
 // type alpm_cb_log = (alpm_loglevel_t, String, va_list);
 
-// /// Type of events.
-// enum alpm_event_type_t {
+/// Type of events.
+enum EventType {
 //     /// Dependencies will be computed for a package.
 //     ALPM_EVENT_CHECKDEPS_START = 1,
 //     /// Dependencies were computed for a package.
@@ -510,12 +506,12 @@ pub struct LogLevel {
 //     ALPM_EVENT_HOOK_RUN_START,
 //     /// A hook has finished running
 //     ALPM_EVENT_HOOK_RUN_DONE,
-// }
+}
 
-// typedef struct _alpm_event_any_t {
-// 	/// Type of event.
-// 	alpm_event_type_t type;
-// } alpm_event_any_t;
+struct EventAny {
+    /// Type of event.
+    event_type: EventType,
+} 
 
 // typedef enum _alpm_package_operation_t {
 // 	/// Package (to be) installed. (No oldpkg)
@@ -1059,10 +1055,10 @@ impl DatabaseUsage {
         !self.sync && !self.search && !self.install && !self.upgrade
     }
     pub fn set_all(&mut self) {
-        self.sync=true;
-        self.search=true;
-        self.install=true;
-        self.upgrade=true;
+        self.sync = true;
+        self.search = true;
+        self.install = true;
+        self.upgrade = true;
     }
 }
 

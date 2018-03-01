@@ -231,6 +231,29 @@ const T_VERSION: &str = "Version";
 // static int _pkg_force_load(Package UNUSED *pkg) { return 0; }
 
 impl Package {
+    fn _sync_get_validation(&self) -> i32 {
+        unimplemented!();
+        // if self.validation != 0 {
+        //     return self.validation;
+        // }
+        //
+        // if self.md5sum != "" {
+        //     self.validation |= ALPM_PKG_VALIDATION_MD5SUM;
+        // }
+        // if self.sha256sum != "" {
+        //     self.validation |= ALPM_PKG_VALIDATION_SHA256SUM;
+        // }
+        // if self.base64_sig != "" {
+        //     self.validation |= ALPM_PKG_VALIDATION_SIGNATURE;
+        // }
+        //
+        // if !self.validation == 0 {
+        //     self.validation |= ALPM_PKG_VALIDATION_NONE;
+        // }
+        //
+        // return self.validation;
+    }
+
     /// Check the integrity (with md5) of a package from the sync cache.
     fn checkmd5sum(&self) -> i64 {
         let fpath: String;
@@ -1418,7 +1441,6 @@ impl Package {
         db_local: &Database,
         dbs_sync: &Vec<Database>,
     ) -> Result<()> {
-
         // unimplemented!();
         // unsigned short cols;
         let bdate: i64;
