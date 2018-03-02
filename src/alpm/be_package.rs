@@ -19,7 +19,6 @@ use super::Package;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>

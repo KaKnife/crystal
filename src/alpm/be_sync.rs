@@ -28,7 +28,7 @@ use super::DownloadPayload;
 use super::Result;
 use super::Error;
 use std::fs;
-
+use std::path::Path;
 /** Update a package database
  *
  * An update of the package database \a db will be attempted. Unless
@@ -94,15 +94,19 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
     {
         let dbext = handle.get_dbext();
         for server in db.get_servers() {
+            let mut tmp;
+            let mut tmp1;
+            let mut tmp2;
             let mut final_db_url: String = String::new();
-            let mut payload: DownloadPayload = DownloadPayload::default();
+            let mut payload: DownloadPayload = DownloadPayload::new();
             let mut sig_ret: i32 = 0;
 
             /* set hard upper limit of 25MiB */
             payload.max_size = 25 * 1024 * 1024;
 
             /* print server + filename into a buffer */
-            payload.fileurl = format!("{}/{}{}", server, db.get_name(), dbext);
+            tmp = format!("{}/{}{}", server, db.get_name(), dbext);
+            payload.fileurl = Path::new(&tmp);
             payload.force = force;
             payload.unlink_on_fail = 1;
 
@@ -132,9 +136,11 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 
                 /* if we downloaded a DB, we want the .sig from the same server */
                 if final_db_url != "" {
-                    payload.fileurl = format!("{}.sig", final_db_url);
+                    tmp1 = format!("{}.sig", final_db_url);
+                    payload.fileurl = Path::new(&tmp);
                 } else {
-                    payload.fileurl = format!("{}/{}{}.sig", server, db.get_name(), dbext);
+                    tmp2 = format!("{}/{}{}.sig", server, db.get_name(), dbext);
+                    payload.fileurl = Path::new(&tmp);
                 }
 
                 payload.force = true;
@@ -191,8 +197,6 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 // /* Forward decl so I don't reorganize the whole file right now */
 // static int sync_db_read(Database *db, struct archive *archive,
 // 		struct archive_entry *entry, pkg_t **likely_pkg);
-
-
 
 // static pkg_t *load_pkg_for_entry(Database *db, const char *entryname,
 // 		const char **entry_filename, pkg_t *likely_pkg)

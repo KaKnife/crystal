@@ -72,15 +72,7 @@ pub fn parse_ini(
             name = name.trim_left_matches('[');
             name = name.trim_right_matches("]");
 
-            cb(
-                file,
-                linenum,
-                &name.to_string(),
-                &None,
-                &None,
-                data,
-                config,
-            )?;
+            cb(file, linenum, &name.to_string(), &None, &None, data, config)?;
             section_name = name.to_string();
 
             continue;

@@ -21,19 +21,19 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-impl Default for AlpmTransstate {
+impl Default for AlpmTransState {
     fn default() -> Self {
-        AlpmTransstate::Idle
+        AlpmTransState::Idle
     }
 }
 #[derive(Debug, Clone)]
-pub enum AlpmTransstate {
+pub enum AlpmTransState {
     Idle = 0,
     Initialized,
     PREPARED,
     DOWNLOADING,
-    COMMITING,
-    COMMITED,
+    Commiting,
+    Commited,
     INTERRUPTED,
 }
 
@@ -42,11 +42,11 @@ pub enum AlpmTransstate {
 pub struct Transaction {
     /* bitfield of TransactionFlag flags */
     pub flags: TransactionFlag,
-    pub state: AlpmTransstate,
+    pub state: AlpmTransState,
     pub unresolvable: Vec<Package>, /* list of (Package *) */
     pub add: Vec<Package>,          /* list of (Package *) */
     pub remove: Vec<Package>,       /* list of (Package *) */
-    pub skip_remove: Vec<String>,      /* list of (char *) */
+    pub skip_remove: Vec<String>,   /* list of (char *) */
 }
 
 // void _alpm_trans_free(alpm_trans_t *trans);
@@ -97,8 +97,6 @@ pub struct Transaction {
 // #include "alpm.h"
 // #include "deps.h"
 // #include "hook.h"
-
-
 
 // void _alpm_trans_free(alpm_trans_t *trans)
 // {

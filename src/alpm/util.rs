@@ -1535,11 +1535,11 @@ pub fn list_display(title: &str, list: &Vec<String>) {
 
 /// Turn a depends list into a text list.
 pub fn deplist_display(title: &str, deps: &Vec<Dependency>) {
-	let mut text = Vec::new();
-	for dep in deps {
-		text.push(dep.alpm_dep_compute_string());
-	}
-	list_display(title, &text);
+    let mut text = Vec::new();
+    for dep in deps {
+        text.push(dep.alpm_dep_compute_string());
+    }
+    list_display(title, &text);
 }
 
 /** Converts sizes in bytes into human readable units.

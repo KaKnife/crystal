@@ -387,7 +387,6 @@ pub struct SignatureList {
     results: SignatureResult,
 }
 
-
 enum HookWhen {
     PreTransaction = 1,
     PostTransaction,
@@ -408,123 +407,123 @@ pub struct LogLevel {
 
 /// Type of events.
 enum EventType {
-//     /// Dependencies will be computed for a package.
-//     ALPM_EVENT_CHECKDEPS_START = 1,
-//     /// Dependencies were computed for a package.
-//     ALPM_EVENT_CHECKDEPS_DONE,
-//     /// File conflicts will be computed for a package.
-//     ALPM_EVENT_FILECONFLICTS_START,
-//     /// File conflicts were computed for a package.
-//     ALPM_EVENT_FILECONFLICTS_DONE,
-//     /// Dependencies will be resolved for target package.
-//     ALPM_EVENT_RESOLVEDEPS_START,
-//     /// Dependencies were resolved for target package.
-//     ALPM_EVENT_RESOLVEDEPS_DONE,
-//     /// Inter-conflicts will be checked for target package.
-//     ALPM_EVENT_INTERCONFLICTS_START,
-//     /// Inter-conflicts were checked for target package.
-//     ALPM_EVENT_INTERCONFLICTS_DONE,
-//     /// Processing the package transaction is starting.
-//     ALPM_EVENT_TRANSACTION_START,
-//     /// Processing the package transaction is finished.
-//     ALPM_EVENT_TRANSACTION_DONE,
-//     /// Package will be installed/upgraded/downgraded/re-installed/removed; See
-//     /// alpm_event_package_operation_t for arguments.
-//     ALPM_EVENT_package_OPERATION_START,
-//     /// Package was installed/upgraded/downgraded/re-installed/removed; See
-//     /// alpm_event_package_operation_t for arguments.
-//     ALPM_EVENT_package_OPERATION_DONE,
-//     /// Target package's integrity will be checked.
-//     ALPM_EVENT_INTEGRITY_START,
-//     /// Target package's integrity was checked.
-//     ALPM_EVENT_INTEGRITY_DONE,
-//     /// Target package will be loaded.
-//     ALPM_EVENT_LOAD_START,
-//     /// Target package is finished loading.
-//     ALPM_EVENT_LOAD_DONE,
-//     /// Target delta's integrity will be checked.
-//     ALPM_EVENT_DELTA_INTEGRITY_START,
-//     /// Target delta's integrity was checked.
-//     ALPM_EVENT_DELTA_INTEGRITY_DONE,
-//     /// Deltas will be applied to packages.
-//     ALPM_EVENT_DELTA_PATCHES_START,
-//     /// Deltas were applied to packages.
-//     ALPM_EVENT_DELTA_PATCHES_DONE,
-//     /// Delta patch will be applied to target package; See
-//     /// alpm_event_delta_patch_t for arguments..
-//     ALPM_EVENT_DELTA_PATCH_START,
-//     /// Delta patch was applied to target package.
-//     ALPM_EVENT_DELTA_PATCH_DONE,
-//     /// Delta patch failed to apply to target package.
-//     ALPM_EVENT_DELTA_PATCH_FAILED,
-//     /// Scriptlet has printed information; See alpm_event_scriptlet_info_t for
-//     /// arguments.
-//     ALPM_EVENT_SCRIPTLET_INFO,
-//     /// Files will be downloaded from a repository.
-//     ALPM_EVENT_RETRIEVE_START,
-//     /// Files were downloaded from a repository.
-//     ALPM_EVENT_RETRIEVE_DONE,
-//     /// Not all files were successfully downloaded from a repository.
-//     ALPM_EVENT_RETRIEVE_FAILED,
-//     /// A file will be downloaded from a repository; See alpm_event_pkgdownload_t
-//     /// for arguments
-//     ALPM_EVENT_PKGDOWNLOAD_START,
-//     /// A file was downloaded from a repository; See alpm_event_pkgdownload_t
-//     /// for arguments
-//     ALPM_EVENT_PKGDOWNLOAD_DONE,
-//     /// A file failed to be downloaded from a repository; See
-//     /// alpm_event_pkgdownload_t for arguments
-//     ALPM_EVENT_PKGDOWNLOAD_FAILED,
-//     /// Disk space usage will be computed for a package.
-//     ALPM_EVENT_DISKSPACE_START,
-//     /// Disk space usage was computed for a package.
-//     ALPM_EVENT_DISKSPACE_DONE,
-//     /// An optdepend for another package is being removed; See
-//     /// alpm_event_optdep_removal_t for arguments.
-//     ALPM_EVENT_OPTDEP_REMOVAL,
-//     /// A configured repository database is missing; See
-//     /// alpm_event_database_missing_t for arguments.
-//     ALPM_EVENT_database_MISSING,
-//     /// Checking keys used to create signatures are in keyring.
-//     ALPM_EVENT_KEYRING_START,
-//     /// Keyring checking is finished.
-//     ALPM_EVENT_KEYRING_DONE,
-//     /// Downloading missing keys into keyring.
-//     ALPM_EVENT_KEY_DOWNLOAD_START,
-//     /// Key downloading is finished.
-//     ALPM_EVENT_KEY_DOWNLOAD_DONE,
-//     /// A .pacnew file was created; See alpm_event_pacnew_created_t for arguments.
-//     ALPM_EVENT_PACNEW_CREATED,
-//     /// A .pacsave file was created; See alpm_event_pacsave_created_t for
-//     /// arguments
-//     ALPM_EVENT_PACSAVE_CREATED,
-//     /// Processing hooks will be started.
-//     ALPM_EVENT_HOOK_START,
-//     /// Processing hooks is finished.
-//     ALPM_EVENT_HOOK_DONE,
-//     /// A hook is starting
-//     ALPM_EVENT_HOOK_RUN_START,
-//     /// A hook has finished running
-//     ALPM_EVENT_HOOK_RUN_DONE,
+    //     /// Dependencies will be computed for a package.
+    //     ALPM_EVENT_CHECKDEPS_START = 1,
+    //     /// Dependencies were computed for a package.
+    //     ALPM_EVENT_CHECKDEPS_DONE,
+    //     /// File conflicts will be computed for a package.
+    //     ALPM_EVENT_FILECONFLICTS_START,
+    //     /// File conflicts were computed for a package.
+    //     ALPM_EVENT_FILECONFLICTS_DONE,
+    //     /// Dependencies will be resolved for target package.
+    //     ALPM_EVENT_RESOLVEDEPS_START,
+    //     /// Dependencies were resolved for target package.
+    //     ALPM_EVENT_RESOLVEDEPS_DONE,
+    //     /// Inter-conflicts will be checked for target package.
+    //     ALPM_EVENT_INTERCONFLICTS_START,
+    //     /// Inter-conflicts were checked for target package.
+    //     ALPM_EVENT_INTERCONFLICTS_DONE,
+    //     /// Processing the package transaction is starting.
+    //     ALPM_EVENT_TRANSACTION_START,
+    //     /// Processing the package transaction is finished.
+    //     ALPM_EVENT_TRANSACTION_DONE,
+    //     /// Package will be installed/upgraded/downgraded/re-installed/removed; See
+    //     /// alpm_event_package_operation_t for arguments.
+    //     ALPM_EVENT_package_OPERATION_START,
+    //     /// Package was installed/upgraded/downgraded/re-installed/removed; See
+    //     /// alpm_event_package_operation_t for arguments.
+    //     ALPM_EVENT_package_OPERATION_DONE,
+    //     /// Target package's integrity will be checked.
+    //     ALPM_EVENT_INTEGRITY_START,
+    //     /// Target package's integrity was checked.
+    //     ALPM_EVENT_INTEGRITY_DONE,
+    //     /// Target package will be loaded.
+    //     ALPM_EVENT_LOAD_START,
+    //     /// Target package is finished loading.
+    //     ALPM_EVENT_LOAD_DONE,
+    //     /// Target delta's integrity will be checked.
+    //     ALPM_EVENT_DELTA_INTEGRITY_START,
+    //     /// Target delta's integrity was checked.
+    //     ALPM_EVENT_DELTA_INTEGRITY_DONE,
+    //     /// Deltas will be applied to packages.
+    //     ALPM_EVENT_DELTA_PATCHES_START,
+    //     /// Deltas were applied to packages.
+    //     ALPM_EVENT_DELTA_PATCHES_DONE,
+    //     /// Delta patch will be applied to target package; See
+    //     /// alpm_event_delta_patch_t for arguments..
+    //     ALPM_EVENT_DELTA_PATCH_START,
+    //     /// Delta patch was applied to target package.
+    //     ALPM_EVENT_DELTA_PATCH_DONE,
+    //     /// Delta patch failed to apply to target package.
+    //     ALPM_EVENT_DELTA_PATCH_FAILED,
+    //     /// Scriptlet has printed information; See alpm_event_scriptlet_info_t for
+    //     /// arguments.
+    //     ALPM_EVENT_SCRIPTLET_INFO,
+    //     /// Files will be downloaded from a repository.
+    //     ALPM_EVENT_RETRIEVE_START,
+    //     /// Files were downloaded from a repository.
+    //     ALPM_EVENT_RETRIEVE_DONE,
+    //     /// Not all files were successfully downloaded from a repository.
+    //     ALPM_EVENT_RETRIEVE_FAILED,
+    //     /// A file will be downloaded from a repository; See alpm_event_pkgdownload_t
+    //     /// for arguments
+    //     ALPM_EVENT_PKGDOWNLOAD_START,
+    //     /// A file was downloaded from a repository; See alpm_event_pkgdownload_t
+    //     /// for arguments
+    //     ALPM_EVENT_PKGDOWNLOAD_DONE,
+    //     /// A file failed to be downloaded from a repository; See
+    //     /// alpm_event_pkgdownload_t for arguments
+    //     ALPM_EVENT_PKGDOWNLOAD_FAILED,
+    //     /// Disk space usage will be computed for a package.
+    //     ALPM_EVENT_DISKSPACE_START,
+    //     /// Disk space usage was computed for a package.
+    //     ALPM_EVENT_DISKSPACE_DONE,
+    //     /// An optdepend for another package is being removed; See
+    //     /// alpm_event_optdep_removal_t for arguments.
+    //     ALPM_EVENT_OPTDEP_REMOVAL,
+    //     /// A configured repository database is missing; See
+    //     /// alpm_event_database_missing_t for arguments.
+    //     ALPM_EVENT_database_MISSING,
+    //     /// Checking keys used to create signatures are in keyring.
+    //     ALPM_EVENT_KEYRING_START,
+    //     /// Keyring checking is finished.
+    //     ALPM_EVENT_KEYRING_DONE,
+    //     /// Downloading missing keys into keyring.
+    //     ALPM_EVENT_KEY_DOWNLOAD_START,
+    //     /// Key downloading is finished.
+    //     ALPM_EVENT_KEY_DOWNLOAD_DONE,
+    //     /// A .pacnew file was created; See alpm_event_pacnew_created_t for arguments.
+    //     ALPM_EVENT_PACNEW_CREATED,
+    //     /// A .pacsave file was created; See alpm_event_pacsave_created_t for
+    //     /// arguments
+    //     ALPM_EVENT_PACSAVE_CREATED,
+    //     /// Processing hooks will be started.
+    //     ALPM_EVENT_HOOK_START,
+    //     /// Processing hooks is finished.
+    //     ALPM_EVENT_HOOK_DONE,
+    //     /// A hook is starting
+    //     ALPM_EVENT_HOOK_RUN_START,
+    //     /// A hook has finished running
+    //     ALPM_EVENT_HOOK_RUN_DONE,
 }
 
 struct EventAny {
     /// Type of event.
     event_type: EventType,
-} 
+}
 
-// typedef enum _alpm_package_operation_t {
-// 	/// Package (to be) installed. (No oldpkg)
-// 	ALPM_package_INSTALL = 1,
-// 	/// Package (to be) upgraded
-// 	ALPM_package_UPGRADE,
-// 	/// Package (to be) re-installed.
-// 	ALPM_package_REINSTALL,
-// 	/// Package (to be) downgraded.
-// 	ALPM_package_DOWNGRADE,
-// 	/// Package (to be) removed. (No newpkg)
-// 	ALPM_package_REMOVE
-// } alpm_package_operation_t;
+enum PackageOperation {
+    /// Package (to be) installed. (No oldpkg)
+    Install = 1,
+    /// Package (to be) upgraded
+    Upgrade,
+    /// Package (to be) re-installed.
+    Reinstall,
+    /// Package (to be) downgraded.
+    Downgrade,
+    /// Package (to be) removed. (No newpkg)
+    Remove,
+}
 
 // typedef struct _alpm_event_package_operation_t {
 // 	/// Type of event.

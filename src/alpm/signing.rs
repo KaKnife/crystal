@@ -727,8 +727,6 @@ use super::*;
 // }
 // #endif /* HAVE_LIBGPGME */
 
-
-
 // /**
 //  * Helper for checking the PGP signature for the given file path.
 //  * This wraps #_alpm_gpgme_checksig in a slightly friendlier manner to simplify

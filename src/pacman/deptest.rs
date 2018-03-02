@@ -17,10 +17,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- use super::*;
- use super::alpm::*;
+use super::*;
+use super::alpm::*;
 
-pub fn pacman_deptest(targets: Vec<String>, config: &mut Config, handle:&mut Handle) -> Result<()> {
+pub fn pacman_deptest(
+    targets: Vec<String>,
+    config: &mut Config,
+    handle: &mut Handle,
+) -> Result<()> {
     let mut deps: Vec<String> = Vec::new();
     let handle_clone = &handle.clone();
     let localdb = handle.get_localdb_mut();

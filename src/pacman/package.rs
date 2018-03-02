@@ -94,68 +94,64 @@ use super::ColStr;
 //  * allocated and naively truncated to TITLE_MAXLEN characters.
 //  */
 
-
-
 pub fn make_aligned_titles() {
-	unimplemented!();
-	// 	unsigned int i;
-	// 	size_t maxlen = 0;
-	// 	int maxcol = 0;
-	// 	static const wchar_t title_suffix[] = L" :";
-	// 	wchar_t wbuf[ARRAYSIZE(titles)][TITLE_MAXLEN + ARRAYSIZE(title_suffix)];
-	// 	size_t wlen[ARRAYSIZE(wbuf)];
-	// 	int wcol[ARRAYSIZE(wbuf)];
-	// 	char *buf[ARRAYSIZE(wbuf)];
-	// let buf: [&str; _T_MAX as i32]
-	// 	buf[T_ARCHITECTURE] = _("Architecture");
-	// 	buf[T_BACKUP_FILES] = _("Backup Files");
-	// 	buf[T_BUILD_DATE] = _("Build Date");
-	// 	buf[T_COMPRESSED_SIZE] = _("Compressed Size");
-	// 	buf[T_CONFLICTS_WITH] = _("Conflicts With");
-	// 	buf[T_DEPENDS_ON] = _("Depends On");
-	// 	buf[T_DESCRIPTION] = _("Description");
-	// 	buf[T_DOWNLOAD_SIZE] = _("Download Size");
-	// 	buf[T_GROUPS] = _("Groups");
-	// 	buf[T_INSTALL_DATE] = _("Install Date");
-	// 	buf[T_INSTALL_REASON] = _("Install Reason");
-	// 	buf[T_INSTALL_SCRIPT] = _("Install Script");
-	// 	buf[T_INSTALLED_SIZE] = _("Installed Size");
-	// 	buf[T_LICENSES] = _("Licenses");
-	// 	buf[T_MD5_SUM] = _("MD5 Sum");
-	// 	buf[T_NAME] = _("Name");
-	// 	buf[T_OPTIONAL_DEPS] = _("Optional Deps");
-	// 	buf[T_OPTIONAL_FOR] = _("Optional For");
-	// 	buf[T_PACKAGER] = _("Packager");
-	// 	buf[T_PROVIDES] = _("Provides");
-	// 	buf[T_REPLACES] = _("Replaces");
-	// 	buf[T_REPOSITORY] = _("Repository");
-	// 	buf[T_REQUIRED_BY] = _("Required By");
-	// 	buf[T_SHA_256_SUM] = _("SHA-256 Sum");
-	// 	buf[T_SIGNATURES] = _("Signatures");
-	// 	buf[T_URL] = _("URL");
-	// 	buf[T_VALIDATED_BY] = _("Validated By");
-	// 	buf[T_VERSION] = _("Version");
-	//
-	// 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
-	// 		wlen[i] = mbstowcs(wbuf[i], buf[i], strlen(buf[i]) + 1);
-	// 		wcol[i] = wcswidth(wbuf[i], wlen[i]);
-	// 		if(wcol[i] > maxcol) {
-	// 			maxcol = wcol[i];
-	// 		}
-	// 		if(wlen[i] > maxlen) {
-	// 			maxlen = wlen[i];
-	// 		}
-	// 	}
-	//
-	// 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
-	// 		size_t padlen = maxcol - wcol[i];
-	// 		wmemset(wbuf[i] + wlen[i], L' ', padlen);
-	// 		wmemcpy(wbuf[i] + wlen[i] + padlen, title_suffix, ARRAYSIZE(title_suffix));
-	// 		wcstombs(titles[i], wbuf[i], sizeof(wbuf[i]));
-	// 	}
+    unimplemented!();
+    // 	unsigned int i;
+    // 	size_t maxlen = 0;
+    // 	int maxcol = 0;
+    // 	static const wchar_t title_suffix[] = L" :";
+    // 	wchar_t wbuf[ARRAYSIZE(titles)][TITLE_MAXLEN + ARRAYSIZE(title_suffix)];
+    // 	size_t wlen[ARRAYSIZE(wbuf)];
+    // 	int wcol[ARRAYSIZE(wbuf)];
+    // 	char *buf[ARRAYSIZE(wbuf)];
+    // let buf: [&str; _T_MAX as i32]
+    // 	buf[T_ARCHITECTURE] = _("Architecture");
+    // 	buf[T_BACKUP_FILES] = _("Backup Files");
+    // 	buf[T_BUILD_DATE] = _("Build Date");
+    // 	buf[T_COMPRESSED_SIZE] = _("Compressed Size");
+    // 	buf[T_CONFLICTS_WITH] = _("Conflicts With");
+    // 	buf[T_DEPENDS_ON] = _("Depends On");
+    // 	buf[T_DESCRIPTION] = _("Description");
+    // 	buf[T_DOWNLOAD_SIZE] = _("Download Size");
+    // 	buf[T_GROUPS] = _("Groups");
+    // 	buf[T_INSTALL_DATE] = _("Install Date");
+    // 	buf[T_INSTALL_REASON] = _("Install Reason");
+    // 	buf[T_INSTALL_SCRIPT] = _("Install Script");
+    // 	buf[T_INSTALLED_SIZE] = _("Installed Size");
+    // 	buf[T_LICENSES] = _("Licenses");
+    // 	buf[T_MD5_SUM] = _("MD5 Sum");
+    // 	buf[T_NAME] = _("Name");
+    // 	buf[T_OPTIONAL_DEPS] = _("Optional Deps");
+    // 	buf[T_OPTIONAL_FOR] = _("Optional For");
+    // 	buf[T_PACKAGER] = _("Packager");
+    // 	buf[T_PROVIDES] = _("Provides");
+    // 	buf[T_REPLACES] = _("Replaces");
+    // 	buf[T_REPOSITORY] = _("Repository");
+    // 	buf[T_REQUIRED_BY] = _("Required By");
+    // 	buf[T_SHA_256_SUM] = _("SHA-256 Sum");
+    // 	buf[T_SIGNATURES] = _("Signatures");
+    // 	buf[T_URL] = _("URL");
+    // 	buf[T_VALIDATED_BY] = _("Validated By");
+    // 	buf[T_VERSION] = _("Version");
+    //
+    // 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
+    // 		wlen[i] = mbstowcs(wbuf[i], buf[i], strlen(buf[i]) + 1);
+    // 		wcol[i] = wcswidth(wbuf[i], wlen[i]);
+    // 		if(wcol[i] > maxcol) {
+    // 			maxcol = wcol[i];
+    // 		}
+    // 		if(wlen[i] > maxlen) {
+    // 			maxlen = wlen[i];
+    // 		}
+    // 	}
+    //
+    // 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
+    // 		size_t padlen = maxcol - wcol[i];
+    // 		wmemset(wbuf[i] + wlen[i], L' ', padlen);
+    // 		wmemcpy(wbuf[i] + wlen[i] + padlen, title_suffix, ARRAYSIZE(title_suffix));
+    // 		wcstombs(titles[i], wbuf[i], sizeof(wbuf[i]));
+    // 	}
 }
-
-
 
 // /** Turn a optdepends list into a text list.
 //  * @param optdeps a list with items of type depend_t
@@ -179,8 +175,6 @@ pub fn make_aligned_titles() {
 // 	list_display_linebreak(titles[T_OPTIONAL_DEPS], text, cols);
 // 	FREELIST(text);
 // }
-
-
 
 // static const char *get_backup_file_status(const char *root,
 // 		const alpm_backup_t *backup)
@@ -249,53 +243,53 @@ pub fn make_aligned_titles() {
 
 /// List all files contained in a package
 pub fn dump_pkg_files(pkg: &Package, quiet: bool) {
-	unimplemented!();
-	// 	const char *pkgname, *root;
-	// 	alpm_filelist_t *pkgfiles;
-	// 	size_t i;
-	//
-	// 	pkgname = get_name(pkg);
-	// 	pkgfiles = get_files(pkg);
-	// 	root = alpm_option_get_root(config->handle);
-	//
-	// 	for(i = 0; i < pkgfiles->count; i++) {
-	// 		const alpm_file_t *file = pkgfiles->files + i;
-	// 		/* Regular: '<pkgname> <root><filepath>\n'
-	// 		 * Quiet  : '<root><filepath>\n'
-	// 		 */
-	// 		if(!quiet) {
-	// 			printf("{}{}{} ", config->colstr.title, pkgname, config->colstr.nocolor);
-	// 		}
-	// 		printf("{}{}\n", root, file->name);
-	// 	}
-	//
-	// 	fflush(stdout);
+    unimplemented!();
+    // 	const char *pkgname, *root;
+    // 	alpm_filelist_t *pkgfiles;
+    // 	size_t i;
+    //
+    // 	pkgname = get_name(pkg);
+    // 	pkgfiles = get_files(pkg);
+    // 	root = alpm_option_get_root(config->handle);
+    //
+    // 	for(i = 0; i < pkgfiles->count; i++) {
+    // 		const alpm_file_t *file = pkgfiles->files + i;
+    // 		/* Regular: '<pkgname> <root><filepath>\n'
+    // 		 * Quiet  : '<root><filepath>\n'
+    // 		 */
+    // 		if(!quiet) {
+    // 			printf("{}{}{} ", config->colstr.title, pkgname, config->colstr.nocolor);
+    // 		}
+    // 		printf("{}{}\n", root, file->name);
+    // 	}
+    //
+    // 	fflush(stdout);
 }
 
 /// Display the changelog of a package
 pub fn dump_pkg_changelog(pkg: &Package) {
-	unimplemented!();
-	// 	void *fp = NULL;
-	//
-	// 	if((fp = changelog_open(pkg)) == NULL) {
-	// 		pm_printf(ALPM_LOG_ERROR, _("no changelog available for '{}'.\n"),
-	// 				get_name(pkg));
-	// 		return;
-	// 	} else {
-	// 		fprintf(stdout, _("Changelog for {}:\n"), get_name(pkg));
-	// 		/* allocate a buffer to get the changelog back in chunks */
-	// 		char buf[CLBUF_SIZE];
-	// 		size_t ret = 0;
-	// 		while((ret = changelog_read(buf, CLBUF_SIZE, pkg, fp))) {
-	// 			if(ret < CLBUF_SIZE) {
-	// 				/* if we hit the end of the file, we need to add a null terminator */
-	// 				*(buf + ret) = '\0';
-	// 			}
-	// 			fputs(buf, stdout);
-	// 		}
-	// 		changelog_close(pkg, fp);
-	// 		putchar('\n');
-	// 	}
+    unimplemented!();
+    // 	void *fp = NULL;
+    //
+    // 	if((fp = changelog_open(pkg)) == NULL) {
+    // 		pm_printf(ALPM_LOG_ERROR, _("no changelog available for '{}'.\n"),
+    // 				get_name(pkg));
+    // 		return;
+    // 	} else {
+    // 		fprintf(stdout, _("Changelog for {}:\n"), get_name(pkg));
+    // 		/* allocate a buffer to get the changelog back in chunks */
+    // 		char buf[CLBUF_SIZE];
+    // 		size_t ret = 0;
+    // 		while((ret = changelog_read(buf, CLBUF_SIZE, pkg, fp))) {
+    // 			if(ret < CLBUF_SIZE) {
+    // 				/* if we hit the end of the file, we need to add a null terminator */
+    // 				*(buf + ret) = '\0';
+    // 			}
+    // 			fputs(buf, stdout);
+    // 		}
+    // 		changelog_close(pkg, fp);
+    // 		putchar('\n');
+    // 	}
 }
 
 // void print_installed(Database *db_local, Package *pkg)
@@ -317,91 +311,91 @@ pub fn dump_pkg_changelog(pkg: &Package) {
 
 /// Display the details of a search.
 pub fn dump_pkg_search(
-	db: &mut alpm::Database,
-	targets: &Vec<String>,
-	show_status: i32,
-	colstr: &ColStr,
-	handle: &alpm::Handle,
-	quiet: bool,
+    db: &mut alpm::Database,
+    targets: &Vec<String>,
+    show_status: i32,
+    colstr: &ColStr,
+    handle: &alpm::Handle,
+    quiet: bool,
 ) -> Result<()> {
-	unimplemented!();
-	// 	int freelist = 0;
-	// 	Database *db_local;
-	let db_local;
-	// 	alpm_list_t *i, *searchlist;
-	let searchlist;
-	let mut freelist = 0;
-	// 	unsigned short cols;
-	let cols;
-	// 	const colstr_t *colstr = &config->colstr;
-	// let colstr = &config.colstr;
-	//
-	if show_status != 0 {
-		db_local = handle.get_localdb();
-	}
+    unimplemented!();
+    // 	int freelist = 0;
+    // 	Database *db_local;
+    let db_local;
+    // 	alpm_list_t *i, *searchlist;
+    let searchlist;
+    let mut freelist = 0;
+    // 	unsigned short cols;
+    let cols;
+    // 	const colstr_t *colstr = &config->colstr;
+    // let colstr = &config.colstr;
+    //
+    if show_status != 0 {
+        db_local = handle.get_localdb();
+    }
 
-	/* if we have a targets list, search for packages matching it */
-	if !targets.is_empty() {
-		searchlist = db.search(targets).clone();
-		freelist = 1;
-	} else {
-		searchlist = db.get_pkgcache()?;
-		freelist = 0;
-	}
-	if searchlist.is_empty() {
-		return Err(Error::Other);
-	}
+    /* if we have a targets list, search for packages matching it */
+    if !targets.is_empty() {
+        searchlist = db.search(targets).clone();
+        freelist = 1;
+    } else {
+        searchlist = db.get_pkgcache()?;
+        freelist = 0;
+    }
+    if searchlist.is_empty() {
+        return Err(Error::Other);
+    }
 
-	cols = getcols();
-	for pkg in searchlist {
-		// let grp;
-		// 		alpm_list_t *grp;
-		// 		Package *pkg = i->data;
-		//
-		if quiet {
-			print!("{}", pkg.get_name())
-		// 			fputs(get_name(pkg), stdout);
-		} else {
-			print!(
-				"{}{}/{}{} {}{}{}",
-				colstr.repo,
-				db.get_name(),
-				colstr.title,
-				pkg.get_name(),
-				colstr.version,
-				pkg.get_version(),
-				colstr.nocolor
-			);
-			// grp = pkg.get_groups();
-			// if grp.is_some() {
-			// 	// 				alpm_list_t *k;
-			// 	// 				printf(" {}(", colstr->groups);
-			// 	for group in grp {
-			// 		// 					const char *group = k->data;
-			// 		// 					fputs(group, stdout);
-			// 		// 					if(alpm_list_next(k)) {
-			// 		// 						/* only print a spacer if there are more groups */
-			// 		// 						putchar(' ');
-			// 		// 					}
-			// 	}
-			// 	// print!("){}", colstr->nocolor);
-			// }
-			//
-			// 			if(show_status) {
-			// 				print_installed(db_local, pkg);
-			// 			}
-			//
-			// 			/* we need a newline and initial indent first */
-			// 			fputs("\n    ", stdout);
-			// 			indentprint(get_desc(pkg), 4, cols);
-		}
-		// print!("\n");
-	}
+    cols = getcols();
+    for pkg in searchlist {
+        // let grp;
+        // 		alpm_list_t *grp;
+        // 		Package *pkg = i->data;
+        //
+        if quiet {
+            print!("{}", pkg.get_name())
+        // 			fputs(get_name(pkg), stdout);
+        } else {
+            print!(
+                "{}{}/{}{} {}{}{}",
+                colstr.repo,
+                db.get_name(),
+                colstr.title,
+                pkg.get_name(),
+                colstr.version,
+                pkg.get_version(),
+                colstr.nocolor
+            );
+            // grp = pkg.get_groups();
+            // if grp.is_some() {
+            // 	// 				alpm_list_t *k;
+            // 	// 				printf(" {}(", colstr->groups);
+            // 	for group in grp {
+            // 		// 					const char *group = k->data;
+            // 		// 					fputs(group, stdout);
+            // 		// 					if(alpm_list_next(k)) {
+            // 		// 						/* only print a spacer if there are more groups */
+            // 		// 						putchar(' ');
+            // 		// 					}
+            // 	}
+            // 	// print!("){}", colstr->nocolor);
+            // }
+            //
+            // 			if(show_status) {
+            // 				print_installed(db_local, pkg);
+            // 			}
+            //
+            // 			/* we need a newline and initial indent first */
+            // 			fputs("\n    ", stdout);
+            // 			indentprint(get_desc(pkg), 4, cols);
+        }
+        // print!("\n");
+    }
 
-	// /* we only want to free if the list was a search list */
-	// if (freelist != 0) {
-	// 	alpm_list_free(searchlist);
-	// }
+    // /* we only want to free if the list was a search list */
+    // if (freelist != 0) {
+    // 	alpm_list_free(searchlist);
+    // }
 
-	return Ok(());
+    return Ok(());
 }

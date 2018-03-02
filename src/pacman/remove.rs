@@ -25,7 +25,7 @@ fn fnmatch_cmp(pattern: &String, string: &String) -> std::cmp::Ordering {
     // return fnmatch(pattern, string, 0);
 }
 
-fn remove_target(target: String, config: &mut Config, handle:&mut Handle) -> i32 {
+fn remove_target(target: String, config: &mut Config, handle: &mut Handle) -> i32 {
     match handle.db_local.get_pkg(&target) {
         Ok(pkg) => {
             match alpm_remove_pkg(&mut handle.trans, &pkg) {
@@ -80,7 +80,11 @@ fn remove_target(target: String, config: &mut Config, handle:&mut Handle) -> i32
 /// returns Ok on success, Err(1) on failure.
 ///
 /// * `targets` - a Vec of packages (as strings) to remove from the system
-pub fn pacman_remove(targets: Vec<String>, config: &mut Config, handle:&mut Handle) -> std::result::Result<(), i32> {
+pub fn pacman_remove(
+    targets: Vec<String>,
+    config: &mut Config,
+    handle: &mut Handle,
+) -> std::result::Result<(), i32> {
     unimplemented!();
     let mut retval = 0;
     // let data;
@@ -168,7 +172,7 @@ pub fn pacman_remove(targets: Vec<String>, config: &mut Config, handle:&mut Hand
     }
 
     if config.print {
-        print_packages(&mut pkglist, &config.print_format, config,handle);
+        print_packages(&mut pkglist, &config.print_format, config, handle);
         if !trans_release(handle) {
             retval = 1;
         }

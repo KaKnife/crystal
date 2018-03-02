@@ -124,7 +124,6 @@ use super::*;
 // 	return replacers;
 // }
 
-
 /// Find group members across a list of databases.
 /// If a member exists in several databases, only the first database is used.
 /// IgnorePkg is also handled.

@@ -310,7 +310,7 @@ impl Handle {
         }
 
         trans.flags = flags.clone();
-        trans.state = AlpmTransstate::Initialized;
+        trans.state = AlpmTransState::Initialized;
 
         self.trans = trans;
 
@@ -335,11 +335,7 @@ impl Handle {
     pub fn trans_prepare(&mut self, data: &mut Vec<String>) -> Result<i32> {
         unimplemented!();
         // 	alpm_trans_t *trans;
-        //
-        // 	/* Sanity checks */
-        // 	CHECK_HANDLE(handle, return -1);
-        // 	ASSERT(data != NULL, RET_ERR(handle, WrongArgs, -1));
-        //
+
         let mut trans = self.trans.clone();
         //
         // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
@@ -382,32 +378,28 @@ impl Handle {
             }
         }
 
-        trans.state = AlpmTransstate::PREPARED;
+        trans.state = AlpmTransState::PREPARED;
 
         return Ok(0);
     }
 
     /// Commit a transaction.
     pub fn trans_commit<T>(&self, data: &Vec<T>) -> i32 {
-        unimplemented!();
         // 	alpm_trans_t *trans;
         // 	alpm_event_any_t event;
-        //
-        // 	/* Sanity checks */
-        // 	CHECK_HANDLE(handle, return -1);
-        //
-        // 	trans = handle->trans;
-        //
+
+        let trans = &self.trans;
+
         // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
         // 	ASSERT(trans->state == STATE_PREPARED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_PREPARED, -1));
-        //
+
         //ASSERT(!(trans->flags & ALPM_TRANS_FLAG_NOLOCK), RET_ERR(handle, ALPM_ERR_TRANS_NOT_LOCKED, -1));
-        //
-        // 	/* If there's nothing to do, return without complaining */
-        // 	if(trans->add == NULL && trans->remove == NULL) {
-        // 		return 0;
-        // 	}
-        //
+
+        /* If there's nothing to do, return without complaining */
+        if trans.add.is_empty() && trans.remove.is_empty() {
+            return 0;
+        }
+
         // 	if(trans->add) {
         // 		if(_alpm_sync_load(handle, data) != 0) {
         // 			/* pm_errno is set by _alpm_sync_load() */
@@ -458,10 +450,11 @@ impl Handle {
         // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction completed\n");
         // 		_alpm_hook_run(handle, ALPM_HOOK_POST_TRANSACTION);
         // 	}
-        //
-        // 	trans->state = STATE_COMMITED;
-        //
+
+        //self.trans.state = AlpmTransState::Commited;
+
         // 	return 0;
+        unimplemented!();
     }
 
     /// Interrupt a transaction.
@@ -526,7 +519,7 @@ impl Handle {
     /// Release a transaction.
     pub fn trans_release(&mut self) -> Result<i32> {
         match self.trans.state {
-            AlpmTransstate::Idle => {}
+            AlpmTransState::Idle => {}
             _ => return Err(Error::TransactionNull),
         }
 
@@ -1177,7 +1170,7 @@ impl Handle {
         /* loop through our package list adding/upgrading one at a time */
         for newpkg in &self.trans.add {
             match &self.trans.state {
-                &AlpmTransstate::Initialized => {
+                &AlpmTransState::Initialized => {
                     return ret;
                 }
                 _ => {}
@@ -1185,7 +1178,7 @@ impl Handle {
 
             if self.commit_single_pkg(&newpkg, pkg_current, pkg_count) != 0 {
                 /* something screwed up on the commit, abort the trans */
-                self.trans.state = AlpmTransstate::Initialized;
+                self.trans.state = AlpmTransState::Initialized;
                 /* running ldconfig at this point could possibly screw system */
                 skip_ldconfig = true;
                 ret = Err(Error::TransactionAbort);

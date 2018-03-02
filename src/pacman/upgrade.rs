@@ -62,7 +62,7 @@ pub fn pacman_upgrade(
     }
 
     /* Step 1: create a new transaction */
-    trans_init(&config.flags.clone(), true,  handle)?;
+    trans_init(&config.flags.clone(), true, handle)?;
 
     print!("loading packages...\n");
     /* add targets to the created transaction */

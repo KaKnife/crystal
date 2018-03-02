@@ -615,8 +615,6 @@ fn table_print_line<T>(
 // 	return ret;
 // }
 
-
-
 // void list_display_linebreak(const char *title, const alpm_list_t *list,
 // 		unsigned short maxcols)
 // {
@@ -988,8 +986,6 @@ fn simple_pow(base: i32, exp: i32) -> f64 {
     }
     result
 }
-
-
 
 // pub fn print_packages(packages: &Vec<Package>, config: &Config)
 pub fn print_packages(
