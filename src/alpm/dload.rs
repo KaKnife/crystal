@@ -2,7 +2,9 @@ use super::*;
 use std::path::Path;
 use std::ffi::OsString;
 use std::ffi::OsStr;
+use std::fs;
 use std::fs::metadata;
+use std::fs::remove_file;
 use std::time::Duration;
 use curl::easy::Easy2 as Curl;
 use curl::easy::NetRc;
@@ -76,18 +78,10 @@ pub struct DownloadPayload<'a> {
 // url.split('/').last();
 // }
 
-// static char *get_fullpath(const char *path, const char *filename,
-// 		const char *suffix)
-// {
-// 	char *filepath;
-// 	/* len = localpath len + filename len + suffix len + null */
-// 	size_t len = strlen(path) + strlen(filename) + strlen(suffix) + 1;
-// 	MALLOC(filepath, len, return NULL);
-// 	snprintf(filepath, len, "%s%s%s", path, filename, suffix);
-//
-// 	return filepath;
-// }
-//
+fn get_fullpath(path: &str, filename: &str, suffix: &str) -> String {
+    format!("{}{}{}", path, filename, suffix)
+}
+
 // static CURL *get_libcurl_handle(Handle *handle)
 // {
 // 	if(!handle->curl) {
@@ -108,56 +102,38 @@ pub struct DownloadPayload<'a> {
 // 	dload_interrupted = ABORT_SIGINT;
 // }
 
-fn curl_gethost(url: &String, buffer: &mut String, buf_len: usize) -> i32 {
+fn curl_gethost(url: &str) -> Option<String> {
     // 	size_t hostlen;
     // 	char *p, *q;
 
     if url.starts_with("file://") {
-        // 		p = _("disk");
-        // 		hostlen = strlen(p);
+        Some("disk".to_string())
     } else {
-        // 		p = strstr(url, "//");
-        // 		if(!p) {
-        // 			return 1;
-        // 		}
-        // 		p += 2; /* jump over the found // */
-        // 		hostlen = strcspn(p, "/");
-        //
-        // 		/* there might be a user:pass@ on the URL. hide it. avoid using memrchr()
-        // 		 * for portability concerns. */
-        // 		q = p + hostlen;
-        // 		while(--q > p) {
-        // 			if(*q == '@') {
-        // 				break;
-        // 			}
-        // 		}
-        // 		if(*q == '@' && p != q) {
-        // 			hostlen -= q - p + 1;
-        // 			p = q + 1;
-        // 		}
+        let mut p: Vec<&str> = url.splitn(2, "//").collect();
+        if p.len() != 2 {
+            return None;
+        }
+
+        p = p[1].split("/").collect();
+
+        /* there might be a user:pass@ on the URL. hide it. avoid using memrchr()
+         * for portability concerns. */
+        p = p[0].split('@').collect();
+
+        Some(p[p.len() - 1].to_string())
     }
+}
 
-    // if(hostlen > buf_len - 1) {
-    // 		/* buffer overflow imminent */
-    // 		return 1;
+fn utimes_long(path: &str, seconds: u64) -> i32 {
+    // 	if(seconds != -1) {
+    // 		struct timeval tv[2];
+    // 		memset(&tv, 0, sizeof(tv));
+    // 		tv[0].tv_sec = tv[1].tv_sec = seconds;
+    // 		return utimes(path, tv);
     // 	}
-    // 	memcpy(buffer, p, hostlen);
-    // 	buffer[hostlen] = '\0';
-
     // 	return 0;
     unimplemented!();
 }
-
-// static int utimes_long(const char *path, long seconds)
-// {
-// 	if(seconds != -1) {
-// 		struct timeval tv[2];
-// 		memset(&tv, 0, sizeof(tv));
-// 		tv[0].tv_sec = tv[1].tv_sec = seconds;
-// 		return utimes(path, tv);
-// 	}
-// 	return 0;
-// }
 
 // /* prefix to avoid possible future clash with getumask(3) */
 // static mode_t _getumask(void)
@@ -165,15 +141,6 @@ fn curl_gethost(url: &String, buffer: &mut String, buf_len: usize) -> i32 {
 // 	mode_t mask = umask(0);
 // 	umask(mask);
 // 	return mask;
-// }
-
-//
-// 	curl_easy_getinfo(payload->handle->curl, CURLINFO_RESPONSE_CODE, &respcode);
-// 	if(payload->respcode != respcode) {
-// 		payload->respcode = respcode;
-// 	}
-//
-// 	return realsize;
 // }
 
 //
@@ -195,91 +162,70 @@ fn curl_gethost(url: &String, buffer: &mut String, buf_len: usize) -> i32 {
 // 	sigaction(signum, sa, NULL);
 // }
 
-// static FILE *create_tempfile(struct dload_payload *payload, const char *localpath)
-// {
-// 	int fd;
-// 	FILE *fp;
-// 	char *randpath;
-// 	size_t len;
-//
-// 	/* create a random filename, which is opened with O_EXCL */
-// 	len = strlen(localpath) + 14 + 1;
-// 	MALLOC(randpath, len, RET_ERR(payload->handle, ALPM_ERR_MEMORY, NULL));
-// 	snprintf(randpath, len, "%salpmtmp.XXXXXX", localpath);
-// 	if((fd = mkstemp(randpath)) == -1 ||
-// 			fchmod(fd, ~(_getumask()) & 0666) ||
-// 			!(fp = fdopen(fd, payload->tempfile_openmode))) {
-// 		unlink(randpath);
-// 		close(fd);
-// 		_alpm_log(payload->handle, ALPM_LOG_ERROR,
-// 				_("failed to create temporary file for download\n"));
-// 		free(randpath);
-// 		return NULL;
-// 	}
-// 	/* fp now points to our alpmtmp.XXXXXX */
-// 	free(payload->tempfile_name);
-// 	payload->tempfile_name = randpath;
-// 	free(payload->remote_name);
-// 	STRDUP(payload->remote_name, strrchr(randpath, '/') + 1,
-// 			fclose(fp); RET_ERR(payload->handle, ALPM_ERR_MEMORY, NULL));
-//
-// 	return fp;
-// }
-//
 // /* RFC1123 states applications should support this length */
 // #define HOSTNAME_SIZE 256
 
 use curl::easy::{Handler, WriteError};
 
-struct Collector(Vec<u8>);
+struct Collector {
+    pub initial_size: f64,
+}
+
+impl Collector {
+    pub fn new() -> Self {
+        Collector { initial_size: 0f64 }
+    }
+}
 
 impl Handler for Collector {
     fn write(&mut self, data: &[u8]) -> std::result::Result<usize, WriteError> {
-        self.0.extend_from_slice(data);
-        Ok(data.len())
+        unimplemented!();
+        // self.0.extend_from_slice(data);
+        // Ok(data.len())
     }
 
     fn progress(&mut self, dltotal: f64, dlnow: f64, ultotal: f64, ulnow: f64) -> bool {
         // 	struct dload_payload *payload = (struct dload_payload *)file;
         // 	off_t current_size, total_size;
-        //
+        let current_size;
+
         // 	/* avoid displaying progress bar for redirects with a body */
         // 	if(payload->respcode >= 300) {
         // 		return 0;
         // 	}
-        //
+
         // 	/* SIGINT sent, abort by alerting curl */
         // 	if(dload_interrupted) {
         // 		return 1;
         // 	}
-        //
-        // 	current_size = payload->initial_size + dlnow;
-        //
+
+        current_size = self.initial_size + dlnow;
+
         // 	/* is our filesize still under any set limit? */
         // 	if(payload->max_size && current_size > payload->max_size) {
         // 		dload_interrupted = ABORT_OVER_MAXFILESIZE;
         // 		return 1;
         // 	}
-        //
+
         // 	/* none of what follows matters if the front end has no callback */
         // 	if(payload->handle->dlcb == NULL) {
         // 		return 0;
         // 	}
-        //
+
         // 	total_size = payload->initial_size + dltotal;
-        //
+
         // 	if(dltotal == 0 || payload->prevprogress == total_size) {
         // 		return 0;
         // 	}
-        //
-        // 	/* initialize the progress bar here to avoid displaying it when
-        // 	 * a repo is up to date and nothing gets downloaded.
-        // 	 * payload->handle->dlcb will receive the remote_name
-        // 	 * and the following arguments:
-        // 	 * 0, -1: download initialized
-        // 	 * 0, 0: non-download event
-        // 	 * x {x>0}, x: download complete
-        // 	 * x {x>0, x<y}, y {y > 0}: download progress, expected total is known */
+
+        /* initialize the progress bar here to avoid displaying it when
+         * a repo is up to date and nothing gets downloaded.
+         * payload->handle->dlcb will receive the remote_name
+         * and the following arguments:
+         * 0, -1: download initialized
+         * 0, 0: non-download event
+         * x {x>0}, x: download complete
+         * x {x>0, x<y}, y {y > 0}: download progress, expected total is known */
         // 	if(current_size == total_size) {
         // 		payload->handle->dlcb(payload->remote_name, dlnow, dltotal);
         // 	} else if(!payload->prevprogress) {
@@ -291,9 +237,9 @@ impl Handler for Collector {
         // 	 * download_size (nor included in the total download size callback) */
         // 		payload->handle->dlcb(payload->remote_name, dlnow, dltotal);
         // 	}
-        //
+
         // 	payload->prevprogress = current_size;
-        //
+
         // 	return 0;
         unimplemented!();
     }
@@ -324,6 +270,13 @@ impl Handler for Collector {
         // 			STRNDUP(payload->content_disp_name, fptr, endptr - fptr + 1,
         // 					RET_ERR(payload->handle, ALPM_ERR_MEMORY, realsize));
         // 		}
+        // }
+        // 	curl_easy_getinfo(payload->handle->curl, CURLINFO_RESPONSE_CODE, &respcode);
+        // 	if(payload->respcode != respcode) {
+        // 		payload->respcode = respcode;
+        // 	}
+        //
+        // 	return realsize;
         unimplemented!();
     }
 }
@@ -354,6 +307,37 @@ impl<'a> DownloadPayload<'a> {
         }
     }
 
+    fn create_tempfile(&self, localpath: &str) -> fs::File {
+        // 	int fd;
+        // 	FILE *fp;
+        // 	char *randpath;
+        // 	size_t len;
+        //
+        // 	/* create a random filename, which is opened with O_EXCL */
+        // 	len = strlen(localpath) + 14 + 1;
+        // 	MALLOC(randpath, len, RET_ERR(payload->handle, ALPM_ERR_MEMORY, NULL));
+        // 	snprintf(randpath, len, "%salpmtmp.XXXXXX", localpath);
+        // 	if((fd = mkstemp(randpath)) == -1 ||
+        // 			fchmod(fd, ~(_getumask()) & 0666) ||
+        // 			!(fp = fdopen(fd, payload->tempfile_openmode))) {
+        // 		unlink(randpath);
+        // 		close(fd);
+        // 		_alpm_log(payload->handle, ALPM_LOG_ERROR,
+        // 				_("failed to create temporary file for download\n"));
+        // 		free(randpath);
+        // 		return NULL;
+        // 	}
+        // 	/* fp now points to our alpmtmp.XXXXXX */
+        // 	free(payload->tempfile_name);
+        // 	payload->tempfile_name = randpath;
+        // 	free(payload->remote_name);
+        // 	STRDUP(payload->remote_name, strrchr(randpath, '/') + 1,
+        // 			fclose(fp); RET_ERR(payload->handle, ALPM_ERR_MEMORY, NULL));
+        //
+        // 	return fp;
+        unimplemented!();
+    }
+
     fn curl_download_internal(
         &mut self,
         localpath: &String,
@@ -364,6 +348,7 @@ impl<'a> DownloadPayload<'a> {
         // 	FILE *localf = NULL;
         // 	char *effective_url;
         // 	char hostname[HOSTNAME_SIZE];
+        let mut hostname;
         // 	char error_buffer[CURL_ERROR_SIZE] = {0};
         // 	struct stat st;
         // 	long timecond, remote_time = -1;
@@ -371,25 +356,30 @@ impl<'a> DownloadPayload<'a> {
         // 	struct sigaction orig_sig_pipe, orig_sig_int;
         // 	/* shortcut to our handle within the payload */
         // 	Handle *handle = payload->handle;
-        let mut curl: Curl<Collector> = Curl::new(Collector(Vec::new()));
-        // 	handle->pm_errno = ALPM_ERR_OK;
+        let mut curl: Curl<Collector> = Curl::new(Collector::new());
 
         // 	payload->tempfile_openmode = "wb";
         if self.remote_name == OsStr::new("") {
             self.remote_name = self.fileurl.file_name().unwrap().to_os_string();
         }
 
-        // 	if(curl_gethost(payload->fileurl, hostname, sizeof(hostname)) != 0) {
-        // 		error!("url '{}' is invalid", self.fileurl);
-        // 		RET_ERR(handle, ALPM_ERR_SERVER_BAD_URL, -1);
-        // 	}
+        hostname = match curl_gethost(self.fileurl.as_os_str().to_str().unwrap_or("")) {
+            Some(h) => h,
+            None => {
+                error!("url '{}' is invalid", self.fileurl.display());
+                return Err(Error::ServerBadUrl);
+            }
+        };
 
         if self.remote_name.len() > 0 && self.remote_name != OsStr::new(".sig") {
-            // 		self.destfile_name = get_fullpath(localpath, payload->remote_name, "");
-            // 		self.tempfile_name = get_fullpath(localpath, payload->remote_name, ".part");
-            // 		if(!payload->destfile_name || !payload->tempfile_name) {
-            // 			goto cleanup;
-            // 		}
+            self.destfile_name =
+                format!("{}{}", localpath, self.remote_name.to_str().unwrap_or(""));
+            self.tempfile_name = format!(
+                "{}{}{}",
+                localpath,
+                self.remote_name.to_str().unwrap_or(""),
+                ".part"
+            );
         } else {
             /* URL doesn't contain a filename, so make a tempfile. We can't support
              * resuming this kind of download; partial transfers will be destroyed */
@@ -401,10 +391,10 @@ impl<'a> DownloadPayload<'a> {
             // 		}
         }
 
-        self.curl_set_handle_opts(&mut curl);
+        self.curl_set_handle_opts(&mut curl)?;
 
         // 	if(localf == NULL) {
-        // 		localf = fopen(payload->tempfile_name, payload->tempfile_openmode);
+        // 		localf = fopen(self.tempfile_name, payload->tempfile_openmode);
         // 		if(localf == NULL) {
         // 			handle->pm_errno = ALPM_ERR_RETRIEVE;
         // 			_alpm_log(handle, ALPM_LOG_ERROR,
@@ -413,18 +403,18 @@ impl<'a> DownloadPayload<'a> {
         // 			goto cleanup;
         // 		}
         // 	}
-        //
+
         // 	debug!("opened tempfile for download: %s (%s)\n", payload->tempfile_name,
         // 			payload->tempfile_openmode);
-        //
+
         // 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, localf);
-        //
-        // 	/* Ignore any SIGPIPE signals. With libcurl, these shouldn't be happening,
-        // 	 * but better safe than sorry. Store the old signal handler first. */
+
+        /* Ignore any SIGPIPE signals. With libcurl, these shouldn't be happening,
+         * but better safe than sorry. Store the old signal handler first. */
         // 	mask_signal(SIGPIPE, SIG_IGN, &orig_sig_pipe);
         // 	mask_signal(SIGINT, &inthandler, &orig_sig_int);
-        //
-        // 	/* perform transfer */
+
+        /* perform transfer */
         match curl.perform() {
             Ok(()) => {
                 /* get http/ftp response code */
@@ -500,7 +490,7 @@ impl<'a> DownloadPayload<'a> {
         if timecond && bytes_dl == 0f64 {
             debug!("file met time condition");
             ret = 1;
-            // 		unlink(payload->tempfile_name);
+            remove_file(&self.tempfile_name)?;
             // 		goto cleanup;
         }
 
@@ -538,7 +528,7 @@ impl<'a> DownloadPayload<'a> {
 
         ret = 0;
 
-        // cleanup:
+        /* cleanup: */
         // 		utimes_long(payload->tempfile_name, remote_time);
 
         if ret == 0 {
@@ -558,12 +548,13 @@ impl<'a> DownloadPayload<'a> {
         }
 
         if ret == -1 && self.unlink_on_fail && self.tempfile_name != "" {
-            // 		unlink(payload->tempfile_name);
+            remove_file(&self.tempfile_name)?;
         }
 
         /* restore the old signal handlers */
         // 	unmask_signal(SIGINT, &orig_sig_int);
         // 	unmask_signal(SIGPIPE, &orig_sig_pipe);
+
         /* if we were interrupted, trip the old handler */
         // 	if(dload_interrupted) {
         // 		raise(SIGINT);
@@ -644,22 +635,20 @@ impl<'a> DownloadPayload<'a> {
     // #endif
     //
 
-    /** Download a file given by a URL to a local directory.
-     * Does not overwrite an existing file if the download fails.
-     * @param payload the payload context
-     * @param localpath the directory to save the file in
-     * @param final_file the real name of the downloaded file (may be NULL)
-     * @return 0 on success, -1 on error (pm_errno is set accordingly if errors_ok == 0)
-     */
+    /// Download a file given by a URL to a local directory.
+    /// Does not overwrite an existing file if the download fails.
+    /// @param payload the payload context
+    /// * @param localpath the directory to save the file in
+    /// * @param final_file the real name of the downloaded file (may be NULL)
+    /// * @return 0 on success, -1 on error (pm_errno is set accordingly if errors_ok == 0)
     pub fn _alpm_download(
         &mut self,
         localpath: &String,
         final_file: Option<&mut String>,
         final_url: Option<&mut String>,
     ) -> i32 {
-        unimplemented!();
         // 	Handle *handle = payload->handle;
-        //
+
         // if handle.fetchcb == NULL {
         // #ifdef HAVE_LIBCURL
         return self.curl_download_internal(localpath, final_file, final_url)

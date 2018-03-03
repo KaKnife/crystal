@@ -1,3 +1,15 @@
+use super::*;
+use super::alpm;
+use super::package::*;
+use super::util::check_syncdbs;
+use super::conf::Config;
+use alpm::Package;
+use alpm::DepMissing;
+use alpm::Result;
+use alpm::DatabaseUsage;
+use alpm::Database;
+use alpm::Handle;
+use alpm::Error;
 /*
  *  sync.c
  *
@@ -17,14 +29,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-use super::*;
-use super::package::*;
-use super::util::*;
-use super::alpm;
-use super::alpm::*;
-use super::conf::Config;
-use super::util::check_syncdbs;
-use super::alpm::Error;
 
 fn unlink_verbose(pathname: &String, ignore_missing: bool) -> i32 {
     unimplemented!();
@@ -110,14 +114,14 @@ fn sync_cleandb_all(config: &Config, handle: &mut Handle) -> i32 {
     let mut ret = 0;
     {
         let dbpath = handle.get_dbpath();
-        print!("Database directory: {}\n", dbpath);
+        info!("Database directory: {}", dbpath);
         if !yesno(
             String::from("Do you want to remove unused repositories?"),
             config,
         ) {
             return 0;
         }
-        print!("removing unused sync repositories...\n");
+        info!("removing unused sync repositories...");
         syncdbpath = format!("{}{}", dbpath, "sync/");
     }
     ret += sync_cleandb(syncdbpath, handle);
@@ -297,64 +301,53 @@ fn sync_search(
     return found == 0;
 }
 
-fn sync_group(level: i32, syncs: &Vec<Database>, targets: Vec<String>) -> Result<()> {
-    unimplemented!();
-    // 	alpm_list_t *i, *j, *k, *s = NULL;
-    // 	int ret = 0;
-    //
-    // 	if(targets) {
-    // 		size_t found;
-    // 		for(i = targets; i; i = alpm_list_next(i)) {
-    // 			found = 0;
-    // 			const char *grpname = i->data;
-    // 			for(j = syncs; j; j = alpm_list_next(j)) {
-    // 				Database *db = j->data;
-    // 				alpm_group_t *grp = alpm_db_get_group(db, grpname);
-    //
-    // 				if(grp) {
-    // 					found++;
-    // 					/* get names of packages in group */
-    // 					for(k = grp->packages; k; k = alpm_list_next(k)) {
-    // 						if(!config->quiet) {
-    // 							printf("%s %s\n", grpname,
-    // 									alpm_pkg_get_name(k->data));
-    // 						} else {
-    // 							printf("%s\n", alpm_pkg_get_name(k->data));
-    // 						}
-    // 					}
-    // 				}
-    // 			}
-    // 			if(!found) {
-    // 				ret = 1;
-    // 			}
-    // 		}
-    // 	} else {
-    // 		ret = 1;
-    // 		for(i = syncs; i; i = alpm_list_next(i)) {
-    // 			Database *db = i->data;
-    //
-    // 			for(j = alpm_db_get_groupcache(db); j; j = alpm_list_next(j)) {
-    // 				alpm_group_t *grp = j->data;
-    // 				ret = 0;
-    //
-    // 				if(level > 1) {
-    // 					for(k = grp->packages; k; k = alpm_list_next(k)) {
-    // 						printf("%s %s\n", grp->name,
-    // 								alpm_pkg_get_name(k->data));
-    // 					}
-    // 				} else {
-    // 					/* print grp names only, no package names */
-    // 					if(!alpm_list_find_str (s, grp->name)) {
-    // 						s = alpm_list_add (s, grp->name);
-    // 						printf("%s\n", grp->name);
-    // 					}
-    // 				}
-    // 			}
-    // 		}
-    // 		alpm_list_free(s);
-    // 	}
-    //
-    // 	return ret;
+fn sync_group(level: i32, syncs: &Vec<Database>, targets: Vec<String>, quiet: bool) -> i32 {
+    let mut ret = 0;
+
+    if !targets.is_empty() {
+        let mut found;
+        for grpname in targets {
+            found = false;
+            for db in syncs {
+                if let Ok(grp) = db.get_group(&grpname) {
+                    found = true;
+                    /* get names of packages in group */
+                    for pkg in &grp.packages {
+                        if !quiet {
+                            info!("{} {}", grpname, pkg.get_name());
+                        } else {
+                            info!("{}", pkg.get_name());
+                        }
+                    }
+                }
+            }
+            if !found {
+                ret = 1;
+            }
+        }
+    } else {
+        ret = 1;
+        for db in syncs {
+            for grp in db.get_groupcache() {
+                ret = 0;
+
+                if level > 1 {
+                    for pkg in &grp.packages {
+                        info!("{} {}", grp.name, pkg.get_name());
+                    }
+                } else {
+                    /* print grp names only, no package names */
+                    // if(!alpm_list_find_str (s, grp->name)) {
+                    // 	s = alpm_list_add (s, grp->name);
+                    // 	printf("%s\n", grp->name);
+                    // }
+                    unimplemented!();
+                }
+            }
+        }
+    }
+
+    return ret;
 }
 
 fn sync_info(mut syncs: Vec<Database>, targets: &Vec<String>) -> Result<()> {
@@ -878,7 +871,11 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handl
 
     /* look for groups */
     if config.group != 0 {
-        return sync_group(config.group as i32, &sync_dbs, targets);
+        return if sync_group(config.group as i32, &sync_dbs, targets, config.quiet) == 0 {
+            Err(Error::Other)
+        } else {
+            Ok(())
+        };
     }
 
     /* get package info */
