@@ -1680,7 +1680,7 @@ pub fn initialize(root: &String, dbpath: &String) -> Result<Handle> {
 
     *myhandle.get_lockfile_mut() = format!("{}{}", myhandle.get_dbpath(), lf);
 
-    myhandle._db_register_local()?;
+    myhandle.db_register_local()?;
 
     // #ifdef ENABLE_NLS
     // 	bindtextdomain("libalpm", LOCALEDIR);

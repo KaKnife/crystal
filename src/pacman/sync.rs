@@ -650,11 +650,11 @@ fn sync_trans(targets: &Vec<String>, config: &mut Config, handle: &mut Handle) -
         }
     }
 
-    if config.op_s_upgrade != 0 {
+    if config.s_upgrade != 0 {
         if !config.print {
             print!("Starting full system upgrade...\n");
         }
-        match handle.alpm_sync_sysupgrade(config.op_s_upgrade >= 2) {
+        match handle.alpm_sync_sysupgrade(config.s_upgrade >= 2) {
             Err(e) => {
                 error!("{}", e);
                 match handle.trans_release() {
@@ -832,12 +832,12 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handl
     let mut sync_dbs: Vec<Database>;
 
     /* clean the cache */
-    if config.op_s_clean != 0 {
+    if config.clean != 0 {
         let mut ret = 0;
 
         trans_init(&alpm::TransactionFlag::default(), false, handle)?;
 
-        ret += sync_cleancache(config.op_s_clean as i32);
+        ret += sync_cleancache(config.clean as i32);
         ret += sync_cleandb_all(config, handle);
 
         if !trans_release(handle) {
@@ -851,17 +851,17 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handl
 
     sync_dbs = handle.get_syncdbs().clone();
 
-    if config.op_s_sync != 0 {
+    if config.sync != 0 {
         /* grab a fresh package list */
         print!("Synchronizing package databases...\n");
 
-        sync_syncdbs(config.op_s_sync as i32, &mut sync_dbs, handle)?;
+        sync_syncdbs(config.sync as i32, &mut sync_dbs, handle)?;
     }
 
     check_syncdbs(1, true, handle)?;
 
     /* search for a package */
-    if config.op_s_search {
+    if config.search {
         return if sync_search(&mut sync_dbs, &targets, config, handle) {
             Err(Error::Other)
         } else {
@@ -879,12 +879,12 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handl
     }
 
     /* get package info */
-    if config.op_s_info != 0 {
+    if config.info != 0 {
         return sync_info(sync_dbs, &targets);
     }
 
     /* get a listing of files in sync DBs */
-    if config.op_q_list {
+    if config.list {
         return sync_list(&mut sync_dbs, &targets);
     }
 

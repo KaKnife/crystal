@@ -287,8 +287,8 @@ pub fn pacman_database(
 ) -> std::result::Result<(), i32> {
     let mut ret: i32 = 0;
 
-    if config.op_q_check != 0 {
-        if config.op_q_check == 1 {
+    if config.check != 0 {
+        if config.check == 1 {
             ret = check_db_local(config, handle);
         } else {
             ret = check_db_sync(config, handle);

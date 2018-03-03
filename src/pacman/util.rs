@@ -947,7 +947,7 @@ fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
                 /* file is already in the package cache */
                 let pkgfile = pkg.get_filename();
                 // struct stat buf;
-                for item in handle.option_get_cachedirs() {
+                for item in handle.get_cachedirs() {
                     let _path = format!("{}{}", item, pkgfile);
                     unimplemented!();
                     // if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {

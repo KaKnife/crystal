@@ -118,7 +118,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
                 /* an existing sig file is no good at this point */
 
                 let dbpath = &db.path().ok();
-                let sigpath = match handle._sigpath(dbpath) {
+                let sigpath = match handle.sigpath(dbpath) {
                     Some(s) => s,
                     None => {
                         ret = -1;

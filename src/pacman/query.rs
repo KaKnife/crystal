@@ -232,7 +232,7 @@ fn query_search(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> 
     )
 }
 
-fn pkg_get_locality(pkg: &Package, handle: &Handle) -> u8 {
+fn pkg_get_locality(pkg: &Package, handle: &Handle) -> usize {
     let pkgname = pkg.get_name();
     let sync_dbs = handle.get_syncdbs();
 
@@ -244,7 +244,12 @@ fn pkg_get_locality(pkg: &Package, handle: &Handle) -> u8 {
     return PKG_LOCALITY_FOREIGN;
 }
 
-fn is_unrequired(pkg: &Package, level: u8, db_local: &Database, dbs_sync: &Vec<Database>) -> bool {
+fn is_unrequired(
+    pkg: &Package,
+    level: usize,
+    db_local: &Database,
+    dbs_sync: &Vec<Database>,
+) -> bool {
     let mut requiredby = pkg.compute_requiredby(false, db_local, dbs_sync).unwrap();
     if requiredby.is_empty() {
         if level == 1 {
@@ -260,27 +265,27 @@ fn is_unrequired(pkg: &Package, level: u8, db_local: &Database, dbs_sync: &Vec<D
 fn filter(pkg: &Package, config: &Config, handle: &Handle) -> bool {
     match pkg.get_reason() {
         /* check if this package was installed as a dependency */
-        Ok(&PackageReason::Dependency) if config.op_q_explicit != 0 => return false,
+        Ok(&PackageReason::Dependency) if config.explicit => return false,
         /* check if this package was explicitly installed */
-        Ok(&PackageReason::Explicit) if config.op_q_deps != 0 => return false,
+        Ok(&PackageReason::Explicit) if config.deps => return false,
         _ => {}
     }
     /* check if this pkg is or isn't in a sync DB */
-    if config.op_q_locality != 0 && config.op_q_locality != pkg_get_locality(pkg, handle) {
+    if config.locality != 0 && config.locality != pkg_get_locality(pkg, handle) {
         return false;
     }
     /* check if this pkg is unrequired */
-    if config.op_q_unrequired != 0
+    if config.unrequired != 0
         && !is_unrequired(
             pkg,
-            config.op_q_unrequired,
+            config.unrequired,
             &handle.db_local,
             &handle.dbs_sync,
         ) {
         return false;
     }
     /* check if this pkg is outdated */
-    if config.op_q_upgrade != 0 && pkg.newversion(handle.get_syncdbs()).is_none() {
+    if config.q_upgrade && pkg.newversion(handle.get_syncdbs()).is_none() {
         return false;
     }
     return true;
@@ -289,38 +294,37 @@ fn filter(pkg: &Package, config: &Config, handle: &Handle) -> bool {
 fn display(pkg: &Package, config: &Config, handle: &Handle) -> i32 {
     let mut ret = 0;
 
-    if config.op_q_info != 0 {
-        if config.op_q_isfile != 0 {
+    if config.info != 0 {
+        if config.isfile {
             match pkg.dump_full(false, &handle.db_local, &handle.dbs_sync) {
                 Err(e) => error!("Error dumping package {} ({})", pkg.get_name(), e),
                 Ok(_) => {}
             };
         } else {
-            match pkg.dump_full(config.op_q_info > 1, &handle.db_local, &handle.dbs_sync) {
+            match pkg.dump_full(config.info > 1, &handle.db_local, &handle.dbs_sync) {
                 Err(e) => error!("Error dumping package {} ({})", pkg.get_name(), e),
                 Ok(_) => {}
             };;
         }
     }
-    if config.op_q_list {
+    if config.list {
         dump_pkg_files(pkg, config.quiet);
     }
-    if config.op_q_changelog != 0 {
+    if config.changelog {
         dump_pkg_changelog(pkg);
     }
-    match config.op_q_check {
+    match config.check {
         0 => {}
         1 => ret = pkg.check_fast(),
         _ => ret = pkg.check_full(),
     }
-    if config.op_q_info == 0 && !config.op_q_list && config.op_q_changelog == 0
-        && config.op_q_check == 0
+    if config.info == 0 && !config.list && !config.changelog && config.check == 0
     {
         if !config.quiet {
             let colstr = &config.colstr;
             print!("{} {}", pkg.get_name(), pkg.get_version(),);
 
-            if config.op_q_upgrade != 0 {
+            if config.q_upgrade {
                 let newpkg = pkg.newversion(handle.get_syncdbs()).unwrap();
                 print!(" . {}", newpkg.get_version(),);
 
@@ -342,8 +346,8 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> R
     let handle_clone = &mut handle.clone();
     let db_local: &mut Database = handle.get_localdb_mut();
 
-    let op_q_explicit = config.op_q_explicit;
-    let op_q_deps = config.op_q_deps;
+    let op_q_explicit = config.explicit;
+    let op_q_deps = config.deps;
 
     if targets.is_empty() {
         for grp in db_local.get_groupcache_mut() {
@@ -379,8 +383,8 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> R
 
 pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Handle) -> Result<()> {
     // let handle_clone: &Handle = &handle.clone();
-    let op_q_explicit = config.op_q_explicit;
-    let op_q_deps = config.op_q_deps;
+    let op_q_explicit = config.explicit;
+    let op_q_deps = config.deps;
     let pkg_cache;
     let mut ret: Result<()> = Ok(());
     let mut is_match: bool = false;
@@ -395,7 +399,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
     /* First: operations that do not require targets */
 
     /* search for a package */
-    if config.op_q_search {
+    if config.search {
         return query_search(&targets, config, handle);
     }
 
@@ -404,7 +408,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
         return query_group(&targets, config, handle);
     }
 
-    if config.op_q_locality != 0 || config.op_q_upgrade != 0 {
+    if config.locality != 0 || config.q_upgrade  {
         check_syncdbs(1, true, handle)?;
     }
 
@@ -414,7 +418,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
      * valid: no-op (plain -Q), list, info, check
      * invalid: isfile, owns */
     if targets.is_empty() {
-        if config.op_q_isfile != 0 || config.op_q_owns != 0 {
+        if config.isfile || config.owns {
             error!("no targets specified (use -h for help)");
             return Err(Error::Other);
         }
@@ -441,7 +445,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
     /* Second: operations that require target(s) */
 
     /* determine the owner of a file */
-    if config.op_q_owns != 0 {
+    if config.owns {
         return query_fileowner(&targets);
     }
 
@@ -450,7 +454,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
     for strname in targets {
         /* strip leading part of "local/pkgname" */
         let strname = String::from(strname.trim_left_matches(LOCAL_PREFIX));
-        if config.op_q_isfile != 0 {
+        if config.isfile {
             pkg = match handle.pkg_load(&strname, 1, &SigLevel::default()) {
                 Ok(pkg) => pkg,
                 Err(e) => {
@@ -466,7 +470,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
                         None => {
                             error!("package '{}' was not found", strname);
                             unimplemented!();
-                            // if(!config.op_q_isfile && access(strname, R_OK) == 0) {
+                            // if(!config.isfile && access(strname, R_OK) == 0) {
                             // 	pm_printf(ALPM_LOG_WARNING,
                             // 			_("'{}' is a file, you might want to use {}.\n"),
                             // 			strname, "-p/--file");
@@ -488,7 +492,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
             is_match = true;
         }
 
-        if config.op_q_isfile != 0 {
+        if config.isfile {
             unimplemented!();
             // 	free(pkg);
             // pkg = NULL;

@@ -316,7 +316,7 @@ pub fn main() {
 
     if unsafe { libc::isatty(libc::STDOUT_FILENO as i32) } == 0 {
         /* disable progressbar if the output is redirected */
-        config.noprogressbar = 1;
+        config.noprogressbar = true;
     } else {
         /* install signal handler to update output width */
         // unimplemented!();
@@ -429,7 +429,7 @@ pub fn main() {
     }
 
     /* set up the print operations */
-    if config.print && config.op_s_clean == 0 {
+    if config.print && config.clean == 0 {
         config.noconfirm = true;
         config.flags.no_conflicts = true;
         config.flags.no_lock = true;
@@ -442,7 +442,7 @@ pub fn main() {
         print!("Conf File : {}\n", config.configfile);
         print!("DB Path   : {}\n", handle.get_dbpath());
         print!("Cache Dirs: ");
-        for dir in handle.option_get_cachedirs() {
+        for dir in handle.get_cachedirs() {
             print!("{}  ", dir);
         }
         print!("\n");
@@ -452,8 +452,8 @@ pub fn main() {
         }
         print!("\n");
         print!("Lock File : {}\n", handle.get_lockfile());
-        print!("Log File  : {}\n", handle.option_get_logfile());
-        print!("GPG Dir   : {}\n", handle.option_get_gpgdir());
+        print!("Log File  : {}\n", handle.get_logfile());
+        print!("GPG Dir   : {}\n", handle.get_gpgdir());
         print!("Targets   :");
         for target in &pm_targets {
             print!("{}  ", target);

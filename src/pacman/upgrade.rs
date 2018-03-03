@@ -71,9 +71,9 @@ pub fn pacman_upgrade(
         let siglevel;
 
         if file_is_remote[n] {
-            siglevel = handle.alpm_option_get_remote_file_siglevel();
+            siglevel = handle.alpm_get_remote_file_siglevel();
         } else {
-            siglevel = handle.alpm_option_get_local_file_siglevel();
+            siglevel = handle.alpm_get_local_file_siglevel();
         }
         pkg = match handle.pkg_load(targ, 1, &siglevel) {
             Err(e) => {
