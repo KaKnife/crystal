@@ -11,6 +11,6 @@ glob = "0"
 env_logger = "0"
 log = "0"
 # time = "0.1"
-curl = { path = "../curl-rust" }
+curl = { git = "https://github.com/alexcrichton/curl-rust.git" }
 
 [workspace]

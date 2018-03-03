@@ -21,6 +21,8 @@
 use std::error::Error as StdError;
 use std::io;
 use std::ffi;
+use curl::Error as CurlError;
+use std::time::SystemTimeError;
 
 // impl Default for Error {
 //     fn default() -> Self {
@@ -110,11 +112,25 @@ pub enum Error {
     IO(io::Error),
     OsStr(ffi::OsString),
     Other,
+    CurlError(CurlError),
+    SystemTimeError(SystemTimeError),
+}
+
+impl From<SystemTimeError> for Error {
+    fn from(err: SystemTimeError) -> Self {
+        Error::SystemTimeError(err)
+    }
 }
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         Error::IO(err)
+    }
+}
+
+impl From<CurlError> for Error {
+    fn from(err: CurlError) -> Self {
+        Error::CurlError(err)
     }
 }
 
@@ -189,6 +205,8 @@ impl StdError for Error {
             &Error::PkgNotLoaded => "package was not loaded",
             &Error::OsStr(_) => "error translating from OsString",
             &Error::IO(ref err) => err.description(),
+            &Error::CurlError(ref err) => err.description(),
+            &Error::SystemTimeError(ref err) => err.description(),
             &Error::Other => "unknown error",
             // _ => "Unnkown error",
         }

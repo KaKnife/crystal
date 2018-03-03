@@ -2227,12 +2227,12 @@ impl Handle {
         }
     }
 
-    pub fn alpm_option_set_disable_dl_timeout(&mut self, disable_dl_timeout: u16) -> i32 {
-        // 	CHECK_HANDLE(handle, return -1);
-        if cfg!(HAVE_LIBCURL) {
-            self.disable_dl_timeout = disable_dl_timeout;
-        }
-        return 0;
+    pub fn set_disable_dl_timeout(&mut self, disable_dl_timeout: bool) {
+        self.disable_dl_timeout = disable_dl_timeout;
+    }
+
+    pub fn disable_dl_timeout(&self) -> bool {
+        self.disable_dl_timeout
     }
 
     pub fn handle_new() -> Handle {
@@ -2802,7 +2802,7 @@ pub struct Handle {
     // #ifdef HAVE_LIBCURL
     // 	/* libcurl handle */
     // 	CURL *curl;             /* reusable curl_easy handle */
-    disable_dl_timeout: u16,
+    disable_dl_timeout: bool,
     // #endif
     //
     // #ifdef HAVE_LIBGPGME

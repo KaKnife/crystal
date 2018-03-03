@@ -98,7 +98,7 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
             let mut tmp1;
             let mut tmp2;
             let mut final_db_url: String = String::new();
-            let mut payload: DownloadPayload = DownloadPayload::new();
+            let mut payload: DownloadPayload = DownloadPayload::new(handle.disable_dl_timeout());
             let mut sig_ret: i32 = 0;
 
             /* set hard upper limit of 25MiB */
@@ -108,9 +108,9 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
             tmp = format!("{}/{}{}", server, db.get_name(), dbext);
             payload.fileurl = Path::new(&tmp);
             payload.force = force;
-            payload.unlink_on_fail = 1;
+            payload.unlink_on_fail = true;
 
-            ret = payload._alpm_download(&syncpath, None, Some(&final_db_url));
+            ret = payload._alpm_download(&syncpath, None, Some(&mut final_db_url));
             payload._alpm_dload_payload_reset();
             updated = updated || ret == 0;
 

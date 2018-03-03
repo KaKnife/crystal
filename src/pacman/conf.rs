@@ -1680,7 +1680,7 @@ pub fn setup_libalpm(config: &Config) -> Result<Handle> {
     handle.option_set_noupgrades(&config.noupgrade);
     handle.option_set_noextracts(&config.noextract);
 
-    handle.alpm_option_set_disable_dl_timeout(config.disable_dl_timeout as u16);
+    handle.set_disable_dl_timeout(config.disable_dl_timeout);
 
     for entry in &config.assumeinstalled {
         let dep = alpm_dep_from_string(&entry);

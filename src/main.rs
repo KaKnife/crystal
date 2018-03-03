@@ -16,6 +16,7 @@ extern crate env_logger;
 extern crate getopts;
 extern crate glob;
 extern crate libc;
+extern crate curl;
 // extern crate time;
 #[macro_use]
 extern crate log;
