@@ -889,9 +889,9 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handl
     }
 
     if targets.is_empty() {
-        if config.op_s_upgrade != 0 {
+        if config.s_upgrade != 0 {
             /* proceed */
-        } else if config.op_s_sync != 0 {
+        } else if config.sync != 0 {
             return Ok(());
         } else {
             /* don't proceed here unless we have an operation that doesn't require a

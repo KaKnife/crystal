@@ -664,6 +664,8 @@ impl Config {
         }
         self.noconfirm = opts.opt_present("noconfirm");
         self.noconfirm = !opts.opt_present("confirm");
+        self.disable_dl_timeout = opts.opt_present("disable-download-timeout");
+        self.verbose = opts.opt_count("verbose");
         if let Some(dbpath) = opts.opt_str("dbpath") {
             self.dbpath = dbpath;
         }
@@ -673,8 +675,6 @@ impl Config {
         if let Some(sysroot) = opts.opt_str("sysroot") {
             self.sysroot = sysroot;
         }
-        self.disable_dl_timeout = opts.opt_present("disable-download-timeout");
-        self.verbose = opts.opt_count("verbose");
         return Ok(());
     }
 
