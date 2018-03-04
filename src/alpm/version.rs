@@ -94,7 +94,7 @@ pub fn rpmvercmp(a: &String, b: &String) -> i8 {
 /// 1.5-1 and 1.5 will yield 0; comparing 1.5-1 and 1.5-2 will yield
 /// -1 as expected. This is mainly for supporting versioned dependencies
 /// that do not include the pkgrel.
-pub fn alpm_pkg_vercmp(a: &String, b: &String) -> i8 {
+pub fn pkg_vercmp(a: &String, b: &String) -> i8 {
     let mut ret;
 
     /* another quick shortcut- if full version specs are equal */

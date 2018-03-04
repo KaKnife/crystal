@@ -41,7 +41,7 @@ pub fn pacman_upgrade(
 
     for target in &mut targets {
         if target.contains("://") {
-            match handle.alpm_fetch_pkgurl(&target) {
+            match handle.fetch_pkgurl(&target) {
                 Err(e) => {
                     error!("'{}': {}\n", target, e);
                     retval = Err(e);
@@ -71,9 +71,9 @@ pub fn pacman_upgrade(
         let siglevel;
 
         if file_is_remote[n] {
-            siglevel = handle.alpm_get_remote_file_siglevel();
+            siglevel = handle.get_remote_file_siglevel();
         } else {
-            siglevel = handle.alpm_get_local_file_siglevel();
+            siglevel = handle.get_local_file_siglevel();
         }
         pkg = match handle.pkg_load(targ, 1, &siglevel) {
             Err(e) => {

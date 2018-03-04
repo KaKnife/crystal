@@ -24,11 +24,6 @@ use std::ffi;
 use curl::Error as CurlError;
 use std::time::SystemTimeError;
 
-// impl Default for Error {
-//     fn default() -> Self {
-//         Error::ALPM_ERR_OK
-//     }
-// }
 use std::fmt;
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -39,7 +34,6 @@ impl fmt::Display for Error {
 /// Error Codes
 #[derive(Debug)]
 pub enum Error {
-    // Ok = 0,
     Memory,
     System,
     BadPerms,

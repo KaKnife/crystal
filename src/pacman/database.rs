@@ -55,7 +55,7 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
                 None => {
                     error!(
                         "could not set install reason for package {} ()",
-                        pkgname /*alpm_strerror(alpm_errno(config->handle))*/,
+                        pkgname /*strerror(errno(config->handle))*/,
                     );
                     ret = 1;
                 }
@@ -63,7 +63,7 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
                     if pkg.set_reason(reason) != 0 {
                         error!(
                             "could not set install reason for package {} ()",
-                            pkgname /*alpm_strerror(alpm_errno(config->handle))*/,
+                            pkgname /*strerror(errno(config->handle))*/,
                         );
                         ret = 1;
                     } else if !config.quiet {
@@ -102,7 +102,7 @@ fn check_db_missing_deps(pkglist: &Vec<&Package>, handle: &Handle) -> i32 {
         Ok(deps) => deps,
     };
     for miss in deps {
-        let depstring: String = miss.depend.alpm_dep_compute_string();
+        let depstring: String = miss.depend.dep_compute_string();
         error!("missing '{}' dependency for '{}'", depstring, miss.target);
         ret += 1;
     }
@@ -182,7 +182,7 @@ struct FileItem {
 
 fn check_db_local_filelist_conflicts(pkglist: &Vec<&Package>) -> i32 {
     unimplemented!();
-    // 	alpm_list_t *i;
+    // 	list_t *i;
     let mut ret = 0;
     // // 	size_t list_size = 4096;
     // // 	size_t offset = 0, j;
@@ -195,10 +195,10 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<&Package>) -> i32 {
     for pkg in pkglist {
         unimplemented!();
         //     // 		Package *pkg = i->data;
-        //     // alpm_filelist_t *filelist = alpm_pkg_get_files(pkg);
-        // let filelist = pkg.alpm_pkg_get_files();
+        //     // filelist_t *filelist = pkg_get_files(pkg);
+        // let filelist = pkg.pkg_get_files();
         // for file in filelist {
-        //         // alpm_file_t *file = filelist->files + j;
+        //         // file_t *file = filelist->files + j;
         //         /* only add files, not directories, to our big list */
         //         if file.name.ends_with('/') {
         //             continue;
@@ -217,8 +217,8 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<&Package>) -> i32 {
     // 		struct FileItem *FileItem = all_files + j;
     // 		if(prev_FileItem && FileItem_cmp(prev_FileItem, FileItem) == 0) {
     // 			pm_printf(ALPM_LOG_ERROR, "file owned by '%s' and '%s': '%s'\n",
-    // 					alpm_pkg_get_name(prev_FileItem->pkg),
-    // 					alpm_pkg_get_name(FileItem->pkg),
+    // 					pkg_get_name(prev_FileItem->pkg),
+    // 					pkg_get_name(FileItem->pkg),
     // 					FileItem->file->name);
     // 		}
     // 		prev_FileItem = FileItem;

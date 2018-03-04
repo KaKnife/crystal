@@ -282,18 +282,12 @@ pub fn setuseragent() {
 pub fn cleanup(ret: i32) {
     //TODO:implement this
     // remove_soft_interrupt_handler();
-    // if(config) {
     // 	/* free alpm library resources */
     // 	if(config.handle && alpm_release(config.handle) == -1) {
     // 		pm_printf(ALPM_LOG_ERROR, "error releasing alpm library\n");
     // 	}
     //
-    // 	config_free(config);
-    // 	config = NULL;
-    // }
-    //
     // /* free memory */
-    // FREELIST(pm_targets);
     std::process::exit(ret);
 }
 
@@ -406,7 +400,6 @@ pub fn main() {
     // }
 
     /* parse the config file */
-
     match parseconfig(&config.configfile.clone(), &mut config) {
         Err(_) => {
             cleanup(-1);
@@ -434,7 +427,6 @@ pub fn main() {
         config.flags.no_conflicts = true;
         config.flags.no_lock = true;
         /* Display only errors */
-        config.logmask.warning = false;
     }
 
     if config.verbose > 0 {

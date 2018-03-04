@@ -70,12 +70,9 @@ pub fn trans_init(
 ) -> Result<()> {
     check_syncdbs(0, check_valid, handle)?;
 
-    match handle.trans_init(flags) {
-        Err(e) => {
-            trans_init_error(&e, &handle);
-            return Err(e);
-        }
-        Ok(()) => {}
+    if let Err(e) = handle.trans_init(flags) {
+        trans_init_error(&e, &handle);
+        return Err(e);
     }
 
     Ok(())
@@ -97,12 +94,11 @@ fn trans_init_error(err: &Error, handle: &Handle) {
 }
 
 pub fn trans_release(handle: &mut Handle) -> bool {
-    match handle.trans_release() {
-        Err(e) => {
-            error!("failed to release transaction: {}", e);
-            false
-        }
-        Ok(_) => true,
+    if let Err(e) = handle.trans_release() {
+        error!("failed to release transaction: {}", e);
+        false
+    } else {
+        true
     }
 }
 
@@ -113,12 +109,9 @@ pub fn check_syncdbs(need_repos: usize, check_valid: bool, handle: &mut Handle) 
     } else if check_valid {
         let mut ret = Ok(());
         for mut db in handle.dbs_sync.clone() {
-            match db.get_valid(handle) {
-                Err(e) => {
-                    error!("database '{}' is not valid ({})", db.get_name(), e);
-                    ret = Err(e);
-                }
-                Ok(_) => {}
+            if let Err(e) = db.get_valid(handle) {
+                error!("database '{}' is not valid ({})", db.get_name(), e);
+                ret = Err(e);
             }
         }
         ret

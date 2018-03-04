@@ -49,10 +49,10 @@ pub struct Transaction {
     pub skip_remove: Vec<String>,   /* list of (char *) */
 }
 
-// void _alpm_trans_free(alpm_trans_t *trans);
+// void _trans_free(trans_t *trans);
 // /* flags is a bitfield of TransactionFlag flags */
-// int _alpm_trans_init(alpm_trans_t *trans, int flags);
-// int _alpm_runscriptlet(alpm_handle_t *handle, const char *filepath,
+// int _trans_init(trans_t *trans, int flags);
+// int _runscriptlet(handle_t *handle, const char *filepath,
 // 		const char *script, const char *ver, const char *oldver, int is_archive);
 // /*
 //  *  trans.c
@@ -87,7 +87,7 @@ pub struct Transaction {
 //
 // /* libalpm */
 // #include "trans.h"
-// #include "alpm_list.h"
+// #include "list.h"
 // #include "package.h"
 // #include "util.h"
 // #include "log.h"
@@ -98,19 +98,19 @@ pub struct Transaction {
 // #include "deps.h"
 // #include "hook.h"
 
-// void _alpm_trans_free(alpm_trans_t *trans)
+// void _trans_free(trans_t *trans)
 // {
 // 	if(trans == NULL) {
 // 		return;
 // 	}
 //
-// 	alpm_list_free_inner(trans->unresolvable,
-// 			(alpm_list_fn_free)_alpm_pkg_free_trans);
-// 	alpm_list_free(trans->unresolvable);
-// 	alpm_list_free_inner(trans->add, (alpm_list_fn_free)_alpm_pkg_free_trans);
-// 	alpm_list_free(trans->add);
-// 	alpm_list_free_inner(trans->remove, (alpm_list_fn_free)_alpm_pkg_free);
-// 	alpm_list_free(trans->remove);
+// 	list_free_inner(trans->unresolvable,
+// 			(list_fn_free)_pkg_free_trans);
+// 	list_free(trans->unresolvable);
+// 	list_free_inner(trans->add, (list_fn_free)_pkg_free_trans);
+// 	list_free(trans->add);
+// 	list_free_inner(trans->remove, (list_fn_free)_pkg_free);
+// 	list_free(trans->remove);
 //
 // 	FREELIST(trans->skip_remove);
 //
@@ -147,7 +147,7 @@ pub struct Transaction {
 // 	return 0;
 // }
 //
-// int _alpm_runscriptlet(alpm_handle_t *handle, const char *filepath,
+// int _runscriptlet(handle_t *handle, const char *filepath,
 // 		const char *script, const char *ver, const char *oldver, int is_archive)
 // {
 // 	char arg0[64], arg1[3], cmdline[PATH_MAX];
@@ -156,8 +156,8 @@ pub struct Transaction {
 // 	int retval = 0;
 // 	size_t len;
 //
-// 	if(_alpm_access(handle, NULL, filepath, R_OK) != 0) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "scriptlet '%s' not found\n", filepath);
+// 	if(_access(handle, NULL, filepath, R_OK) != 0) {
+// 		_log(handle, ALPM_LOG_DEBUG, "scriptlet '%s' not found\n", filepath);
 // 		return 0;
 // 	}
 //
@@ -171,15 +171,15 @@ pub struct Transaction {
 // 	strcpy(arg1, "-c");
 //
 // 	/* create a directory in $root/tmp/ for copying/extracting the scriptlet */
-// 	len = strlen(handle->root) + strlen("tmp/alpm_XXXXXX") + 1;
+// 	len = strlen(handle->root) + strlen("tmp/XXXXXX") + 1;
 // 	MALLOC(tmpdir, len, RET_ERR(handle, ALPM_ERR_MEMORY, -1));
 // 	snprintf(tmpdir, len, "%stmp/", handle->root);
 // 	if(access(tmpdir, F_OK) != 0) {
-// 		_alpm_makepath_mode(tmpdir, 01777);
+// 		_makepath_mode(tmpdir, 01777);
 // 	}
-// 	snprintf(tmpdir, len, "%stmp/alpm_XXXXXX", handle->root);
+// 	snprintf(tmpdir, len, "%stmp/XXXXXX", handle->root);
 // 	if(mkdtemp(tmpdir) == NULL) {
-// 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not create temp directory\n"));
+// 		_log(handle, ALPM_LOG_ERROR, _("could not create temp directory\n"));
 // 		free(tmpdir);
 // 		return 1;
 // 	}
@@ -189,12 +189,12 @@ pub struct Transaction {
 // 	MALLOC(scriptfn, len, free(tmpdir); RET_ERR(handle, ALPM_ERR_MEMORY, -1));
 // 	snprintf(scriptfn, len, "%s/.INSTALL", tmpdir);
 // 	if(is_archive) {
-// 		if(_alpm_unpack_single(handle, filepath, tmpdir, ".INSTALL")) {
+// 		if(_unpack_single(handle, filepath, tmpdir, ".INSTALL")) {
 // 			retval = 1;
 // 		}
 // 	} else {
-// 		if(_alpm_copyfile(filepath, scriptfn)) {
-// 			_alpm_log(handle, ALPM_LOG_ERROR,
+// 		if(_copyfile(filepath, scriptfn)) {
+// 			_log(handle, ALPM_LOG_ERROR,
 //_("could not copy tempfile to %s (%s)\n"), scriptfn, strerror(errno));
 // 			retval = 1;
 // 		}
@@ -219,17 +219,17 @@ pub struct Transaction {
 // 				scriptpath, script, ver);
 // 	}
 //
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "executing \"%s\"\n", cmdline);
+// 	_log(handle, ALPM_LOG_DEBUG, "executing \"%s\"\n", cmdline);
 //
-// 	retval = _alpm_run_chroot(handle, SCRIPTLET_SHELL, argv, NULL, NULL);
+// 	retval = _run_chroot(handle, SCRIPTLET_SHELL, argv, NULL, NULL);
 //
 // cleanup:
 // 	if(scriptfn && unlink(scriptfn)) {
-// 		_alpm_log(handle, ALPM_LOG_WARNING,
+// 		_log(handle, ALPM_LOG_WARNING,
 // 				_("could not remove %s\n"), scriptfn);
 // 	}
 // 	if(rmdir(tmpdir)) {
-// 		_alpm_log(handle, ALPM_LOG_WARNING,
+// 		_log(handle, ALPM_LOG_WARNING,
 // 				_("could not remove tmpdir %s\n"), tmpdir);
 // 	}
 //
@@ -238,7 +238,7 @@ pub struct Transaction {
 // 	return retval;
 // }
 //
-// int SYMEXPORT alpm_trans_get_flags(alpm_handle_t *handle)
+// int SYMEXPORT trans_get_flags(handle_t *handle)
 // {
 // 	/* Sanity checks */
 // 	CHECK_HANDLE(handle, return -1);
@@ -247,7 +247,7 @@ pub struct Transaction {
 // 	return handle->trans->flags;
 // }
 //
-// alpm_list_t SYMEXPORT *alpm_trans_get_add(alpm_handle_t *handle)
+// list_t SYMEXPORT *trans_get_add(handle_t *handle)
 // {
 // 	/* Sanity checks */
 // 	CHECK_HANDLE(handle, return NULL);

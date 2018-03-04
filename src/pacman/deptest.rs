@@ -31,7 +31,7 @@ pub fn pacman_deptest(
 
     for target in targets {
         // unimplemented!();
-        if alpm_find_satisfier(&localdb.get_pkgcache()?, &target).is_none() {
+        if find_satisfier(&localdb.get_pkgcache()?, &target).is_none() {
             deps.push(target);
         }
     }

@@ -44,7 +44,7 @@ use super::*;
 //  * @return 0 on success, -1 on failure to properly decode
 //  */
 //
-// int SYMEXPORT alpm_decode_signature(const char *base64_data,
+// int SYMEXPORT decode_signature(const char *base64_data,
 // 		unsigned char **data, size_t *data_len)
 // {
 // 	size_t len = strlen(base64_data);
@@ -95,11 +95,11 @@ use super::*;
 // 	return "???";
 // }
 //
-// static void sigsum_test_bit(gpgme_sigsum_t sigsum, alpm_list_t **summary,
+// static void sigsum_test_bit(gpgme_sigsum_t sigsum, list_t **summary,
 // 		gpgme_sigsum_t bit, const char *value)
 // {
 // 	if(sigsum & bit) {
-// 		*summary = alpm_list_add(*summary, (void *)value);
+// 		*summary = list_add(*summary, (void *)value);
 // 	}
 // }
 //
@@ -109,9 +109,9 @@ use super::*;
 //  * @param sigsum a GPGME signature summary bitmask
 //  * @return the list of signature summary strings
 //  */
-// static alpm_list_t *list_sigsum(gpgme_sigsum_t sigsum)
+// static list_t *list_sigsum(gpgme_sigsum_t sigsum)
 // {
-// 	alpm_list_t *summary = NULL;
+// 	list_t *summary = NULL;
 // 	/* The docs say this can be a bitmask...not sure I believe it, but we'll code
 // 	 * for it anyway and show all possible flags in the returned string. */
 //
@@ -139,7 +139,7 @@ use super::*;
 // 	sigsum_test_bit(sigsum, &summary, GPGME_SIGSUM_SYS_ERROR, "sys error");
 // 	/* Fallback case */
 // 	if(!sigsum) {
-// 		summary = alpm_list_add(summary, (void *)"(empty)");
+// 		summary = list_add(summary, (void *)"(empty)");
 // 	}
 // 	return summary;
 // }
@@ -164,11 +164,11 @@ use super::*;
 //
 // 	sigdir = handle->gpgdir;
 //
-// 	if(_alpm_access(handle, sigdir, "pubring.gpg", R_OK)
-// 			|| _alpm_access(handle, sigdir, "trustdb.gpg", R_OK)) {
+// 	if(_access(handle, sigdir, "pubring.gpg", R_OK)
+// 			|| _access(handle, sigdir, "trustdb.gpg", R_OK)) {
 // 		handle->pm_errno = ALPM_ERR_NOT_A_FILE;
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "Signature verification will fail!\n");
-// 		_alpm_log(handle, ALPM_LOG_WARNING,
+// 		_log(handle, ALPM_LOG_DEBUG, "Signature verification will fail!\n");
+// 		_log(handle, ALPM_LOG_WARNING,
 // 				_("Public keyring not found; have you run '%s'?\n"),
 // 				"pacman-key --init");
 // 	}
@@ -176,7 +176,7 @@ use super::*;
 // 	/* calling gpgme_check_version() returns the current version and runs
 // 	 * some internal library setup code */
 // 	version = gpgme_check_version(NULL);
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "GPGME version: %s\n", version);
+// 	_log(handle, ALPM_LOG_DEBUG, "GPGME version: %s\n", version);
 // 	gpgme_set_locale(NULL, LC_CTYPE, setlocale(LC_CTYPE, NULL));
 // #ifdef LC_MESSAGES
 // 	gpgme_set_locale(NULL, LC_MESSAGES, setlocale(LC_MESSAGES, NULL));
@@ -198,14 +198,14 @@ use super::*;
 // 	CHECK_ERR();
 // 	gpg_err = gpgme_get_engine_info(&enginfo);
 // 	CHECK_ERR();
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "GPGME engine info: file=%s, home=%s\n",
+// 	_log(handle, ALPM_LOG_DEBUG, "GPGME engine info: file=%s, home=%s\n",
 // 			enginfo->file_name, enginfo->home_dir);
 //
 // 	init = 1;
 // 	return 0;
 //
 // gpg_error:
-// 	_alpm_log(handle, ALPM_LOG_ERROR, _("GPGME error: %s\n"), gpgme_strerror(gpg_err));
+// 	_log(handle, ALPM_LOG_ERROR, _("GPGME error: %s\n"), gpgme_strerror(gpg_err));
 // 	RET_ERR(handle, ALPM_ERR_GPGME, -1);
 // }
 //
@@ -215,15 +215,15 @@ use super::*;
 //  * @param fpr the fingerprint key ID to look up
 //  * @return 1 if key is known, 0 if key is unknown, -1 on error
 //  */
-// int _alpm_key_in_keychain(Handle *handle, const char *fpr)
+// int _key_in_keychain(Handle *handle, const char *fpr)
 // {
 // 	gpgme_error_t gpg_err;
 // 	gpgme_ctx_t ctx;
 // 	gpgme_key_t key;
 // 	int ret = -1;
 //
-// 	if(alpm_list_find_str(handle->known_keys, fpr)) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "key %s found in cache\n", fpr);
+// 	if(list_find_str(handle->known_keys, fpr)) {
+// 		_log(handle, ALPM_LOG_DEBUG, "key %s found in cache\n", fpr);
 // 		return 1;
 // 	}
 //
@@ -236,18 +236,18 @@ use super::*;
 // 	gpg_err = gpgme_new(&ctx);
 // 	CHECK_ERR();
 //
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "looking up key %s locally\n", fpr);
+// 	_log(handle, ALPM_LOG_DEBUG, "looking up key %s locally\n", fpr);
 //
 // 	gpg_err = gpgme_get_key(ctx, fpr, &key, 0);
 // 	if(gpg_err_code(gpg_err) == GPG_ERR_EOF) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "key lookup failed, unknown key\n");
+// 		_log(handle, ALPM_LOG_DEBUG, "key lookup failed, unknown key\n");
 // 		ret = 0;
 // 	} else if(gpg_err_code(gpg_err) == GPG_ERR_NO_ERROR) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "key lookup success, key exists\n");
-// 		handle->known_keys = alpm_list_add(handle->known_keys, strdup(fpr));
+// 		_log(handle, ALPM_LOG_DEBUG, "key lookup success, key exists\n");
+// 		handle->known_keys = list_add(handle->known_keys, strdup(fpr));
 // 		ret = 1;
 // 	} else {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "gpg error: %s\n", gpgme_strerror(gpg_err));
+// 		_log(handle, ALPM_LOG_DEBUG, "gpg error: %s\n", gpgme_strerror(gpg_err));
 // 	}
 // 	gpgme_key_unref(key);
 //
@@ -268,7 +268,7 @@ use super::*;
 //  * @return 1 on success, 0 on key not found, -1 on error
 //  */
 // static int key_search(Handle *handle, const char *fpr,
-// 		alpm_pgpkey_t *pgpkey)
+// 		pgpkey_t *pgpkey)
 // {
 // 	gpgme_error_t gpg_err;
 // 	gpgme_ctx_t ctx;
@@ -295,21 +295,21 @@ use super::*;
 // 	gpg_err = gpgme_set_keylist_mode(ctx, mode);
 // 	CHECK_ERR();
 //
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "looking up key %s remotely\n", fpr);
+// 	_log(handle, ALPM_LOG_DEBUG, "looking up key %s remotely\n", fpr);
 //
 // 	gpg_err = gpgme_get_key(ctx, full_fpr, &key, 0);
 // 	if(gpg_err_code(gpg_err) == GPG_ERR_EOF) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "key lookup failed, unknown key\n");
+// 		_log(handle, ALPM_LOG_DEBUG, "key lookup failed, unknown key\n");
 // 		/* Try an alternate lookup using the 8 character fingerprint value, since
 // 		 * busted-ass keyservers can't support lookups using subkeys with the full
 // 		 * value as of now. This is why 2012 is not the year of PGP encryption. */
 // 		if(fpr_len > 8) {
 // 			const char *short_fpr = memcpy(&full_fpr[fpr_len - 8], "0x", 2);
-// 			_alpm_log(handle, ALPM_LOG_DEBUG,
+// 			_log(handle, ALPM_LOG_DEBUG,
 // 					"looking up key %s remotely\n", short_fpr);
 // 			gpg_err = gpgme_get_key(ctx, short_fpr, &key, 0);
 // 			if(gpg_err_code(gpg_err) == GPG_ERR_EOF) {
-// 				_alpm_log(handle, ALPM_LOG_DEBUG, "key lookup failed, unknown key\n");
+// 				_log(handle, ALPM_LOG_DEBUG, "key lookup failed, unknown key\n");
 // 				ret = 0;
 // 			}
 // 		} else {
@@ -371,13 +371,13 @@ use super::*;
 // 	 * compiler error on new public key algorithm in gpgme. So check
 // 	 * here if we have a valid pubkey_algo. */
 // 	if (pgpkey->pubkey_algo == '?') {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG,
+// 		_log(handle, ALPM_LOG_DEBUG,
 // 			"unknown public key algorithm: %d\n", key->subkeys->pubkey_algo);
 // 	}
 //
 // gpg_error:
 // 	if(ret != 1) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "gpg error: %s\n", gpgme_strerror(gpg_err));
+// 		_log(handle, ALPM_LOG_DEBUG, "gpg error: %s\n", gpgme_strerror(gpg_err));
 // 	}
 // 	free(full_fpr);
 // 	gpgme_release(ctx);
@@ -390,7 +390,7 @@ use super::*;
 //  * @param key the key to import, likely retrieved from #key_search
 //  * @return 0 on success, -1 on error
 //  */
-// static int key_import(Handle *handle, alpm_pgpkey_t *key)
+// static int key_import(Handle *handle, pgpkey_t *key)
 // {
 // 	gpgme_error_t gpg_err;
 // 	gpgme_ctx_t ctx;
@@ -398,9 +398,9 @@ use super::*;
 // 	gpgme_import_result_t result;
 // 	int ret = -1;
 //
-// 	if(_alpm_access(handle, handle->gpgdir, "pubring.gpg", W_OK)) {
+// 	if(_access(handle, handle->gpgdir, "pubring.gpg", W_OK)) {
 // 		/* no chance of import succeeding if pubring isn't writable */
-// 		_alpm_log(handle, ALPM_LOG_ERROR, _("keyring is not writable\n"));
+// 		_log(handle, ALPM_LOG_ERROR, _("keyring is not writable\n"));
 // 		return -1;
 // 	}
 //
@@ -408,7 +408,7 @@ use super::*;
 // 	gpg_err = gpgme_new(&ctx);
 // 	CHECK_ERR();
 //
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "importing key\n");
+// 	_log(handle, ALPM_LOG_DEBUG, "importing key\n");
 //
 // 	keys[0] = key->data;
 // 	keys[1] = NULL;
@@ -417,10 +417,10 @@ use super::*;
 // 	result = gpgme_op_import_result(ctx);
 // 	/* we know we tried to import exactly one key, so check for this */
 // 	if(result->considered != 1 || !result->imports) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "could not import key, 0 results\n");
+// 		_log(handle, ALPM_LOG_DEBUG, "could not import key, 0 results\n");
 // 		ret = -1;
 // 	} else if(result->imports->result != GPG_ERR_NO_ERROR) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "gpg error: %s\n", gpgme_strerror(gpg_err));
+// 		_log(handle, ALPM_LOG_DEBUG, "gpg error: %s\n", gpgme_strerror(gpg_err));
 // 		ret = -1;
 // 	} else {
 // 		ret = 0;
@@ -437,17 +437,17 @@ use super::*;
 //  * @param fpr the fingerprint key ID to import
 //  * @return 0 on success, -1 on error
 //  */
-// int _alpm_key_import(Handle *handle, const char *fpr)
+// int _key_import(Handle *handle, const char *fpr)
 // {
 // 	int ret = -1;
-// 	alpm_pgpkey_t fetch_key;
+// 	pgpkey_t fetch_key;
 // 	memset(&fetch_key, 0, sizeof(fetch_key));
 //
 // 	if(key_search(handle, fpr, &fetch_key) == 1) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG,
+// 		_log(handle, ALPM_LOG_DEBUG,
 // 				"unknown key, found %s on keyserver\n", fetch_key.uid);
-// 		if(!_alpm_access(handle, handle->gpgdir, "pubring.gpg", W_OK)) {
-// 			alpm_question_import_key_t question = {
+// 		if(!_access(handle, handle->gpgdir, "pubring.gpg", W_OK)) {
+// 			question_import_key_t question = {
 // 				.type = ALPM_QUESTION_IMPORT_KEY,
 // 				.import = 0,
 // 				.key = &fetch_key
@@ -457,18 +457,18 @@ use super::*;
 // 				if(key_import(handle, &fetch_key) == 0) {
 // 					ret = 0;
 // 				} else {
-// 					_alpm_log(handle, ALPM_LOG_ERROR,
+// 					_log(handle, ALPM_LOG_ERROR,
 // 							_("key \"%s\" could not be imported\n"), fetch_key.uid);
 // 				}
 // 			}
 // 		} else {
 // 			/* keyring directory was not writable, so we don't even try */
-// 			_alpm_log(handle, ALPM_LOG_WARNING,
+// 			_log(handle, ALPM_LOG_WARNING,
 // 					_("key %s, \"%s\" found on keyserver, keyring is not writable\n"),
 // 					fetch_key.fingerprint, fetch_key.uid);
 // 		}
 // 	} else {
-// 		_alpm_log(handle, ALPM_LOG_ERROR,
+// 		_log(handle, ALPM_LOG_ERROR,
 // 				_("key \"%s\" could not be looked up remotely\n"), fpr);
 // 	}
 // 	gpgme_key_unref(fetch_key.data);
@@ -493,8 +493,8 @@ use super::*;
 //  * @param siglist a pointer to storage for signature results
 //  * @return 0 in normal cases, -1 if the something failed in the check process
 //  */
-// int _alpm_gpgme_checksig(Handle *handle, const char *path,
-// 		const char *base64_sig, alpm_siglist_t *siglist)
+// int _gpgme_checksig(Handle *handle, const char *path,
+// 		const char *base64_sig, siglist_t *siglist)
 // {
 // 	int ret = -1, sigcount;
 // 	gpgme_error_t gpg_err = 0;
@@ -506,7 +506,7 @@ use super::*;
 // 	unsigned char *decoded_sigdata = NULL;
 // 	FILE *file = NULL, *sigfile = NULL;
 //
-// 	if(!path || _alpm_access(handle, NULL, path, R_OK) != 0) {
+// 	if(!path || _access(handle, NULL, path, R_OK) != 0) {
 // 		RET_ERR(handle, ALPM_ERR_NOT_A_FILE, -1);
 // 	}
 //
@@ -516,10 +516,10 @@ use super::*;
 // 	siglist->count = 0;
 //
 // 	if(!base64_sig) {
-// 		sigpath = _alpm_sigpath(handle, path);
-// 		if(_alpm_access(handle, NULL, sigpath, R_OK) != 0
+// 		sigpath = _sigpath(handle, path);
+// 		if(_access(handle, NULL, sigpath, R_OK) != 0
 // 				|| (sigfile = fopen(sigpath, "rb")) == NULL) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "sig path %s could not be opened\n",
+// 			_log(handle, ALPM_LOG_DEBUG, "sig path %s could not be opened\n",
 // 					sigpath);
 // 			handle->pm_errno = ALPM_ERR_SIG_MISSING;
 // 			goto error;
@@ -538,7 +538,7 @@ use super::*;
 // 		goto error;
 // 	}
 //
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "checking signature for %s\n", path);
+// 	_log(handle, ALPM_LOG_DEBUG, "checking signature for %s\n", path);
 //
 // 	memset(&ctx, 0, sizeof(ctx));
 // 	memset(&sigdata, 0, sizeof(sigdata));
@@ -555,7 +555,7 @@ use super::*;
 // 	if(base64_sig) {
 // 		/* memory-based, we loaded it from a sync DB */
 // 		size_t data_len;
-// 		int decode_ret = alpm_decode_signature(base64_sig,
+// 		int decode_ret = decode_signature(base64_sig,
 // 				&decoded_sigdata, &data_len);
 // 		if(decode_ret) {
 // 			handle->pm_errno = ALPM_ERR_SIG_INVALID;
@@ -575,49 +575,49 @@ use super::*;
 // 	verify_result = gpgme_op_verify_result(ctx);
 // 	CHECK_ERR();
 // 	if(!verify_result || !verify_result->signatures) {
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "no signatures returned\n");
+// 		_log(handle, ALPM_LOG_DEBUG, "no signatures returned\n");
 // 		handle->pm_errno = ALPM_ERR_SIG_MISSING;
 // 		goto gpg_error;
 // 	}
 // 	for(gpgsig = verify_result->signatures, sigcount = 0;
 // 			gpgsig; gpgsig = gpgsig->next, sigcount++);
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "%d signatures returned\n", sigcount);
+// 	_log(handle, ALPM_LOG_DEBUG, "%d signatures returned\n", sigcount);
 //
-// 	CALLOC(siglist->results, sigcount, sizeof(alpm_sigresult_t),
+// 	CALLOC(siglist->results, sigcount, sizeof(sigresult_t),
 // 			handle->pm_errno = ALPM_ERR_MEMORY; goto gpg_error);
 // 	siglist->count = sigcount;
 //
 // 	for(gpgsig = verify_result->signatures, sigcount = 0; gpgsig;
 // 			gpgsig = gpgsig->next, sigcount++) {
-// 		alpm_list_t *summary_list, *summary;
-// 		alpm_sigstatus_t status;
-// 		alpm_sigvalidity_t validity;
+// 		list_t *summary_list, *summary;
+// 		sigstatus_t status;
+// 		sigvalidity_t validity;
 // 		gpgme_key_t key;
-// 		alpm_sigresult_t *result;
+// 		sigresult_t *result;
 //
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "fingerprint: %s\n", gpgsig->fpr);
+// 		_log(handle, ALPM_LOG_DEBUG, "fingerprint: %s\n", gpgsig->fpr);
 // 		summary_list = list_sigsum(gpgsig->summary);
 // 		for(summary = summary_list; summary; summary = summary->next) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "summary: %s\n", (const char *)summary->data);
+// 			_log(handle, ALPM_LOG_DEBUG, "summary: %s\n", (const char *)summary->data);
 // 		}
-// 		alpm_list_free(summary_list);
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "status: %s\n", gpgme_strerror(gpgsig->status));
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "timestamp: %lu\n", gpgsig->timestamp);
+// 		list_free(summary_list);
+// 		_log(handle, ALPM_LOG_DEBUG, "status: %s\n", gpgme_strerror(gpgsig->status));
+// 		_log(handle, ALPM_LOG_DEBUG, "timestamp: %lu\n", gpgsig->timestamp);
 //
 // 		if((time_t)gpgsig->timestamp > time(NULL)) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG,
+// 			_log(handle, ALPM_LOG_DEBUG,
 // 					"signature timestamp is greater than system time.\n");
 // 		}
 //
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "exp_timestamp: %lu\n", gpgsig->exp_timestamp);
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "validity: %s; reason: %s\n",
+// 		_log(handle, ALPM_LOG_DEBUG, "exp_timestamp: %lu\n", gpgsig->exp_timestamp);
+// 		_log(handle, ALPM_LOG_DEBUG, "validity: %s; reason: %s\n",
 // 				string_validity(gpgsig->validity),
 // 				gpgme_strerror(gpgsig->validity_reason));
 //
 // 		result = siglist->results + sigcount;
 // 		gpg_err = gpgme_get_key(ctx, gpgsig->fpr, &key, 0);
 // 		if(gpg_err_code(gpg_err) == GPG_ERR_EOF) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "key lookup failed, unknown key\n");
+// 			_log(handle, ALPM_LOG_DEBUG, "key lookup failed, unknown key\n");
 // 			gpg_err = GPG_ERR_NO_ERROR;
 // 			/* we dupe the fpr in this case since we have no key to point at */
 // 			STRDUP(result->key.fingerprint, gpgsig->fpr,
@@ -632,7 +632,7 @@ use super::*;
 // 				result->key.email = key->uids->email;
 // 				result->key.created = key->subkeys->timestamp;
 // 				result->key.expires = key->subkeys->expires;
-// 				_alpm_log(handle, ALPM_LOG_DEBUG,
+// 				_log(handle, ALPM_LOG_DEBUG,
 // 						"key: %s, %s, owner_trust %s, disabled %d\n",
 // 						key->subkeys->fpr, key->uids->uid,
 // 						string_validity(key->owner_trust), key->disabled);
@@ -703,25 +703,25 @@ use super::*;
 // 	FREE(sigpath);
 // 	FREE(decoded_sigdata);
 // 	if(gpg_err_code(gpg_err) != GPG_ERR_NO_ERROR) {
-// 		_alpm_log(handle, ALPM_LOG_ERROR, _("GPGME error: %s\n"), gpgme_strerror(gpg_err));
+// 		_log(handle, ALPM_LOG_ERROR, _("GPGME error: %s\n"), gpgme_strerror(gpg_err));
 // 		RET_ERR(handle, ALPM_ERR_GPGME, -1);
 // 	}
 // 	return ret;
 // }
 //
 // #else /* HAVE_LIBGPGME */
-// int _alpm_key_in_keychain(Handle UNUSED *handle, const char UNUSED *fpr)
+// int _key_in_keychain(Handle UNUSED *handle, const char UNUSED *fpr)
 // {
 // 	return -1;
 // }
 //
-// int _alpm_key_import(Handle UNUSED *handle, const char UNUSED *fpr)
+// int _key_import(Handle UNUSED *handle, const char UNUSED *fpr)
 // {
 // 	return -1;
 // }
 //
-// int _alpm_gpgme_checksig(Handle UNUSED *handle, const char UNUSED *path,
-// 		const char UNUSED *base64_sig, alpm_siglist_t UNUSED *siglist)
+// int _gpgme_checksig(Handle UNUSED *handle, const char UNUSED *path,
+// 		const char UNUSED *base64_sig, siglist_t UNUSED *siglist)
 // {
 // 	return -1;
 // }
@@ -729,7 +729,7 @@ use super::*;
 
 // /**
 //  * Helper for checking the PGP signature for the given file path.
-//  * This wraps #_alpm_gpgme_checksig in a slightly friendlier manner to simplify
+//  * This wraps #_gpgme_checksig in a slightly friendlier manner to simplify
 //  * handling of optional signatures and marginal/unknown trust levels and
 //  * handling the correct error code return values.
 //  * @param handle the context handle
@@ -741,7 +741,7 @@ use super::*;
 //  * @param sigdata a pointer to storage for signature results
 //  * @return 0 on success, -1 on error (consult pm_errno or sigdata)
 //  */
-pub fn _alpm_check_pgp_helper(
+pub fn _check_pgp_helper(
     handle: &Handle,
     path: &String,
     base64_sig: Option<&String>,
@@ -751,24 +751,24 @@ pub fn _alpm_check_pgp_helper(
     sigdata: &SignatureList,
 ) -> i32 {
     unimplemented!();
-    // 	alpm_siglist_t *siglist;
+    // 	siglist_t *siglist;
     // 	int ret;
     //
-    // 	CALLOC(siglist, 1, sizeof(alpm_siglist_t),
+    // 	CALLOC(siglist, 1, sizeof(siglist_t),
     // 			RET_ERR(handle, ALPM_ERR_MEMORY, -1));
     //
-    // 	ret = _alpm_gpgme_checksig(handle, path, base64_sig, siglist);
+    // 	ret = _gpgme_checksig(handle, path, base64_sig, siglist);
     // 	if(ret && handle->pm_errno == ALPM_ERR_SIG_MISSING) {
     // 		if(optional) {
-    // 			_alpm_log(handle, ALPM_LOG_DEBUG, "missing optional signature\n");
+    // 			_log(handle, ALPM_LOG_DEBUG, "missing optional signature\n");
     // 			handle->pm_errno = ALPM_ERR_OK;
     // 			ret = 0;
     // 		} else {
-    // 			_alpm_log(handle, ALPM_LOG_DEBUG, "missing required signature\n");
+    // 			_log(handle, ALPM_LOG_DEBUG, "missing required signature\n");
     // 			/* ret will already be -1 */
     // 		}
     // 	} else if(ret) {
-    // 		_alpm_log(handle, ALPM_LOG_DEBUG, "signature check failed\n");
+    // 		_log(handle, ALPM_LOG_DEBUG, "signature check failed\n");
     // 		/* ret will already be -1 */
     // 	} else {
     // 		size_t num;
@@ -776,25 +776,25 @@ pub fn _alpm_check_pgp_helper(
     // 			switch(siglist->results[num].status) {
     // 				case ALPM_SIGSTATUS_VALID:
     // 				case ALPM_SIGSTATUS_KEY_EXPIRED:
-    // 					_alpm_log(handle, ALPM_LOG_DEBUG, "signature is valid\n");
+    // 					_log(handle, ALPM_LOG_DEBUG, "signature is valid\n");
     // 					switch(siglist->results[num].validity) {
     // 						case ALPM_SIGVALIDITY_FULL:
-    // 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature is fully trusted\n");
+    // 							_log(handle, ALPM_LOG_DEBUG, "signature is fully trusted\n");
     // 							break;
     // 						case ALPM_SIGVALIDITY_MARGINAL:
-    // 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature is marginal trust\n");
+    // 							_log(handle, ALPM_LOG_DEBUG, "signature is marginal trust\n");
     // 							if(!marginal) {
     // 								ret = -1;
     // 							}
     // 							break;
     // 						case ALPM_SIGVALIDITY_UNKNOWN:
-    // 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature is unknown trust\n");
+    // 							_log(handle, ALPM_LOG_DEBUG, "signature is unknown trust\n");
     // 							if(!unknown) {
     // 								ret = -1;
     // 							}
     // 							break;
     // 						case ALPM_SIGVALIDITY_NEVER:
-    // 							_alpm_log(handle, ALPM_LOG_DEBUG, "signature should never be trusted\n");
+    // 							_log(handle, ALPM_LOG_DEBUG, "signature should never be trusted\n");
     // 							ret = -1;
     // 							break;
     // 					}
@@ -803,7 +803,7 @@ pub fn _alpm_check_pgp_helper(
     // 				case ALPM_SIGSTATUS_KEY_UNKNOWN:
     // 				case ALPM_SIGSTATUS_KEY_DISABLED:
     // 				case ALPM_SIGSTATUS_INVALID:
-    // 					_alpm_log(handle, ALPM_LOG_DEBUG, "signature is not valid\n");
+    // 					_log(handle, ALPM_LOG_DEBUG, "signature is not valid\n");
     // 					ret = -1;
     // 					break;
     // 			}
@@ -813,7 +813,7 @@ pub fn _alpm_check_pgp_helper(
     // 	if(sigdata) {
     // 		*sigdata = siglist;
     // 	} else {
-    // 		alpm_siglist_cleanup(siglist);
+    // 		siglist_cleanup(siglist);
     // 		free(siglist);
     // 	}
     //
@@ -834,7 +834,7 @@ pub fn _alpm_check_pgp_helper(
 //  * @return 0 if all signatures are OK, -1 on errors, 1 if we should retry the
 //  * validation process
 //  */
-pub fn _alpm_process_siglist(
+pub fn _process_siglist(
     handle: &Handle,
     identifier: &String,
     siglist: &SignatureList,
@@ -847,12 +847,12 @@ pub fn _alpm_process_siglist(
     // 	int retry = 0;
     //
     // 	if(!optional && siglist->count == 0) {
-    // 		_alpm_log(handle, ALPM_LOG_ERROR,
+    // 		_log(handle, ALPM_LOG_ERROR,
     // 				_("%s: missing required signature\n"), identifier);
     // 	}
     //
     // 	for(i = 0; i < siglist->count; i++) {
-    // 		alpm_sigresult_t *result = siglist->results + i;
+    // 		sigresult_t *result = siglist->results + i;
     // 		const char *name = result->key.uid ? result->key.uid : result->key.fingerprint;
     // 		switch(result->status) {
     // 			case ALPM_SIGSTATUS_VALID:
@@ -862,7 +862,7 @@ pub fn _alpm_process_siglist(
     // 						break;
     // 					case ALPM_SIGVALIDITY_MARGINAL:
     // 						if(!marginal) {
-    // 							_alpm_log(handle, ALPM_LOG_ERROR,
+    // 							_log(handle, ALPM_LOG_ERROR,
     // 									_("%s: signature from \"%s\" is marginal trust\n"),
     // 									identifier, name);
     // 							/* QUESTION(handle, ALPM_QUESTION_EDIT_KEY_TRUST, &result->key, NULL, NULL, &answer); */
@@ -870,14 +870,14 @@ pub fn _alpm_process_siglist(
     // 						break;
     // 					case ALPM_SIGVALIDITY_UNKNOWN:
     // 						if(!unknown) {
-    // 							_alpm_log(handle, ALPM_LOG_ERROR,
+    // 							_log(handle, ALPM_LOG_ERROR,
     // 									_("%s: signature from \"%s\" is unknown trust\n"),
     // 									identifier, name);
     // 							/* QUESTION(handle, ALPM_QUESTION_EDIT_KEY_TRUST, &result->key, NULL, NULL, &answer); */
     // 						}
     // 						break;
     // 					case ALPM_SIGVALIDITY_NEVER:
-    // 						_alpm_log(handle, ALPM_LOG_ERROR,
+    // 						_log(handle, ALPM_LOG_ERROR,
     // 								_("%s: signature from \"%s\" should never be trusted\n"),
     // 								identifier, name);
     // 						break;
@@ -886,27 +886,27 @@ pub fn _alpm_process_siglist(
     // 			case ALPM_SIGSTATUS_KEY_UNKNOWN:
     // 				/* ensure this key is still actually unknown; we may have imported it
     // 				 * on an earlier call to this function. */
-    // 				if(_alpm_key_in_keychain(handle, result->key.fingerprint) == 1) {
+    // 				if(_key_in_keychain(handle, result->key.fingerprint) == 1) {
     // 					break;
     // 				}
-    // 				_alpm_log(handle, ALPM_LOG_ERROR,
+    // 				_log(handle, ALPM_LOG_ERROR,
     // 						_("%s: key \"%s\" is unknown\n"), identifier, name);
     //
-    // 				if(_alpm_key_import(handle, result->key.fingerprint) == 0) {
+    // 				if(_key_import(handle, result->key.fingerprint) == 0) {
     // 					retry = 1;
     // 				}
     //
     // 				break;
     // 			case ALPM_SIGSTATUS_KEY_DISABLED:
-    // 				_alpm_log(handle, ALPM_LOG_ERROR,
+    // 				_log(handle, ALPM_LOG_ERROR,
     // 						_("%s: key \"%s\" is disabled\n"), identifier, name);
     // 				break;
     // 			case ALPM_SIGSTATUS_SIG_EXPIRED:
-    // 				_alpm_log(handle, ALPM_LOG_ERROR,
+    // 				_log(handle, ALPM_LOG_ERROR,
     // 						_("%s: signature from \"%s\" is expired\n"), identifier, name);
     // 				break;
     // 			case ALPM_SIGSTATUS_INVALID:
-    // 				_alpm_log(handle, ALPM_LOG_ERROR,
+    // 				_log(handle, ALPM_LOG_ERROR,
     // 						_("%s: signature from \"%s\" is invalid\n"),
     // 						identifier, name);
     // 				break;
@@ -922,14 +922,14 @@ pub fn _alpm_process_siglist(
 //  * @param siglist a pointer to storage for signature results
 //  * @return a int value : 0 (valid), 1 (invalid), -1 (an error occurred)
 //  */
-// int SYMEXPORT alpm_pkg_check_pgp_signature(pkg_t *pkg,
-// 		alpm_siglist_t *siglist)
+// int SYMEXPORT pkg_check_pgp_signature(pkg_t *pkg,
+// 		siglist_t *siglist)
 // {
 // 	ASSERT(pkg != NULL, return -1);
 // 	ASSERT(siglist != NULL, RET_ERR(pkg->handle, ALPM_ERR_WRONG_ARGS, -1));
 // 	pkg->handle->pm_errno = ALPM_ERR_OK;
 //
-// 	return _alpm_gpgme_checksig(pkg->handle, pkg->filename,
+// 	return _gpgme_checksig(pkg->handle, pkg->filename,
 // 			pkg->base64_sig, siglist);
 // }
 //
@@ -939,14 +939,14 @@ pub fn _alpm_process_siglist(
 //  * @param siglist a pointer to storage for signature results
 //  * @return a int value : 0 (valid), 1 (invalid), -1 (an error occurred)
 //  */
-// int SYMEXPORT alpm_db_check_pgp_signature(alpm_db_t *db,
-// 		alpm_siglist_t *siglist)
+// int SYMEXPORT db_check_pgp_signature(db_t *db,
+// 		siglist_t *siglist)
 // {
 // 	ASSERT(db != NULL, return -1);
 // 	ASSERT(siglist != NULL, RET_ERR(db->handle, ALPM_ERR_WRONG_ARGS, -1));
 // 	db->handle->pm_errno = ALPM_ERR_OK;
 //
-// 	return _alpm_gpgme_checksig(db->handle, _alpm_db_path(db), NULL, siglist);
+// 	return _gpgme_checksig(db->handle, _db_path(db), NULL, siglist);
 // }
 //
 // /**
@@ -956,12 +956,12 @@ pub fn _alpm_process_siglist(
 //  * @param siglist a pointer to storage for signature results
 //  * @return 0 on success, -1 on error
 //  */
-// int SYMEXPORT alpm_siglist_cleanup(alpm_siglist_t *siglist)
+// int SYMEXPORT siglist_cleanup(siglist_t *siglist)
 // {
 // 	ASSERT(siglist != NULL, return -1);
 // 	size_t num;
 // 	for(num = 0; num < siglist->count; num++) {
-// 		alpm_sigresult_t *result = siglist->results + num;
+// 		sigresult_t *result = siglist->results + num;
 // 		if(result->key.data) {
 // #ifdef HAVE_LIBGPGME
 // 			gpgme_key_unref(result->key.data);
@@ -985,29 +985,29 @@ pub fn _alpm_process_siglist(
 //  * @param keys a pointer to storage for key IDs
 //  * @return 0 on success, -1 on error
 //  */
-// int SYMEXPORT alpm_extract_keyid(Handle *handle, const char *identifier,
-// 		const unsigned char *sig, const size_t len, alpm_list_t **keys)
+// int SYMEXPORT extract_keyid(Handle *handle, const char *identifier,
+// 		const unsigned char *sig, const size_t len, list_t **keys)
 // {
 // 	size_t pos, spos, blen, hlen, ulen, slen;
 // 	pos = 0;
 //
 // 	while(pos < len) {
 // 		if(!(sig[pos] & 0x80)) {
-// 			_alpm_log(handle, ALPM_LOG_ERROR,
+// 			_log(handle, ALPM_LOG_ERROR,
 // 					_("%s: signature format error\n"), identifier);
 // 			return -1;
 // 		}
 //
 // 		if(sig[pos] & 0x40) {
 // 			/* "new" packet format is not supported */
-// 			_alpm_log(handle, ALPM_LOG_ERROR,
+// 			_log(handle, ALPM_LOG_ERROR,
 // 					_("%s: unsupported signature format\n"), identifier);
 // 			return -1;
 // 		}
 //
 // 		if(((sig[pos] & 0x3f) >> 2) != 2) {
 // 			/* signature is not a "Signature Packet" */
-// 			_alpm_log(handle, ALPM_LOG_ERROR,
+// 			_log(handle, ALPM_LOG_ERROR,
 // 					_("%s: signature format error\n"), identifier);
 // 			return -1;
 // 		}
@@ -1030,21 +1030,21 @@ pub fn _alpm_process_siglist(
 //
 // 			case 3:
 // 				/* partial body length not supported */
-// 				_alpm_log(handle, ALPM_LOG_ERROR,
+// 				_log(handle, ALPM_LOG_ERROR,
 // 					_("%s: unsupported signature format\n"), identifier);
 // 				return -1;
 // 		}
 //
 // 		if(sig[pos] != 4) {
 // 			/* only support version 4 signature packet format */
-// 			_alpm_log(handle, ALPM_LOG_ERROR,
+// 			_log(handle, ALPM_LOG_ERROR,
 // 					_("%s: unsupported signature format\n"), identifier);
 // 			return -1;
 // 		}
 //
 // 		if(sig[pos + 1] != 0x00) {
 // 			/* not a signature of a binary document */
-// 			_alpm_log(handle, ALPM_LOG_ERROR,
+// 			_log(handle, ALPM_LOG_ERROR,
 // 					_("%s: signature format error\n"), identifier);
 // 			return -1;
 // 		}
@@ -1078,7 +1078,7 @@ pub fn _alpm_process_siglist(
 // 				for (i = 0; i < 8; i++) {
 // 					sprintf(&key[i * 2], "%02X", sig[spos + i + 1]);
 // 				}
-// 				*keys = alpm_list_add(*keys, strdup(key));
+// 				*keys = list_add(*keys, strdup(key));
 // 				break;
 // 			}
 //

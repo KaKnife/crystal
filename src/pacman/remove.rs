@@ -28,7 +28,7 @@ fn fnmatch_cmp(pattern: &String, string: &String) -> std::cmp::Ordering {
 fn remove_target(target: String, config: &mut Config, handle: &mut Handle) -> i32 {
     match handle.db_local.get_pkg(&target) {
         Ok(pkg) => {
-            match alpm_remove_pkg(&mut handle.trans, &pkg) {
+            match remove_pkg(&mut handle.trans, &pkg) {
                 Err(err) => {
                     match err {
                         Error::TransactionDupTarget => {
@@ -56,7 +56,7 @@ fn remove_target(target: String, config: &mut Config, handle: &mut Handle) -> i3
     match grp {
         Ok(grp) => {
             for pkg in &grp.packages {
-                match alpm_remove_pkg(&mut handle.trans, &pkg) {
+                match remove_pkg(&mut handle.trans, &pkg) {
                     Err(e) => {
                         error!("'{}': {}", target, e);
                         return -1;

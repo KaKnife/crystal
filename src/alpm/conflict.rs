@@ -25,12 +25,12 @@
 // /**
 //  * @brief Creates a new conflict.
 //  */
-// static alpm_conflict_t *conflict_new(pkg_t *pkg1, pkg_t *pkg2,
-// 		alpm_depend_t *reason)
+// static conflict_t *conflict_new(pkg_t *pkg1, pkg_t *pkg2,
+// 		depend_t *reason)
 // {
-// 	alpm_conflict_t *conflict;
+// 	conflict_t *conflict;
 //
-// 	CALLOC(conflict, 1, sizeof(alpm_conflict_t), return NULL);
+// 	CALLOC(conflict, 1, sizeof(conflict_t), return NULL);
 //
 // 	conflict->package1_hash = pkg1->name_hash;
 // 	conflict->package2_hash = pkg2->name_hash;
@@ -41,14 +41,14 @@
 // 	return conflict;
 //
 // error:
-// 	alpm_conflict_free(conflict);
+// 	conflict_free(conflict);
 // 	return NULL;
 // }
 
 // /**
 //  * @brief Free a conflict and its members.
 //  */
-// void SYMEXPORT alpm_conflict_free(alpm_conflict_t *conflict)
+// void SYMEXPORT conflict_free(conflict_t *conflict)
 // {
 // 	ASSERT(conflict != NULL, return);
 // 	FREE(conflict->package2);
@@ -59,10 +59,10 @@
 // /**
 //  * @brief Creates a copy of a conflict.
 //  */
-// alpm_conflict_t *_alpm_conflict_dup(const alpm_conflict_t *conflict)
+// conflict_t *_conflict_dup(const conflict_t *conflict)
 // {
-// 	alpm_conflict_t *newconflict;
-// 	CALLOC(newconflict, 1, sizeof(alpm_conflict_t), return NULL);
+// 	conflict_t *newconflict;
+// 	CALLOC(newconflict, 1, sizeof(conflict_t), return NULL);
 //
 // 	newconflict->package1_hash = conflict->package1_hash;
 // 	newconflict->package2_hash = conflict->package2_hash;
@@ -73,7 +73,7 @@
 // 	return newconflict;
 //
 // error:
-// 	alpm_conflict_free(newconflict);
+// 	conflict_free(newconflict);
 // 	return NULL;
 // }
 
@@ -85,11 +85,11 @@
 //  *
 //  * @return 1 if needle is in haystack, 0 otherwise
 //  */
-// static int conflict_isin(alpm_conflict_t *needle, alpm_list_t *haystack)
+// static int conflict_isin(conflict_t *needle, list_t *haystack)
 // {
-// 	alpm_list_t *i;
+// 	list_t *i;
 // 	for(i = haystack; i; i = i->next) {
-// 		alpm_conflict_t *conflict = i->data;
+// 		conflict_t *conflict = i->data;
 // 		if(needle->package1_hash == conflict->package1_hash
 // 				&& needle->package2_hash == conflict->package2_hash
 // 				&& strcmp(needle->package1, conflict->package1) == 0
@@ -112,21 +112,21 @@
 //  *
 //  * @return 0 on success, -1 on error
 //  */
-// static int add_conflict(alpm_handle_t *handle, alpm_list_t **baddeps,
-// 		pkg_t *pkg1, pkg_t *pkg2, alpm_depend_t *reason)
+// static int add_conflict(handle_t *handle, list_t **baddeps,
+// 		pkg_t *pkg1, pkg_t *pkg2, depend_t *reason)
 // {
-// 	alpm_conflict_t *conflict = conflict_new(pkg1, pkg2, reason);
+// 	conflict_t *conflict = conflict_new(pkg1, pkg2, reason);
 // 	if(!conflict) {
 // 		return -1;
 // 	}
 // 	if(!conflict_isin(conflict, *baddeps)) {
-// 		char *conflict_str = alpm_dep_compute_string(reason);
-// 		*baddeps = alpm_list_add(*baddeps, conflict);
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "package %s conflicts with %s (by %s)\n",
+// 		char *conflict_str = dep_compute_string(reason);
+// 		*baddeps = list_add(*baddeps, conflict);
+// 		_log(handle, ALPM_LOG_DEBUG, "package %s conflicts with %s (by %s)\n",
 // 				pkg1->name, pkg2->name, conflict_str);
 // 		free(conflict_str);
 // 	} else {
-// 		alpm_conflict_free(conflict);
+// 		conflict_free(conflict);
 // 	}
 // 	return 0;
 // }
@@ -145,22 +145,22 @@
 //  * @param baddeps list to store conflicts
 //  * @param order if >= 0 the conflict order is preserved, if < 0 it's reversed
 //  */
-// static void check_conflict(alpm_handle_t *handle,
-// 		alpm_list_t *list1, alpm_list_t *list2,
-// 		alpm_list_t **baddeps, int order)
+// static void check_conflict(handle_t *handle,
+// 		list_t *list1, list_t *list2,
+// 		list_t **baddeps, int order)
 // {
-// 	alpm_list_t *i;
+// 	list_t *i;
 //
 // 	if(!baddeps) {
 // 		return;
 // 	}
 // 	for(i = list1; i; i = i->next) {
 // 		pkg_t *pkg1 = i->data;
-// 		alpm_list_t *j;
+// 		list_t *j;
 //
-// 		for(j = alpm_pkg_get_conflicts(pkg1); j; j = j->next) {
-// 			alpm_depend_t *conflict = j->data;
-// 			alpm_list_t *k;
+// 		for(j = pkg_get_conflicts(pkg1); j; j = j->next) {
+// 			depend_t *conflict = j->data;
+// 			list_t *k;
 //
 // 			for(k = list2; k; k = k->next) {
 // 				pkg_t *pkg2 = k->data;
@@ -171,7 +171,7 @@
 // 					continue;
 // 				}
 //
-// 				if(_alpm_depcmp(pkg2, conflict)) {
+// 				if(_depcmp(pkg2, conflict)) {
 // 					if(order >= 0) {
 // 						add_conflict(handle, baddeps, pkg1, pkg2, conflict);
 // 					} else {
@@ -191,11 +191,11 @@
 //  *
 //  * @return list of conflicts
 //  */
-// alpm_list_t *_alpm_innerconflicts(alpm_handle_t *handle, alpm_list_t *packages)
+// list_t *_innerconflicts(handle_t *handle, list_t *packages)
 // {
-// 	alpm_list_t *baddeps = NULL;
+// 	list_t *baddeps = NULL;
 //
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "check targets vs targets\n");
+// 	_log(handle, ALPM_LOG_DEBUG, "check targets vs targets\n");
 // 	check_conflict(handle, packages, packages, &baddeps, 0);
 //
 // 	return baddeps;
@@ -204,24 +204,24 @@
 // /**
 //  * @brief Returns a list of conflicts between a db and a list of packages.
 //  */
-// alpm_list_t *_alpm_outerconflicts(alpm_db_t *db, alpm_list_t *packages)
+// list_t *_outerconflicts(db_t *db, list_t *packages)
 // {
-// 	alpm_list_t *baddeps = NULL;
+// 	list_t *baddeps = NULL;
 //
 // 	if(db == NULL) {
 // 		return NULL;
 // 	}
 //
-// 	alpm_list_t *dblist = alpm_list_diff(_alpm_db_get_pkgcache(db),
-// 			packages, _alpm_pkg_cmp);
+// 	list_t *dblist = list_diff(_db_get_pkgcache(db),
+// 			packages, _pkg_cmp);
 //
 // 	/* two checks to be done here for conflicts */
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "check targets vs db\n");
+// 	_log(db->handle, ALPM_LOG_DEBUG, "check targets vs db\n");
 // 	check_conflict(db->handle, packages, dblist, &baddeps, 1);
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "check db vs targets\n");
+// 	_log(db->handle, ALPM_LOG_DEBUG, "check db vs targets\n");
 // 	check_conflict(db->handle, dblist, packages, &baddeps, -1);
 //
-// 	alpm_list_free(dblist);
+// 	list_free(dblist);
 // 	return baddeps;
 // }
 
@@ -236,12 +236,12 @@
 //  *
 //  * @return the updated conflict list
 //  */
-// static alpm_list_t *add_fileconflict(alpm_handle_t *handle,
-// 		alpm_list_t *conflicts, const char *filestr,
+// static list_t *add_fileconflict(handle_t *handle,
+// 		list_t *conflicts, const char *filestr,
 // 		pkg_t *pkg1, pkg_t *pkg2)
 // {
-// 	alpm_fileconflict_t *conflict;
-// 	CALLOC(conflict, 1, sizeof(alpm_fileconflict_t), goto error);
+// 	fileconflict_t *conflict;
+// 	CALLOC(conflict, 1, sizeof(fileconflict_t), goto error);
 //
 // 	STRDUP(conflict->target, pkg1->name, goto error);
 // 	STRDUP(conflict->file, filestr, goto error);
@@ -256,21 +256,21 @@
 // 		STRDUP(conflict->ctarget, pkg2->name, goto error);
 // 	}
 //
-// 	conflicts = alpm_list_add(conflicts, conflict);
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "found file conflict %s, packages %s and %s\n",
+// 	conflicts = list_add(conflicts, conflict);
+// 	_log(handle, ALPM_LOG_DEBUG, "found file conflict %s, packages %s and %s\n",
 // 	          filestr, pkg1->name, pkg2 ? pkg2->name : "(filesystem)");
 //
 // 	return conflicts;
 //
 // error:
-// 	alpm_fileconflict_free(conflict);
+// 	fileconflict_free(conflict);
 // 	RET_ERR(handle, ALPM_ERR_MEMORY, conflicts);
 // }
 //
 // /**
 //  * @brief Frees a conflict and its members.
 //  */
-// void SYMEXPORT alpm_fileconflict_free(alpm_fileconflict_t *conflict)
+// void SYMEXPORT fileconflict_free(fileconflict_t *conflict)
 // {
 // 	ASSERT(conflict != NULL, return);
 // 	FREE(conflict->ctarget);
@@ -289,8 +289,8 @@
 //  *
 //  * @return 1 if a package owns all subdirectories and files, 0 otherwise
 //  */
-// static int dir_belongsto_pkgs(alpm_handle_t *handle, const char *dirpath,
-// 		alpm_list_t *pkgs)
+// static int dir_belongsto_pkgs(handle_t *handle, const char *dirpath,
+// 		list_t *pkgs)
 // {
 // 	char path[PATH_MAX], full_path[PATH_MAX];
 // 	DIR *dir;
@@ -305,7 +305,7 @@
 // 	while((ent = readdir(dir)) != NULL) {
 // 		const char *name = ent->d_name;
 // 		int owned = 0, is_dir = 0;
-// 		alpm_list_t *i;
+// 		list_t *i;
 // 		struct stat sbuf;
 //
 // 		if(strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
@@ -315,7 +315,7 @@
 // 		snprintf(full_path, PATH_MAX, "%s%s%s", handle->root, dirpath, name);
 //
 // 		if(lstat(full_path, &sbuf) != 0) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "could not stat %s\n", full_path);
+// 			_log(handle, ALPM_LOG_DEBUG, "could not stat %s\n", full_path);
 // 			closedir(dir);
 // 			return 0;
 // 		}
@@ -324,7 +324,7 @@
 // 		snprintf(path, PATH_MAX, "%s%s%s", dirpath, name, is_dir ? "/" : "");
 //
 // 		for(i = pkgs; i && !owned; i = i->next) {
-// 			if(alpm_filelist_contains(alpm_pkg_get_files(i->data), path)) {
+// 			if(filelist_contains(pkg_get_files(i->data), path)) {
 // 				owned = 1;
 // 			}
 // 		}
@@ -335,7 +335,7 @@
 //
 // 		if(!owned) {
 // 			closedir(dir);
-// 			_alpm_log(handle, ALPM_LOG_DEBUG,
+// 			_log(handle, ALPM_LOG_DEBUG,
 // 					"unowned file %s found in directory\n", path);
 // 			return 0;
 // 		}
@@ -344,32 +344,32 @@
 // 	return 1;
 // }
 
-// static alpm_list_t *alpm_db_find_file_owners(alpm_db_t* db, const char *path)
+// static list_t *db_find_file_owners(db_t* db, const char *path)
 // {
-// 	alpm_list_t *i, *owners = NULL;
-// 	for(i = alpm_db_get_pkgcache(db); i; i = i->next) {
-// 		if(alpm_filelist_contains(alpm_pkg_get_files(i->data), path)) {
-// 			owners = alpm_list_add(owners, i->data);
+// 	list_t *i, *owners = NULL;
+// 	for(i = db_get_pkgcache(db); i; i = i->next) {
+// 		if(filelist_contains(pkg_get_files(i->data), path)) {
+// 			owners = list_add(owners, i->data);
 // 		}
 // 	}
 // 	return owners;
 // }
 
-// static pkg_t *_alpm_find_file_owner(alpm_handle_t *handle, const char *path)
+// static pkg_t *_find_file_owner(handle_t *handle, const char *path)
 // {
-// 	alpm_list_t *i;
-// 	for(i = alpm_db_get_pkgcache(handle->db_local); i; i = i->next) {
-// 		if(alpm_filelist_contains(alpm_pkg_get_files(i->data), path)) {
+// 	list_t *i;
+// 	for(i = db_get_pkgcache(handle->db_local); i; i = i->next) {
+// 		if(filelist_contains(pkg_get_files(i->data), path)) {
 // 			return i->data;
 // 		}
 // 	}
 // 	return NULL;
 // }
 
-// static int _alpm_can_overwrite_file(alpm_handle_t *handle, const char *path)
+// static int _can_overwrite_file(handle_t *handle, const char *path)
 // {
 // 	return handle->trans->flags & ALPM_TRANS_FLAG_FORCE
-// 		|| _alpm_fnmatch_patterns(handle->overwrite_files, path) == 0;
+// 		|| _fnmatch_patterns(handle->overwrite_files, path) == 0;
 // }
 
 // /**
@@ -385,11 +385,11 @@
 //  *
 //  * @return list of file conflicts
 //  */
-// alpm_list_t *_alpm_db_find_fileconflicts(alpm_handle_t *handle,
-// 		alpm_list_t *upgrade, alpm_list_t *rem)
+// list_t *_db_find_fileconflicts(handle_t *handle,
+// 		list_t *upgrade, list_t *rem)
 // {
-// 	alpm_list_t *i, *conflicts = NULL;
-// 	size_t numtargs = alpm_list_count(upgrade);
+// 	list_t *i, *conflicts = NULL;
+// 	size_t numtargs = list_count(upgrade);
 // 	size_t current;
 // 	size_t rootlen;
 //
@@ -405,8 +405,8 @@
 // 	 * different cases. */
 // 	for(current = 0, i = upgrade; i; i = i->next, current++) {
 // 		pkg_t *p1 = i->data;
-// 		alpm_list_t *j;
-// 		alpm_list_t *newfiles = NULL;
+// 		list_t *j;
+// 		list_t *newfiles = NULL;
 // 		pkg_t *dbpkg;
 //
 // 		int percent = (current * 100) / numtargs;
@@ -414,19 +414,19 @@
 // 		         numtargs, current);
 //
 // 		/* CHECK 1: check every target against every target */
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "searching for file conflicts: %s\n",
+// 		_log(handle, ALPM_LOG_DEBUG, "searching for file conflicts: %s\n",
 // 				p1->name);
 // 		for(j = i->next; j; j = j->next) {
-// 			alpm_list_t *common_files;
+// 			list_t *common_files;
 // 			pkg_t *p2 = j->data;
 //
-// 			alpm_filelist_t *p1_files = alpm_pkg_get_files(p1);
-// 			alpm_filelist_t *p2_files = alpm_pkg_get_files(p2);
+// 			filelist_t *p1_files = pkg_get_files(p1);
+// 			filelist_t *p2_files = pkg_get_files(p2);
 //
-// 			common_files = _alpm_filelist_intersection(p1_files, p2_files);
+// 			common_files = _filelist_intersection(p1_files, p2_files);
 //
 // 			if(common_files) {
-// 				alpm_list_t *k;
+// 				list_t *k;
 // 				char path[PATH_MAX];
 // 				for(k = common_files; k; k = k->next) {
 // 					char *filename = k->data;
@@ -435,33 +435,33 @@
 // 					/* can skip file-file conflicts when forced *
 // 					 * checking presence in p2_files detects dir-file or file-dir
 // 					 * conflicts as the path from p1 is returned */
-// 					if(_alpm_can_overwrite_file(handle, filename)
-// 							&& alpm_filelist_contains(p2_files, filename)) {
-// 						_alpm_log(handle, ALPM_LOG_DEBUG,
+// 					if(_can_overwrite_file(handle, filename)
+// 							&& filelist_contains(p2_files, filename)) {
+// 						_log(handle, ALPM_LOG_DEBUG,
 // 							"%s exists in both '%s' and '%s'\n", filename,
 // 							p1->name, p2->name);
-// 						_alpm_log(handle, ALPM_LOG_DEBUG,
+// 						_log(handle, ALPM_LOG_DEBUG,
 // 							"file-file conflict being forced\n");
 // 						continue;
 // 					}
 //
 // 					conflicts = add_fileconflict(handle, conflicts, path, p1, p2);
 // 					if(handle->pm_errno == ALPM_ERR_MEMORY) {
-// 						alpm_list_free_inner(conflicts,
-// 								(alpm_list_fn_free) alpm_conflict_free);
-// 						alpm_list_free(conflicts);
-// 						alpm_list_free(common_files);
+// 						list_free_inner(conflicts,
+// 								(list_fn_free) conflict_free);
+// 						list_free(conflicts);
+// 						list_free(common_files);
 // 						return NULL;
 // 					}
 // 				}
-// 				alpm_list_free(common_files);
+// 				list_free(common_files);
 // 			}
 // 		}
 //
 // 		/* CHECK 2: check every target against the filesystem */
-// 		_alpm_log(handle, ALPM_LOG_DEBUG, "searching for filesystem conflicts: %s\n",
+// 		_log(handle, ALPM_LOG_DEBUG, "searching for filesystem conflicts: %s\n",
 // 				p1->name);
-// 		dbpkg = _alpm_db_get_pkgfromcache(handle->db_local, p1->name);
+// 		dbpkg = _db_get_pkgfromcache(handle->db_local, p1->name);
 //
 // 		/* Do two different checks here. If the package is currently installed,
 // 		 * then only check files that are new in the new package. If the package
@@ -470,21 +470,21 @@
 // 		 * be freed. */
 // 		if(dbpkg) {
 // 			/* older ver of package currently installed */
-// 			newfiles = _alpm_filelist_difference(alpm_pkg_get_files(p1),
-// 					alpm_pkg_get_files(dbpkg));
+// 			newfiles = _filelist_difference(pkg_get_files(p1),
+// 					pkg_get_files(dbpkg));
 // 		} else {
 // 			/* no version of package currently installed */
-// 			alpm_filelist_t *fl = alpm_pkg_get_files(p1);
+// 			filelist_t *fl = pkg_get_files(p1);
 // 			size_t filenum;
 // 			for(filenum = 0; filenum < fl->count; filenum++) {
-// 				newfiles = alpm_list_add(newfiles, fl->files[filenum].name);
+// 				newfiles = list_add(newfiles, fl->files[filenum].name);
 // 			}
 // 		}
 //
 // 		for(j = newfiles; j; j = j->next) {
 // 			const char *filestr = j->data;
 // 			const char *relative_path;
-// 			alpm_list_t *k;
+// 			list_t *k;
 // 			/* have we acted on this conflict? */
 // 			int resolved_conflict = 0;
 // 			struct stat lsbuf;
@@ -500,12 +500,12 @@
 // 				continue;
 // 			}
 //
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "checking possible conflict: %s\n", path);
+// 			_log(handle, ALPM_LOG_DEBUG, "checking possible conflict: %s\n", path);
 //
 // 			pfile_isdir = path[pathlen - 1] == '/';
 // 			if(pfile_isdir) {
 // 				if(S_ISDIR(lsbuf.st_mode)) {
-// 					_alpm_log(handle, ALPM_LOG_DEBUG, "file is a directory, not a conflict\n");
+// 					_log(handle, ALPM_LOG_DEBUG, "file is a directory, not a conflict\n");
 // 					continue;
 // 				}
 // 				/* if we made it to here, we want all subsequent path comparisons to
@@ -514,9 +514,9 @@
 // 				path[pathlen - 1] = '\0';
 //
 // 				/* Check if the directory was a file in dbpkg */
-// 				if(alpm_filelist_contains(alpm_pkg_get_files(dbpkg), relative_path)) {
+// 				if(filelist_contains(pkg_get_files(dbpkg), relative_path)) {
 // 					size_t fslen = strlen(filestr);
-// 					_alpm_log(handle, ALPM_LOG_DEBUG,
+// 					_log(handle, ALPM_LOG_DEBUG,
 // 							"replacing package file with a directory, not a conflict\n");
 // 					resolved_conflict = 1;
 //
@@ -535,9 +535,9 @@
 // 			/* Check remove list (will we remove the conflicting local file?) */
 // 			for(k = rem; k && !resolved_conflict; k = k->next) {
 // 				pkg_t *rempkg = k->data;
-// 				if(rempkg && alpm_filelist_contains(alpm_pkg_get_files(rempkg),
+// 				if(rempkg && filelist_contains(pkg_get_files(rempkg),
 // 							relative_path)) {
-// 					_alpm_log(handle, ALPM_LOG_DEBUG,
+// 					_log(handle, ALPM_LOG_DEBUG,
 // 							"local file will be removed, not a conflict\n");
 // 					resolved_conflict = 1;
 // 					if(pfile_isdir) {
@@ -563,18 +563,18 @@
 // 					 * so they can be compared directly */
 // 					continue;
 // 				}
-// 				localp2 = _alpm_db_get_pkgfromcache(handle->db_local, p2->name);
+// 				localp2 = _db_get_pkgfromcache(handle->db_local, p2->name);
 //
 // 				/* localp2->files will be removed (target conflicts are handled by CHECK 1) */
-// 				if(localp2 && alpm_filelist_contains(alpm_pkg_get_files(localp2), relative_path)) {
+// 				if(localp2 && filelist_contains(pkg_get_files(localp2), relative_path)) {
 // 					size_t fslen = strlen(filestr);
 //
 // 					/* skip removal of file, but not add. this will prevent a second
 // 					 * package from removing the file when it was already installed
 // 					 * by its new owner (whether the file is in backup array or not */
 // 					handle->trans->skip_remove =
-// 						alpm_list_add(handle->trans->skip_remove, strdup(relative_path));
-// 					_alpm_log(handle, ALPM_LOG_DEBUG,
+// 						list_add(handle->trans->skip_remove, strdup(relative_path));
+// 					_log(handle, ALPM_LOG_DEBUG,
 // 							"file changed packages, adding to remove skiplist\n");
 // 					resolved_conflict = 1;
 //
@@ -595,46 +595,46 @@
 //
 // 			/* check if all files of the dir belong to the installed pkg */
 // 			if(!resolved_conflict && S_ISDIR(lsbuf.st_mode)) {
-// 				alpm_list_t *owners;
+// 				list_t *owners;
 // 				char *dir = malloc(strlen(relative_path) + 2);
 // 				sprintf(dir, "%s/", relative_path);
 //
-// 				owners = alpm_db_find_file_owners(handle->db_local, dir);
+// 				owners = db_find_file_owners(handle->db_local, dir);
 // 				if(owners) {
-// 					alpm_list_t *pkgs = NULL, *diff;
+// 					list_t *pkgs = NULL, *diff;
 //
 // 					if(dbpkg) {
-// 						pkgs = alpm_list_add(pkgs, dbpkg);
+// 						pkgs = list_add(pkgs, dbpkg);
 // 					}
-// 					pkgs = alpm_list_join(pkgs, alpm_list_copy(rem));
-// 					if((diff = alpm_list_diff(owners, pkgs, _alpm_pkg_cmp))) {
+// 					pkgs = list_join(pkgs, list_copy(rem));
+// 					if((diff = list_diff(owners, pkgs, _pkg_cmp))) {
 // 						/* dir is owned by files we aren't removing */
 // 						/* TODO: with better commit ordering, we may be able to check
 // 						 * against upgrades as well */
-// 						alpm_list_free(diff);
+// 						list_free(diff);
 // 					} else {
-// 						_alpm_log(handle, ALPM_LOG_DEBUG,
+// 						_log(handle, ALPM_LOG_DEBUG,
 // 								"checking if all files in %s belong to removed packages\n",
 // 								dir);
 // 						resolved_conflict = dir_belongsto_pkgs(handle, dir, owners);
 // 					}
-// 					alpm_list_free(pkgs);
-// 					alpm_list_free(owners);
+// 					list_free(pkgs);
+// 					list_free(owners);
 // 				}
 // 				free(dir);
 // 			}
 //
 // 			/* is the file unowned and in the backup list of the new package? */
-// 			if(!resolved_conflict && _alpm_needbackup(relative_path, p1)) {
-// 				alpm_list_t *local_pkgs = _alpm_db_get_pkgcache(handle->db_local);
+// 			if(!resolved_conflict && _needbackup(relative_path, p1)) {
+// 				list_t *local_pkgs = _db_get_pkgcache(handle->db_local);
 // 				int found = 0;
 // 				for(k = local_pkgs; k && !found; k = k->next) {
-// 					if(alpm_filelist_contains(alpm_pkg_get_files(k->data), relative_path)) {
+// 					if(filelist_contains(pkg_get_files(k->data), relative_path)) {
 // 							found = 1;
 // 					}
 // 				}
 // 				if(!found) {
-// 					_alpm_log(handle, ALPM_LOG_DEBUG,
+// 					_log(handle, ALPM_LOG_DEBUG,
 // 							"file was unowned but in new backup list\n");
 // 					resolved_conflict = 1;
 // 				}
@@ -642,25 +642,25 @@
 //
 // 			/* skip file-file conflicts when being forced */
 // 			if(!S_ISDIR(lsbuf.st_mode)
-// 					&& _alpm_can_overwrite_file(handle, filestr)) {
-// 				_alpm_log(handle, ALPM_LOG_DEBUG,
+// 					&& _can_overwrite_file(handle, filestr)) {
+// 				_log(handle, ALPM_LOG_DEBUG,
 // 							"conflict with file on filesystem being forced\n");
 // 				resolved_conflict = 1;
 // 			}
 //
 // 			if(!resolved_conflict) {
 // 				conflicts = add_fileconflict(handle, conflicts, path, p1,
-// 						_alpm_find_file_owner(handle, relative_path));
+// 						_find_file_owner(handle, relative_path));
 // 				if(handle->pm_errno == ALPM_ERR_MEMORY) {
-// 					alpm_list_free_inner(conflicts,
-// 							(alpm_list_fn_free) alpm_conflict_free);
-// 					alpm_list_free(conflicts);
-// 					alpm_list_free(newfiles);
+// 					list_free_inner(conflicts,
+// 							(list_fn_free) conflict_free);
+// 					list_free(conflicts);
+// 					list_free(newfiles);
 // 					return NULL;
 // 				}
 // 			}
 // 		}
-// 		alpm_list_free(newfiles);
+// 		list_free(newfiles);
 // 	}
 // 	PROGRESS(handle, ALPM_PROGRESS_CONFLICTS_START, "", 100,
 // 			numtargs, current);

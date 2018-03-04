@@ -654,16 +654,12 @@ fn sync_trans(targets: &Vec<String>, config: &mut Config, handle: &mut Handle) -
         if !config.print {
             info!("Starting full system upgrade...");
         }
-        match handle.alpm_sync_sysupgrade(config.s_upgrade >= 2) {
-            Err(e) => {
-                error!("{}", e);
-                match handle.trans_release() {
-                    Err(e) => error!("failed to release transaction: {}", e),
-                    Ok(_) => {}
-                }
-                return Err(e);
+        if let Err(e) = handle.sync_sysupgrade(config.s_upgrade >= 2) {
+            error!("{}", e);
+            if let Err(e) = handle.trans_release() {
+                error!("failed to release transaction: {}", e);
             }
-            Ok(_) => {}
+            return Err(e);
         }
     }
 
@@ -692,62 +688,63 @@ fn print_broken_dep(miss: &DepMissing) {
 }
 
 pub fn sync_prepare_execute(config: &Config, handle: &mut Handle) -> Result<()> {
-    unimplemented!();
-    // 	alpm_list_t *i, *packages, *data = NULL;
+    let mut packages;
     let retval = Ok(());
     let mut data = Vec::new();
 
     /* Step 2: "compute" the transaction based on targets and flags */
-    match handle.trans_prepare(&mut data) {
-        Err(err) => {
-            // == -1 {
-            error!("failed to prepare transaction ({})", err);
-            match err {
-                Error::PkgInvalidArch => {
-                    for pkg in data {
-                        unimplemented!();
-                        // colon_printf(_("package %s does not have a valid architecture\n"), pkg);
-                    }
+    if let Err(err) = handle.trans_prepare(&mut data) {
+        // == -1 {
+        error!("failed to prepare transaction ({})", err);
+        match err {
+            Error::PkgInvalidArch => {
+                for pkg in data {
+                    unimplemented!();
+                    // colon_printf(_("package %s does not have a valid architecture\n"), pkg);
                 }
-                Error::UnsatisfiedDeps => {
-                    for pkg in data {
-                        unimplemented!();
-                        // print_broken_dep(pkg);
-                    }
-                }
-                Error::ConflictingDeps => {
-                    for conflict in data {
-                        unimplemented!();
-                        // 	alpm_conflict_t *conflict = i->data;
-                        // 	/* only print reason if it contains new information */
-                        // 	if(conflict->reason->mod == ALPM_DEP_MOD_ANY) {
-                        // 		colon_printf(_("%s and %s are in conflict\n"),
-                        // 				conflict->package1, conflict->package2);
-                        // 	} else {
-                        // 		char *reason = alpm_dep_compute_string(conflict->reason);
-                        // 		colon_printf(_("%s and %s are in conflict (%s)\n"),
-                        // 				conflict->package1, conflict->package2, reason);
-                        // 		free(reason);
-                        // 	}
-                        // 	alpm_conflict_free(conflict);
-                    }
-                }
-                _ => {}
             }
-            // 		retval = 1;
-            // 		goto cleanup;
+            Error::UnsatisfiedDeps => {
+                for pkg in data {
+                    unimplemented!();
+                    // print_broken_dep(pkg);
+                }
+            }
+            Error::ConflictingDeps => {
+                for conflict in data {
+                    unimplemented!();
+                    // 	alpm_conflict_t *conflict = i->data;
+                    // 	/* only print reason if it contains new information */
+                    // 	if(conflict->reason->mod == ALPM_DEP_MOD_ANY) {
+                    // 		colon_printf(_("%s and %s are in conflict\n"),
+                    // 				conflict->package1, conflict->package2);
+                    // 	} else {
+                    // 		char *reason = alpm_dep_compute_string(conflict->reason);
+                    // 		colon_printf(_("%s and %s are in conflict (%s)\n"),
+                    // 				conflict->package1, conflict->package2, reason);
+                    // 		free(reason);
+                    // 	}
+                    // 	alpm_conflict_free(conflict);
+                }
+            }
+            _ => {}
         }
-        _ => {}
+        unimplemented!();
+        // 		retval = 1;
+        // 		goto cleanup;
     }
 
-    // 	packages = alpm_trans_get_add(config->handle);
-    // 	if(packages == NULL) {
-    // 		/* nothing to do: just exit without complaining */
-    // 		if(!config->print) {
-    // 			printf(_(" there is nothing to do\n"));
-    // 		}
-    // 		goto cleanup;
-    // 	}
+    if handle.trans.add.is_empty() {
+        /* nothing to do: just exit without complaining */
+        if !config.print {
+            info!("there is nothing to do");
+        }
+        if !trans_release(handle) {
+            return Err(Error::Other);
+        }
+
+        return retval;
+    }
+    packages = &handle.trans.add;
 
     // 	/* Step 3: actually perform the operation */
     // 	if(config->print) {
@@ -816,13 +813,13 @@ pub fn sync_prepare_execute(config: &Config, handle: &mut Handle) -> Result<()> 
     // 		retval = 1;
     // 		goto cleanup;
     // 	}
+    unimplemented!();
 
-    // 	/* Step 4: release transaction resources */
-    // cleanup:
-    // 	alpm_list_free(data);
-    // 	if(trans_release() == -1) {
-    // 		retval = 1;
-    // 	}
+    /* Step 4: release transaction resources */
+    /* cleanup: */
+    if !trans_release(handle) {
+        return Err(Error::Other);
+    }
 
     return retval;
 }
@@ -854,7 +851,6 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handl
     if config.sync != 0 {
         /* grab a fresh package list */
         info!("Synchronizing package databases...");
-
         sync_syncdbs(config.sync as i32, &mut sync_dbs, handle)?;
     }
 

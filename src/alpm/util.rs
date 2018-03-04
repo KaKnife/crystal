@@ -54,7 +54,7 @@ use super::*;
 // #include "log.h"
 // #include "libarchive-compat.h"
 // #include "alpm.h"
-// #include "alpm_list.h"
+// #include "list.h"
 // #include "handle.h"
 // #include "trans.h"
 //
@@ -93,9 +93,9 @@ use super::*;
 // }
 // #endif
 
-// pub fn _alpm_makepath(path: &String) -> i32
+// pub fn _makepath(path: &String) -> i32
 // {
-// 	return _alpm_makepath_mode(path, 0755);
+// 	return _makepath_mode(path, 0755);
 // }
 //
 // /** Creates a directory, including parents if needed, similar to 'mkdir -p'.
@@ -103,7 +103,7 @@ use super::*;
 //  * @param mode permission mode for created directories
 //  * @return 0 on success, 1 on error
 //  */
-// fn _alpm_makepath_mode(const char *path, mode_t mode) -> i32
+// fn _makepath_mode(const char *path, mode_t mode) -> i32
 // {
 //     unimplemented!();
 // 	char *ptr, *str;
@@ -149,7 +149,7 @@ use super::*;
 //  * @param dest file path to copy to
 //  * @return 0 on success, 1 on error
 //  */
-// int _alpm_copyfile(const char *src, const char *dest)
+// int _copyfile(const char *src, const char *dest)
 // {
 // 	char *buf;
 // 	int in, out, ret = 1;
@@ -203,7 +203,7 @@ use super::*;
 //  * @param len size of str, if known, else 0
 //  * @return the length of the trimmed string
 //  */
-// size_t _alpm_strip_newline(st: &str, size_t len)
+// size_t _strip_newline(st: &str, size_t len)
 // {
 // 	if(*st == '\0') {
 // 		return 0;
@@ -234,8 +234,8 @@ use super::*;
 //  * @param error error code to set on failure to open archive
 //  * @return -1 on failure, >=0 file descriptor on success
 //  */
-// int _alpm_open_archive(alpm_handle_t *handle, const char *path,
-// 		struct stat *buf, struct archive **archive, alpm_errno_t error)
+// int _open_archive(handle_t *handle, const char *path,
+// 		struct stat *buf, struct archive **archive, errno_t error)
 // {
 // 	int fd;
 // 	size_t bufsize = ALPM_BUFFER_SIZE;
@@ -245,19 +245,19 @@ use super::*;
 // 		RET_ERR(handle, ALPM_ERR_LIBARCHIVE, -1);
 // 	}
 //
-// 	_alpm_archive_read_support_filter_all(*archive);
+// 	_archive_read_support_filter_all(*archive);
 // 	archive_read_support_format_all(*archive);
 //
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "opening archive %s\n", path);
+// 	_log(handle, ALPM_LOG_DEBUG, "opening archive %s\n", path);
 // 	OPEN(fd, path, O_RDONLY | O_CLOEXEC);
 // 	if(fd < 0) {
-// 		_alpm_log(handle, ALPM_LOG_ERROR,
+// 		_log(handle, ALPM_LOG_ERROR,
 // 				_("could not open file %s: %s\n"), path, strerror(errno));
 // 		goto error;
 // 	}
 //
 // 	if(fstat(fd, buf) != 0) {
-// 		_alpm_log(handle, ALPM_LOG_ERROR,
+// 		_log(handle, ALPM_LOG_ERROR,
 // 				_("could not stat file %s: %s\n"), path, strerror(errno));
 // 		goto error;
 // 	}
@@ -268,7 +268,7 @@ use super::*;
 // #endif
 //
 // 	if(archive_read_open_fd(*archive, fd, bufsize) != ARCHIVE_OK) {
-// 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not open file %s: %s\n"),
+// 		_log(handle, ALPM_LOG_ERROR, _("could not open file %s: %s\n"),
 // 				path, archive_error_string(*archive));
 // 		goto error;
 // 	}
@@ -276,7 +276,7 @@ use super::*;
 // 	return fd;
 //
 // error:
-// 	_alpm_archive_read_free(*archive);
+// 	_archive_read_free(*archive);
 // 	*archive = NULL;
 // 	if(fd >= 0) {
 // 		close(fd);
@@ -291,17 +291,17 @@ use super::*;
 //  * @param filename a file within the archive to unpack
 //  * @return 0 on success, 1 on failure
 //  */
-// int _alpm_unpack_single(alpm_handle_t *handle, const char *archive,
+// int _unpack_single(handle_t *handle, const char *archive,
 // 		const char *prefix, const char *filename)
 // {
-// 	alpm_list_t *list = NULL;
+// 	list_t *list = NULL;
 // 	int ret = 0;
 // 	if(filename == NULL) {
 // 		return 1;
 // 	}
-// 	list = alpm_list_add(list, (void *)filename);
-// 	ret = _alpm_unpack(handle, archive, prefix, list, 1);
-// 	alpm_list_free(list);
+// 	list = list_add(list, (void *)filename);
+// 	ret = _unpack(handle, archive, prefix, list, 1);
+// 	list_free(list);
 // 	return ret;
 // }
 //
@@ -313,8 +313,8 @@ use super::*;
 //  * @param breakfirst break after the first entry found
 //  * @return 0 on success, 1 on failure
 //  */
-// int _alpm_unpack(alpm_handle_t *handle, const char *path, const char *prefix,
-// 		alpm_list_t *list, int breakfirst)
+// int _unpack(handle_t *handle, const char *path, const char *prefix,
+// 		list_t *list, int breakfirst)
 // {
 // 	int ret = 0;
 // 	mode_t oldmask;
@@ -323,7 +323,7 @@ use super::*;
 // 	struct stat buf;
 // 	int fd, cwdfd;
 //
-// 	fd = _alpm_open_archive(handle, path, &buf, &archive, ALPM_ERR_PKG_OPEN);
+// 	fd = _open_archive(handle, path, &buf, &archive, ALPM_ERR_PKG_OPEN);
 // 	if(fd < 0) {
 // 		return 1;
 // 	}
@@ -333,12 +333,12 @@ use super::*;
 // 	/* save the cwd so we can restore it later */
 // 	OPEN(cwdfd, ".", O_RDONLY | O_CLOEXEC);
 // 	if(cwdfd < 0) {
-// 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not get current working directory\n"));
+// 		_log(handle, ALPM_LOG_ERROR, _("could not get current working directory\n"));
 // 	}
 //
 // 	/* just in case our cwd was removed in the upgrade operation */
 // 	if(chdir(prefix) != 0) {
-// 		_alpm_log(handle, ALPM_LOG_ERROR, _("could not change directory to %s (%s)\n"),
+// 		_log(handle, ALPM_LOG_ERROR, _("could not change directory to %s (%s)\n"),
 // 				prefix, strerror(errno));
 // 		ret = 1;
 // 		goto cleanup;
@@ -357,7 +357,7 @@ use super::*;
 // 			if(p) {
 // 				*(p + 1) = '\0';
 // 			}
-// 			char *found = alpm_list_find_str(list, entry_prefix);
+// 			char *found = list_find_str(list, entry_prefix);
 // 			free(entry_prefix);
 // 			if(!found) {
 // 				if(archive_read_data_skip(archive) != ARCHIVE_OK) {
@@ -366,7 +366,7 @@ use super::*;
 // 				}
 // 				continue;
 // 			} else {
-// 				_alpm_log(handle, ALPM_LOG_DEBUG, "extracting: %s\n", entryname);
+// 				_log(handle, ALPM_LOG_DEBUG, "extracting: %s\n", entryname);
 // 			}
 // 		}
 //
@@ -381,10 +381,10 @@ use super::*;
 // 		int readret = archive_read_extract(archive, entry, 0);
 // 		if(readret == ARCHIVE_WARN) {
 // 			/* operation succeeded but a non-critical error was encountered */
-// 			_alpm_log(handle, ALPM_LOG_WARNING, _("warning given when extracting %s (%s)\n"),
+// 			_log(handle, ALPM_LOG_WARNING, _("warning given when extracting %s (%s)\n"),
 // 					entryname, archive_error_string(archive));
 // 		} else if(readret != ARCHIVE_OK) {
-// 			_alpm_log(handle, ALPM_LOG_ERROR, _("could not extract %s (%s)\n"),
+// 			_log(handle, ALPM_LOG_ERROR, _("could not extract %s (%s)\n"),
 // 					entryname, archive_error_string(archive));
 // 			ret = 1;
 // 			goto cleanup;
@@ -397,11 +397,11 @@ use super::*;
 //
 // cleanup:
 // 	umask(oldmask);
-// 	_alpm_archive_read_free(archive);
+// 	_archive_read_free(archive);
 // 	close(fd);
 // 	if(cwdfd >= 0) {
 // 		if(fchdir(cwdfd) != 0) {
-// 			_alpm_log(handle, ALPM_LOG_ERROR,
+// 			_log(handle, ALPM_LOG_ERROR,
 // 					_("could not restore working directory (%s)\n"), strerror(errno));
 // 		}
 // 		close(cwdfd);
@@ -417,7 +417,7 @@ use super::*;
 //  * @return a file count if full_count is != 0, else >0 if directory has
 //  * contents, 0 if no contents, and -1 on error
 //  */
-// ssize_t _alpm_files_in_directory(alpm_handle_t *handle, const char *path,
+// ssize_t _files_in_directory(handle_t *handle, const char *path,
 // 		int full_count)
 // {
 // 	ssize_t files = 0;
@@ -426,9 +426,9 @@ use super::*;
 //
 // 	if(!dir) {
 // 		if(errno == ENOTDIR) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "%s was not a directory\n", path);
+// 			_log(handle, ALPM_LOG_DEBUG, "%s was not a directory\n", path);
 // 		} else {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "could not read directory %s\n",
+// 			_log(handle, ALPM_LOG_DEBUG, "could not read directory %s\n",
 // 					path);
 // 		}
 // 		return -1;
@@ -461,9 +461,9 @@ use super::*;
 // 	|| errnum == EINTR;
 // }
 //
-// static int _alpm_chroot_write_to_child(alpm_handle_t *handle, int fd,
+// static int _chroot_write_to_child(handle_t *handle, int fd,
 // 		char *buf, ssize_t *buf_size, ssize_t buf_limit,
-// 		_alpm_cb_io out_cb, void *cb_ctx)
+// 		_cb_io out_cb, void *cb_ctx)
 // {
 // 	ssize_t nwrite;
 //
@@ -484,7 +484,7 @@ use super::*;
 // 	} else if(should_retry(errno)) {
 // 		/* nothing written, try again later */
 // 	} else {
-// 		_alpm_log(handle, ALPM_LOG_ERROR,
+// 		_log(handle, ALPM_LOG_ERROR,
 // 				_("unable to write to pipe (%s)\n"), strerror(errno));
 // 		return -1;
 // 	}
@@ -492,17 +492,17 @@ use super::*;
 // 	return 0;
 // }
 //
-// static void _alpm_chroot_process_output(alpm_handle_t *handle, const char *line)
+// static void _chroot_process_output(handle_t *handle, const char *line)
 // {
-// 	alpm_event_scriptlet_info_t event = {
+// 	event_scriptlet_info_t event = {
 // 		.type = ALPM_EVENT_SCRIPTLET_INFO,
 // 		.line = line
 // 	};
-// 	alpm_logaction(handle, "ALPM-SCRIPTLET", "%s", line);
+// 	logaction(handle, "ALPM-SCRIPTLET", "%s", line);
 // 	EVENT(handle, &event);
 // }
 //
-// static int _alpm_chroot_read_from_child(alpm_handle_t *handle, int fd,
+// static int _chroot_read_from_child(handle_t *handle, int fd,
 // 		char *buf, ssize_t *buf_size, ssize_t buf_limit)
 // {
 // 	ssize_t space = buf_limit - *buf_size - 2; /* reserve 2 for "\n\0" */
@@ -515,7 +515,7 @@ use super::*;
 // 				size_t linelen = newline - buf + 1;
 // 				char old = buf[linelen];
 // 				buf[linelen] = '\0';
-// 				_alpm_chroot_process_output(handle, buf);
+// 				_chroot_process_output(handle, buf);
 // 				buf[linelen] = old;
 //
 // 				*buf_size -= linelen;
@@ -525,14 +525,14 @@ use super::*;
 // 		} else if(nread == space) {
 // 			/* we didn't read a full line, but we're out of space */
 // 			strcpy(buf + *buf_size, "\n");
-// 			_alpm_chroot_process_output(handle, buf);
+// 			_chroot_process_output(handle, buf);
 // 			*buf_size = 0;
 // 		}
 // 	} else if(nread == 0) {
 // 		/* end-of-file */
 // 		if(*buf_size) {
 // 			strcpy(buf + *buf_size, "\n");
-// 			_alpm_chroot_process_output(handle, buf);
+// 			_chroot_process_output(handle, buf);
 // 		}
 // 		return -1;
 // 	} else if(should_retry(errno)) {
@@ -541,9 +541,9 @@ use super::*;
 // 		/* read error */
 // 		if(*buf_size) {
 // 			strcpy(buf + *buf_size, "\n");
-// 			_alpm_chroot_process_output(handle, buf);
+// 			_chroot_process_output(handle, buf);
 // 		}
-// 		_alpm_log(handle, ALPM_LOG_ERROR,
+// 		_log(handle, ALPM_LOG_ERROR,
 // 				_("unable to read from pipe (%s)\n"), strerror(errno));
 // 		return -1;
 // 	}
@@ -557,7 +557,7 @@ use super::*;
 //  * @return 0 if strings are equal, positive int if first unequal character
 //  * has a greater value in s1, negative if it has a greater value in s2
 //  */
-// int _alpm_str_cmp(const void *s1, const void *s2)
+// int _str_cmp(const void *s1, const void *s2)
 // {
 // 	return strcmp(s1, s2);
 // }
@@ -567,11 +567,11 @@ use super::*;
 //  * @param filename name of file to find
 //  * @return malloced path of file, NULL if not found
 //  */
-// char *_alpm_filecache_find(alpm_handle_t *handle, const char *filename)
+// char *_filecache_find(handle_t *handle, const char *filename)
 // {
 // 	char path[PATH_MAX];
 // 	char *retpath;
-// 	alpm_list_t *i;
+// 	list_t *i;
 // 	struct stat buf;
 //
 // 	/* Loop through the cache dirs until we find a matching file */
@@ -580,7 +580,7 @@ use super::*;
 // 				filename);
 // 		if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
 // 			retpath = strdup(path);
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "found cached pkg: %s\n", retpath);
+// 			_log(handle, ALPM_LOG_DEBUG, "found cached pkg: %s\n", retpath);
 // 			return retpath;
 // 		}
 // 	}
@@ -593,10 +593,10 @@ use super::*;
 //  * @param handle the context handle
 //  * @return pointer to a writable cache directory.
 //  */
-// const char *_alpm_filecache_setup(alpm_handle_t *handle)
+// const char *_filecache_setup(handle_t *handle)
 // {
 // 	struct stat buf;
-// 	alpm_list_t *i;
+// 	list_t *i;
 // 	char *cachedir;
 // 	const char *tmpdir;
 //
@@ -605,23 +605,23 @@ use super::*;
 // 		cachedir = i->data;
 // 		if(stat(cachedir, &buf) != 0) {
 // 			/* cache directory does not exist.... try creating it */
-// 			_alpm_log(handle, ALPM_LOG_WARNING, _("no %s cache exists, creating...\n"),
+// 			_log(handle, ALPM_LOG_WARNING, _("no %s cache exists, creating...\n"),
 // 					cachedir);
-// 			if(_alpm_makepath(cachedir) == 0) {
-// 				_alpm_log(handle, ALPM_LOG_DEBUG, "using cachedir: %s\n", cachedir);
+// 			if(_makepath(cachedir) == 0) {
+// 				_log(handle, ALPM_LOG_DEBUG, "using cachedir: %s\n", cachedir);
 // 				return cachedir;
 // 			}
 // 		} else if(!S_ISDIR(buf.st_mode)) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG,
+// 			_log(handle, ALPM_LOG_DEBUG,
 // 					"skipping cachedir, not a directory: %s\n", cachedir);
-// 		} else if(_alpm_access(handle, NULL, cachedir, W_OK) != 0) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG,
+// 		} else if(_access(handle, NULL, cachedir, W_OK) != 0) {
+// 			_log(handle, ALPM_LOG_DEBUG,
 // 					"skipping cachedir, not writable: %s\n", cachedir);
 // 		} else if(!(buf.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH))) {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG,
+// 			_log(handle, ALPM_LOG_DEBUG,
 // 					"skipping cachedir, no write bits set: %s\n", cachedir);
 // 		} else {
-// 			_alpm_log(handle, ALPM_LOG_DEBUG, "using cachedir: %s\n", cachedir);
+// 			_log(handle, ALPM_LOG_DEBUG, "using cachedir: %s\n", cachedir);
 // 			return cachedir;
 // 		}
 // 	}
@@ -632,10 +632,10 @@ use super::*;
 // 	} else {
 // 		tmpdir = "/tmp";
 // 	}
-// 	alpm_option_add_cachedir(handle, tmpdir);
+// 	option_add_cachedir(handle, tmpdir);
 // 	cachedir = handle->cachedirs->prev->data;
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "using cachedir: %s\n", cachedir);
-// 	_alpm_log(handle, ALPM_LOG_WARNING,
+// 	_log(handle, ALPM_LOG_DEBUG, "using cachedir: %s\n", cachedir);
+// 	_log(handle, ALPM_LOG_WARNING,
 // 			_("couldn't find or create package cache, using %s instead\n"), cachedir);
 // 	return cachedir;
 // }
@@ -781,9 +781,9 @@ use super::*;
 // /** Get the md5 sum of file.
 //  * @param filename name of the file
 //  * @return the checksum on success, NULL on error
-//  * @addtogroup alpm_misc
+//  * @addtogroup misc
 //  */
-// char SYMEXPORT *alpm_compute_md5sum(const char *filename)
+// char SYMEXPORT *compute_md5sum(const char *filename)
 // {
 // 	unsigned char output[16];
 //
@@ -799,9 +799,9 @@ use super::*;
 // /** Get the sha256 sum of file.
 //  * @param filename name of the file
 //  * @return the checksum on success, NULL on error
-//  * @addtogroup alpm_misc
+//  * @addtogroup misc
 //  */
-// char SYMEXPORT *alpm_compute_sha256sum(const char *filename)
+// char SYMEXPORT *compute_sha256sum(const char *filename)
 // {
 // 	unsigned char output[32];
 //
@@ -821,16 +821,16 @@ use super::*;
 //  * @return 0 if file matches the expected hash, 1 if they do not match, -1 on
 //  * error
 //  */
-// int _alpm_test_checksum(const char *filepath, const char *expected,
-// 		alpm_pkgvalidation_t type)
+// int _test_checksum(const char *filepath, const char *expected,
+// 		pkgvalidation_t type)
 // {
 // 	char *computed;
 // 	int ret;
 //
 // 	if(type == ALPM_PKG_VALIDATION_MD5SUM) {
-// 		computed = alpm_compute_md5sum(filepath);
+// 		computed = compute_md5sum(filepath);
 // 	} else if(type == ALPM_PKG_VALIDATION_SHA256SUM) {
-// 		computed = alpm_compute_sha256sum(filepath);
+// 		computed = compute_sha256sum(filepath);
 // 	} else {
 // 		return -1;
 // 	}
@@ -854,7 +854,7 @@ use super::*;
 //  * @param b
 //  * @return
 //  */
-// int _alpm_archive_fgets(struct archive *a, struct archive_read_buffer *b)
+// int _archive_fgets(struct archive *a, struct archive_read_buffer *b)
 // {
 // 	/* ensure we start populating our line buffer at the beginning */
 // 	b->line_offset = b->line;
@@ -959,7 +959,7 @@ use super::*;
  * @param name_hash to hold package name hash
  * @return 0 on success, -1 on error
  */
-pub fn _alpm_splitname(target: &String) -> std::result::Result<(String, String, u64), ()> {
+pub fn _splitname(target: &String) -> std::result::Result<(String, String, u64), ()> {
     /* the format of a db entry is as follows:
      *    package-version-rel/
      *    package-version-rel/desc (we ignore the filename portion)
@@ -1006,7 +1006,7 @@ pub fn _alpm_splitname(target: &String) -> std::result::Result<(String, String, 
     // 		}
     // 		STRNDUP(*name, target, pkgver - target, return -1);
     // 		if(name_hash) {
-    // 			*name_hash = _alpm_hash_sdbm(*name);
+    // 			*name_hash = _hash_sdbm(*name);
     // 		}
     // 	}
     use std::hash::Hash;
@@ -1023,7 +1023,7 @@ pub struct SdbmHasher {
     //  * @param str string to hash
     //  * @return the hash value of the given string
     //  */
-    // unsigned long _alpm_hash_sdbm(const char *str)
+    // unsigned long _hash_sdbm(const char *str)
     // {
     // 	unsigned long hash = 0;
     // 	int c;
@@ -1056,7 +1056,7 @@ impl Hasher for SdbmHasher {
  * @param line string to convert
  * @return off_t on success, -1 on error
  */
-pub fn _alpm_strtoofft(line: &String) -> i64 {
+pub fn _strtoofft(line: &String) -> i64 {
     /* we are trying to parse bare numbers only, no leading anything */
     if !line.chars().collect::<Vec<char>>()[0].is_numeric() {
         return -1;
@@ -1067,10 +1067,10 @@ pub fn _alpm_strtoofft(line: &String) -> i64 {
     }
 }
 
-/// Parses a date into an alpm_time_t struct.
+/// Parses a date into an time_t struct.
 /// @param line date to parse
 /// @return time struct on success, 0 on error
-pub fn _alpm_parsedate(line: &str) -> Time {
+pub fn _parsedate(line: &str) -> Time {
     match i64::from_str_radix(line, 10) {
         Ok(r) => r,
         Err(_) => 0,
@@ -1086,8 +1086,8 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 //  * @param amode access mode as described in access()
 //  * @return int value returned by access()
 //  */
-// pub fn _alpm_access(
-//     handle: &alpm_handle_t,
+// pub fn _access(
+//     handle: &handle_t,
 //     diro: Option<&String>,
 //     file: &String,
 //     amode: i32,
@@ -1112,19 +1112,19 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 //
 //     if ret != 0 {
 //         // 		if(amode & R_OK) {
-//         // 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not readable: %s\n",
+//         // 			_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not readable: %s\n",
 //         // 					dir, file, strerror(errno));
 //         // 		}
 //         // 		if(amode & W_OK) {
-//         // 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not writable: %s\n",
+//         // 			_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not writable: %s\n",
 //         // 					dir, file, strerror(errno));
 //         // 		}
 //         // 		if(amode & X_OK) {
-//         // 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not executable: %s\n",
+//         // 			_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" is not executable: %s\n",
 //         // 					dir, file, strerror(errno));
 //         // 		}
 //         // 		if(amode == F_OK) {
-//         // 			_alpm_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" does not exist: %s\n",
+//         // 			_log(handle, ALPM_LOG_DEBUG, "\"%s%s\" does not exist: %s\n",
 //         // 					dir, file, strerror(errno));
 //         // 		}
 //     }
@@ -1140,13 +1140,13 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 //  * @return 0 if string matches pattern, negative if they don't match and
 //  * positive if the last match was inverted
 //  */
-// int _alpm_fnmatch_patterns(alpm_list_t *patterns, const char *string)
+// int _fnmatch_patterns(list_t *patterns, const char *string)
 // {
-// 	alpm_list_t *i;
+// 	list_t *i;
 // 	char *pattern;
 // 	short inverted;
 //
-// 	for(i = alpm_list_last(patterns); i; i = alpm_list_previous(i)) {
+// 	for(i = list_last(patterns); i; i = list_previous(i)) {
 // 		pattern = i->data;
 //
 // 		inverted = pattern[0] == '!';
@@ -1154,7 +1154,7 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 // 			pattern++;
 // 		}
 //
-// 		if(_alpm_fnmatch(pattern, string) == 0) {
+// 		if(_fnmatch(pattern, string) == 0) {
 // 			return inverted;
 // 		}
 // 	}
@@ -1169,7 +1169,7 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 //  * @return 0 if string matches pattern, non-zero if they don't match and on
 //  * error
 //  */
-// int _alpm_fnmatch(const void *pattern, const void *string)
+// int _fnmatch(const void *pattern, const void *string)
 // {
 // 	return fnmatch(pattern, string, 0);
 // }
@@ -1184,13 +1184,13 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 //  * @param required size you want
 //  * @return new memory; NULL on error
 //  */
-// void *_alpm_realloc(void **data, size_t *current, const size_t required)
+// void *_realloc(void **data, size_t *current, const size_t required)
 // {
 // 	char *newdata;
 //
 // 	newdata = realloc(*data, required);
 // 	if(!newdata) {
-// 		_alpm_alloc_fail(required);
+// 		_alloc_fail(required);
 // 		return NULL;
 // 	}
 //
@@ -1214,7 +1214,7 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 //  * @param required size you want
 //  * @return new memory if grown; old memory otherwise; NULL on error
 //  */
-// void *_alpm_greedy_grow(void **data, size_t *current, const size_t required)
+// void *_greedy_grow(void **data, size_t *current, const size_t required)
 // {
 // 	size_t newsize = 0;
 //
@@ -1233,10 +1233,10 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 // 		return NULL;
 // 	}
 //
-// 	return _alpm_realloc(data, current, newsize);
+// 	return _realloc(data, current, newsize);
 // }
 //
-// void _alpm_alloc_fail(size_t size)
+// void _alloc_fail(size_t size)
 // {
 // 	fprintf(stderr, "alloc failure: could not allocate %zu bytes\n", size);
 // }
@@ -1268,10 +1268,10 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 // #ifndef ALPM_UTIL_H
 // #define ALPM_UTIL_H
 //
-// #include "alpm_list.h"
+// #include "list.h"
 // #include "alpm.h"
 // #include "package.h" /* pkg_t */
-// #include "handle.h" /* alpm_handle_t */
+// #include "handle.h" /* handle_t */
 // #include "util-common.h"
 //
 // #include <stdio.h>
@@ -1293,13 +1293,13 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 // #define _(s) (char *)s
 // #endif
 //
-// void _alpm_alloc_fail(size_t size);
+// void _alloc_fail(size_t size);
 //
-// #define MALLOC(p, s, action) do { p = malloc(s); if(p == NULL) { _alpm_alloc_fail(s); action; } } while(0)
-// #define CALLOC(p, l, s, action) do { p = calloc(l, s); if(p == NULL) { _alpm_alloc_fail(l * s); action; } } while(0)
+// #define MALLOC(p, s, action) do { p = malloc(s); if(p == NULL) { _alloc_fail(s); action; } } while(0)
+// #define CALLOC(p, l, s, action) do { p = calloc(l, s); if(p == NULL) { _alloc_fail(l * s); action; } } while(0)
 // /* This strdup macro is NULL safe- copying NULL will yield NULL */
-// #define STRDUP(r, s, action) do { if(s != NULL) { r = strdup(s); if(r == NULL) { _alpm_alloc_fail(strlen(s)); action; } } else { r = NULL; } } while(0)
-// #define STRNDUP(r, s, l, action) do { if(s != NULL) { r = strndup(s, l); if(r == NULL) { _alpm_alloc_fail(l); action; } } else { r = NULL; } } while(0)
+// #define STRDUP(r, s, action) do { if(s != NULL) { r = strdup(s); if(r == NULL) { _alloc_fail(strlen(s)); action; } } else { r = NULL; } } while(0)
+// #define STRNDUP(r, s, l, action) do { if(s != NULL) { r = strndup(s, l); if(r == NULL) { _alloc_fail(l); action; } } else { r = NULL; } } while(0)
 //
 // #define FREE(p) do { free(p); p = NULL; } while(0)
 //
@@ -1307,7 +1307,7 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 
 // macro_rules! RET_ERR {
 // 	($handle:expr, $err:expr, $ret:expr) => {{
-// 		// _alpm_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, alpm_strerror(err));
+// 		// _log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, strerror(err));
 // 		 	($handle).pm_errno = $err;
 // 		 	return $ret;
 // 	}}
@@ -1315,18 +1315,18 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 
 // macro_rules! RET_ERR {
 // 	($handle:expr, $err:expr, $ret:expr) => {{
-// 		// _alpm_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, alpm_strerror(err));
+// 		// _log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, strerror(err));
 // 		 	return Err($err);
 // 	}}
 // }
 
 // #define RET_ERR_VOID(handle, err) do { \
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, alpm_strerror(err)); \
+// 	_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, strerror(err)); \
 // 	(handle)->pm_errno = (err); \
 // 	return; } while(0)
 //
 // #define RET_ERR(handle, err, ret) do { \
-// 	_alpm_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, alpm_strerror(err)); \
+// 	_log(handle, ALPM_LOG_DEBUG, "returning error %d from %s : %s\n", err, __func__, strerror(err)); \
 // 	(handle)->pm_errno = (err); \
 // 	return (ret); } while(0)
 //
@@ -1352,7 +1352,7 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 // #define OPEN(fd, path, flags) do { fd = open(path, flags | O_BINARY); } while(fd == -1 && errno == EINTR)
 //
 // /**
-//  * Used as a buffer/state holder for _alpm_archive_fgets().
+//  * Used as a buffer/state holder for _archive_fgets().
 //  */
 // struct archive_read_buffer {
 // 	char *line;
@@ -1368,44 +1368,44 @@ pub fn _alpm_parsedate(line: &str) -> Time {
 // 	int ret;
 // };
 //
-// int _alpm_makepath(const char *path);
-// int _alpm_makepath_mode(const char *path, mode_t mode);
-// int _alpm_copyfile(const char *src, const char *dest);
-// size_t _alpm_strip_newline(char *str, size_t len);
+// int _makepath(const char *path);
+// int _makepath_mode(const char *path, mode_t mode);
+// int _copyfile(const char *src, const char *dest);
+// size_t _strip_newline(char *str, size_t len);
 //
-// int _alpm_open_archive(alpm_handle_t *handle, const char *path,
-// 		struct stat *buf, struct archive **archive, alpm_errno_t error);
-// int _alpm_unpack_single(alpm_handle_t *handle, const char *archive,
+// int _open_archive(handle_t *handle, const char *path,
+// 		struct stat *buf, struct archive **archive, errno_t error);
+// int _unpack_single(handle_t *handle, const char *archive,
 // 		const char *prefix, const char *filename);
-// int _alpm_unpack(alpm_handle_t *handle, const char *archive, const char *prefix,
-// 		alpm_list_t *list, int breakfirst);
+// int _unpack(handle_t *handle, const char *archive, const char *prefix,
+// 		list_t *list, int breakfirst);
 //
-// ssize_t _alpm_files_in_directory(alpm_handle_t *handle, const char *path, int full_count);
+// ssize_t _files_in_directory(handle_t *handle, const char *path, int full_count);
 //
-// typedef ssize_t (*_alpm_cb_io)(void *buf, ssize_t len, void *ctx);
+// typedef ssize_t (*_cb_io)(void *buf, ssize_t len, void *ctx);
 //
-// int _alpm_run_chroot(alpm_handle_t *handle, const char *cmd, char *const argv[],
-// 		_alpm_cb_io in_cb, void *in_ctx);
-// int _alpm_ldconfig(alpm_handle_t *handle);
-// int _alpm_str_cmp(const void *s1, const void *s2);
-// char *_alpm_filecache_find(alpm_handle_t *handle, const char *filename);
-// const char *_alpm_filecache_setup(alpm_handle_t *handle);
-// /* Unlike many uses of alpm_pkgvalidation_t, _alpm_test_checksum expects
+// int _run_chroot(handle_t *handle, const char *cmd, char *const argv[],
+// 		_cb_io in_cb, void *in_ctx);
+// int _ldconfig(handle_t *handle);
+// int _str_cmp(const void *s1, const void *s2);
+// char *_filecache_find(handle_t *handle, const char *filename);
+// const char *_filecache_setup(handle_t *handle);
+// /* Unlike many uses of pkgvalidation_t, _test_checksum expects
 //  * an enum value rather than a bitfield. */
-// int _alpm_test_checksum(const char *filepath, const char *expected, alpm_pkgvalidation_t type);
-// int _alpm_archive_fgets(struct archive *a, struct archive_read_buffer *b);
-// int _alpm_splitname(const char *target, char **name, char **version,
+// int _test_checksum(const char *filepath, const char *expected, pkgvalidation_t type);
+// int _archive_fgets(struct archive *a, struct archive_read_buffer *b);
+// int _splitname(const char *target, char **name, char **version,
 // 		unsigned long *name_hash);
-// unsigned long _alpm_hash_sdbm(const char *str);
-// off_t _alpm_strtoofft(const char *line);
-// alpm_time_t _alpm_parsedate(const char *line);
-// int _alpm_raw_cmp(const char *first, const char *second);
-// int _alpm_raw_ncmp(const char *first, const char *second, size_t max);
-// int _alpm_access(alpm_handle_t *handle, const char *dir, const char *file, int amode);
-// int _alpm_fnmatch_patterns(alpm_list_t *patterns, const char *string);
-// int _alpm_fnmatch(const void *pattern, const void *string);
-// void *_alpm_realloc(void **data, size_t *current, const size_t required);
-// void *_alpm_greedy_grow(void **data, size_t *current, const size_t required);
+// unsigned long _hash_sdbm(const char *str);
+// off_t _strtoofft(const char *line);
+// time_t _parsedate(const char *line);
+// int _raw_cmp(const char *first, const char *second);
+// int _raw_ncmp(const char *first, const char *second, size_t max);
+// int _access(handle_t *handle, const char *dir, const char *file, int amode);
+// int _fnmatch_patterns(list_t *patterns, const char *string);
+// int _fnmatch(const void *pattern, const void *string);
+// void *_realloc(void **data, size_t *current, const size_t required);
+// void *_greedy_grow(void **data, size_t *current, const size_t required);
 //
 // #ifndef HAVE_STRSEP
 // char *strsep(char **, const char *);
@@ -1537,7 +1537,7 @@ pub fn list_display(title: &str, list: &Vec<String>) {
 pub fn deplist_display(title: &str, deps: &Vec<Dependency>) {
     let mut text = Vec::new();
     for dep in deps {
-        text.push(dep.alpm_dep_compute_string());
+        text.push(dep.dep_compute_string());
     }
     list_display(title, &text);
 }

@@ -32,42 +32,57 @@ use super::deps::find_dep_satisfier;
 use super::deps::find_dep_satisfier_ref;
 const LDCONFIG: &str = "/sbin/ldconfig";
 
+macro_rules! QUESTION {
+    ($h:expr, $q:expr) => {
+        if let Some(f) = $h.questioncb {
+            f($q);
+        }
+    }
+}
+
+// /// Returns the callback used for logging.
 // alpm_cb_log SYMEXPORT alpm_get_logcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->logcb;
 // }
 
+// /// Returns the callback used to report download progress.
 // alpm_cb_download SYMEXPORT alpm_get_dlcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->dlcb;
 // }
 
+// /// Returns the downloading callback.
 // alpm_cb_fetch SYMEXPORT alpm_get_fetchcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->fetchcb;
 // }
 
+// /// Returns the callback used to report total download size.
 // alpm_cb_totaldl SYMEXPORT alpm_get_totaldlcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->totaldlcb;
 // }
 
+// /// Returns the callback used for events.
 // alpm_cb_event SYMEXPORT alpm_get_eventcb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->eventcb;
 // }
 
+// /// Returns the callback used for questions.
 // alpm_cb_question SYMEXPORT alpm_get_questioncb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
 // 	return handle->questioncb;
 // }
 
+// /// Returns the callback used for operation progress.
 // alpm_cb_progress SYMEXPORT alpm_get_progresscb(Handle *handle)
 // {
 // 	CHECK_HANDLE(handle, return NULL);
@@ -332,12 +347,7 @@ impl Handle {
 
     /// Prepare a transaction.
     pub fn trans_prepare(&mut self, data: &mut Vec<String>) -> Result<i32> {
-        unimplemented!();
-        // 	alpm_trans_t *trans;
-
         let mut trans = self.trans.clone();
-        //
-        // 	ASSERT(trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
         // 	ASSERT(trans->state == STATE_INITIALIZED, RET_ERR(handle, ALPM_ERR_TRANS_NOT_INITIALIZED, -1));
 
         /* If there's nothing to do, return without complaining */
@@ -378,6 +388,8 @@ impl Handle {
         }
 
         trans.state = AlpmTransState::PREPARED;
+
+        self.trans = trans;
 
         return Ok(0);
     }
@@ -518,8 +530,8 @@ impl Handle {
     /// Release a transaction.
     pub fn trans_release(&mut self) -> Result<i32> {
         match self.trans.state {
-            AlpmTransState::Idle => {}
-            _ => return Err(Error::TransactionNull),
+            AlpmTransState::Idle => return Err(Error::TransactionNull),
+            _ => {}
         }
 
         /* unlock db */
@@ -1711,26 +1723,32 @@ impl Handle {
         // 	return ret;
     }
 
+    /// Returns the root of the destination filesystem. Read-only.
     pub fn get_root(&self) -> &String {
         &self.root
     }
 
+    /// Returns the root of the destination filesystem
     pub fn get_root_mut(&mut self) -> &mut String {
         &mut self.root
     }
 
+    /// Returns the hookdirs. Read only.
     pub fn get_hookdirs(&self) -> &Vec<String> {
         &self.hookdirs
     }
 
+    /// Returns the hookdirs.
     pub fn get_hookdirs_mut(&mut self) -> &mut Vec<String> {
         &mut self.hookdirs
     }
 
+    /// Returns the path to the database directory. Read-only.
     pub fn get_dbpath(&self) -> &String {
         return &self.dbpath;
     }
 
+    /// Returns the path to the database directory.
     pub fn get_dbpath_mut(&mut self) -> &mut String {
         return &mut self.dbpath;
     }
@@ -1739,14 +1757,17 @@ impl Handle {
         return self.cachedirs.clone();
     }
 
+    /// Returns the logfile name.
     pub fn get_logfile(&self) -> &String {
         &self.logfile
     }
 
+    /// Get the name of the database lock file. Read-only.
     pub fn get_lockfile(&self) -> &String {
         &self.lockfile
     }
 
+    /// Get the name of the database lock file.
     pub fn get_lockfile_mut(&mut self) -> &mut String {
         &mut self.lockfile
     }
@@ -1876,7 +1897,7 @@ impl Handle {
     // 	}
     // 	return 0;
     // }
-    //
+
     // int SYMEXPORT alpm_remove_hookdir(Handle *handle, const char *hookdir)
     // {
     // 	char *vdata = NULL;
@@ -1955,12 +1976,14 @@ impl Handle {
         return Ok(0);
     }
 
+    /// Sets the path to libalpm's GnuPG home directory.
     pub fn set_gpgdir(&mut self, gpgdir: &String) -> Result<()> {
-        self.gpgdir = _alpm_set_directory_option(gpgdir, false)?;
+        self.gpgdir = set_directory_option(gpgdir, false)?;
         debug!("option 'gpgdir' = {}", self.gpgdir);
         Ok(())
     }
 
+    /// Sets whether to use syslog (0 is FALSE, TRUE otherwise).
     pub fn set_usesyslog(&mut self, usesyslog: i32) {
         self.usesyslog = usesyslog;
     }
@@ -1989,7 +2012,7 @@ impl Handle {
     // 	}
     // 	return 0;
     // }
-    //
+
     // int SYMEXPORT alpm_add_noupgrade(Handle *handle, const char *pkg)
     // {
     // 	return _alpm_strlist_add(handle, &(handle->noupgrade), pkg);
@@ -2003,12 +2026,12 @@ impl Handle {
     // {
     // 	return _alpm_strlist_rem(handle, &(handle->noupgrade), pkg);
     // }
-    //
+
     // int SYMEXPORT alpm_match_noupgrade(Handle *handle, const char *path)
     // {
     // 	return _alpm_fnmatch_patterns(handle->noupgrade, path);
     // }
-    //
+
     // int SYMEXPORT alpm_add_noextract(Handle *handle, const char *path)
     // {
     // 	return _alpm_strlist_add(handle, &(handle->noextract), path);
@@ -2018,18 +2041,15 @@ impl Handle {
         self.noextract = noextract.clone();
     }
 
-    // int SYMEXPORT alpm_remove_noextract(Handle *handle, const char *path)
-    // {
+    // int SYMEXPORT alpm_remove_noextract(Handle *handle, const char *path) {
     // 	return _alpm_strlist_rem(handle, &(handle->noextract), path);
     // }
-    //
-    // int SYMEXPORT alpm_match_noextract(Handle *handle, const char *path)
-    // {
+
+    // int SYMEXPORT alpm_match_noextract(Handle *handle, const char *path) {
     // 	return _alpm_fnmatch_patterns(handle->noextract, path);
     // }
-    //
-    // int SYMEXPORT alpm_add_ignorepkg(Handle *handle, const char *pkg)
-    // {
+
+    // int SYMEXPORT alpm_add_ignorepkg(Handle *handle, const char *pkg) {
     // 	return _alpm_strlist_add(handle, &(handle->ignorepkg), pkg);
     // }
 
@@ -2041,7 +2061,7 @@ impl Handle {
     // {
     // 	return _alpm_strlist_rem(handle, &(handle->ignorepkg), pkg);
     // }
-    //
+
     // int SYMEXPORT alpm_add_ignoregroup(Handle *handle, const char *grp)
     // {
     // 	return _alpm_strlist_add(handle, &(handle->ignoregroup), grp);
@@ -2055,7 +2075,7 @@ impl Handle {
     // {
     // 	return _alpm_strlist_rem(handle, &(handle->ignoregroup), grp);
     // }
-    //
+
     // int SYMEXPORT alpm_add_overwrite_file(Handle *handle, const char *glob)
     // {
     // 	return _alpm_strlist_add(handle, &(handle->overwrite_files), glob);
@@ -2089,7 +2109,7 @@ impl Handle {
     // 	}
     // 	return 0;
     // }
-    //
+
     // static int assumeinstalled_cmp(const void *d1, const void *d2)
     // {
     // 	const Dependency *dep1 = d1;
@@ -2151,52 +2171,31 @@ impl Handle {
         return &self.dbs_sync;
     }
 
-    pub fn alpm_get_syncdbs_mut(&mut self) -> &mut Vec<Database> {
+    pub fn get_syncdbs_mut(&mut self) -> &mut Vec<Database> {
         return &mut self.dbs_sync;
     }
 
-    pub fn alpm_set_checkspace(&mut self, checkspace: i32) {
+    pub fn set_checkspace(&mut self, checkspace: i32) {
         self.checkspace = checkspace;
     }
 
     pub fn set_dbext(&mut self, dbext: &String) {
         self.dbext = dbext.clone();
-
-        // _alpm_log(handle, ALPM_LOG_DEBUG, "option 'dbext' = %s\n", handle->dbext);
     }
 
-    pub fn alpm_set_default_siglevel(&mut self, level: &SigLevel) -> i32 {
-        // #ifdef HAVE_LIBGPGME
+    pub fn set_default_siglevel(&mut self, level: &SigLevel) {
         self.siglevel = level.clone();
-        // #else
-        // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
-        // 		RET_ERR(handle, WrongArgs, -1);
-        // 	}
-        // #endif
-        return 0;
     }
 
-    fn alpm_get_default_siglevel(&self) -> SigLevel {
-        // CHECK_HANDLE(handle, return -1);
-        return self.siglevel;
+    pub fn get_default_siglevel(&self) -> SigLevel {
+        self.siglevel
     }
 
-    pub fn alpm_set_local_file_siglevel(&mut self, level: SigLevel) -> Result<i32> {
-        // CHECK_HANDLE(handle, return -1);
-        if cfg!(HAVE_LIBGPGME) {
-            self.localfilesiglevel = level;
-        } else if
-        /*level != 0 &&*/
-        level.use_default {
-            // RET_ERR!(self, WrongArgs, -1);
-            return Err(Error::WrongArgs);
-        }
-
-        return Ok(0);
+    pub fn set_local_file_siglevel(&mut self, level: SigLevel) {
+        self.localfilesiglevel = level;
     }
 
-    pub fn alpm_get_local_file_siglevel(&self) -> SigLevel {
-        // CHECK_HANDLE(handle, return -1);
+    pub fn get_local_file_siglevel(&self) -> SigLevel {
         if self.localfilesiglevel.use_default {
             return self.siglevel;
         } else {
@@ -2204,20 +2203,11 @@ impl Handle {
         }
     }
 
-    pub fn alpm_set_remote_file_siglevel(&mut self, level: SigLevel) {
-        // unimplemented!();
-        // #ifdef HAVE_LIBGPGME
+    pub fn set_remote_file_siglevel(&mut self, level: SigLevel) {
         self.remotefilesiglevel = level;
-        // #else
-        // 	if(level != 0 && level != ALPM_SIG_USE_DEFAULT) {
-        // 		RET_ERR(handle, WrongArgs, -1);
-        // 	}
-        // #endif
-        // 	return 0;
     }
 
-    pub fn alpm_get_remote_file_siglevel(&self) -> SigLevel {
-        // CHECK_HANDLE(handle, return -1);
+    pub fn get_remote_file_siglevel(&self) -> SigLevel {
         if self.remotefilesiglevel.use_default {
             return self.siglevel;
         } else {
@@ -2233,47 +2223,53 @@ impl Handle {
         self.disable_dl_timeout
     }
 
-    pub fn handle_new() -> Handle {
+    /// Initializes the library.
+    /// Creates handle, connects to database and creates lockfile.
+    /// This must be called before any other functions are called.
+    /// * `root` the root path for all filesystem operations
+    /// * `dbpath` the absolute path to the libalpm database
+    pub fn new(root: &String, dbpath: &String) -> Result<Handle> {
+        let lf = "db.lck";
+        let hookdir;
         let mut handle = Handle::default();
         handle.deltaratio = 0.0;
         handle.lockfd = None;
+        handle.root = set_directory_option(root, true)?;
+        handle.dbpath = set_directory_option(dbpath, true)?;
+        /* to concatenate myhandle->root (ends with a slash) with SYSHOOKDIR (starts
+         * with a slash) correctly, we skip SYSHOOKDIR[0]; the regular +1 therefore
+         * disappears from the allocation */
+        hookdir = format!("{}{}", handle.get_root(), SYSHOOKDIR);
+        handle.hookdirs = Vec::new();
+        handle.hookdirs.push(hookdir);
+        /* set default database extension */
+        handle.set_dbext(&String::from(".db"));
+        handle.lockfile = format!("{}{}", handle.get_dbpath(), lf);
+        handle.db_register_local()?;
 
-        return handle;
+        Ok(handle)
     }
 
     /// Lock the database
-    pub fn handle_lock(&mut self) -> std::io::Result<()> {
+    pub fn handle_lock(&mut self) -> Result<()> {
         assert!(self.lockfile != "");
         assert!(self.lockfd.is_none());
-
-        /* create the dir of the lockfile first */
-        match File::create(&self.lockfile) {
-            Ok(f) => self.lockfd = Some(f),
-            Err(e) => return Err(e),
-        }
-
+        self.lockfd = Some(File::create(&self.lockfile)?);
         Ok(())
     }
 
     /// Remove the database lock file
-    pub fn unlock(&mut self) -> std::io::Result<()> {
-        // ASSERT(handle->lockfile != NULL, return 0);
-        // ASSERT(handle->lockfd >= 0, return 0);
-
+    pub fn unlock(&mut self) -> Result<()> {
         // handle.lockfd.close();
         self.lockfd = None;
-
-        if std::fs::remove_file(&self.lockfile).is_err() {
-            unimplemented!();
-            // RET_ERR_ASYNC_SAFE(handle, ALPM_ERR_SYSTEM, -1);
-        }
+        std::fs::remove_file(&self.lockfile)?;
         return Ok(());
     }
 
-    pub fn handle_unlock(&mut self) -> std::io::Result<()> {
+    pub fn handle_unlock(&mut self) -> Result<()> {
         match self.unlock() {
             Err(e) => {
-                eprint!("{}\n", e);
+                error!("{}", e);
                 return Err(e);
                 // if(errno == ENOENT) {
                 // 	_alpm_log(handle, ALPM_LOG_WARNING,
@@ -2299,9 +2295,7 @@ impl Handle {
     /// This functions takes a pointer to a alpm_list_t which will be
     /// filled with a list of depmissing_t* objects representing
     /// the packages blocking the transaction.
-    /// * `handle` the context handle
     /// *`data` a pointer to an alpm_list_t* to fill
-    /// * return 0 on success, -1 on error
     fn remove_prepare(&self, data: &Vec<String>) -> Result<i32> {
         unimplemented!();
         // 	alpm_list_t *lp;
@@ -2411,7 +2405,7 @@ impl Handle {
             // 		alpm_list_t *resolved = NULL;
             // 		alpm_list_t *remove = alpm_list_copy(trans.remove);
             // 		alpm_list_t *localpkgs;
-            
+
             /* Build up list by repeatedly resolving each transaction package */
             /* Resolve targets dependencies */
             // 		event.type = ALPM_EVENT_RESOLVEDEPS_START;
@@ -2621,20 +2615,21 @@ impl Handle {
         }
 
         /* Build trans->remove list */
-        // 	for(i = trans->add; i; i = i->next) {
-        // 		Package *spkg = i->data;
-        // 		for(j = spkg->removes; j; j = j->next) {
-        // 			Package *rpkg = j->data;
-        // 			if(!alpm_pkg_find(trans->remove, rpkg->name)) {
-        // 				Package *copy;
-        // 				debug!("adding '{}' to remove list\n", rpkg->name);
-        // 				if(_alpm_pkg_dup(rpkg, &copy) == -1) {
-        // 					return -1;
-        // 				}
-        // 				trans->remove = alpm_list_add(trans->remove, copy);
-        // 			}
-        // 		}
-        // 	}
+        for spkg in &trans.add {
+            unimplemented!();
+            // 		Package *spkg = i->data;
+            // 		for(j = spkg->removes; j; j = j->next) {
+            // 			Package *rpkg = j->data;
+            // 			if(!alpm_pkg_find(trans->remove, rpkg->name)) {
+            // 				Package *copy;
+            // 				debug!("adding '{}' to remove list\n", rpkg->name);
+            // 				if(_alpm_pkg_dup(rpkg, &copy) == -1) {
+            // 					return -1;
+            // 				}
+            // 				trans->remove = alpm_list_add(trans->remove, copy);
+            // 			}
+            // 		}
+        }
 
         if !trans.flags.no_deps {
             debug!("checking dependencies");
@@ -2661,15 +2656,12 @@ impl Handle {
             if spkg.compute_download_size() < 0 {
                 return -1;
             }
-            match lpkg {
-                Ok(lpkg) => {
-                    unimplemented!();
-                    // spkg.oldpkg = match lpkg._alpm_pkg_dup() {
-                    //     Some(pkg) => pkg,
-                    //     None => return -1,
-                    // };
-                }
-                Err(_) => {}
+            if let Ok(lpkg) = lpkg {
+                unimplemented!();
+                // spkg.oldpkg = match lpkg._alpm_pkg_dup() {
+                //     Some(pkg) => pkg,
+                //     None => return -1,
+                // };
             }
         }
 
@@ -2715,10 +2707,10 @@ impl Handle {
                     continue;
                 }
 
-                // 			QUESTION(handle, &question);
-                // 			if(!question.replace) {
-                // 				continue;
-                // 			}
+                QUESTION!(self, &Question::Replace(&question));
+                if !question.replace {
+                    continue;
+                }
 
                 /* If spkg is already in the target list, we append lpkg to spkg's
                  * removes list */
@@ -2790,7 +2782,7 @@ impl Handle {
     }
 
     /// Search for packages to upgrade and add them to the transaction.
-    pub fn alpm_sync_sysupgrade(&mut self, enable_downgrade: bool) -> Result<i32> {
+    pub fn sync_sysupgrade(&mut self, enable_downgrade: bool) -> Result<i32> {
         self.get_localdb_mut().load_pkgcache();
         // let trans = &mut self.trans;
 
@@ -2840,22 +2832,16 @@ impl Handle {
     }
 }
 
-pub fn canonicalize_path(path: &String) -> String {
-    let mut new_path = path.clone();
-    /* verify path ends in a '/' */
-    if !path.ends_with('/') {
-        new_path.push('/');
-    }
-    return new_path;
-}
+// pub fn canonicalize_path(path: &String) -> String {
+//     let mut new_path = path.clone();
+//     /* verify path ends in a '/' */
+//     if !path.ends_with('/') {
+//         new_path.push('/');
+//     }
+//     return new_path;
+// }
 
-pub fn _alpm_set_directory_option(
-    value: &String,
-    //storage: &mut String,
-    must_exist: bool,
-) -> Result<String> {
-    // let mut path = value.clone();
-
+pub fn set_directory_option(value: &String, must_exist: bool) -> Result<String> {
     if must_exist {
         match std::fs::metadata(value) {
             Ok(ref f) if f.is_dir() => {}
@@ -2865,14 +2851,11 @@ pub fn _alpm_set_directory_option(
             .into_os_string()
             .into_string()?)
     } else {
-        Ok(canonicalize_path(value))
+        Ok(std::fs::canonicalize(value)?
+            .into_os_string()
+            .into_string()?)
     }
-    // return Ok(());
 }
-
-// #ifdef HAVE_LIBCURL
-// #include <curl/curl.h>
-// #endif
 
 // #define EVENT(h, e) \
 // do { \
@@ -2895,46 +2878,44 @@ pub fn _alpm_set_directory_option(
 // 	} \
 // } while(0)
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Handle {
-    /* internal usage */
     /// local db pointer
     pub db_local: Database,
     /// List of Databases
     pub dbs_sync: Vec<Database>,
-    // 	FILE *logstream;        /* log file stream pointer */
     pub trans: Transaction,
-    //
-    // #ifdef HAVE_LIBCURL
-    // 	/* libcurl handle */
-    // 	CURL *curl;             /* reusable curl_easy handle */
     disable_dl_timeout: bool,
-    // #endif
-    //
+
     // #ifdef HAVE_LIBGPGME
     // 	alpm_list_t *known_keys;  /* keys verified to be in our keychain */
     // #endif
-    //
+
     // 	/* callback functions */
     // 	alpm_cb_log logcb;          /* Log callback function */
     // 	alpm_cb_download dlcb;      /* Download callback function */
     // 	alpm_cb_totaldl totaldlcb;  /* Total download callback function */
-    // fetchcb: alpm_cb_fetch, /* Download file callback function */
+    /// Download file callback function
+    fetchcb: CbFetch,
     // 	alpm_cb_event eventcb;
-    // 	alpm_cb_question questioncb;
+    questioncb: CbQuestion,
     // 	alpm_cb_progress progresscb;
-
-    	/* filesystem paths */
-    root: String,                 /* Root path, default '/' */
-    dbpath: String,               /* Base path to pacman's DBs */
-    logfile: String,              /* Name of the log file */
-    lockfile: String,             /* Name of the lock file */
-    gpgdir: String,               /* Directory where GnuPG files are stored */
-    cachedirs: Vec<String>,       /* Paths to pacman cache directories */
-    hookdirs: Vec<String>,        /* Paths to hook directories */
-    overwrite_files: Vec<String>, /* Paths that may be overwritten */
-
-    /* package lists */
+    /// Root path, default '/'
+    root: String,
+    /// Base path to pacman's DBs
+    dbpath: String,
+    /// Name of the log file
+    logfile: String,
+    /// Name of the lock file
+    lockfile: String,
+    /// Directory where GnuPG files are stored
+    gpgdir: String,
+    /// Paths to pacman cache directories
+    cachedirs: Vec<String>,
+    /// Paths to hook directories
+    hookdirs: Vec<String>,
+    /// Paths that may be overwritten
+    overwrite_files: Vec<String>,
     /// List of packages NOT to be upgraded */
     noupgrade: Vec<String>,
     /// List of files NOT to extract */
@@ -2945,15 +2926,12 @@ pub struct Handle {
     ignoregroup: Vec<String>,
     ///List of virtual packages used to satisfy dependencies
     assumeinstalled: Vec<Dependency>,
-
-    /* options */
     /// Architecture of packages we should allow
     arch: String,
     /// Download deltas if possible; a ratio value
     deltaratio: f64,
     /// Use syslog instead of logfile?
     usesyslog: i32,
-    /* TODO move to frontend */
     /// Check disk space before installing
     checkspace: i32,
     /// Sync DB extension
@@ -2964,10 +2942,8 @@ pub struct Handle {
     localfilesiglevel: SigLevel,
     /// Signature verification level for remote file upgrade operations */
     remotefilesiglevel: SigLevel,
-
-    /* lock file descriptor */
+    /// lock file descriptor
     lockfd: Option<File>,
-    //
     // 	/* for delta parsing efficiency */
     // 	int delta_regex_compiled;
     // 	regex_t delta_regex;
@@ -2978,26 +2954,21 @@ impl Clone for Handle {
         Handle {
             db_local: self.db_local.clone(),
             dbs_sync: self.dbs_sync.clone(),
-            // 	FILE *logstream;
             trans: self.trans.clone(),
-            // 	CURL *curl;             /* reusable curl_easy handle */
             disable_dl_timeout: self.disable_dl_timeout,
-            // #endif
-            //
+
             // #ifdef HAVE_LIBGPGME
             // 	alpm_list_t *known_keys;  /* keys verified to be in our keychain */
             // #endif
-            //
+
             // 	/* callback functions */
             // 	alpm_cb_log logcb;          /* Log callback function */
             // 	alpm_cb_download dlcb;      /* Download callback function */
             // 	alpm_cb_totaldl totaldlcb;  /* Total download callback function */
-            // fetchcb: alpm_cb_fetch, /* Download file callback function */
+            fetchcb: self.fetchcb,
             // 	alpm_cb_event eventcb;
-            // 	alpm_cb_question questioncb;
+            questioncb: self.questioncb,
             // 	alpm_cb_progress progresscb;
-            //
-            // 	/* filesystem paths */
             root: self.root.clone(),
             dbpath: self.dbpath.clone(),
             logfile: self.logfile.clone(),
@@ -3027,9 +2998,8 @@ impl Clone for Handle {
     }
 }
 
-/* Test for existence of a package in a alpm_list_t*
- * of alpm_pkg_t*
- */
+/// Test for existence of a package in a alpm_list_t*
+/// of alpm_pkg_t*
 fn alpm_pkg_find<'a>(haystack: &'a Vec<Package>, needle: &str) -> Option<&'a Package> {
     for info in haystack {
         if info.get_name() == needle {

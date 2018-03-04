@@ -31,7 +31,7 @@ use super::*;
 // #include <limits.h>
 // /* libalpm */
 // #include "sync.h"
-// #include "alpm_list.h"
+// #include "list.h"
 // #include "log.h"
 // #include "package.h"
 // #include "db.h"
@@ -54,14 +54,14 @@ use super::*;
 /// IgnorePkg is also handled.
 /// @param dbs the list of Database
 /// @param name the name of the group
-/// @return the list of Package * (caller is responsible for alpm_list_free)
-pub fn alpm_find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<Package> {
+/// @return the list of Package * (caller is responsible for list_free)
+pub fn find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<Package> {
     unimplemented!();
-    // 	alpm_list_t *i, *j, *pkgs = NULL, *ignorelist = NULL;
+    // 	list_t *i, *j, *pkgs = NULL, *ignorelist = NULL;
     //
     // 	for(i = dbs; i; i = i.next) {
     // 		Database *db = i.data;
-    // 		alpm_group_t *grp = alpm_db_get_group(db, name);
+    // 		group_t *grp = db_get_group(db, name);
     //
     // 		if(!grp) {
     // 			continue;
@@ -70,27 +70,27 @@ pub fn alpm_find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<Package> {
     // 		for(j = grp.packages; j; j = j.next) {
     // 			Package *pkg = j.data;
     //
-    // 			if(alpm_pkg_find(ignorelist, pkg.name)) {
+    // 			if(pkg_find(ignorelist, pkg.name)) {
     // 				continue;
     // 			}
-    // 			if(alpm_pkg_should_ignore(db.handle, pkg)) {
-    // 				alpm_question_install_ignorePackage question = {
+    // 			if(pkg_should_ignore(db.handle, pkg)) {
+    // 				question_install_ignorePackage question = {
     // 					.type = ALPM_QUESTION_INSTALL_IGNOREPKG,
     // 					.install = 0,
     // 					.pkg = pkg
     // 				};
-    // 				ignorelist = alpm_list_add(ignorelist, pkg);
+    // 				ignorelist = list_add(ignorelist, pkg);
     // 				QUESTION(db.handle, &question);
     // 				if(!question.install) {
     // 					continue;
     // 				}
     // 			}
-    // 			if(!alpm_pkg_find(pkgs, pkg.name)) {
-    // 				pkgs = alpm_list_add(pkgs, pkg);
+    // 			if(!pkg_find(pkgs, pkg.name)) {
+    // 				pkgs = list_add(pkgs, pkg);
     // 			}
     // 		}
     // 	}
-    // 	alpm_list_free(ignorelist);
+    // 	list_free(ignorelist);
     // 	return pkgs;
 }
 
@@ -111,17 +111,17 @@ pub fn alpm_find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<Package> {
  */
 fn apply_deltas(handle: &Handle) -> i32 {
     unimplemented!();
-    // 	alpm_list_t *i;
+    // 	list_t *i;
     // 	size_t deltas_found = 0;
     // 	int ret = 0;
-    // 	const char *cachedir = _alpm_filecache_setup(handle);
-    // 	alpm_trans_t *trans = handle->trans;
-    // 	alpm_event_delta_patch_t event;
+    // 	const char *cachedir = _filecache_setup(handle);
+    // 	trans_t *trans = handle->trans;
+    // 	event_delta_patch_t event;
     //
     // 	for(i = trans->add; i; i = i->next) {
     // 		Package *spkg = i->data;
-    // 		alpm_list_t *delta_path = spkg->delta_path;
-    // 		alpm_list_t *dlts = NULL;
+    // 		list_t *delta_path = spkg->delta_path;
+    // 		list_t *dlts = NULL;
     //
     // 		if(!delta_path) {
     // 			continue;
@@ -136,15 +136,15 @@ fn apply_deltas(handle: &Handle) -> i32 {
     // 		}
     //
     // 		for(dlts = delta_path; dlts; dlts = dlts->next) {
-    // 			alpm_delta_t *d = dlts->data;
+    // 			delta_t *d = dlts->data;
     // 			char *delta, *from, *to;
     // 			char command[PATH_MAX];
     // 			size_t len = 0;
     //
-    // 			delta = _alpm_filecache_find(handle, d->delta);
+    // 			delta = _filecache_find(handle, d->delta);
     // 			/* the initial package might be in a different cachedir */
     // 			if(dlts == delta_path) {
-    // 				from = _alpm_filecache_find(handle, d->from);
+    // 				from = _filecache_find(handle, d->from);
     // 			} else {
     // 				/* len = cachedir len + from len + '/' + null */
     // 				len = strlen(cachedir) + strlen(d->from) + 2;
@@ -216,7 +216,7 @@ fn apply_deltas(handle: &Handle) -> i32 {
  */
 fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
     unimplemented!();
-    // 	alpm_question_corrupted_t question = {
+    // 	question_corrupted_t question = {
     // 		.type = ALPM_QUESTION_CORRUPTED_PKG,
     // 		.remove = 0,
     // 		.filepath = filepath,
@@ -229,10 +229,10 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
     // 	return question.remove;
 }
 
-// static int validate_deltas(Handle *handle, alpm_list_t *deltas)
+// static int validate_deltas(Handle *handle, list_t *deltas)
 // {
-// 	alpm_list_t *i, *errors = NULL;
-// 	alpm_event_t event;
+// 	list_t *i, *errors = NULL;
+// 	event_t event;
 //
 // 	if(!deltas) {
 // 		return 0;
@@ -242,11 +242,11 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 	event.type = ALPM_EVENT_DELTA_INTEGRITY_START;
 // 	EVENT(handle, &event);
 // 	for(i = deltas; i; i = i->next) {
-// 		alpm_delta_t *d = i->data;
-// 		char *filepath = _alpm_filecache_find(handle, d->delta);
+// 		delta_t *d = i->data;
+// 		char *filepath = _filecache_find(handle, d->delta);
 //
-// 		if(_alpm_test_checksum(filepath, d->delta_md5, ALPM_PKG_VALIDATION_MD5SUM)) {
-// 			errors = alpm_list_add(errors, filepath);
+// 		if(_test_checksum(filepath, d->delta_md5, ALPM_PKG_VALIDATION_MD5SUM)) {
+// 			errors = list_add(errors, filepath);
 // 		} else {
 // 			FREE(filepath);
 // 		}
@@ -260,7 +260,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 			prompt_to_delete(handle, filepath, ALPM_ERR_DLT_INVALID);
 // 			FREE(filepath);
 // 		}
-// 		alpm_list_free(errors);
+// 		list_free(errors);
 // 		handle->pm_errno = ALPM_ERR_DLT_INVALID;
 // 		return -1;
 // 	}
@@ -268,7 +268,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // }
 
 // static struct dload_payload *build_payload(Handle *handle,
-// 		const char *filename, size_t size, alpm_list_t *servers)
+// 		const char *filename, size_t size, list_t *servers)
 // {
 // 		struct dload_payload *payload;
 //
@@ -279,37 +279,37 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		return payload;
 // }
 
-// static int find_dl_candidates(Database *repo, alpm_list_t **files, alpm_list_t **deltas)
+// static int find_dl_candidates(Database *repo, list_t **files, list_t **deltas)
 // {
-// 	alpm_list_t *i;
+// 	list_t *i;
 // 	Handle *handle = repo->handle;
 //
 // 	for(i = handle->trans->add; i; i = i->next) {
 // 		Package *spkg = i->data;
 //
 // 		if(spkg->origin != ALPM_PKG_FROM_FILE && repo == spkg->origin_data.db) {
-// 			alpm_list_t *delta_path = spkg->delta_path;
+// 			list_t *delta_path = spkg->delta_path;
 //
 // 			if(!repo->servers) {
 // 				handle->pm_errno = ALPM_ERR_SERVER_NONE;
-// 				_alpm_log(handle, ALPM_LOG_ERROR, "{}: {}\n",
-// 						alpm_strerror(handle->pm_errno), repo->treename);
+// 				_log(handle, ALPM_LOG_ERROR, "{}: {}\n",
+// 						strerror(handle->pm_errno), repo->treename);
 // 				return 1;
 // 			}
 //
 // 			if(delta_path) {
 // 				/* using deltas */
-// 				alpm_list_t *dlts;
+// 				list_t *dlts;
 // 				for(dlts = delta_path; dlts; dlts = dlts->next) {
-// 					alpm_delta_t *delta = dlts->data;
+// 					delta_t *delta = dlts->data;
 // 					if(delta->download_size != 0) {
 // 						struct dload_payload *payload = build_payload(
 // 								handle, delta->delta, delta->delta_size, repo->servers);
 // 						ASSERT(payload, return -1);
-// 						*files = alpm_list_add(*files, payload);
+// 						*files = list_add(*files, payload);
 // 					}
 // 					/* keep a list of all the delta files for md5sums */
-// 					*deltas = alpm_list_add(*deltas, delta);
+// 					*deltas = list_add(*deltas, delta);
 // 				}
 //
 // 			} else if(spkg->download_size != 0) {
@@ -317,7 +317,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 				ASSERT(spkg->filename != NULL, RET_ERR(handle, ALPM_ERR_PKG_INVALID_NAME, -1));
 // 				payload = build_payload(handle, spkg->filename, spkg->size, repo->servers);
 // 				ASSERT(payload, return -1);
-// 				*files = alpm_list_add(*files, payload);
+// 				*files = list_add(*files, payload);
 // 			}
 // 		}
 // 	}
@@ -328,11 +328,11 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // static int download_single_file(Handle *handle, struct dload_payload *payload,
 // 		const char *cachedir)
 // {
-// 	alpm_event_pkgdownload_t event = {
+// 	event_pkgdownload_t event = {
 // 		.type = ALPM_EVENT_PKGDOWNLOAD_START,
 // 		.file = payload->remote_name
 // 	};
-// 	const alpm_list_t *server;
+// 	const list_t *server;
 //
 // 	payload->handle = handle;
 // 	payload->allow_resume = 1;
@@ -347,12 +347,12 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		MALLOC(payload->fileurl, len, RET_ERR(handle, ALPM_ERR_MEMORY, -1));
 // 		snprintf(payload->fileurl, len, "{}/{}", server_url, payload->remote_name);
 //
-// 		if(_alpm_download(payload, cachedir, NULL, NULL) != -1) {
+// 		if(_download(payload, cachedir, NULL, NULL) != -1) {
 // 			event.type = ALPM_EVENT_PKGDOWNLOAD_DONE;
 // 			EVENT(handle, &event);
 // 			return 0;
 // 		}
-// 		_alpm_dload_payload_reset_for_retry(payload);
+// 		_dload_payload_reset_for_retry(payload);
 // 	}
 //
 // 	event.type = ALPM_EVENT_PKGDOWNLOAD_FAILED;
@@ -360,14 +360,14 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 	return -1;
 // }
 
-// static int download_files(Handle *handle, alpm_list_t **deltas)
+// static int download_files(Handle *handle, list_t **deltas)
 // {
 // 	const char *cachedir;
-// 	alpm_list_t *i, *files = NULL;
+// 	list_t *i, *files = NULL;
 // 	int errors = 0;
-// 	alpm_event_t event;
+// 	event_t event;
 //
-// 	cachedir = _alpm_filecache_setup(handle);
+// 	cachedir = _filecache_setup(handle);
 // 	handle->trans->state = STATE_DOWNLOADING;
 //
 // 	/* Total progress - figure out the total download size if required to
@@ -396,7 +396,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 //
 // 			debug!("checking available disk space for download\n");
 //
-// 			num_files = alpm_list_count(files);
+// 			num_files = list_count(files);
 // 			CALLOC(file_sizes, num_files, sizeof(off_t), goto finish);
 //
 // 			for(i = files, idx = 0; i; i = i->next, idx++) {
@@ -404,7 +404,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 				file_sizes[idx] = payload->max_size;
 // 			}
 //
-// 			ret = _alpm_check_downloadspace(handle, cachedir, num_files, file_sizes);
+// 			ret = _check_downloadspace(handle, cachedir, num_files, file_sizes);
 // 			free(file_sizes);
 //
 // 			if(ret != 0) {
@@ -420,7 +420,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 			if(download_single_file(handle, i->data, cachedir) == -1) {
 // 				errors++;
 // 				event.type = ALPM_EVENT_RETRIEVE_FAILED;
-// 				_alpm_log(handle, ALPM_LOG_WARNING, _("failed to retrieve some files\n"));
+// 				_log(handle, ALPM_LOG_WARNING, _("failed to retrieve some files\n"));
 // 			}
 // 		}
 // 		EVENT(handle, &event);
@@ -428,7 +428,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 //
 // finish:
 // 	if(files) {
-// 		alpm_list_free_inner(files, (alpm_list_fn_free)_alpm_dload_payload_reset);
+// 		list_free_inner(files, (list_fn_free)_dload_payload_reset);
 // 		FREELIST(files);
 // 	}
 //
@@ -450,13 +450,13 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // static int check_keyring(Handle *handle)
 // {
 // 	size_t current = 0, numtargs;
-// 	alpm_list_t *i, *errors = NULL;
-// 	alpm_event_t event;
+// 	list_t *i, *errors = NULL;
+// 	event_t event;
 //
 // 	event.type = ALPM_EVENT_KEYRING_START;
 // 	EVENT(handle, &event);
 //
-// 	numtargs = alpm_list_count(handle->trans->add);
+// 	numtargs = list_count(handle->trans->add);
 //
 // 	for(i = handle->trans->add; i; i = i->next, current++) {
 // 		Package *pkg = i->data;
@@ -470,22 +470,22 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 			continue; /* pkg_load() has been already called, this package is valid */
 // 		}
 //
-// 		level = alpm_db_get_siglevel(alpm_pkg_get_db(pkg));
+// 		level = db_get_siglevel(pkg_get_db(pkg));
 // 		if((level & ALPM_SIG_PACKAGE) && pkg->base64_sig) {
 // 			unsigned char *decoded_sigdata = NULL;
 // 			size_t data_len;
-// 			int decode_ret = alpm_decode_signature(pkg->base64_sig,
+// 			int decode_ret = decode_signature(pkg->base64_sig,
 // 					&decoded_sigdata, &data_len);
 // 			if(decode_ret == 0) {
-// 				alpm_list_t *keys = NULL;
-// 				if(alpm_extract_keyid(handle, pkg->name, decoded_sigdata,
+// 				list_t *keys = NULL;
+// 				if(extract_keyid(handle, pkg->name, decoded_sigdata,
 // 							data_len, &keys) == 0) {
-// 					alpm_list_t *k;
+// 					list_t *k;
 // 					for(k = keys; k; k = k->next) {
 // 						char *key = k->data;
-// 						if(!alpm_list_find_str(errors, key) &&
-// 								_alpm_key_in_keychain(handle, key) == 0) {
-// 							errors = alpm_list_add(errors, strdup(key));
+// 						if(!list_find_str(errors, key) &&
+// 								_key_in_keychain(handle, key) == 0) {
+// 							errors = list_add(errors, strdup(key));
 // 						}
 // 					}
 // 					FREELIST(keys);
@@ -504,17 +504,17 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		event.type = ALPM_EVENT_KEY_DOWNLOAD_START;
 // 		EVENT(handle, &event);
 // 		int fail = 0;
-// 		alpm_list_t *k;
+// 		list_t *k;
 // 		for(k = errors; k; k = k->next) {
 // 			char *key = k->data;
-// 			if(_alpm_key_import(handle, key) == -1) {
+// 			if(_key_import(handle, key) == -1) {
 // 				fail = 1;
 // 			}
 // 		}
 // 		event.type = ALPM_EVENT_KEY_DOWNLOAD_DONE;
 // 		EVENT(handle, &event);
 // 		if(fail) {
-// 			_alpm_log(handle, ALPM_LOG_ERROR, _("required key missing from keyring\n"));
+// 			_log(handle, ALPM_LOG_ERROR, _("required key missing from keyring\n"));
 // 			return -1;
 // 		}
 // 	}
@@ -529,15 +529,15 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 	struct validity {
 // 		Package *pkg;
 // 		char *path;
-// 		alpm_siglist_t *siglist;
+// 		siglist_t *siglist;
 // 		int siglevel;
 // 		int validation;
 // 		errno_t error;
 // 	};
 // 	size_t current = 0;
 // 	uint64_t current_bytes = 0;
-// 	alpm_list_t *i, *errors = NULL;
-// 	alpm_event_t event;
+// 	list_t *i, *errors = NULL;
+// 	event_t event;
 //
 // 	/* Check integrity of packages */
 // 	event.type = ALPM_EVENT_INTEGRITY_START;
@@ -554,18 +554,18 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		}
 //
 // 		current_bytes += v.pkg->size;
-// 		v.path = _alpm_filecache_find(handle, v.pkg->filename);
-// 		v.siglevel = alpm_db_get_siglevel(alpm_pkg_get_db(v.pkg));
+// 		v.path = _filecache_find(handle, v.pkg->filename);
+// 		v.siglevel = db_get_siglevel(pkg_get_db(v.pkg));
 //
-// 		if(_alpm_pkg_validate_internal(handle, v.path, v.pkg,
+// 		if(_pkg_validate_internal(handle, v.path, v.pkg,
 // 					v.siglevel, &v.siglist, &v.validation) == -1) {
 // 			struct validity *invalid;
 // 			v.error = handle->pm_errno;
 // 			MALLOC(invalid, sizeof(struct validity), return -1);
 // 			memcpy(invalid, &v, sizeof(struct validity));
-// 			errors = alpm_list_add(errors, invalid);
+// 			errors = list_add(errors, invalid);
 // 		} else {
-// 			alpm_siglist_cleanup(v.siglist);
+// 			siglist_cleanup(v.siglist);
 // 			free(v.siglist);
 // 			free(v.path);
 // 			v.pkg->validation = v.validation;
@@ -581,10 +581,10 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		for(i = errors; i; i = i->next) {
 // 			struct validity *v = i->data;
 // 			if(v->error == ALPM_ERR_PKG_MISSING_SIG) {
-// 				_alpm_log(handle, ALPM_LOG_ERROR,
+// 				_log(handle, ALPM_LOG_ERROR,
 // 						_("{}: missing required signature\n"), v->pkg->name);
 // 			} else if(v->error == ALPM_ERR_PKG_INVALID_SIG) {
-// 				_alpm_process_siglist(handle, v->pkg->name, v->siglist,
+// 				_process_siglist(handle, v->pkg->name, v->siglist,
 // 						v->siglevel & ALPM_SIG_PACKAGE_OPTIONAL,
 // 						v->siglevel & ALPM_SIG_PACKAGE_MARGINAL_OK,
 // 						v->siglevel & ALPM_SIG_PACKAGE_UNKNOWN_OK);
@@ -592,12 +592,12 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 			} else if(v->error == ALPM_ERR_PKG_INVALID_CHECKSUM) {
 // 				prompt_to_delete(handle, v->path, v->error);
 // 			}
-// 			alpm_siglist_cleanup(v->siglist);
+// 			siglist_cleanup(v->siglist);
 // 			free(v->siglist);
 // 			free(v->path);
 // 			free(v);
 // 		}
-// 		alpm_list_free(errors);
+// 		list_free(errors);
 //
 // 		if(handle->pm_errno == ALPM_ERR_OK) {
 // 			RET_ERR(handle, ALPM_ERR_PKG_INVALID, -1);
@@ -608,13 +608,13 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 	return 0;
 // }
 
-// static int load_packages(Handle *handle, alpm_list_t **data,
+// static int load_packages(Handle *handle, list_t **data,
 // 		size_t total, size_t total_bytes)
 // {
 // 	size_t current = 0, current_bytes = 0;
 // 	int errors = 0;
-// 	alpm_list_t *i;
-// 	alpm_event_t event;
+// 	list_t *i;
+// 	event_t event;
 //
 // 	/* load packages from disk now that they are known-valid */
 // 	event.type = ALPM_EVENT_LOAD_START;
@@ -633,26 +633,26 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		}
 //
 // 		current_bytes += spkg->size;
-// 		filepath = _alpm_filecache_find(handle, spkg->filename);
+// 		filepath = _filecache_find(handle, spkg->filename);
 //
 // 		/* load the package file and replace pkgcache entry with it in the target list */
-// 		/* TODO: alpm_pkg_get_db() will not work on this target anymore */
-// 		_alpm_log(handle, ALPM_LOG_DEBUG,
+// 		/* TODO: pkg_get_db() will not work on this target anymore */
+// 		_log(handle, ALPM_LOG_DEBUG,
 // 				"replacing pkgcache entry with package file for target {}\n",
 // 				spkg->name);
-// 		Package *pkgfile =_alpm_pkg_load_internal(handle, filepath, 1);
+// 		Package *pkgfile =_pkg_load_internal(handle, filepath, 1);
 // 		if(!pkgfile) {
 // 			debug!("failed to load pkgfile internal\n");
 // 			error = 1;
 // 		} else {
 // 			if(strcmp(spkg->name, pkgfile->name) != 0) {
-// 				_alpm_log(handle, ALPM_LOG_DEBUG,
+// 				_log(handle, ALPM_LOG_DEBUG,
 // 						"internal package name mismatch, expected: '{}', actual: '{}'\n",
 // 						spkg->name, pkgfile->name);
 // 				error = 1;
 // 			}
 // 			if(strcmp(spkg->version, pkgfile->version) != 0) {
-// 				_alpm_log(handle, ALPM_LOG_DEBUG,
+// 				_log(handle, ALPM_LOG_DEBUG,
 // 						"internal package version mismatch, expected: '{}', actual: '{}'\n",
 // 						spkg->version, pkgfile->version);
 // 				error = 1;
@@ -660,7 +660,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		}
 // 		if(error != 0) {
 // 			errors++;
-// 			*data = alpm_list_add(*data, strdup(spkg->filename));
+// 			*data = list_add(*data, strdup(spkg->filename));
 // 			free(filepath);
 // 			continue;
 // 		}
@@ -675,7 +675,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		i->data = pkgfile;
 // 		/* spkg has been removed from the target list, so we can free the
 // 		 * sync-specific fields */
-// 		_alpm_pkg_free_trans(spkg);
+// 		_pkg_free_trans(spkg);
 // 	}
 //
 // 	PROGRESS(handle, ALPM_PROGRESS_LOAD_START, "", 100,
@@ -693,23 +693,23 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 	return 0;
 // }
 
-// int _alpm_sync_load(Handle *handle, alpm_list_t **data)
+// int _sync_load(Handle *handle, list_t **data)
 // {
-// 	alpm_list_t *i, *deltas = NULL;
+// 	list_t *i, *deltas = NULL;
 // 	size_t total = 0;
 // 	uint64_t total_bytes = 0;
-// 	alpm_trans_t *trans = handle->trans;
+// 	trans_t *trans = handle->trans;
 //
 // 	if(download_files(handle, &deltas)) {
-// 		alpm_list_free(deltas);
+// 		list_free(deltas);
 // 		return -1;
 // 	}
 //
 // 	if(validate_deltas(handle, deltas)) {
-// 		alpm_list_free(deltas);
+// 		list_free(deltas);
 // 		return -1;
 // 	}
-// 	alpm_list_free(deltas);
+// 	list_free(deltas);
 //
 // 	/* Use the deltas to generate the packages */
 // 	if(apply_deltas(handle)) {
@@ -750,10 +750,10 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 	return 0;
 // }
 
-// int _alpm_sync_check(Handle *handle, alpm_list_t **data)
+// int _sync_check(Handle *handle, list_t **data)
 // {
-// 	alpm_trans_t *trans = handle->trans;
-// 	alpm_event_t event;
+// 	trans_t *trans = handle->trans;
+// 	event_t event;
 //
 // 	/* fileconflict check */
 // 	if(!(trans->flags & ALPM_TRANS_FLAG_DBONLY)) {
@@ -761,15 +761,15 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		EVENT(handle, &event);
 //
 // 		debug!("looking for file conflicts\n");
-// 		alpm_list_t *conflict = _alpm_db_find_fileconflicts(handle,
+// 		list_t *conflict = _db_find_fileconflicts(handle,
 // 				trans->add, trans->remove);
 // 		if(conflict) {
 // 			if(data) {
 // 				*data = conflict;
 // 			} else {
-// 				alpm_list_free_inner(conflict,
-// 						(alpm_list_fn_free)alpm_fileconflict_free);
-// 				alpm_list_free(conflict);
+// 				list_free_inner(conflict,
+// 						(list_fn_free)fileconflict_free);
+// 				list_free(conflict);
 // 			}
 // 			RET_ERR(handle, ALPM_ERR_FILE_CONFLICTS, -1);
 // 		}
@@ -784,8 +784,8 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		EVENT(handle, &event);
 //
 // 		debug!("checking available disk space\n");
-// 		if(_alpm_check_diskspace(handle) == -1) {
-// 			_alpm_log(handle, ALPM_LOG_ERROR, _("not enough free disk space\n"));
+// 		if(_check_diskspace(handle) == -1) {
+// 			_log(handle, ALPM_LOG_ERROR, _("not enough free disk space\n"));
 // 			return -1;
 // 		}
 //
@@ -796,7 +796,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 	return 0;
 // }
 
-fn _alpm_sync_commit(handle: &mut Handle) -> i32 {
+fn _sync_commit(handle: &mut Handle) -> i32 {
     /* remove conflicting and to-be-replaced packages */
     if !handle.trans.remove.is_empty() {
         debug!("removing conflicting and to-be-replaced packages");

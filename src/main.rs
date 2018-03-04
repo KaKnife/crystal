@@ -24,7 +24,7 @@ use env_logger::{Builder, Color};
 use log::{Level, LevelFilter};
 use std::io::Write;
 const PACKAGE_VERSION: &str = "0.0.1";
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 pub fn main() {
     let mut builder = Builder::new();
     builder.format(|buf, record| {
@@ -53,7 +53,12 @@ pub fn main() {
             writeln!(buf, "{}", level_style.value(record.args()))
         }
     });
-    builder.filter(None, LevelFilter::Info);
+
+    if DEBUG {
+        builder.filter(None, LevelFilter::Debug);
+    } else {
+        builder.filter(None, LevelFilter::Info);
+    }
     builder.init();
     pacman::main();
 }

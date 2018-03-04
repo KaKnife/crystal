@@ -93,7 +93,6 @@ pub struct Config {
     pub help: bool,
     pub noconfirm: bool,
     pub noprogressbar: bool,
-    pub logmask: alpm::LogLevel,
     pub print: bool,
     pub checkspace: usize,
     pub usesyslog: usize,
@@ -212,8 +211,6 @@ impl Config {
 
         /* defaults which may get overridden later */
         newconfig.op = Some(Operations::MAIN);
-        newconfig.logmask.error = true;
-        newconfig.logmask.warning = true;
         newconfig.configfile = String::from(CONFFILE); //TODO: implement this
         newconfig.deltaratio = 0.0;
         //TODO: implement this
@@ -507,10 +504,10 @@ impl Config {
                 if self.isfile {
                     invalid_opt(self.group != 0, "--file", "--groups");
                     invalid_opt(self.search, "--file", "--search");
-                    invalid_opt(self.owns , "--file", "--owns");
+                    invalid_opt(self.owns, "--file", "--owns");
                 } else if self.search {
                     invalid_opt(self.group != 0, "--search", "--groups");
-                    invalid_opt(self.owns , "--search", "--owns");
+                    invalid_opt(self.owns, "--search", "--owns");
                     self.checkargs_query_display_opts("--search");
                     self.checkargs_query_filter_opts("--search");
                 } else if self.owns {
@@ -627,29 +624,6 @@ impl Config {
             /* debug levels are made more 'human readable' than using a raw logmask
              * here, error and warning are set in self_new, though perhaps a
              * --quiet option will remove these later */
-            match opts.opt_str("debug") {
-                Some(d) => {
-                    let debug = match d.parse() {
-                        Ok(d) => d,
-                        Err(_) => return Err(Error::Other),
-                    };
-                    match debug {
-                        2 => {
-                            self.logmask.function = true; /* fall through */
-                            self.logmask.debug = true;
-                        }
-                        1 => self.logmask.debug = true,
-                        _ => {
-                            unimplemented!();
-                            error!("'{}' is not a valid debug level", d);
-                            return Err(Error::Other);
-                        }
-                    }
-                }
-                None => {
-                    self.logmask.debug = true;
-                }
-            }
             /* progress bars get wonky with debug on, shut them off */
             self.noprogressbar = true;
         }
@@ -690,11 +664,7 @@ impl Config {
         invalid_opt(self.explicit, opname, "--explicit");
         invalid_opt(self.q_upgrade, opname, "--upgrade");
         invalid_opt(self.unrequired != 0, opname, "--unrequired");
-        invalid_opt(
-            self.locality & PKG_LOCALITY_NATIVE != 0,
-            opname,
-            "--native",
-        );
+        invalid_opt(self.locality & PKG_LOCALITY_NATIVE != 0, opname, "--native");
         invalid_opt(
             self.locality & PKG_LOCALITY_FOREIGN != 0,
             opname,
@@ -1357,7 +1327,7 @@ pub fn setup_libalpm(config: &Config) -> Result<Handle> {
     }
 
     /* initialize library */
-    handle = match alpm::initialize(&rootdir, &dbpath) {
+    handle = match Handle::new(&rootdir, &dbpath) {
         Ok(h) => h,
         Err(e) => {
             error!("failed to initialize alpm library({}: {})", e, dbpath);
@@ -1440,7 +1410,7 @@ pub fn setup_libalpm(config: &Config) -> Result<Handle> {
 
     handle.set_overwrite_files(&config.overwrite_files);
 
-    handle.alpm_set_default_siglevel(&config.siglevel);
+    handle.set_default_siglevel(&config.siglevel);
 
     // config.localfilesiglevel = merge_siglevel(
     //     config.siglevel,
@@ -1453,13 +1423,13 @@ pub fn setup_libalpm(config: &Config) -> Result<Handle> {
     //     config.remotefilesiglevel_mask,
     // );
 
-    handle.alpm_set_local_file_siglevel(merge_siglevel(
+    handle.set_local_file_siglevel(merge_siglevel(
         config.siglevel,
         config.localfilesiglevel,
         config.localfilesiglevel_mask,
-    ))?;
+    ));
 
-    handle.alpm_set_remote_file_siglevel(merge_siglevel(
+    handle.set_remote_file_siglevel(merge_siglevel(
         config.siglevel,
         config.remotefilesiglevel,
         config.remotefilesiglevel_mask,
@@ -1481,7 +1451,7 @@ pub fn setup_libalpm(config: &Config) -> Result<Handle> {
 
     handle.set_arch(&config.arch);
 
-    handle.alpm_set_checkspace(config.checkspace as i32);
+    handle.set_checkspace(config.checkspace as i32);
 
     handle.set_usesyslog(config.usesyslog as i32);
     handle.set_deltaratio(config.deltaratio)?;
@@ -1494,7 +1464,7 @@ pub fn setup_libalpm(config: &Config) -> Result<Handle> {
     handle.set_disable_dl_timeout(config.disable_dl_timeout);
 
     for entry in &config.assumeinstalled {
-        let dep = alpm_dep_from_string(&entry);
+        let dep = dep_from_string(&entry);
         debug!("parsed assume installed: {} {}", dep.name, dep.version,);
         handle.add_assumeinstalled(dep);
     }

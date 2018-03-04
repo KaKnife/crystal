@@ -44,7 +44,7 @@ use std::time::UNIX_EPOCH;
 //
 // /* libalpm */
 // #include "dload.h"
-// #include "alpm_list.h"
+// #include "list.h"
 // #include "alpm.h"
 // #include "log.h"
 // #include "util.h"
@@ -59,7 +59,7 @@ pub struct DownloadPayload {
     pub destfile_name: String,
     pub content_disp_name: String,
     pub fileurl: String,
-    // alpm_list_t *servers;
+    // list_t *servers;
     respcode: u32,
     initial_size: u64,
     pub max_size: u64,
@@ -260,7 +260,7 @@ impl Handler for Collector {
         // 	struct dload_payload *payload = (struct dload_payload *)user;
         // 	long respcode;
         //
-        // 	if(_alpm_raw_ncmp(cd_header, ptr, strlen(cd_header)) == 0) {
+        // 	if(_raw_ncmp(cd_header, ptr, strlen(cd_header)) == 0) {
         // 		if((fptr = strstr(ptr, fn_key))) {
         // 			fptr += strlen(fn_key);
         //
@@ -300,7 +300,7 @@ impl DownloadPayload {
             destfile_name: String::new(),
             content_disp_name: String::new(),
             fileurl: String::new(),
-            // alpm_list_t *servers;
+            // list_t *servers;
             respcode: 0,
             initial_size: 0,
             max_size: 0,
@@ -331,7 +331,7 @@ impl DownloadPayload {
         // 			!(fp = fdopen(fd, payload->tempfile_openmode))) {
         // 		unlink(randpath);
         // 		close(fd);
-        // 		_alpm_log(payload->handle, ALPM_LOG_ERROR,
+        // 		_log(payload->handle, ALPM_LOG_ERROR,
         // 				_("failed to create temporary file for download\n"));
         // 		free(randpath);
         // 		return NULL;
@@ -424,7 +424,7 @@ impl DownloadPayload {
                     // 	/* non-translated message is same as libcurl */
                     // 	snprintf(error_buffer, sizeof(error_buffer),
                     // 			"The requested URL returned error: %ld", payload->respcode);
-                    // 	_alpm_log(handle, ALPM_LOG_ERROR,
+                    // 	_log(handle, ALPM_LOG_ERROR,
                     // 			_("failed retrieving file '%s' from %s : %s\n"),
                     // 			payload->remote_name, hostname, error_buffer);
                     // }
@@ -437,7 +437,7 @@ impl DownloadPayload {
                 // 				payload->curlerr = CURLE_FILESIZE_EXCEEDED;
                 // 				payload->unlink_on_fail = 1;
                 // 				handle->pm_errno = ALPM_ERR_LIBCURL;
-                // 				_alpm_log(handle, ALPM_LOG_ERROR,
+                // 				_log(handle, ALPM_LOG_ERROR,
                 // 						_("failed retrieving file '%s' from %s : expected download size exceeded\n"),
                 // 						payload->remote_name, hostname);
                 // 			}
@@ -451,7 +451,7 @@ impl DownloadPayload {
                 // 			}
                 // 			if(!payload->errors_ok) {
                 // 				handle->pm_errno = ALPM_ERR_LIBCURL;
-                // 				_alpm_log(handle, ALPM_LOG_ERROR,
+                // 				_log(handle, ALPM_LOG_ERROR,
                 // 						_("failed retrieving file '%s' from %s : %s\n"),
                 // 						payload->remote_name, hostname, error_buffer);
                 // 			} else {
@@ -629,7 +629,7 @@ impl DownloadPayload {
     /// * @param localpath the directory to save the file in
     /// * @param final_file the real name of the downloaded file (may be NULL)
     /// * @return 0 on success, -1 on error (pm_errno is set accordingly if errors_ok == 0)
-    pub fn _alpm_download(&mut self, localpath: &String) -> Result<(String, String, i32)> {
+    pub fn _download(&mut self, localpath: &String) -> Result<(String, String, i32)> {
         // 	Handle *handle = payload->handle;
 
         // if handle.fetchcb == NULL {
@@ -652,7 +652,7 @@ impl DownloadPayload {
         unimplemented!();
     }
 
-    pub fn _alpm_dload_payload_reset(&mut self) {
+    pub fn _dload_payload_reset(&mut self) {
         self.remote_name = OsString::new();
         self.tempfile_name = String::new();
         self.destfile_name = String::new();
@@ -673,12 +673,12 @@ impl DownloadPayload {
 // 		return NULL;
 // 	}
 //
-// 	return _alpm_filecache_find(handle, filebase);
+// 	return _filecache_find(handle, filebase);
 // }
 
 impl Handle {
     /** Fetch a remote pkg. */
-    pub fn alpm_fetch_pkgurl(&self, url: &String) -> Result<String> {
+    pub fn fetch_pkgurl(&self, url: &String) -> Result<String> {
         unimplemented!();
         // 	char *filepath;
         // 	const char *cachedir, *final_pkg_url = NULL;
@@ -690,7 +690,7 @@ impl Handle {
         // 	ASSERT(url, RET_ERR(handle, ALPM_ERR_WRONG_ARGS, NULL));
         //
         // 	/* find a valid cache dir to download to */
-        // 	cachedir = _alpm_filecache_setup(handle);
+        // 	cachedir = _filecache_setup(handle);
         //
         // 	memset(&payload, 0, sizeof(struct dload_payload));
         //
@@ -703,14 +703,14 @@ impl Handle {
         // 		payload.trust_remote_name = 1;
         //
         // 		/* download the file */
-        // 		ret = _alpm_download(&payload, cachedir, &final_file, &final_pkg_url);
-        // 		_alpm_dload_payload_reset(&payload);
+        // 		ret = _download(&payload, cachedir, &final_file, &final_pkg_url);
+        // 		_dload_payload_reset(&payload);
         // 		if(ret == -1) {
-        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("failed to download %s\n"), url);
+        // 			_log(handle, ALPM_LOG_WARNING, _("failed to download %s\n"), url);
         // 			free(final_file);
         // 			return NULL;
         // 		}
-        // 		_alpm_log(handle, ALPM_LOG_DEBUG, "successfully downloaded %s\n", url);
+        // 		_log(handle, ALPM_LOG_DEBUG, "successfully downloaded %s\n", url);
         // 	}
         //
         // 	/* attempt to download the signature */
@@ -732,25 +732,25 @@ impl Handle {
         // 			/* set hard upper limit of 16KiB */
         // 			payload.max_size = 16 * 1024;
         //
-        // 			ret = _alpm_download(&payload, cachedir, &sig_final_file, NULL);
+        // 			ret = _download(&payload, cachedir, &sig_final_file, NULL);
         // 			if(ret == -1 && !payload.errors_ok) {
-        // 				_alpm_log(handle, ALPM_LOG_WARNING,
+        // 				_log(handle, ALPM_LOG_WARNING,
         // 						_("failed to download %s\n"), payload.fileurl);
         // 				/* Warn now, but don't return NULL. We will fail later during package
         // 				 * load time. */
         // 			} else if(ret == 0) {
-        // 				_alpm_log(handle, ALPM_LOG_DEBUG,
+        // 				_log(handle, ALPM_LOG_DEBUG,
         // 						"successfully downloaded %s\n", payload.fileurl);
         // 			}
         // 			FREE(sig_final_file);
         // 		}
         // 		free(sig_filepath);
-        // 		_alpm_dload_payload_reset(&payload);
+        // 		_dload_payload_reset(&payload);
         // 	}
         //
         // 	/* we should be able to find the file the second time around */
         // 	if(filepath == NULL) {
-        // 		filepath = _alpm_filecache_find(handle, final_file);
+        // 		filepath = _filecache_find(handle, final_file);
         // 	}
         // 	free(final_file);
         //
@@ -758,7 +758,7 @@ impl Handle {
     }
 }
 
-// void _alpm_dload_payload_reset_for_retry(struct dload_payload *payload)
+// void _dload_payload_reset_for_retry(struct dload_payload *payload)
 // {
 // 	ASSERT(payload, return);
 //

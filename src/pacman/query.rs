@@ -127,11 +127,11 @@ fn print_query_fileowner(filename: &String, info: &Package, config: &Config) {
 fn query_fileowner(targets: &Vec<String>) -> Result<()> {
     unimplemented!();
     // 	int ret = 0;
-    // 	const char *root = alpm_option_get_root(config.handle);
+    // 	const char *root = option_get_root(config.handle);
     // 	size_t rootlen = strlen(root);
-    // 	alpm_list_t *t;
+    // 	list_t *t;
     // 	Database *db_local;
-    // 	alpm_list_t *packages;
+    // 	list_t *packages;
     //
     // 	/* This code is here for safety only */
     // 	if(targets == NULL) {
@@ -139,14 +139,14 @@ fn query_fileowner(targets: &Vec<String>) -> Result<()> {
     // 		return 1;
     // 	}
     //
-    // 	db_local = alpm_get_localdb(config.handle);
+    // 	db_local = get_localdb(config.handle);
     // 	packages = get_pkgcache(db_local);
     //
-    // 	for(t = targets; t; t = alpm_list_next(t)) {
+    // 	for(t = targets; t; t = list_next(t)) {
     // 		char *filename = NULL;
     // 		char rpath[PATH_MAX], *rel_path;
     // 		struct stat buf;
-    // 		alpm_list_t *i;
+    // 		list_t *i;
     // 		size_t len, is_dir;
     // 		unsigned int found = 0;
     //
@@ -198,8 +198,8 @@ fn query_fileowner(targets: &Vec<String>) -> Result<()> {
     // 			strcat(rpath + rlen, "/");
     // 		}
     //
-    // 		for(i = packages; i && (!found || is_dir); i = alpm_list_next(i)) {
-    // 			if(alpm_filelist_contains(get_files(i.data), rel_path)) {
+    // 		for(i = packages; i && (!found || is_dir); i = list_next(i)) {
+    // 			if(filelist_contains(get_files(i.data), rel_path)) {
     // 				print_query_fileowner(rpath, i.data);
     // 				found = 1;
     // 			}
@@ -458,7 +458,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
         } else {
             pkg = match db_local.get_pkg(&strname) {
                 Err(_) => {
-                    match alpm::alpm_find_satisfier(&pkg_cache, &strname) {
+                    match alpm::find_satisfier(&pkg_cache, &strname) {
                         None => {
                             error!("package '{}' was not found", strname);
                             unimplemented!();

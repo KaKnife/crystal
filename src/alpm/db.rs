@@ -134,13 +134,13 @@ impl Database {
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => {
                     // unimplemented!("DB NOT Found: {}", dbpath);
-                    // let event = alpm_event_database_missing_t {
-                    // 	etype: alpm_event_type_t::ALPM_EVENT_DATABASE_MISSING,
+                    // let event = event_database_missing_t {
+                    // 	etype: event_type_t::ALPM_EVENT_DATABASE_MISSING,
                     // 	dbname: self.treename.clone(),
                     // };
                     self.status.exists = false;
                     self.status.missing = true;
-                    // EVENT!(handle, &alpm_event_t::database_missing(event));
+                    // EVENT!(handle, &event_t::database_missing(event));
                     self.status.valid = true;
                     self.status.invalid = false;
                     return Ok(true);
@@ -163,7 +163,7 @@ impl Database {
             while retry != 0 {
                 retry = 0;
                 let siglist = SignatureList::default();
-                ret = _alpm_check_pgp_helper(
+                ret = _check_pgp_helper(
                     handle,
                     &dbpath,
                     None,
@@ -173,7 +173,7 @@ impl Database {
                     &siglist,
                 );
                 if ret != 0 {
-                    retry = _alpm_process_siglist(
+                    retry = _process_siglist(
                         &handle,
                         &self.treename,
                         &siglist,
@@ -237,7 +237,7 @@ impl Database {
         unimplemented!();
         // 	FILE *fp = NULL;
         // 	mode_t oldmask;
-        // 	alpm_list_t *lp;
+        // 	list_t *lp;
         // 	int retval = 0;
         //
         // 	if(db == NULL || info == NULL || !(db.status & LOCAL)) {
@@ -250,12 +250,12 @@ impl Database {
         // 	/* DESC */
         // 	if(inforeq & INFRQ_DESC) {
         // 		char *path;
-        // 		_alpm_log(db.handle, ALPM_LOG_DEBUG,
+        // 		_log(db.handle, ALPM_LOG_DEBUG,
         // 				"writing {}-{} DESC information back to db",
         // 				pkg.get_name(), info.version);
-        // 		path = _alpm_local_db_pkgpath(db, info, "desc");
+        // 		path = _local_db_pkgpath(db, info, "desc");
         // 		if(!path || (fp = fopen(path, "w")) == NULL) {
-        // 			_alpm_log(db.handle, ALPM_LOG_ERROR, _("could not open file {}: {}"),
+        // 			_log(db.handle, ALPM_LOG_ERROR, _("could not open file {}: {}"),
         // 					path, strerror(errno));
         // 			retval = -1;
         // 			free(path);
@@ -347,12 +347,12 @@ impl Database {
         // 	/* FILES */
         // 	if(inforeq & INFRQ_FILES) {
         // 		char *path;
-        // 		_alpm_log(db->handle, ALPM_LOG_DEBUG,
+        // 		_log(db->handle, ALPM_LOG_DEBUG,
         // 				"writing {}-{} FILES information back to db",
         // 				info->name, info->version);
-        // 		path = _alpm_local_db_pkgpath(db, info, "files");
+        // 		path = _local_db_pkgpath(db, info, "files");
         // 		if(!path || (fp = fopen(path, "w")) == NULL) {
-        // 			_alpm_log(db->handle, ALPM_LOG_ERROR, _("could not open file {}: {}"),
+        // 			_log(db->handle, ALPM_LOG_ERROR, _("could not open file {}: {}"),
         // 					path, strerror(errno));
         // 			retval = -1;
         // 			free(path);
@@ -363,7 +363,7 @@ impl Database {
         // 			size_t i;
         // 			fputs("%FILES%", fp);
         // 			for(i = 0; i < info->files.count; i++) {
-        // 				const alpm_file_t *file = info->files.files + i;
+        // 				const file_t *file = info->files.files + i;
         // 				fputs(file->name, fp);
         // 				fputc('', fp);
         // 			}
@@ -372,7 +372,7 @@ impl Database {
         // 		if(info->backup) {
         // 			fputs("%BACKUP%", fp);
         // 			for(lp = info->backup; lp; lp = lp->next) {
-        // 				const alpm_backup_t *backup = lp->data;
+        // 				const backup_t *backup = lp->data;
         // 				fprintf(fp, "{}\t{}", backup->name, backup->hash);
         // 			}
         // 			fputc('', fp);
@@ -397,7 +397,7 @@ impl Database {
         // 	char *pkgpath;
         // 	size_t pkgpath_len;
         //
-        // 	pkgpath = _alpm_local_db_pkgpath(db, info, NULL);
+        // 	pkgpath = _local_db_pkgpath(db, info, NULL);
         // 	if(!pkgpath) {
         // 		return -1;
         // 	}
@@ -477,7 +477,7 @@ impl Database {
                     pkg = Package::default();
                     /* split the db entry name */
                     {
-                        let (name, version, name_hash) = match _alpm_splitname(&name) {
+                        let (name, version, name_hash) = match _splitname(&name) {
                             Err(_) => {
                                 error!("invalid name for database entry '{}'", name);
                                 continue;
@@ -490,9 +490,9 @@ impl Database {
                     }
 
                     /* duplicated database entries are not allowed */
-                    // 		if(_alpm_pkghash_find(db->pkgcache, pkg->name)) {
-                    // 			_alpm_log(db->handle, ALPM_LOG_ERROR, _("duplicated database entry '{}'"), pkg->name);
-                    // 			_alpm_pkg_free(pkg);
+                    // 		if(_pkghash_find(db->pkgcache, pkg->name)) {
+                    // 			_log(db->handle, ALPM_LOG_ERROR, _("duplicated database entry '{}'"), pkg->name);
+                    // 			_pkg_free(pkg);
                     // 			continue;
                     // 		}
 
@@ -809,20 +809,20 @@ impl Database {
     /// Returns a new group cache from db.
     fn load_grpcache(&self) -> i32 {
         unimplemented!();
-        // alpm_list_t *lp;
+        // list_t *lp;
         // if(db == NULL) {
         // 	return -1;
         // }
         // debug!("loading group cache for repository '{}'",
         // 		db.treename);
         //
-        // for pkg in _alpm_db_get_pkgcache(&self) {
-        //     // const alpm_list_t *i;
+        // for pkg in _db_get_pkgcache(&self) {
+        //     // const list_t *i;
         //     // Package *pkg = lp->data;
         //
-        //     for grpname in alpm_pkg_get_groups(pkg) {
+        //     for grpname in pkg_get_groups(pkg) {
         //         // const char *grpname = i->data;
-        //         // alpm_list_t *j;
+        //         // list_t *j;
         //         let grp;
         //         let found = 0;
         //
@@ -840,7 +840,7 @@ impl Database {
         //             continue;
         //         }
         //         /* we didn't find the group, so create a new one with this name */
-        //         let grp = _alpm_group_new(grpname);
+        //         let grp = _group_new(grpname);
         //         // if(!grp) {
         //         // 	free_groupcache(db);
         //         // 	return -1;
@@ -932,7 +932,7 @@ impl Database {
         // ASSERT(name != NULL && strlen(name) != 0,
         // 		RET_ERR(db->handle, WrongArgs, NULL));
         //
-        // pkg = _alpm_db_get_pkgfromcache(db, name);
+        // pkg = _db_get_pkgfromcache(db, name);
         // if(!pkg) {
         // 	RET_ERR(db->handle, ALPM_ERR_PKG_NOT_FOUND, NULL);
         // }
@@ -959,18 +959,18 @@ impl Database {
     }
 
     /// Searches a database.
-    // pub fn alpm_db_search(&self, needles: &Vec<Package>) -> alpm_list_t {
+    // pub fn db_search(&self, needles: &Vec<Package>) -> list_t {
     pub fn search(&self, needles: &Vec<String>) -> &Vec<&Package> {
         unimplemented!();
-        // 	const alpm_list_t *i, *j, *k;
-        // 	alpm_list_t *ret = NULL;
+        // 	const list_t *i, *j, *k;
+        // 	list_t *ret = NULL;
         //
         // 	if(!(db->usage & ALPM_DB_USAGE_SEARCH)) {
         // 		return NULL;
         // 	}
         //
         // 	/* copy the pkgcache- we will free the list var after each needle */
-        // 	alpm_list_t *list = alpm_list_copy(_alpm_db_get_pkgcache(db));
+        // 	list_t *list = list_copy(_db_get_pkgcache(db));
         //
         // 	for(i = needles; i; i = i->next) {
         // 		char *targ;
@@ -981,7 +981,7 @@ impl Database {
         // 		}
         // 		ret = NULL;
         // 		targ = i->data;
-        // 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "searching for target '{}'\n", targ);
+        // 		_log(db->handle, ALPM_LOG_DEBUG, "searching for target '{}'\n", targ);
         //
         // 		if(regcomp(&reg, targ, REG_EXTENDED | REG_NOSUB | REG_ICASE | REG_NEWLINE) != 0) {
         // 			RET_ERR(db->handle, ALPM_ERR_INVALID_REGEX, NULL);
@@ -991,7 +991,7 @@ impl Database {
         // 			Package *pkg = j->data;
         // 			const char *matched = NULL;
         // 			const char *name = pkg->name;
-        // 			const char *desc = alpm_pkg_get_desc(pkg);
+        // 			const char *desc = pkg_get_desc(pkg);
         //
         // 			/* check name as regex AND as plain text */
         // 			if(name && (regexec(&reg, name, 0, 0, 0) == 0 || strstr(name, targ))) {
@@ -1005,8 +1005,8 @@ impl Database {
         // 			 * differently when we do match it since it isn't currently printed? */
         // 			if(!matched) {
         // 				/* check provides */
-        // 				for(k = alpm_pkg_get_provides(pkg); k; k = k->next) {
-        // 					alpm_depend_t *provide = k->data;
+        // 				for(k = pkg_get_provides(pkg); k; k = k->next) {
+        // 					depend_t *provide = k->data;
         // 					if(regexec(&reg, provide->name, 0, 0, 0) == 0) {
         // 						matched = provide->name;
         // 						break;
@@ -1015,7 +1015,7 @@ impl Database {
         // 			}
         // 			if(!matched) {
         // 				/* check groups */
-        // 				for(k = alpm_pkg_get_groups(pkg); k; k = k->next) {
+        // 				for(k = pkg_get_groups(pkg); k; k = k->next) {
         // 					if(regexec(&reg, k->data, 0, 0, 0) == 0) {
         // 						matched = k->data;
         // 						break;
@@ -1024,16 +1024,16 @@ impl Database {
         // 			}
         //
         // 			if(matched != NULL) {
-        // 				_alpm_log(db->handle, ALPM_LOG_DEBUG,
+        // 				_log(db->handle, ALPM_LOG_DEBUG,
         // 						"search target '{}' matched '{}' on package '{}'\n",
         // 						targ, matched, name);
-        // 				ret = alpm_list_add(ret, pkg);
+        // 				ret = list_add(ret, pkg);
         // 			}
         // 		}
         //
         // 		/* Free the existing search list, and use the returned list for the
         // 		 * next needle. This allows for AND-based package searching. */
-        // 		alpm_list_free(list);
+        // 		list_free(list);
         // 		list = ret;
         // 		regfree(&reg);
         // 	}
@@ -1132,11 +1132,11 @@ fn sanitize_url(url: &String) -> String {
     return newurl;
 }
 
-// void _alpm_db_free(Database *db)
+// void _db_free(Database *db)
 // {
 // 	ASSERT(db != NULL, return);
 // 	/* cleanup pkgcache */
-// 	_alpm_db_free_pkgcache(db);
+// 	_db_free_pkgcache(db);
 // 	/* cleanup server list */
 // 	FREELIST(db->servers);
 // 	FREE(db->_path);
@@ -1146,7 +1146,7 @@ fn sanitize_url(url: &String) -> String {
 // 	return;
 // }
 
-// int _alpm_db_cmp(const void *d1, const void *d2)
+// int _db_cmp(const void *d1, const void *d2)
 // {
 // 	const Database *db1 = d1;
 // 	const Database *db2 = d2;
@@ -1154,7 +1154,7 @@ fn sanitize_url(url: &String) -> String {
 // }
 
 // /* "duplicate" pkg then add it to pkgcache */
-// int _alpm_db_add_pkgincache(Database *db, Package *pkg)
+// int _db_add_pkgincache(Database *db, Package *pkg)
 // {
 // 	Package *newpkg = NULL;
 //
@@ -1162,13 +1162,13 @@ fn sanitize_url(url: &String) -> String {
 // 		return -1;
 // 	}
 //
-// 	if(_alpm_pkg_dup(pkg, &newpkg)) {
-// 		/* we return memory on "non-fatal" error in _alpm_pkg_dup */
-// 		_alpm_pkg_free(newpkg);
+// 	if(_pkg_dup(pkg, &newpkg)) {
+// 		/* we return memory on "non-fatal" error in _pkg_dup */
+// 		_pkg_free(newpkg);
 // 		return -1;
 // 	}
 //
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "adding entry '{}' in '{}' cache",
+// 	_log(db->handle, ALPM_LOG_DEBUG, "adding entry '{}' in '{}' cache",
 // 						newpkg->name, db->treename);
 // 	if(newpkg->origin == ALPM_PKG_FROM_FILE) {
 // 		free(newpkg->origin_data.file);
@@ -1177,14 +1177,14 @@ fn sanitize_url(url: &String) -> String {
 // 		? LocalDatabase
 // 		: SyncDatabase;
 // 	newpkg->origin_data.db = db;
-// 	db->pkgcache = _alpm_pkghash_add_sorted(db->pkgcache, newpkg);
+// 	db->pkgcache = _pkghash_add_sorted(db->pkgcache, newpkg);
 //
 // 	free_groupcache(db);
 //
 // 	return 0;
 // }
 
-// int _alpm_db_remove_pkgfromcache(Database *db, Package *pkg)
+// int _db_remove_pkgfromcache(Database *db, Package *pkg)
 // {
 // 	Package *data = NULL;
 //
@@ -1192,18 +1192,18 @@ fn sanitize_url(url: &String) -> String {
 // 		return -1;
 // 	}
 //
-// 	_alpm_log(db->handle, ALPM_LOG_DEBUG, "removing entry '{}' from '{}' cache",
+// 	_log(db->handle, ALPM_LOG_DEBUG, "removing entry '{}' from '{}' cache",
 // 						pkg->name, db->treename);
 //
-// 	db->pkgcache = _alpm_pkghash_remove(db->pkgcache, pkg, &data);
+// 	db->pkgcache = _pkghash_remove(db->pkgcache, pkg, &data);
 // 	if(data == NULL) {
 // 		/* package not found */
-// 		_alpm_log(db->handle, ALPM_LOG_DEBUG, "cannot remove entry '{}' from '{}' cache: not found",
+// 		_log(db->handle, ALPM_LOG_DEBUG, "cannot remove entry '{}' from '{}' cache: not found",
 // 							pkg->name, db->treename);
 // 		return -1;
 // 	}
 //
-// 	_alpm_pkg_free(data);
+// 	_pkg_free(data);
 //
 // 	free_groupcache(db);
 //
