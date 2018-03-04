@@ -28,7 +28,6 @@ use super::DownloadPayload;
 use super::Result;
 use super::Error;
 use std::fs;
-use std::path::Path;
 /** Update a package database
  *
  * An update of the package database \a db will be attempted. Unless
@@ -94,23 +93,22 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
     {
         let dbext = handle.get_dbext();
         for server in db.get_servers() {
-            let mut tmp;
-            let mut tmp1;
-            let mut tmp2;
+            let tmp;
             let mut final_db_url: String = String::new();
             let mut payload: DownloadPayload = DownloadPayload::new(handle.disable_dl_timeout());
-            let mut sig_ret: i32 = 0;
+            let mut sig_ret = 0;
 
             /* set hard upper limit of 25MiB */
             payload.max_size = 25 * 1024 * 1024;
 
             /* print server + filename into a buffer */
-            tmp = format!("{}/{}{}", server, db.get_name(), dbext);
-            payload.fileurl = Path::new(&tmp);
+            payload.fileurl = format!("{}/{}{}", server, db.get_name(), dbext);
             payload.force = force;
             payload.unlink_on_fail = true;
 
-            ret = payload._alpm_download(&syncpath, None, Some(&mut final_db_url));
+            tmp = payload._alpm_download(&syncpath)?;
+            ret = tmp.2;
+            final_db_url = tmp.1;
             payload._alpm_dload_payload_reset();
             updated = updated || ret == 0;
 
@@ -136,11 +134,9 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 
                 /* if we downloaded a DB, we want the .sig from the same server */
                 if final_db_url != "" {
-                    tmp1 = format!("{}.sig", final_db_url);
-                    payload.fileurl = Path::new(&tmp);
+                    payload.fileurl = format!("{}.sig", final_db_url);
                 } else {
-                    tmp2 = format!("{}/{}{}.sig", server, db.get_name(), dbext);
-                    payload.fileurl = Path::new(&tmp);
+                    payload.fileurl = format!("{}/{}{}.sig", server, db.get_name(), dbext);
                 }
 
                 payload.force = true;
@@ -149,13 +145,14 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
                 /* set hard upper limit of 16KiB */
                 payload.max_size = 16 * 1024;
 
-                sig_ret = payload._alpm_download(&syncpath, None, None);
+                let tmp = payload._alpm_download(&syncpath)?;
+                sig_ret = tmp.2;
                 /* errors_ok suppresses error messages, but not the return code */
                 sig_ret = if payload.errors_ok { 0 } else { sig_ret };
                 payload._alpm_dload_payload_reset();
             }
-
             if ret != -1 && sig_ret != -1 {
+                debug!("TMP: {}", ret);
                 break;
             }
         }

@@ -717,7 +717,7 @@ impl Handle {
     }
 
     pub fn get_sync_dir(&self) -> Result<String> {
-        let syncpath = format!("{}{}", self.dbpath, "sync/");
+        let syncpath = format!("{}/{}", self.dbpath, "sync/");
         match std::fs::metadata(&syncpath) {
             Err(_e) => {
                 debug!("database dir '{}' does not exist, creating it", syncpath);
@@ -736,7 +736,6 @@ impl Handle {
                 }
             }
         }
-
         return Ok(syncpath);
     }
 

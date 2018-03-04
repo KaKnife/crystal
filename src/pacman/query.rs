@@ -233,15 +233,12 @@ fn query_search(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> 
 }
 
 fn pkg_get_locality(pkg: &Package, handle: &Handle) -> usize {
-    let pkgname = pkg.get_name();
-    let sync_dbs = handle.get_syncdbs();
-
-    for data in sync_dbs {
-        if data.get_pkg(pkgname).is_ok() {
+    for data in handle.get_syncdbs() {
+        if data.get_pkg(pkg.get_name()).is_ok() {
             return PKG_LOCALITY_NATIVE;
         }
     }
-    return PKG_LOCALITY_FOREIGN;
+    PKG_LOCALITY_FOREIGN
 }
 
 fn is_unrequired(
@@ -276,12 +273,8 @@ fn filter(pkg: &Package, config: &Config, handle: &Handle) -> bool {
     }
     /* check if this pkg is unrequired */
     if config.unrequired != 0
-        && !is_unrequired(
-            pkg,
-            config.unrequired,
-            &handle.db_local,
-            &handle.dbs_sync,
-        ) {
+        && !is_unrequired(pkg, config.unrequired, &handle.db_local, &handle.dbs_sync)
+    {
         return false;
     }
     /* check if this pkg is outdated */
@@ -318,8 +311,7 @@ fn display(pkg: &Package, config: &Config, handle: &Handle) -> i32 {
         1 => ret = pkg.check_fast(),
         _ => ret = pkg.check_full(),
     }
-    if config.info == 0 && !config.list && !config.changelog && config.check == 0
-    {
+    if config.info == 0 && !config.list && !config.changelog && config.check == 0 {
         if !config.quiet {
             let colstr = &config.colstr;
             print!("{} {}", pkg.get_name(), pkg.get_version(),);
@@ -408,7 +400,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
         return query_group(&targets, config, handle);
     }
 
-    if config.locality != 0 || config.q_upgrade  {
+    if config.locality != 0 || config.q_upgrade {
         check_syncdbs(1, true, handle)?;
     }
 
