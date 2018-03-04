@@ -366,8 +366,6 @@ enum HookWhen {
     PostTransaction,
 }
 
-// Logging facilities
-
 /// Logging Levels
 #[derive(Debug, Default)]
 pub struct LogLevel {
@@ -499,16 +497,16 @@ enum PackageOperation {
     Remove,
 }
 
-// typedef struct _alpm_event_package_operation_t {
-// 	/// Type of event.
-// 	alpm_event_type_t type;
-// 	/// Type of operation.
-// 	alpm_package_operation_t operation;
-// 	/// Old package.
-// 	Package *oldpkg;
-// 	/// New package.
-// 	Package *newpkg;
-// } alpm_event_package_operation_t;
+struct EventPackageOperation<'a> {
+    /// Type of event.
+    etype: EventType,
+    /// Type of operation.
+    operation: PackageOperation,
+    /// Old package.
+    oldpkg: &'a Package,
+    /// New package.
+    newpkg: &'a Package,
+}
 
 // typedef struct _alpm_event_optdep_removal_t {
 // 	/// Type of event.
@@ -610,7 +608,7 @@ enum PackageOperation {
 // } alpm_event_t;
 
 // /// Event callback.
-// typedef void (*alpm_cb_event)(alpm_event_t *);
+// type CbEvent = fn(&mut Event);
 
 /// Type of questions.
 /// Unlike the events or progress enumerations, this enum has bitmask values
@@ -633,14 +631,14 @@ struct QestionAny {
     answer: bool,
 }
 
-// typedef struct _alpm_question_install_ignorePackage {
-// 	/// Type of question.
-// 	alpm_question_type_t type;
-// 	/// Answer: whether or not to install pkg anyway.
-// 	int install;
-// 	/// Package in IgnorePkg/IgnoreGroup. */
-// 	Package *pkg;
-// } alpm_question_install_ignorePackage;
+struct QuestionInstalIgnorePackage<'a> {
+    /// Type of question.
+    qtype: QuestionType,
+    /// Answer: whether or not to install pkg anyway.
+    install: bool,
+    /// Package in IgnorePkg/IgnoreGroup.
+    pkg: &'a Package,
+}
 
 struct QuestionReplace<'a> {
     /// Type of question.
@@ -744,13 +742,11 @@ struct QuestionReplace<'a> {
 
 //Downloading
 
-// /// Type of download progress callbacks.
-//  * @param filename the name of the file being downloaded
-//  * @param xfered the number of transferred bytes
-//  * @param total the total number of bytes to transfer
-//
-// typedef void (*alpm_cb_download)(const char *filename,
-// 		off_t xfered, off_t total);
+/// Type of download progress callbacks.
+/// * @param filename the name of the file being downloaded
+///  * @param xfered the number of transferred bytes
+///  * @param total the total number of bytes to transfer
+type CbDownload = fn(filename: &String, xfered: usize, total: usize);
 
 // typedef void (*alpm_cb_totaldl)(off_t total);
 
@@ -770,139 +766,74 @@ type FetchCallback = fn(&String, &String, i32) -> i32;
 //
 // char *alpm_fetch_pkgurl(Handle *handle, const char *url);
 
-// /// @addtogroup alpm_api_options Options
-//  * Libalpm option getters and setters
-//  * @{
-//
-//
 // /// Returns the callback used for logging.
 // alpm_cb_log alpm_option_get_logcb(Handle *handle);
+
 // /// Sets the callback used for logging.
 // int alpm_option_set_logcb(Handle *handle, alpm_cb_log cb);
-//
+
 // /// Returns the callback used to report download progress.
 // alpm_cb_download alpm_option_get_dlcb(Handle *handle);
+
 // /// Sets the callback used to report download progress.
 // int alpm_option_set_dlcb(Handle *handle, alpm_cb_download cb);
-//
+
 // /// Returns the downloading callback.
 // alpm_cb_fetch alpm_option_get_fetchcb(Handle *handle);
+
 // /// Sets the downloading callback.
 // int alpm_option_set_fetchcb(Handle *handle, alpm_cb_fetch cb);
-//
+
 // /// Returns the callback used to report total download size.
 // alpm_cb_totaldl alpm_option_get_totaldlcb(Handle *handle);
+
 // /// Sets the callback used to report total download size.
 // int alpm_option_set_totaldlcb(Handle *handle, alpm_cb_totaldl cb);
-//
+
 // /// Returns the callback used for events.
 // alpm_cb_event alpm_option_get_eventcb(Handle *handle);
+
 // /// Sets the callback used for events.
 // int alpm_option_set_eventcb(Handle *handle, alpm_cb_event cb);
-//
+
 // /// Returns the callback used for questions.
 // alpm_cb_question alpm_option_get_questioncb(Handle *handle);
+
 // /// Sets the callback used for questions.
 // int alpm_option_set_questioncb(Handle *handle, alpm_cb_question cb);
-//
+
 // /// Returns the callback used for operation progress.
 // alpm_cb_progress alpm_option_get_progresscb(Handle *handle);
+
 // /// Sets the callback used for operation progress.
 // int alpm_option_set_progresscb(Handle *handle, alpm_cb_progress cb);
-//
+
 // /// Returns the root of the destination filesystem. Read-only.
 // const char *alpm_option_get_root(Handle *handle);
-//
+
 // /// Returns the path to the database directory. Read-only.
 // const char *alpm_option_get_dbpath(Handle *handle);
-//
+
 // /// Get the name of the database lock file. Read-only.
 // const char *alpm_option_get_lockfile(Handle *handle);
-//
-// /// @name Accessors to the list of package cache directories.
-//  * @{
-//
-// alpm_list_t *alpm_option_get_cachedirs(Handle *handle);
-// int alpm_option_set_cachedirs(Handle *handle, alpm_list_t *cachedirs);
-// int alpm_option_add_cachedir(Handle *handle, const char *cachedir);
-// int alpm_option_remove_cachedir(Handle *handle, const char *cachedir);
-// /// @}
-//
-// /// @name Accessors to the list of package hook directories.
-//  * @{
-//
-// alpm_list_t *alpm_option_get_hookdirs(Handle *handle);
-// int alpm_option_set_hookdirs(Handle *handle, alpm_list_t *hookdirs);
-// int alpm_option_add_hookdir(Handle *handle, const char *hookdir);
-// int alpm_option_remove_hookdir(Handle *handle, const char *hookdir);
-// /// @}
-//
-// alpm_list_t *alpm_option_get_overwrite_files(Handle *handle);
-// int alpm_option_set_overwrite_files(Handle *handle, alpm_list_t *globs);
-// int alpm_option_add_overwrite_file(Handle *handle, const char *glob);
-// int alpm_option_remove_overwrite_file(Handle *handle, const char *glob);
-//
+
 // /// Returns the logfile name.
 // const char *alpm_option_get_logfile(Handle *handle);
+
 // /// Sets the logfile name.
 // int alpm_option_set_logfile(Handle *handle, const char *logfile);
-//
+
 // /// Returns the path to libalpm's GnuPG home directory.
 // const char *alpm_option_get_gpgdir(Handle *handle);
+
 // /// Sets the path to libalpm's GnuPG home directory.
 // int alpm_option_set_gpgdir(Handle *handle, const char *gpgdir);
-//
+
 // /// Returns whether to use syslog (0 is FALSE, TRUE otherwise).
 // int alpm_option_get_usesyslog(Handle *handle);
+
 // /// Sets whether to use syslog (0 is FALSE, TRUE otherwise).
 // int alpm_option_set_usesyslog(Handle *handle, int usesyslog);
-//
-// /// @name Accessors to the list of no-upgrade files.
-//  * These functions modify the list of files which should
-//  * not be updated by package installation.
-//  * @{
-//
-// alpm_list_t *alpm_option_get_noupgrades(Handle *handle);
-// int alpm_option_add_noupgrade(Handle *handle, const char *path);
-// int alpm_option_set_noupgrades(Handle *handle, alpm_list_t *noupgrade);
-// int alpm_option_remove_noupgrade(Handle *handle, const char *path);
-// int alpm_option_match_noupgrade(Handle *handle, const char *path);
-// /// @}
-//
-// /// @name Accessors to the list of no-extract files.
-//  * These functions modify the list of filenames which should
-//  * be skipped packages which should
-//  * not be upgraded by a sysupgrade operation.
-//  * @{
-//
-// alpm_list_t *alpm_option_get_noextracts(Handle *handle);
-// int alpm_option_add_noextract(Handle *handle, const char *path);
-// int alpm_option_set_noextracts(Handle *handle, alpm_list_t *noextract);
-// int alpm_option_remove_noextract(Handle *handle, const char *path);
-// int alpm_option_match_noextract(Handle *handle, const char *path);
-// /// @}
-//
-// /// @name Accessors to the list of ignored packages.
-//  * These functions modify the list of packages that
-//  * should be ignored by a sysupgrade.
-//  * @{
-//
-// alpm_list_t *alpm_option_get_ignorepkgs(Handle *handle);
-// int alpm_option_add_ignorepkg(Handle *handle, const char *pkg);
-// int alpm_option_set_ignorepkgs(Handle *handle, alpm_list_t *ignorepkgs);
-// int alpm_option_remove_ignorepkg(Handle *handle, const char *pkg);
-// /// @}
-//
-// /// @name Accessors to the list of ignored groups.
-//  * These functions modify the list of groups whose packages
-//  * should be ignored by a sysupgrade.
-//  * @{
-//
-// alpm_list_t *alpm_option_get_ignoregroups(Handle *handle);
-// int alpm_option_add_ignoregroup(Handle *handle, const char *grp);
-// int alpm_option_set_ignoregroups(Handle *handle, alpm_list_t *ignoregrps);
-// int alpm_option_remove_ignoregroup(Handle *handle, const char *grp);
-// /// @}
 
 // /// @addtogroup alpm_api_databases Database Functions
 //  * Functions to query and manipulate the database of libalpm.
@@ -1039,21 +970,13 @@ impl DatabaseUsage {
 //  * @return 0 on success, or -1 on error
 //
 // int alpm_db_set_usage(Database *db, int usage);
-//
+
 // /// Gets the usage of a database.
 //  * @param db pointer to the package database to get the status of
 //  * @param usage pointer to an DatabaseUsage to store db's status
 //  * @return 0 on success, or -1 on error
-//
 // int alpm_db_get_usage(Database *db, int *usage);
-//
-// /// @}
-//
-// /// @addtogroup alpm_api_packages Package Functions
-//  * Functions to manipulate libalpm packages
-//  * @{
-//
-//
+
 // /// Create a package from a file.
 //  * If full is false, the archive is read only until all necessary
 //  * metadata is found. If it is true, the entire archive is read, which
@@ -1067,7 +990,6 @@ impl DatabaseUsage {
 //  * package; note that this must be a '.sig' file type verification
 //  * @param pkg address of the package pointer
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
-//
 // int alpm_pkg_load(Handle *handle, const char *filename, int full,
 // 		int level, Package **pkg);
 
@@ -1082,22 +1004,13 @@ impl DatabaseUsage {
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 // int alpm_pkg_free(Package *pkg);
 
-// /// Check the integrity (with md5) of a package from the sync cache.
-//  * @param pkg package pointer
-//  * @return 0 on success, -1 on error (pm_errno is set accordingly)
-// int alpm_pkg_checkmd5sum(Package *pkg);
-
-// /// Compare two version strings and determine which one is 'newer'.
-// int alpm_pkg_vercmp(const char *a, const char *b);
-//
 // /// Computes the list of packages requiring a given package.
 //  * The return value of this function is a newly allocated
 //  * list of package names (char*), it should be freed by the caller.
 //  * @param pkg a package
 //  * @return the list of packages requiring pkg
-//
 // alpm_list_t *alpm_pkg_compute_requiredby(Package *pkg);
-//
+
 // /// Computes the list of packages optionally requiring a given package.
 //  * The return value of this function is a newly allocated
 //  * list of package names (char*), it should be freed by the caller.
@@ -1105,7 +1018,7 @@ impl DatabaseUsage {
 //  * @return the list of packages optionally requiring pkg
 //
 // alpm_list_t *alpm_pkg_compute_optionalfor(Package *pkg);
-//
+
 // /// Test if a package should be ignored.
 //  * Checks if the package is ignored via IgnorePkg, or if the package is
 //  * in a group ignored via IgnoreGroup.
@@ -1114,144 +1027,47 @@ impl DatabaseUsage {
 //  * @return 1 if the package should be ignored, 0 otherwise
 //
 // int alpm_pkg_should_ignore(Handle *handle, Package *pkg);
-//
-// /// @name Package Property Accessors
-//  * Any pointer returned by these functions points to internal structures
-//  * allocated by libalpm. They should not be freed nor modified in any
-//  * way.
-//  * @{
-//
-//
+
 // /// Gets the name of the file from which the package was loaded.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
 // const char *alpm_pkg_get_filename(Package *pkg);
-//
+
 // /// Returns the package base name.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
 // const char *alpm_pkg_get_base(Package *pkg);
-//
-// /// Returns the package name.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
-// const char *alpm_pkg_get_name(Package *pkg);
-//
-// /// Returns the package version as a string.
-//  * This includes all available epoch, version, and pkgrel components. Use
-//  * alpm_pkg_vercmp() to compare version strings if necessary.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
-// const char *alpm_pkg_get_version(Package *pkg);
-//
+
 // /// Returns the origin of the package.
-//  * @return an PackageFrom constant, -1 on error
-//
 // PackageFrom alpm_pkg_get_origin(Package *pkg);
-//
+
 // /// Returns the package description.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
 // const char *alpm_pkg_get_desc(Package *pkg);
-//
-// /// Returns the package URL.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
-// const char *alpm_pkg_get_url(Package *pkg);
-//
-// /// Returns the build timestamp of the package.
-//  * @param pkg a pointer to package
-//  * @return the timestamp of the build time
-//
-// alpm_time_t alpm_pkg_get_builddate(Package *pkg);
-//
-// /// Returns the install timestamp of the package.
-//  * @param pkg a pointer to package
-//  * @return the timestamp of the install time
-//
-// alpm_time_t alpm_pkg_get_installdate(Package *pkg);
-//
-// /// Returns the packager's name.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
-// const char *alpm_pkg_get_packager(Package *pkg);
-//
-// /// Returns the package's MD5 checksum as a string.
-//  * The returned string is a sequence of 32 lowercase hexadecimal digits.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
-// const char *alpm_pkg_get_md5sum(Package *pkg);
-//
-// /// Returns the package's SHA256 checksum as a string.
-//  * The returned string is a sequence of 64 lowercase hexadecimal digits.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
-// const char *alpm_pkg_get_sha256sum(Package *pkg);
-//
+
 // /// Returns the architecture for which the package was built.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal string
-//
 // const char *alpm_pkg_get_arch(Package *pkg);
-//
+
 // /// Returns the size of the package. This is only available for sync database
 //  * packages and package files, not those loaded from the local database.
-//  * @param pkg a pointer to package
-//  * @return the size of the package in bytes.
-//
 // off_t alpm_pkg_get_size(Package *pkg);
-//
+
 // /// Returns the installed size of the package.
-//  * @param pkg a pointer to package
-//  * @return the total size of files installed by the package.
-//
 // off_t alpm_pkg_get_isize(Package *pkg);
-//
+
 // /// Returns the package installation reason.
-//  * @param pkg a pointer to package
-//  * @return an enum member giving the install reason.
-//
 // PackageReason alpm_pkg_get_reason(Package *pkg);
-//
+
 // /// Returns the list of package licenses.
-//  * @param pkg a pointer to package
-//  * @return a pointer to an internal list of strings.
-//
 // alpm_list_t *alpm_pkg_get_licenses(Package *pkg);
-//
+
 // /// Returns the list of package groups.
-//  * @param pkg a pointer to package
-//  * @return a pointer to an internal list of strings.
-//
 // alpm_list_t *alpm_pkg_get_groups(Package *pkg);
-//
+
 // /// Returns the list of package dependencies as Dependency.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal list of Dependency structures.
-//
 // alpm_list_t *alpm_pkg_get_depends(Package *pkg);
-//
+
 // /// Returns the list of package optional dependencies.
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal list of Dependency structures.
-//
 // alpm_list_t *alpm_pkg_get_optdepends(Package *pkg);
-//
+
 // /// Returns a list of package check dependencies
-//  * @param pkg a pointer to package
-//  * @return a reference to an internal list of Dependency structures.
-//
 // alpm_list_t *alpm_pkg_get_checkdepends(Package *pkg);
-//
+
 // /// Returns a list of package make dependencies
 //  * @param pkg a pointer to package
 //  * @return a reference to an internal list of Dependency structures.

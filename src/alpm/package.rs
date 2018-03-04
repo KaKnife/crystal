@@ -346,6 +346,7 @@ impl Package {
     //     self.name = String::from(base);
     // }
 
+    /// Returns the package name.
     pub fn get_name(&self) -> &String {
         &self.name
     }
@@ -362,6 +363,9 @@ impl Package {
         self.name_hash
     }
 
+    /// Returns the package version as a string.
+    /// This includes all available epoch, version, and pkgrel components. Use
+    /// alpm_pkg_vercmp() to compare version strings if necessary.
     pub fn get_version(&self) -> &String {
         return &self.version;
     }
@@ -408,7 +412,7 @@ impl Package {
         // return self.ops.get_url(self);
     }
 
-    /// Get the build date
+    /// Returns the build timestamp of the package.
     pub fn get_builddate(&self) -> Result<Time> {
         if self.infolevel & INFRQ_DESC == 0 {
             Err(Error::PkgNotLoaded)
@@ -417,7 +421,7 @@ impl Package {
         }
     }
 
-    /// Get the install date of the package
+    /// Returns the install timestamp of the package.
     pub fn get_installdate(&self) -> Result<Time> {
         if self.infolevel & INFRQ_DESC == 0 {
             Err(Error::PkgNotLoaded)
@@ -426,7 +430,7 @@ impl Package {
         }
     }
 
-    /// Get the packager of the package
+    /// Returns the packager's name.
     pub fn packager(&self) -> Result<&String> {
         if self.infolevel & INFRQ_DESC == 0 {
             Err(Error::PkgNotLoaded)
@@ -436,12 +440,14 @@ impl Package {
         // 	return pkg->ops->get_packager(pkg);
     }
 
-    /// Gets the md5sum of the package
+    /// Returns the package's MD5 checksum as a string.
+    /// The returned string is a sequence of 32 lowercase hexadecimal digits.
     pub fn md5sum(&self) -> &String {
         return &self.md5sum;
     }
 
-    /// Gets the sha256sum of the package
+    /// Returns the package's SHA256 checksum as a string.
+    /// The returned string is a sequence of 64 lowercase hexadecimal digits.
     pub fn sha256sum(&self) -> &String {
         return &self.sha256sum;
     }

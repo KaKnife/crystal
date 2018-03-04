@@ -286,6 +286,7 @@ pub fn alpm_find_satisfier<'a>(pkgs: &'a Vec<&Package>, depstring: &String) -> O
     return pkg;
 }
 
+/// Compare two version strings and determine which one is 'newer'.
 pub fn dep_vercmp(version1: &String, depmod: &Depmod, version2: &String) -> bool {
     // int equal = 0;
     let cmp = alpm_pkg_vercmp(version1, version2);
