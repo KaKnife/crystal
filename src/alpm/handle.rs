@@ -2680,6 +2680,80 @@ impl Handle {
         ret
     }
 
+    fn check_replacers(&self, lpkg: &Package, sdb: &Database) -> Result<Vec<Dependency>> {
+        // 	/* 2. search for replacers in sdb */
+        let replacers = Vec::new();
+        debug!(
+            "searching for replacements for {} in {}",
+            lpkg.get_name(),
+            sdb.get_name()
+        );
+        for spkg in sdb.get_pkgcache()? {
+            let mut found = false;
+            // 		int found = 0;
+            for replace in spkg.get_replaces()? {
+                /* we only want to consider literal matches at this point. */
+                if lpkg.depcmp_literal(replace) {
+                    found = true;
+                    break;
+                }
+            }
+            if found {
+                // 			alpm_question_replace_t question = {
+                // 				.type = ALPM_QUESTION_REPLACE_PKG,
+                // 				.replace = 0,
+                // 				.oldpkg = lpkg,
+                // 				.newpkg = spkg,
+                // 				.newdb = sdb
+                // 			};
+                // 			Package *tpkg;
+                // 			/* check IgnorePkg/IgnoreGroup */
+                // 			if(alpm_pkg_should_ignore(handle, spkg)
+                // 					|| alpm_pkg_should_ignore(handle, lpkg)) {
+                // 				_alpm_log(handle, ALPM_LOG_WARNING,
+                // 						_("ignoring package replacement ({}-{} => {}-{})\n"),
+                // 						lpkg->name, lpkg->version, spkg->name, spkg->version);
+                // 				continue;
+                // 			}
+                //
+                // 			QUESTION(handle, &question);
+                // 			if(!question.replace) {
+                // 				continue;
+                // 			}
+                //
+                // 			/* If spkg is already in the target list, we append lpkg to spkg's
+                // 			 * removes list */
+                // 			tpkg = alpm_pkg_find(handle->trans->add, spkg->name);
+                // 			if(tpkg) {
+                // 				/* sanity check, multiple repos can contain spkg->name */
+                // 				if(tpkg->origin_data.db != sdb) {
+                // 					_alpm_log(handle, ALPM_LOG_WARNING, _("cannot replace {} by {}\n"),
+                // 							lpkg->name, spkg->name);
+                // 					continue;
+                // 				}
+                // 				debug!("appending {} to the removes list of {}\n",
+                // 						lpkg->name, tpkg->name);
+                // 				tpkg->removes = alpm_list_add(tpkg->removes, lpkg);
+                // 				/* check the to-be-replaced package's reason field */
+                // 				if(alpm_pkg_get_reason(lpkg) == ALPM_PKG_REASON_EXPLICIT) {
+                // 					tpkg->reason = ALPM_PKG_REASON_EXPLICIT;
+                // 				}
+                // 			} else {
+                // 				/* add spkg to the target list */
+                // 				/* copy over reason */
+                // 				spkg->reason = alpm_pkg_get_reason(lpkg);
+                // 				spkg->removes = alpm_list_add(NULL, lpkg);
+                // 				_alpm_log(handle, ALPM_LOG_DEBUG,
+                // 						"adding package {}-{} to the transaction targets\n",
+                // 						spkg->name, spkg->version);
+                // 				replacers = alpm_list_add(replacers, spkg);
+                // 			}
+            }
+            unimplemented!();
+        }
+        return Ok(replacers);
+    }
+
     /// Search for packages to upgrade and add them to the transaction.
     pub fn alpm_sync_sysupgrade(&mut self, enable_downgrade: bool) -> Result<i32> {
         self.get_localdb_mut().load_pkgcache();
@@ -2710,7 +2784,7 @@ impl Handle {
                 }
                 unimplemented!();
                 /* Check sdb */
-                // let replacers = handle.check_replacers(lpkg, sdb);
+                let replacers = self.check_replacers(lpkg, sdb);
                 // if (replacers) {
                 // 	// trans.add = alpm_list_join(trans.add, replacers);
                 // 	/* jump to next local package */

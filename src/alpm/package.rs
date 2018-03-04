@@ -360,7 +360,7 @@ impl Package {
         // return self.download_size;
     }
 
-    fn depcmp_literal(&self, dep: &Dependency) -> bool {
+    pub fn depcmp_literal(&self, dep: &Dependency) -> bool {
         if self.name != dep.name {
             /* skip more expensive checks */
             return false;
