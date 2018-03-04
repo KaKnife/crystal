@@ -309,45 +309,6 @@ impl Package {
         // 	}
         // 	/* spkg is not an upgrade */
         // 	return NULL;
-        // }
-        //
-        // static int check_literal(alpm_handle_t *handle, Package *lpkg,
-        // 		Package *spkg, int enable_downgrade)
-        // {
-        // 	/* 1. literal was found in sdb */
-        // 	int cmp = _alpm_pkg_compare_versions(spkg, lpkg);
-        // 	if(cmp > 0) {
-        // 		debug!("new version of '{}' found ({} => {})\n",
-        // 				lpkg->name, lpkg->version, spkg->version);
-        // 		/* check IgnorePkg/IgnoreGroup */
-        // 		if(alpm_pkg_should_ignore(handle, spkg)
-        // 				|| alpm_pkg_should_ignore(handle, lpkg)) {
-        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package upgrade ({} => {})\n"),
-        // 					lpkg->name, lpkg->version, spkg->version);
-        // 		} else {
-        // 			debug!("adding package {}-{} to the transaction targets\n",
-        // 					spkg->name, spkg->version);
-        // 			return 1;
-        // 		}
-        // 	} else if(cmp < 0) {
-        // 		if(enable_downgrade) {
-        // 			/* check IgnorePkg/IgnoreGroup */
-        // 			if(alpm_pkg_should_ignore(handle, spkg)
-        // 					|| alpm_pkg_should_ignore(handle, lpkg)) {
-        // 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package downgrade ({} => {})\n"),
-        // 						lpkg->name, lpkg->version, spkg->version);
-        // 			} else {
-        // 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: downgrading from version {} to version {}\n"),
-        // 						lpkg->name, lpkg->version, spkg->version);
-        // 				return 1;
-        // 			}
-        // 		} else {
-        // 			Database *sdb = alpm_pkg_get_db(spkg);
-        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: local ({}) is newer than {} ({})\n"),
-        // 					lpkg->name, lpkg->version, sdb->treename, spkg->version);
-        // 		}
-        // 	}
-        // 	return 0;
     }
 
     /// Returns the size of the files that will be downloaded to install a
@@ -1157,7 +1118,7 @@ impl Package {
             return Err(Error::PkgInvalid);
         }
 
-        info!(
+        debug!(
             "loading package data for {} : level=0x{:x}",
             self.get_name(),
             inforeq
@@ -1548,7 +1509,7 @@ impl Package {
         size = humanize_size(self.get_size(), '\0', 2, &mut label);
         match from {
             PackageFrom::SyncDatabase => {
-                print!("{} {} {}\n", T_DOWNLOAD_SIZE, size, label);
+                info!("{} {} {}\n", T_DOWNLOAD_SIZE, size, label);
             }
             PackageFrom::File => {
                 print!("{} {} {}\n", T_COMPRESSED_SIZE, size, label);

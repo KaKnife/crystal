@@ -652,7 +652,7 @@ fn sync_trans(targets: &Vec<String>, config: &mut Config, handle: &mut Handle) -
 
     if config.s_upgrade != 0 {
         if !config.print {
-            print!("Starting full system upgrade...\n");
+            info!("Starting full system upgrade...");
         }
         match handle.alpm_sync_sysupgrade(config.s_upgrade >= 2) {
             Err(e) => {
@@ -853,7 +853,7 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handl
 
     if config.sync != 0 {
         /* grab a fresh package list */
-        print!("Synchronizing package databases...\n");
+        info!("Synchronizing package databases...");
 
         sync_syncdbs(config.sync as i32, &mut sync_dbs, handle)?;
     }

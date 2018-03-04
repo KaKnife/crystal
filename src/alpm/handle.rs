@@ -2411,28 +2411,28 @@ impl Handle {
             // 		alpm_list_t *resolved = NULL;
             // 		alpm_list_t *remove = alpm_list_copy(trans.remove);
             // 		alpm_list_t *localpkgs;
-            //
-            // 		/* Build up list by repeatedly resolving each transaction package */
-            // 		/* Resolve targets dependencies */
+            
+            /* Build up list by repeatedly resolving each transaction package */
+            /* Resolve targets dependencies */
             // 		event.type = ALPM_EVENT_RESOLVEDEPS_START;
             // 		EVENT(handle, &event);
-            // 		debug!("resolving target's dependencies\n");
-            //
-            // 		/* build remove list for resolvedeps */
-            // 		for(i = trans.add; i; i = i.next) {
-            // 			Package *spkg = i.data;
-            // 			for(j = spkg.removes; j; j = j.next) {
-            // 				remove = alpm_list_add(remove, j->data);
-            // 			}
-            // 		}
-            //
-            // 		/* Compute the fake local database for resolvedeps (partial fix for the
-            // 		 * phonon/qt issue) */
+            debug!("resolving target's dependencies");
+
+            /* build remove list for resolvedeps */
+            for spkg in &trans.add {
+                unimplemented!();
+                // for pkg in spkg.removes {
+                //     remove.push(pkg);
+                // }
+            }
+
+            /* Compute the fake local database for resolvedeps (partial fix for the
+             * phonon/qt issue) */
             // 		localpkgs = alpm_list_diff(_get_pkgcache(handle->db_local),
             // 				trans->add, _alpm_pkg_cmp);
-            //
-            // 		/* Resolve packages in the transaction one at a time, in addition
-            // 		   building up a list of packages which could not be resolved. */
+
+            /* Resolve packages in the transaction one at a time, in addition
+             * building up a list of packages which could not be resolved. */
             // 		for(i = trans->add; i; i = i->next) {
             // 			Package *pkg = i->data;
             // 			if(_alpm_resolvedeps(handle, localpkgs, pkg, trans->add,
@@ -2442,11 +2442,9 @@ impl Handle {
             // 			/* Else, [resolved] now additionally contains [pkg] and all of its
             // 			   dependencies not already on the list */
             // 		}
-            // 		alpm_list_free(localpkgs);
-            // 		alpm_list_free(remove);
-            //
-            // 		/* If there were unresolvable top-level packages, prompt the user to
-            // 		   see if they'd like to ignore them rather than failing the sync */
+
+            /* If there were unresolvable top-level packages, prompt the user to
+             * see if they'd like to ignore them rather than failing the sync */
             // 		if(unresolvable != NULL) {
             // 			alpm_question_remove_pkgs_t question = {
             // 				.type = ALPM_QUESTION_REMOVE_PKGS,
@@ -2475,24 +2473,23 @@ impl Handle {
             // 				goto cleanup;
             // 			}
             // 		}
-            //
-            // 		/* Set DEPEND reason for pulled packages */
+
+            /* Set DEPEND reason for pulled packages */
             // 		for(i = resolved; i; i = i->next) {
             // 			Package *pkg = i->data;
             // 			if(!alpm_pkg_find(trans->add, pkg->name)) {
             // 				pkg->reason = ALPM_PKG_REASON_DEPEND;
             // 			}
             // 		}
-            //
-            // 		/* Unresolvable packages will be removed from the target list; set these
-            // 		 * aside in the transaction as a list we won't operate on. If we free them
-            // 		 * before the end of the transaction, we may kill pointers the frontend
-            // 		 * holds to package objects. */
+
+            /* Unresolvable packages will be removed from the target list; set these
+             * aside in the transaction as a list we won't operate on. If we free them
+             * before the end of the transaction, we may kill pointers the frontend
+             * holds to package objects. */
             // 		trans->unresolvable = unresolvable;
-            //
-            // 		alpm_list_free(trans->add);
+
             // 		trans->add = resolved;
-            //
+
             // 		event.type = ALPM_EVENT_RESOLVEDEPS_DONE;
             // 		EVENT(handle, &event);
         }
@@ -2680,17 +2677,16 @@ impl Handle {
         ret
     }
 
-    fn check_replacers(&self, lpkg: &Package, sdb: &Database) -> Result<Vec<Dependency>> {
-        // 	/* 2. search for replacers in sdb */
-        let replacers = Vec::new();
+    fn check_replacers<'a>(&self, lpkg: &Package, sdb: &'a Database) -> Result<Vec<&'a Package>> {
+        /* 2. search for replacers in sdb */
+        let mut replacers = Vec::new();
         debug!(
             "searching for replacements for {} in {}",
             lpkg.get_name(),
             sdb.get_name()
         );
-        for spkg in sdb.get_pkgcache()? {
+        for mut spkg in sdb.get_pkgcache()? {
             let mut found = false;
-            // 		int found = 0;
             for replace in spkg.get_replaces()? {
                 /* we only want to consider literal matches at this point. */
                 if lpkg.depcmp_literal(replace) {
@@ -2699,74 +2695,113 @@ impl Handle {
                 }
             }
             if found {
-                // 			alpm_question_replace_t question = {
-                // 				.type = ALPM_QUESTION_REPLACE_PKG,
-                // 				.replace = 0,
-                // 				.oldpkg = lpkg,
-                // 				.newpkg = spkg,
-                // 				.newdb = sdb
-                // 			};
-                // 			Package *tpkg;
-                // 			/* check IgnorePkg/IgnoreGroup */
-                // 			if(alpm_pkg_should_ignore(handle, spkg)
-                // 					|| alpm_pkg_should_ignore(handle, lpkg)) {
-                // 				_alpm_log(handle, ALPM_LOG_WARNING,
-                // 						_("ignoring package replacement ({}-{} => {}-{})\n"),
-                // 						lpkg->name, lpkg->version, spkg->name, spkg->version);
-                // 				continue;
-                // 			}
-                //
+                let question = QuestionReplace {
+                    qtype: QuestionType::ReplacePkg,
+                    replace: false,
+                    oldpkg: lpkg,
+                    newpkg: spkg,
+                    newdb: sdb,
+                };
+                let tpkg: Package;
+                /* check IgnorePkg/IgnoreGroup */
+                if self.pkg_should_ignore(spkg) || self.pkg_should_ignore(lpkg) {
+                    warn!(
+                        "ignoring package replacement ({}-{} => {}-{})",
+                        lpkg.get_name(),
+                        lpkg.get_version(),
+                        spkg.get_name(),
+                        spkg.get_version()
+                    );
+                    continue;
+                }
+
                 // 			QUESTION(handle, &question);
                 // 			if(!question.replace) {
                 // 				continue;
                 // 			}
-                //
-                // 			/* If spkg is already in the target list, we append lpkg to spkg's
-                // 			 * removes list */
-                // 			tpkg = alpm_pkg_find(handle->trans->add, spkg->name);
-                // 			if(tpkg) {
-                // 				/* sanity check, multiple repos can contain spkg->name */
-                // 				if(tpkg->origin_data.db != sdb) {
-                // 					_alpm_log(handle, ALPM_LOG_WARNING, _("cannot replace {} by {}\n"),
-                // 							lpkg->name, spkg->name);
-                // 					continue;
-                // 				}
-                // 				debug!("appending {} to the removes list of {}\n",
-                // 						lpkg->name, tpkg->name);
+
+                /* If spkg is already in the target list, we append lpkg to spkg's
+                 * removes list */
+                if let Some(tpkg) = alpm_pkg_find(&self.trans.add, spkg.get_name()) {
+                    debug!(
+                        "appending {} to the removes list of {}",
+                        lpkg.get_name(),
+                        tpkg.get_name()
+                    );
                 // 				tpkg->removes = alpm_list_add(tpkg->removes, lpkg);
-                // 				/* check the to-be-replaced package's reason field */
+
+                /* check the to-be-replaced package's reason field */
                 // 				if(alpm_pkg_get_reason(lpkg) == ALPM_PKG_REASON_EXPLICIT) {
                 // 					tpkg->reason = ALPM_PKG_REASON_EXPLICIT;
                 // 				}
-                // 			} else {
-                // 				/* add spkg to the target list */
-                // 				/* copy over reason */
-                // 				spkg->reason = alpm_pkg_get_reason(lpkg);
-                // 				spkg->removes = alpm_list_add(NULL, lpkg);
-                // 				_alpm_log(handle, ALPM_LOG_DEBUG,
-                // 						"adding package {}-{} to the transaction targets\n",
-                // 						spkg->name, spkg->version);
-                // 				replacers = alpm_list_add(replacers, spkg);
-                // 			}
+                } else {
+                    /* add spkg to the target list */
+                    /* copy over reason */
+                    // spkg.set_reason(lpkg.get_reason()?.clone());
+                    // 				spkg->removes = alpm_list_add(NULL, lpkg);
+                    debug!(
+                        "adding package {}-{} to the transaction targets",
+                        spkg.get_name(),
+                        spkg.get_version()
+                    );
+                    replacers.push(spkg);
+                }
             }
-            unimplemented!();
         }
         return Ok(replacers);
+    }
+
+    fn check_literal(&self, lpkg: &Package, spkg: &Package, enable_downgrade: bool) -> i32 {
+        // 	/* 1. literal was found in sdb */
+        // 	int cmp = _alpm_pkg_compare_versions(spkg, lpkg);
+        // 	if(cmp > 0) {
+        // 		debug!("new version of '{}' found ({} => {})\n",
+        // 				lpkg->name, lpkg->version, spkg->version);
+        // 		/* check IgnorePkg/IgnoreGroup */
+        // 		if(alpm_pkg_should_ignore(handle, spkg)
+        // 				|| alpm_pkg_should_ignore(handle, lpkg)) {
+        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package upgrade ({} => {})\n"),
+        // 					lpkg->name, lpkg->version, spkg->version);
+        // 		} else {
+        // 			debug!("adding package {}-{} to the transaction targets\n",
+        // 					spkg->name, spkg->version);
+        // 			return 1;
+        // 		}
+        // 	} else if(cmp < 0) {
+        // 		if(enable_downgrade) {
+        // 			/* check IgnorePkg/IgnoreGroup */
+        // 			if(alpm_pkg_should_ignore(handle, spkg)
+        // 					|| alpm_pkg_should_ignore(handle, lpkg)) {
+        // 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package downgrade ({} => {})\n"),
+        // 						lpkg->name, lpkg->version, spkg->version);
+        // 			} else {
+        // 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: downgrading from version {} to version {}\n"),
+        // 						lpkg->name, lpkg->version, spkg->version);
+        // 				return 1;
+        // 			}
+        // 		} else {
+        // 			Database *sdb = alpm_pkg_get_db(spkg);
+        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: local ({}) is newer than {} ({})\n"),
+        // 					lpkg->name, lpkg->version, sdb->treename, spkg->version);
+        // 		}
+        // 	}
+        // 	return 0;
+        unimplemented!();
     }
 
     /// Search for packages to upgrade and add them to the transaction.
     pub fn alpm_sync_sysupgrade(&mut self, enable_downgrade: bool) -> Result<i32> {
         self.get_localdb_mut().load_pkgcache();
-        let trans = &mut self.trans;
+        // let trans = &mut self.trans;
 
         debug!("checking for package upgrades");
         for lpkg in self.db_local.get_pkgcache()? {
-            if trans.remove.contains(&&lpkg) {
+            if self.trans.remove.contains(&&lpkg) {
                 debug!("{} is marked for removal -- skipping", lpkg.get_name());
                 continue;
             }
 
-            if trans.add.contains(&&lpkg) {
+            if self.trans.add.contains(&&lpkg) {
                 debug!(
                     "{} is already in the target list -- skipping",
                     lpkg.get_name()
@@ -2782,23 +2817,22 @@ impl Handle {
                 if !sdb.get_usage().upgrade {
                     continue;
                 }
-                unimplemented!();
                 /* Check sdb */
-                let replacers = self.check_replacers(lpkg, sdb);
-                // if (replacers) {
-                // 	// trans.add = alpm_list_join(trans.add, replacers);
-                // 	/* jump to next local package */
-                // 	// break;
-                // } else {
-                // 	// 				Package *spkg = _alpm_db_get_pkgfromcache(sdb, lpkg.name);
-                // 	// 				if(spkg) {
-                // 	// 					if(check_literal(handle, lpkg, spkg, enable_downgrade)) {
-                // 	// 						trans.add = alpm_list_add(trans.add, spkg);
-                // 	// 					}
-                // 	// 					/* jump to next local package */
-                // 	// 					break;
-                // 	// 				}
-                // }
+                if let Ok(replacers) = self.check_replacers(lpkg, sdb) {
+                    self.trans
+                        .add
+                        .append(&mut replacers.iter().map(|p| p.clone().clone()).collect());
+                    /* jump to next local package */
+                    break;
+                } else {
+                    if let Ok(spkg) = sdb.get_pkgfromcache(lpkg.get_name()) {
+                        if self.check_literal(lpkg, spkg, enable_downgrade) != 0 {
+                            self.trans.add.push(spkg.clone());
+                        }
+                        /* jump to next local package */
+                        break;
+                    }
+                }
             }
         }
 
@@ -2991,4 +3025,16 @@ impl Clone for Handle {
             // 	regex_t delta_regex;
         }
     }
+}
+
+/* Test for existence of a package in a alpm_list_t*
+ * of alpm_pkg_t*
+ */
+fn alpm_pkg_find<'a>(haystack: &'a Vec<Package>, needle: &str) -> Option<&'a Package> {
+    for info in haystack {
+        if info.get_name() == needle {
+            return Some(&info);
+        }
+    }
+    return None;
 }

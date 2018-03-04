@@ -136,7 +136,7 @@ pub fn sync_syncdbs(level: i32, syncs: &mut Vec<Database>, handle: &mut Handle) 
                 ret = Err(e);
             }
             Ok(1) => {
-                print!(" {} is up to date\n", db.get_name());
+                info!(" {} is up to date", db.get_name());
             }
             _ => {}
         }

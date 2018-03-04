@@ -463,9 +463,10 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
                             error!("package '{}' was not found", strname);
                             unimplemented!();
                             // if(!config.isfile && access(strname, R_OK) == 0) {
-                            // 	pm_printf(ALPM_LOG_WARNING,
-                            // 			_("'{}' is a file, you might want to use {}.\n"),
-                            // 			strname, "-p/--file");
+                            // warn!(
+                            //     "'{}' is a file, you might want to use {}.",
+                            //     strname, "-p/--file"
+                            // );
                             // }
                             ret = Err(Error::Other);
                             continue;
@@ -482,12 +483,6 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
                 ret = Err(Error::Other);
             }
             is_match = true;
-        }
-
-        if config.isfile {
-            unimplemented!();
-            // 	free(pkg);
-            // pkg = NULL;
         }
     }
 

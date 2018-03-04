@@ -1,3 +1,25 @@
+/*
+ * alpm.h
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
+ *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
+ *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 #[macro_use]
 mod util;
 mod handle;
@@ -15,29 +37,16 @@ mod sync;
 mod be_sync;
 mod signing;
 mod alpm_list;
-// use self::alpm_list::*;
 use self::signing::*;
-// use self::be_sync::*;
-// use self::pkghash::*;
-// use self::sync::*;
 use self::util::*;
 use self::dload::*;
-// use self::add::*;
-// use self::be_package::*;
-// use self::remove::*;
-// use self::error::*;
-// use self::conflict::*;
-// use self::be_local::*;
 use self::version::*;
 use self::trans::*;
 use self::handle::*;
 use self::db::*;
-// use self::deps::*;
 
-// pub use self::sync::alpm_sync_sysupgrade;
 pub use self::remove::alpm_remove_pkg;
 pub use self::package::Package;
-// pub use self::handle::alpm_list_t;
 pub use self::handle::Handle;
 pub use self::db::Database;
 pub use self::deps::alpm_dep_from_string;
@@ -49,47 +58,12 @@ const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
 
 pub type Result<T> = std::result::Result<T, self::Error>;
 
-// /*
-//  * alpm.h
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
-//  *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
-//  *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-// #ifndef ALPM_H
-// #define ALPM_H
-//
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
-
 // libarchive
 // #include <archive.h>
 // #include <archive_entry.h>
 
 /* Arch Linux Package Management library */
 
-/* Opaque Structures */
-
-// type __Handle = Handle;
-// type __Database = Database;
-// type __Package = Package;
-// type __alpm_trans_t = Transaction;
 type Time = i64;
 
 /// Package install reasons.
@@ -638,28 +612,26 @@ enum PackageOperation {
 // /// Event callback.
 // typedef void (*alpm_cb_event)(alpm_event_t *);
 
-// ///
-//  * Type of questions.
-//  * Unlike the events or progress enumerations, this enum has bitmask values
-//  * so a frontend can use a bitmask map to supply preselected answers to the
-//  * different types of questions.
-//
-// typedef enum _alpm_question_type_t {
-// 	ALPM_QUESTION_INSTALL_IGNOREPKG = (1 << 0),
-// 	ALPM_QUESTION_REPLACE_PKG = (1 << 1),
-// 	ALPM_QUESTION_CONFLICT_PKG = (1 << 2),
-// 	ALPM_QUESTION_CORRUPTED_PKG = (1 << 3),
-// 	ALPM_QUESTION_REMOVE_PKGS = (1 << 4),
-// 	ALPM_QUESTION_SELECT_PROVIDER = (1 << 5),
-// 	ALPM_QUESTION_IMPORT_KEY = (1 << 6)
-// } alpm_question_type_t;
+/// Type of questions.
+/// Unlike the events or progress enumerations, this enum has bitmask values
+/// so a frontend can use a bitmask map to supply preselected answers to the
+/// different types of questions.
+enum QuestionType {
+    InstallIgnorepkg = (1 << 0),
+    ReplacePkg = (1 << 1),
+    ConflictPkg = (1 << 2),
+    CorruptedPkg = (1 << 3),
+    RemovePkgs = (1 << 4),
+    SelectProvider = (1 << 5),
+    ImportKey = (1 << 6),
+}
 
-// typedef struct _alpm_question_any_t {
-// 	/// Type of question.
-// 	alpm_question_type_t type;
-// 	/// Answer.
-// 	int answer;
-// } alpm_question_any_t;
+struct QestionAny {
+    /// Type of question.
+    qtype: QuestionType,
+    /// Answer.
+    answer: bool,
+}
 
 // typedef struct _alpm_question_install_ignorePackage {
 // 	/// Type of question.
@@ -670,18 +642,18 @@ enum PackageOperation {
 // 	Package *pkg;
 // } alpm_question_install_ignorePackage;
 
-// typedef struct _alpm_question_replace_t {
-// 	/// Type of question.
-// 	alpm_question_type_t type;
-// 	/// Answer: whether or not to replace oldpkg with newpkg.
-// 	int replace;
-// 	/* Package to be replaced. */
-// 	Package *oldpkg;
-// 	/* Package to replace with. */
-// 	Package *newpkg;
-// 	/* DB of newpkg
-// 	Database *newdb;
-// } alpm_question_replace_t;
+struct QuestionReplace<'a> {
+    /// Type of question.
+    qtype: QuestionType,
+    /// Answer: whether or not to replace oldpkg with newpkg.
+    replace: bool,
+    /// Package to be replaced.
+    oldpkg: &'a Package,
+    /// Package to replace with.
+    newpkg: &'a Package,
+    /// DB of newpkg
+    newdb: &'a Database,
+}
 
 // typedef struct _alpm_question_conflict_t {
 // 	/// Type of question.
@@ -1098,26 +1070,23 @@ impl DatabaseUsage {
 //
 // int alpm_pkg_load(Handle *handle, const char *filename, int full,
 // 		int level, Package **pkg);
-//
+
 // /* Find a package in a list by name.
 //  * @param haystack a list of Package
 //  * @param needle the package name
 //  * @return a pointer to the package if found or NULL
-//
 // Package *alpm_pkg_find(alpm_list_t *haystack, const char *needle);
-//
+
 // /* Free a package.
 //  * @param pkg package pointer to free
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
-//
 // int alpm_pkg_free(Package *pkg);
-//
+
 // /// Check the integrity (with md5) of a package from the sync cache.
 //  * @param pkg package pointer
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
-//
 // int alpm_pkg_checkmd5sum(Package *pkg);
-//
+
 // /// Compare two version strings and determine which one is 'newer'.
 // int alpm_pkg_vercmp(const char *a, const char *b);
 //

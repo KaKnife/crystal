@@ -504,7 +504,7 @@ impl Database {
                     }
 
                     /* add to the collection */
-                    info!(
+                    debug!(
                         "adding '{}' to package cache for db '{}'",
                         pkg.get_name(),
                         self.treename
