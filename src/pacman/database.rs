@@ -134,20 +134,14 @@ fn check_db_local_files(config: &conf::Config, handle: &mut Handle) -> i32 {
         }
         /* check for expected db files in local database */
         path = format!("{}local/{}/desc", dbpath, file_name);
-        match fs::File::open(path) {
-            Ok(_) => {}
-            Err(_e) => {
-                error!("'{}': description file is missing", file_name);
-                ret += 1;
-            }
+        if let Err(_e) = fs::File::open(path) {
+            error!("'{}': description file is missing", file_name);
+            ret += 1;
         }
         path = format!("{}local/{}/files", dbpath, file_name);
-        match fs::File::open(path) {
-            Ok(_) => {}
-            Err(_e) => {
-                error!("'{}': file list is missing", file_name);
-                ret += 1;
-            }
+        if let Err(_e) = fs::File::open(path) {
+            error!("'{}': file list is missing", file_name);
+            ret += 1;
         }
     }
 

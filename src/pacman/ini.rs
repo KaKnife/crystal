@@ -1,8 +1,3 @@
-use std::fs::File;
-use std::io::Read;
-use super::Result;
-use super::Config;
-use super::Section;
 /*
  *  ini.c
  *
@@ -21,6 +16,11 @@ use super::Section;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+use std::fs::File;
+use std::io::Read;
+use super::alpm::Result;
+use super::Config;
+use super::Section;
 
 pub type IniParserFn =
     Fn(&String, usize, &String, &Option<String>, &Option<String>, &mut Section, &mut Config)
@@ -47,7 +47,6 @@ pub fn parse_ini(
     config: &mut Config,
 ) -> Result<()> {
     let mut section_name = String::new();
-    // let mut ret = Ok(());
     let mut input: String = String::new();
     let mut fp = File::open(file)?;
     let lines;

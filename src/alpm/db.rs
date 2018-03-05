@@ -41,8 +41,14 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 use super::*;
 use std::collections::HashMap;
+use std::fs::{create_dir, metadata, read_dir, remove_dir_all, File};
+use std::io::{ErrorKind, Write};
+use libarchive::reader::{Builder, FileReader, Reader};
+use libarchive::archive::{Entry, FileType, ReadCompression, ReadFormat};
+
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>
@@ -86,11 +92,9 @@ pub struct DbStatus {
 /// Database
 #[derive(Debug, Default, Clone)]
 pub struct Database {
-    // handle: Handle,
     treename: String,
-    /// do not access directly, use path(db) for lazy access
     _path: String,
-    pub pkgcache: std::collections::HashMap<String, Package>,
+    pub pkgcache: HashMap<String, Package>,
     grpcache: Vec<Group>,
     servers: Vec<String>,
     // ops: db_operations,
@@ -123,16 +127,12 @@ impl Database {
             return Err(Error::DatabaseInvalidSig);
         }
 
-        let dbpath = match self.path() {
-            Ok(d) => d,
-            Err(e) => {
-                return Err(e);
-            }
-        };
+        let dbpath = self.path()?;
+
         /* we can skip any validation if the database doesn't exist */
-        match std::fs::metadata(&dbpath) {
-            Err(e) => match e.kind() {
-                std::io::ErrorKind::NotFound => {
+        if let Err(e) = metadata(&dbpath) {
+            match e.kind() {
+                ErrorKind::NotFound => {
                     // unimplemented!("DB NOT Found: {}", dbpath);
                     // let event = event_database_missing_t {
                     // 	etype: event_type_t::ALPM_EVENT_DATABASE_MISSING,
@@ -146,8 +146,7 @@ impl Database {
                     return Ok(true);
                 }
                 _ => {}
-            },
-            _ => {}
+            }
         }
 
         self.status.exists = true;
@@ -194,43 +193,35 @@ impl Database {
         /* valid: */
         self.status.valid = true;
         self.status.invalid = false;
-        return Ok(true);
+        Ok(true)
     }
 
     fn checkdbdir(&self) -> Result<()> {
         let path = self.path()?;
-        match std::fs::metadata(&path) {
+        match metadata(&path) {
             Err(_) => {
                 debug!("database dir '{}' does not exist, creating it", path);
-                if std::fs::create_dir(&path).is_err() {
-                    return Err(Error::System);
-                }
+                create_dir(&path)?;
             }
             Ok(p) => if !p.is_dir() {
                 warn!("removing invalid database: {}", path);
-                if std::fs::remove_dir_all(&path).is_err() || std::fs::create_dir(&path).is_err() {
-                    return Err(Error::System);
-                }
+                remove_dir_all(&path)?;
+                create_dir(&path)?;
             },
         }
-        return Ok(());
+        Ok(())
     }
 
     fn local_db_prepare(&self, info: &Package) -> Result<()> {
-        let pkgpath;
-
         self.checkdbdir()?;
+        let pkgpath = self.local_db_pkgpath(info, &String::new())?;
 
-        pkgpath = self.local_db_pkgpath(info, &String::new())?;
-
-        match std::fs::create_dir(&pkgpath) {
-            Err(e) => {
-                error!("could not create directory {}: {}", pkgpath, e);
-                return Err(Error::from(e));
-            }
-            _ => {}
+        if let Err(e) = create_dir(&pkgpath) {
+            error!("could not create directory {}: {}", pkgpath, e);
+            Err(Error::from(e))
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
     fn local_db_write(&self, info: &Package, inforeq: i32) -> i32 {
@@ -434,6 +425,152 @@ impl Database {
         // 	return ret;
     }
 
+    fn load_pkg_for_entry(
+        &mut self,
+        entryname: &String,
+        entry_filename: &mut String,
+    ) -> Option<&mut Package> {
+        /* get package and db file names */
+        *entry_filename = entryname.split('/').last().unwrap_or(entryname).to_string();
+        let (pkgname, pkgver) = if let Ok(d) = _splitname(entryname) {
+            d
+        } else {
+            error!("invalid name for database entry '{}'", entryname);
+            return None;
+        };
+
+        if self.pkgcache.get(&pkgname).is_none() {
+            let mut tmp_pkg = Package::default();
+
+            tmp_pkg.set_name(&pkgname);
+            tmp_pkg.set_version(pkgver);
+            tmp_pkg.set_origin(PackageFrom::SyncDatabase);
+
+            // tmp_pkg.origin_data.db = db;
+            // tmp_pkg.ops = &default_pkg_ops;
+            // tmp_pkg.ops.get_validation = _sync_get_validation;
+
+            /* add to the collection */
+            debug!(
+                "adding '{}' to package cache for db '{}'",
+                tmp_pkg.get_name(),
+                self.treename
+            );
+            self.pkgcache.insert(pkgname.clone(), tmp_pkg);
+        }
+        self.pkgcache.get_mut(&pkgname)
+    }
+
+    fn sync_db_read(&mut self, entryname: &str, archive: &FileReader) -> i32 {
+        let mut entryname = entryname.to_string();
+        let mut filename: String = String::new();
+        let dbname = self.treename.clone();
+        let mut pkg;
+
+        debug!("loading package data from archive entry {}", entryname);
+
+        pkg = if let Some(p) = self.load_pkg_for_entry(&mut entryname, &mut filename) {
+            p
+        } else {
+            debug!(
+                "entry {} could not be loaded into {} sync database",
+                entryname, dbname
+            );
+            return -1;
+        };
+
+        if filename == "" {
+            /* A file exists outside of a subdirectory. This isn't a read error, so return
+             * success and try to continue on. */
+            warn!("unknown database file: {}", filename);
+            return 0;
+        }
+
+        if filename == "desc" || filename == "depends" || filename == "files"
+        /*|| (filename== "deltas" && db->handle->deltaratio > 0.0)*/
+        {
+            let mut lines = Vec::new();
+            while let Ok(Some(line)) = archive.read_block() {
+                lines.push(String::from_utf8_lossy(line).to_string());
+            }
+            pkg.parse_lines(lines.iter().map(|line| line.as_ref()).collect(), &dbname);
+            pkg.infolevel = INFRQ_ALL;
+        } else if filename == "deltas" {
+            // 		/* skip reading delta files if UseDelta is unset */
+        } else {
+            // 		/* unknown database file */
+            // 		_log(db->handle, ALPM_LOG_DEBUG, "unknown database file: %s\n", filename);
+        }
+
+        return 0;
+        // error:
+        // 	_log(db->handle, ALPM_LOG_DEBUG, "error parsing database file: %s\n", filename);
+        // 	return -1;
+    }
+
+    fn sync_db_populate(&mut self) -> Result<()> {
+        // 	const char *dbpath;
+        // 	int fd;
+        let mut ret = Ok(());
+        let mut fd;
+        let mut builder;
+        let dbpath;
+        // 	int archive_ret;
+        // 	struct stat buf;
+        // 	struct archive *archive;
+        // 	struct archive_entry *entry;
+        // 	pkg_t *pkg = NULL;
+
+        if self.status.invalid {
+            return Err(Error::DatabaseInvalid);
+        }
+        if self.status.missing {
+            return Err(Error::DatabaseNotFound);
+        }
+        dbpath = self.path()?;
+
+        builder = Builder::new();
+        builder.support_compression(ReadCompression::All);
+        builder.support_format(ReadFormat::All);
+        fd = match builder.open_file(&dbpath) {
+            Ok(fd) => fd,
+            Err(e) => unimplemented!("{} : {}", dbpath, e),
+        };
+
+        loop {
+            let entryname;
+            {
+                match fd.next_header() {
+                    Some(entry) => {
+                        entryname = entry.pathname().to_string();
+                        match entry.filetype() {
+                            FileType::Directory => continue,
+                            _ => {}
+                        }
+                    }
+                    None => break,
+                }
+            }
+            /* we have desc, depends or deltas - parse it */
+            if self.sync_db_read(&entryname, &fd) != 0 {
+                error!(
+                    "could not parse package description file '{}' from db '{}'",
+                    entryname, self.treename
+                );
+                ret = Err(Error::Other);
+            }
+        }
+
+        debug!(
+            "added {} packages to package cache for db '{}'",
+            self.pkgcache.len(),
+            self.get_name()
+        );
+
+        // cleanup:
+        ret
+    }
+
     /*True Mut*/
     fn local_db_populate(&mut self) -> Result<()> {
         use std::fs;
@@ -450,69 +587,62 @@ impl Database {
 
         dbpath = self.path()?;
 
-        dbdir = match fs::read_dir(dbpath) {
-            Err(_e) => return Err(Error::DatabaseOpen),
-            Ok(d) => d,
+        dbdir = if let Ok(d) = fs::read_dir(dbpath) {
+            d
+        } else {
+            return Err(Error::DatabaseOpen);
         };
         self.status.exists = true;
         self.status.missing = false;
         self.pkgcache = HashMap::new();
 
         for ent in dbdir {
-            match ent {
-                Ok(ent) => {
-                    let mut pkg;
-                    let name = ent.file_name().into_string()?;
+            if let Ok(ent) = ent {
+                let mut pkg;
+                let name = ent.file_name().into_string()?;
 
-                    if name == "." || name == ".." {
-                        continue;
-                    }
-                    match fs::metadata(ent.path()) {
-                        Ok(m) => if !m.is_dir() {
-                            continue;
-                        },
-                        Err(_e) => {}
-                    }
-
-                    pkg = Package::default();
-                    /* split the db entry name */
-                    {
-                        let (name, version, name_hash) = match _splitname(&name) {
-                            Err(_) => {
-                                error!("invalid name for database entry '{}'", name);
-                                continue;
-                            }
-                            Ok(d) => d,
-                        };
-                        pkg.set_name(&name);
-                        pkg.set_version(version);
-                        pkg.set_name_hash(name_hash);
-                    }
-
-                    /* duplicated database entries are not allowed */
-                    // 		if(_pkghash_find(db->pkgcache, pkg->name)) {
-                    // 			_log(db->handle, ALPM_LOG_ERROR, _("duplicated database entry '{}'"), pkg->name);
-                    // 			_pkg_free(pkg);
-                    // 			continue;
-                    // 		}
-
-                    pkg.set_origin(PackageFrom::LocalDatabase);
-
-                    if pkg.local_db_read(self, INFRQ_ALL).is_err() {
-                        debug!("corrupted database entry '{}'", name);
-                        continue;
-                    }
-
-                    /* add to the collection */
-                    debug!(
-                        "adding '{}' to package cache for db '{}'",
-                        pkg.get_name(),
-                        self.treename
-                    );
-                    self.pkgcache.insert(pkg.get_name().clone(), pkg);
-                    count += 1;
+                if name == "." || name == ".." {
+                    continue;
                 }
-                Err(_e) => unimplemented!(),
+                if let Ok(m) = fs::metadata(ent.path()) {
+                    if !m.is_dir() {
+                        continue;
+                    }
+                }
+
+                pkg = Package::default();
+                /* split the db entry name */
+                let (name, version) = if let Ok(d) = _splitname(&name) {
+                    d
+                } else {
+                    error!("invalid name for database entry '{}'", name);
+                    continue;
+                };
+                pkg.set_name(&name);
+                pkg.set_version(version);
+
+                /* duplicated database entries are not allowed */
+                // 		if(_pkghash_find(db->pkgcache, pkg->name)) {
+                // 			_log(db->handle, ALPM_LOG_ERROR, _("duplicated database entry '{}'"), pkg->name);
+                // 			_pkg_free(pkg);
+                // 			continue;
+                // 		}
+
+                pkg.set_origin(PackageFrom::LocalDatabase);
+
+                if pkg.local_db_read(self, INFRQ_ALL).is_err() {
+                    debug!("corrupted database entry '{}'", name);
+                    continue;
+                }
+
+                /* add to the collection */
+                debug!(
+                    "adding '{}' to package cache for db '{}'",
+                    pkg.get_name(),
+                    self.treename
+                );
+                self.pkgcache.insert(pkg.get_name().clone(), pkg);
+                count += 1;
             }
         }
 
@@ -538,18 +668,13 @@ impl Database {
             return Ok(false);
         }
 
-        dbpath = match self.path() {
-            Ok(d) => d,
-            Err(e) => {
-                return Err(e);
-            }
-        };
+        dbpath = self.path()?;
 
-        dbdir = match std::fs::read_dir(&dbpath) {
+        dbdir = match read_dir(&dbpath) {
             Ok(d) => d,
             Err(e) => {
                 match e.kind() {
-                    std::io::ErrorKind::NotFound => {
+                    ErrorKind::NotFound => {
                         /* local database dir doesn't exist yet - create it */
                         match self.local_db_create(&dbpath) {
                             Ok(_) => {
@@ -577,49 +702,44 @@ impl Database {
 
         dbverpath = format!("{}ALPM_DB_VERSION", dbpath);
 
-        dbverfile = match std::fs::File::open(&dbverpath) {
-            Err(_e) => {
-                /* create dbverfile if local database is empty - otherwise version error */
-                for ent in dbdir {
-                    match ent {
-                        Ok(ent) => {
-                            let name = &ent.file_name();
-                            if name == "." || name == ".." {
-                                continue;
-                            } else {
-                                self.status.valid = false;
-                                self.status.invalid = true;
-                                return Err(Error::DatabaseVersion);
-                            }
-                        }
-                        Err(_e) => panic!(),
+        dbverfile = if let Ok(f) = File::open(&dbverpath) {
+            f
+        } else {
+            /* create dbverfile if local database is empty - otherwise version error */
+            for ent in dbdir {
+                if let Ok(ent) = ent {
+                    let name = &ent.file_name();
+                    if name == "." || name == ".." {
+                        continue;
+                    } else {
+                        self.status.valid = false;
+                        self.status.invalid = true;
+                        return Err(Error::DatabaseVersion);
                     }
                 }
-
-                if self.local_db_add_version(&dbpath).is_err() {
-                    self.status.valid = false;
-                    self.status.invalid = true;
-                    return Err(Error::DatabaseVersion);
-                }
-
-                self.status.valid = true;
-                self.status.invalid = false;
-                return Ok(true);
             }
-            Ok(f) => f,
+
+            if self.local_db_add_version(&dbpath).is_err() {
+                self.status.valid = false;
+                self.status.invalid = true;
+                return Err(Error::DatabaseVersion);
+            }
+
+            self.status.valid = true;
+            self.status.invalid = false;
+            return Ok(true);
         };
 
         use std::io::Read;
         let mut dbverfilestr = String::new();
         dbverfile.read_to_string(&mut dbverfilestr)?;
-        dbverfilestr = String::from(dbverfilestr.trim());
-        version = match dbverfilestr.parse() {
-            Err(_) => {
-                self.status.valid = false;
-                self.status.invalid = true;
-                return Err(Error::DatabaseVersion);
-            }
-            Ok(v) => v,
+        dbverfilestr = dbverfilestr.trim().to_string();
+        version = if let Ok(v) = dbverfilestr.parse() {
+            v
+        } else {
+            self.status.valid = false;
+            self.status.invalid = true;
+            return Err(Error::DatabaseVersion);
         };
 
         if version != ALPM_LOCAL_DB_VERSION {
@@ -630,31 +750,26 @@ impl Database {
 
         self.status.valid = true;
         self.status.invalid = false;
-        return Ok(true);
+        Ok(true)
     }
 
     fn local_db_create(&self, dbpath: &String) -> Result<i32> {
-        match std::fs::create_dir(dbpath) {
-            Err(e) => {
-                error!("could not create directory {}: {}", dbpath, e);
-                return Err(Error::DatabaseCreate);
-            }
-            _ => {}
+        if let Err(e) = create_dir(dbpath) {
+            error!("could not create directory {}: {}", dbpath, e);
+            return Err(Error::DatabaseCreate);
         }
         if self.local_db_add_version(dbpath).is_err() {
             // return 1;
             unimplemented!();
         }
-
-        return Ok(0);
+        Ok(0)
     }
 
-    fn local_db_add_version(&self, dbpath: &String) -> std::io::Result<usize> {
+    fn local_db_add_version(&self, dbpath: &String) -> Result<usize> {
         let dbverpath = format!("{}ALPM_DB_VERSION", dbpath);
-        use std::io::Write;
-        let mut dbverfile = std::fs::File::create(dbverpath)?;
+        let mut dbverfile = File::create(dbverpath)?;
         let data = format!("{}", ALPM_LOCAL_DB_VERSION);
-        dbverfile.write(data.as_bytes())
+        Ok(dbverfile.write(data.as_bytes())?)
     }
 
     /* Note: the return value must be freed by the caller */
@@ -670,7 +785,7 @@ impl Database {
             pkg.get_version(),
             filename
         );
-        return Ok(pkgpath);
+        Ok(pkgpath)
     }
 
     fn validate(&mut self, handle: &Handle) -> Result<bool> {
@@ -718,78 +833,47 @@ impl Database {
     /// return - 0 on success, 1 on server not present,
     /// -1 on error (pm_errno is set accordingly)
     fn remove_server(&mut self, url: &String) -> i32 {
-        let newurl;
-        // let vdata;
-        // let ret = 1;
+        let newurl = sanitize_url(url);
 
-        /* Sanity checks */
-        // ASSERT(db != NULL, return -1);
-        // self.handle.pm_errno = Error::ALPM_ERR_OK;
-        // ASSERT(url != NULL && strlen(url) != 0, RET_ERR(db->handle, WrongArgs, -1));
-
-        newurl = sanitize_url(url);
-        // if(!newurl) {
-        // 	return -1;
-        // }
-
-        let index = match self.servers.binary_search(&newurl) {
-            Ok(s) => s,
-            Err(_) => return 1,
-        };
-
-        self.servers.remove(index);
-        //
-        // if(vdata) {
-        // 	debug!("removed server URL from database '{}': {}",
-        // 			db.treename, newurl);
-        // 	free(vdata);
-        // 	ret = 0;
-        // }
-        //
-        // free(newurl);
-        // return ret;
-        return 0;
+        if let Ok(index) = self.servers.binary_search(&newurl) {
+            self.servers.remove(index);
+            debug!(
+                "removed server URL from database '{}': {}",
+                self.treename, newurl
+            );
+            0
+        } else {
+            1
+        }
     }
 
     /// Get a group entry from a package database.
     pub fn get_group(&self, name: &String) -> Result<&Group> {
-        return self.get_groupfromcache(name);
+        self.get_groupfromcache(name)
     }
 
     pub fn get_group_mut(&mut self, name: &String) -> Result<&mut Group> {
-        // if name.len() ==0{
-        //     return Err(Error::WrongArgs);
-        // }
-
-        return self.get_groupfromcache_mut(name);
+        self.get_groupfromcache_mut(name)
     }
 
     fn get_groupfromcache(&self, target: &String) -> Result<&Group> {
-        if target.len() == 0 {
-            return return Err(Error::WrongArgs);;
-        }
-
         for grp in self.get_groupcache() {
             if grp.name == *target {
                 return Ok(grp);
             }
         }
 
-        return Err(Error::GroupNotFound);
+        Err(Error::GroupNotFound)
     }
 
     fn get_groupfromcache_mut(&mut self, target: &String) -> Result<&mut Group> {
-        if target.len() == 0 {
-            return return Err(Error::WrongArgs);;
-        }
-
         for info in self.get_groupcache_mut() {
             if info.name == *target {
                 return Ok(info);
             }
         }
 
-        return Err(Error::GroupNotFound);
+        Err(Error::GroupNotFound)
     }
 
     /// Get the group cache of a package database.
@@ -803,7 +887,7 @@ impl Database {
             self.load_grpcache();
         }
 
-        return &mut self.grpcache;
+        &mut self.grpcache
     }
 
     /// Returns a new group cache from db.
@@ -865,7 +949,7 @@ impl Database {
             self.load_grpcache();
         }
 
-        return &self.grpcache;
+        &self.grpcache
     }
 
     pub fn get_pkgfromcache(&self, target: &String) -> Result<&Package> {
@@ -898,12 +982,13 @@ impl Database {
             return -1;
         }
         self.status.pkgcache = true;
-        return 0;
+        0
     }
 
     pub fn populate(&mut self) -> Result<()> {
         match self.ops_type {
             DbOpsType::Local => self.local_db_populate(),
+            DbOpsType::Sync => self.sync_db_populate(),
             _ => unimplemented!(),
         }
     }
@@ -1048,7 +1133,7 @@ impl Database {
         Ok(cache)
     }
 
-    /// Sets the usage bitmask for a repo
+    /// Sets the usage of a database.
     pub fn set_usage(&mut self, usage: DatabaseUsage) {
         self.usage = usage;
     }

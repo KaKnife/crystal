@@ -9,14 +9,13 @@
 // #![allow(unused_imports)]
 // #![allow(unused_must_use)]
 pub mod pacman;
-pub mod common;
 pub mod alpm;
-pub use self::common::*;
 extern crate curl;
 extern crate env_logger;
 extern crate getopts;
 extern crate glob;
 extern crate libc;
+extern crate libarchive;
 // extern crate time;
 #[macro_use]
 extern crate log;
@@ -24,7 +23,7 @@ use env_logger::{Builder, Color};
 use log::{Level, LevelFilter};
 use std::io::Write;
 const PACKAGE_VERSION: &str = "0.0.1";
-const DEBUG: bool = false;
+const DEBUG: bool = true;
 pub fn main() {
     let mut builder = Builder::new();
     builder.format(|buf, record| {
@@ -43,9 +42,8 @@ pub fn main() {
         if DEBUG {
             writeln!(
                 buf,
-                "{:>5} {}: {}: {}",
+                "{:>5} {}: {}",
                 level_style.value(level),
-                ts,
                 record.module_path().unwrap_or(""),
                 record.args()
             )
@@ -55,7 +53,7 @@ pub fn main() {
     });
 
     if DEBUG {
-        builder.filter(None, LevelFilter::Debug);
+        builder.filter(None, LevelFilter::Trace);
     } else {
         builder.filter(None, LevelFilter::Info);
     }

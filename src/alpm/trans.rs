@@ -1,4 +1,3 @@
-use super::*;
 /*
  *  trans.h
  *
@@ -21,20 +20,22 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-impl Default for AlpmTransState {
-    fn default() -> Self {
-        AlpmTransState::Idle
-    }
-}
+use super::*;
+
 #[derive(Debug, Clone)]
 pub enum AlpmTransState {
     Idle = 0,
     Initialized,
-    PREPARED,
-    DOWNLOADING,
+    Prepared,
+    Downloading,
     Commiting,
     Commited,
-    INTERRUPTED,
+    Interrupted,
+}
+impl Default for AlpmTransState {
+    fn default() -> Self {
+        AlpmTransState::Idle
+    }
 }
 
 #[derive(Default, Debug, Clone)]
@@ -43,80 +44,12 @@ pub struct Transaction {
     /* bitfield of TransactionFlag flags */
     pub flags: TransactionFlag,
     pub state: AlpmTransState,
-    pub unresolvable: Vec<Package>, /* list of (Package *) */
-    pub add: Vec<Package>,          /* list of (Package *) */
-    pub remove: Vec<Package>,       /* list of (Package *) */
-    pub skip_remove: Vec<String>,   /* list of (char *) */
+    pub unresolvable: Vec<Package>,
+    pub add: Vec<Package>,
+    pub remove: Vec<Package>,
+    pub skip_remove: Vec<String>,
 }
 
-// void _trans_free(trans_t *trans);
-// /* flags is a bitfield of TransactionFlag flags */
-// int _trans_init(trans_t *trans, int flags);
-// int _runscriptlet(handle_t *handle, const char *filepath,
-// 		const char *script, const char *ver, const char *oldver, int is_archive);
-// /*
-//  *  trans.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
-//  *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
-//  *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <string.h>
-// #include <unistd.h>
-// #include <sys/types.h>
-// #include <errno.h>
-// #include <limits.h>
-//
-// /* libalpm */
-// #include "trans.h"
-// #include "list.h"
-// #include "package.h"
-// #include "util.h"
-// #include "log.h"
-// #include "handle.h"
-// #include "remove.h"
-// #include "sync.h"
-// #include "alpm.h"
-// #include "deps.h"
-// #include "hook.h"
-
-// void _trans_free(trans_t *trans)
-// {
-// 	if(trans == NULL) {
-// 		return;
-// 	}
-//
-// 	list_free_inner(trans->unresolvable,
-// 			(list_fn_free)_pkg_free_trans);
-// 	list_free(trans->unresolvable);
-// 	list_free_inner(trans->add, (list_fn_free)_pkg_free_trans);
-// 	list_free(trans->add);
-// 	list_free_inner(trans->remove, (list_fn_free)_pkg_free);
-// 	list_free(trans->remove);
-//
-// 	FREELIST(trans->skip_remove);
-//
-// 	FREE(trans);
-// }
-//
 // /* A cheap grep for text files, returns 1 if a substring
 //  * was found in the text file fn, 0 if it wasn't
 //  */
@@ -146,7 +79,7 @@ pub struct Transaction {
 // 	fclose(fp);
 // 	return 0;
 // }
-//
+
 // int _runscriptlet(handle_t *handle, const char *filepath,
 // 		const char *script, const char *ver, const char *oldver, int is_archive)
 // {
@@ -237,7 +170,7 @@ pub struct Transaction {
 // 	free(tmpdir);
 // 	return retval;
 // }
-//
+
 // int SYMEXPORT trans_get_flags(handle_t *handle)
 // {
 // 	/* Sanity checks */
@@ -246,7 +179,7 @@ pub struct Transaction {
 //
 // 	return handle->trans->flags;
 // }
-//
+
 // list_t SYMEXPORT *trans_get_add(handle_t *handle)
 // {
 // 	/* Sanity checks */

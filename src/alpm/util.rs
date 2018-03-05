@@ -1,40 +1,30 @@
+/*
+ *  util.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
+ *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
+ *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
+ *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 use super::*;
-// /*
-//  *  util.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
-//  *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
-//  *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
-//  *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
-// #include <stdlib.h>
-// #include <unistd.h>
-// #include <ctype.h>
-// #include <dirent.h>
-// #include <time.h>
-// #include <errno.h>
-// #include <limits.h>
-// #include <sys/wait.h>
-// #include <sys/socket.h>
-// #include <fnmatch.h>
-// #include <poll.h>
-//
+use std::num::Wrapping;
+
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>
@@ -48,16 +38,7 @@ use super::*;
 // #include <nettle/md5.h>
 // #include <nettle/sha2.h>
 // #endif
-//
-// /* libalpm */
-// #include "util.h"
-// #include "log.h"
-// #include "libarchive-compat.h"
-// #include "alpm.h"
-// #include "list.h"
-// #include "handle.h"
-// #include "trans.h"
-//
+
 // #ifndef HAVE_STRSEP
 // /** Extracts tokens from a string.
 //  * Replaces strset which is not portable (missing on Solaris).
@@ -450,7 +431,7 @@ use super::*;
 // 	closedir(dir);
 // 	return files;
 // }
-//
+
 // static int should_retry(int errnum)
 // {
 // 	return errnum == EAGAIN
@@ -501,7 +482,7 @@ use super::*;
 // 	logaction(handle, "ALPM-SCRIPTLET", "%s", line);
 // 	EVENT(handle, &event);
 // }
-//
+
 // static int _chroot_read_from_child(handle_t *handle, int fd,
 // 		char *buf, ssize_t *buf_size, ssize_t buf_limit)
 // {
@@ -550,18 +531,6 @@ use super::*;
 // 	return 0;
 // }
 
-// /** Helper function for comparing strings using the alpm "compare func"
-//  * signature.
-//  * @param s1 first string to be compared
-//  * @param s2 second string to be compared
-//  * @return 0 if strings are equal, positive int if first unequal character
-//  * has a greater value in s1, negative if it has a greater value in s2
-//  */
-// int _str_cmp(const void *s1, const void *s2)
-// {
-// 	return strcmp(s1, s2);
-// }
-//
 // /** Find a filename in a registered alpm cachedir.
 //  * @param handle the context handle
 //  * @param filename name of file to find
@@ -587,7 +556,7 @@ use super::*;
 // 	/* package wasn't found in any cachedir */
 // 	return NULL;
 // }
-//
+
 // /** Check the alpm cachedirs for existence and find a writable one.
 //  * If no valid cache directory can be found, use /tmp.
 //  * @param handle the context handle
@@ -639,7 +608,7 @@ use super::*;
 // 			_("couldn't find or create package cache, using %s instead\n"), cachedir);
 // 	return cachedir;
 // }
-//
+
 // #if defined  HAVE_LIBSSL || defined HAVE_LIBNETTLE
 // /** Compute the MD5 message digest of a file.
 //  * @param path file path of file to compute  MD5 digest of
@@ -696,7 +665,7 @@ use super::*;
 // #endif
 // 	return 0;
 // }
-//
+
 // /** Compute the SHA-256 message digest of a file.
 //  * @param path file path of file to compute SHA256 digest of
 //  * @param output string to hold computed SHA256 digest
@@ -753,67 +722,42 @@ use super::*;
 // 	return 0;
 // }
 // #endif /* HAVE_LIBSSL || HAVE_LIBNETTLE */
-//
-// /** Create a string representing bytes in hexadecimal.
-//  * @param bytes the bytes to represent in hexadecimal
-//  * @param size number of bytes to consider
-//  * @return a NULL terminated string with the hexadecimal representation of
-//  * bytes or NULL on error. This string must be freed.
-//  */
-// static char *hex_representation(unsigned char *bytes, size_t size)
-// {
-// 	static const char *hex_digits = "0123456789abcdef";
-// 	char *str;
-// 	size_t i;
-//
-// 	MALLOC(str, 2 * size + 1, return NULL);
-//
-// 	for(i = 0; i < size; i++) {
-// 		str[2 * i] = hex_digits[bytes[i] >> 4];
-// 		str[2 * i + 1] = hex_digits[bytes[i] & 0x0f];
-// 	}
-//
-// 	str[2 * size] = '\0';
-//
-// 	return str;
-// }
-//
-// /** Get the md5 sum of file.
-//  * @param filename name of the file
-//  * @return the checksum on success, NULL on error
-//  * @addtogroup misc
-//  */
-// char SYMEXPORT *compute_md5sum(const char *filename)
-// {
-// 	unsigned char output[16];
-//
-// 	ASSERT(filename != NULL, return NULL);
-//
-// 	if(md5_file(filename, output) > 0) {
-// 		return NULL;
-// 	}
-//
-// 	return hex_representation(output, 16);
-// }
-//
-// /** Get the sha256 sum of file.
-//  * @param filename name of the file
-//  * @return the checksum on success, NULL on error
-//  * @addtogroup misc
-//  */
-// char SYMEXPORT *compute_sha256sum(const char *filename)
-// {
-// 	unsigned char output[32];
-//
-// 	ASSERT(filename != NULL, return NULL);
-//
-// 	if(sha256_file(filename, output) > 0) {
-// 		return NULL;
-// 	}
-//
-// 	return hex_representation(output, 32);
-// }
-//
+
+/// Create a string representing bytes in hexadecimal.
+fn hex_representation(bytes: Vec<u8>, size: usize) -> String {
+    let mut ret = String::new();
+    for byte in bytes {
+        ret = format!("{}{:x}", ret, byte)
+    }
+    ret
+}
+
+/// Get the md5 sum of file.
+fn compute_md5sum(filename: &str) -> String {
+    // 	unsigned char output[16];
+    //
+    // 	ASSERT(filename != NULL, return NULL);
+    //
+    // 	if(md5_file(filename, output) > 0) {
+    // 		return NULL;
+    // 	}
+    //
+    // 	return hex_representation(output, 16);
+    unimplemented!();
+}
+
+/// Get the sha256 sum of file.
+fn compute_sha256sum(filename: &str) -> String {
+    // 	unsigned char output[32];
+    //
+    // 	if(sha256_file(filename, output) > 0) {
+    // 		return NULL;
+    // 	}
+    //
+    // 	return hex_representation(output, 32);
+    unimplemented!();
+}
+
 // /** Calculates a file's MD5 or SHA-2 digest and compares it to an expected value.
 //  * @param filepath path of the file to check
 //  * @param expected hash value to compare against
@@ -846,7 +790,9 @@ use super::*;
 // 	FREE(computed);
 // 	return ret;
 // }
-//
+
+use libarchive::reader::FileReader;
+
 // /* Note: does NOT handle sparse files on purpose for speed. */
 // /** TODO.
 //  * Does not handle sparse files on purpose for speed.
@@ -854,102 +800,102 @@ use super::*;
 //  * @param b
 //  * @return
 //  */
-// int _archive_fgets(struct archive *a, struct archive_read_buffer *b)
-// {
-// 	/* ensure we start populating our line buffer at the beginning */
-// 	b->line_offset = b->line;
-//
-// 	while(1) {
-// 		size_t block_remaining;
-// 		char *eol;
-//
-// 		/* have we processed this entire block? */
-// 		if(b->block + b->block_size == b->block_offset) {
-// 			int64_t offset;
-// 			if(b->ret == ARCHIVE_EOF) {
-// 				/* reached end of archive on the last read, now we are out of data */
-// 				goto cleanup;
-// 			}
-//
-// 			/* zero-copy - this is the entire next block of data. */
-// 			b->ret = archive_read_data_block(a, (void *)&b->block,
-// 					&b->block_size, &offset);
-// 			b->block_offset = b->block;
-// 			block_remaining = b->block_size;
-//
-// 			/* error, cleanup */
-// 			if(b->ret < ARCHIVE_OK) {
-// 				goto cleanup;
-// 			}
-// 		} else {
-// 			block_remaining = b->block + b->block_size - b->block_offset;
-// 		}
-//
-// 		/* look through the block looking for EOL characters */
-// 		eol = memchr(b->block_offset, '\n', block_remaining);
-// 		if(!eol) {
-// 			eol = memchr(b->block_offset, '\0', block_remaining);
-// 		}
-//
-// 		/* allocate our buffer, or ensure our existing one is big enough */
-// 		if(!b->line) {
-// 			/* set the initial buffer to the read block_size */
-// 			CALLOC(b->line, b->block_size + 1, sizeof(char), b->ret = -ENOMEM; goto cleanup);
-// 			b->line_size = b->block_size + 1;
-// 			b->line_offset = b->line;
-// 		} else {
-// 			/* note: we know eol > b->block_offset and b->line_offset > b->line,
-// 			 * so we know the result is unsigned and can fit in size_t */
-// 			size_t new = eol ? (size_t)(eol - b->block_offset) : block_remaining;
-// 			size_t needed = (size_t)((b->line_offset - b->line) + new + 1);
-// 			if(needed > b->max_line_size) {
-// 				b->ret = -ERANGE;
-// 				goto cleanup;
-// 			}
-// 			if(needed > b->line_size) {
-// 				/* need to realloc + copy data to fit total length */
-// 				char *new_line;
-// 				CALLOC(new_line, needed, sizeof(char), b->ret = -ENOMEM; goto cleanup);
-// 				memcpy(new_line, b->line, b->line_size);
-// 				b->line_size = needed;
-// 				b->line_offset = new_line + (b->line_offset - b->line);
-// 				free(b->line);
-// 				b->line = new_line;
-// 			}
-// 		}
-//
-// 		if(eol) {
-// 			size_t len = (size_t)(eol - b->block_offset);
-// 			memcpy(b->line_offset, b->block_offset, len);
-// 			b->line_offset[len] = '\0';
-// 			b->block_offset = eol + 1;
-// 			b->real_line_size = b->line_offset + len - b->line;
-// 			/* this is the main return point; from here you can read b->line */
-// 			return ARCHIVE_OK;
-// 		} else {
-// 			/* we've looked through the whole block but no newline, copy it */
-// 			size_t len = (size_t)(b->block + b->block_size - b->block_offset);
-// 			memcpy(b->line_offset, b->block_offset, len);
-// 			b->line_offset += len;
-// 			b->block_offset = b->block + b->block_size;
-// 			/* there was no new data, return what is left; saved ARCHIVE_EOF will be
-// 			 * returned on next call */
-// 			if(len == 0) {
-// 				b->line_offset[0] = '\0';
-// 				b->real_line_size = b->line_offset - b->line;
-// 				return ARCHIVE_OK;
-// 			}
-// 		}
-// 	}
-//
-// cleanup:
-// 	{
-// 		int ret = b->ret;
-// 		FREE(b->line);
-// 		memset(b, 0, sizeof(struct archive_read_buffer));
-// 		return ret;
-// 	}
-// }
+pub fn _archive_fgets(a: &mut FileReader, b: &archive_read_buffer) -> i32 {
+    // 	/* ensure we start populating our line buffer at the beginning */
+    // 	b->line_offset = b->line;
+    //
+    loop {
+        // 		size_t block_remaining;
+        // 		char *eol;
+        //
+        // 		/* have we processed this entire block? */
+        // 		if(b.block + b.block_size == b.block_offset) {
+        // 			int64_t offset;
+        // 			if(b->ret == ARCHIVE_EOF) {
+        // 				/* reached end of archive on the last read, now we are out of data */
+        // 				goto cleanup;
+        // 			}
+        //
+        // 			/* zero-copy - this is the entire next block of data. */
+        // 			b->ret = archive_read_data_block(a, (void *)&b->block,
+        // 					&b->block_size, &offset);
+        // 			b->block_offset = b->block;
+        // 			block_remaining = b->block_size;
+        //
+        // 			/* error, cleanup */
+        // 			if(b->ret < ARCHIVE_OK) {
+        // 				goto cleanup;
+        // 			}
+        // 		} else {
+        // 			block_remaining = b->block + b->block_size - b->block_offset;
+        // 		}
+        //
+        // 		/* look through the block looking for EOL characters */
+        // 		eol = memchr(b->block_offset, '\n', block_remaining);
+        // 		if(!eol) {
+        // 			eol = memchr(b->block_offset, '\0', block_remaining);
+        // 		}
+        //
+        // 		/* allocate our buffer, or ensure our existing one is big enough */
+        // 		if(!b->line) {
+        // 			/* set the initial buffer to the read block_size */
+        // 			CALLOC(b->line, b->block_size + 1, sizeof(char), b->ret = -ENOMEM; goto cleanup);
+        // 			b->line_size = b->block_size + 1;
+        // 			b->line_offset = b->line;
+        // 		} else {
+        // 			/* note: we know eol > b->block_offset and b->line_offset > b->line,
+        // 			 * so we know the result is unsigned and can fit in size_t */
+        // 			size_t new = eol ? (size_t)(eol - b->block_offset) : block_remaining;
+        // 			size_t needed = (size_t)((b->line_offset - b->line) + new + 1);
+        // 			if(needed > b->max_line_size) {
+        // 				b->ret = -ERANGE;
+        // 				goto cleanup;
+        // 			}
+        // 			if(needed > b->line_size) {
+        // 				/* need to realloc + copy data to fit total length */
+        // 				char *new_line;
+        // 				CALLOC(new_line, needed, sizeof(char), b->ret = -ENOMEM; goto cleanup);
+        // 				memcpy(new_line, b->line, b->line_size);
+        // 				b->line_size = needed;
+        // 				b->line_offset = new_line + (b->line_offset - b->line);
+        // 				free(b->line);
+        // 				b->line = new_line;
+        // 			}
+        // 		}
+        //
+        // 		if(eol) {
+        // 			size_t len = (size_t)(eol - b->block_offset);
+        // 			memcpy(b->line_offset, b->block_offset, len);
+        // 			b->line_offset[len] = '\0';
+        // 			b->block_offset = eol + 1;
+        // 			b->real_line_size = b->line_offset + len - b->line;
+        // 			/* this is the main return point; from here you can read b->line */
+        // 			return ARCHIVE_OK;
+        // 		} else {
+        // 			/* we've looked through the whole block but no newline, copy it */
+        // 			size_t len = (size_t)(b->block + b->block_size - b->block_offset);
+        // 			memcpy(b->line_offset, b->block_offset, len);
+        // 			b->line_offset += len;
+        // 			b->block_offset = b->block + b->block_size;
+        // 			/* there was no new data, return what is left; saved ARCHIVE_EOF will be
+        // 			 * returned on next call */
+        // 			if(len == 0) {
+        // 				b->line_offset[0] = '\0';
+        // 				b->real_line_size = b->line_offset - b->line;
+        // 				return ARCHIVE_OK;
+        // 			}
+        // 		}
+    }
+    //
+    // cleanup:
+    // 	{
+    // 		int ret = b->ret;
+    // 		FREE(b->line);
+    // 		memset(b, 0, sizeof(struct archive_read_buffer));
+    // 		return ret;
+    // 	}
+    unimplemented!();
+}
 
 /** Parse a full package specifier.
  * @param target package specifier to parse, such as: "pacman-4.0.1-2",
@@ -959,7 +905,7 @@ use super::*;
  * @param name_hash to hold package name hash
  * @return 0 on success, -1 on error
  */
-pub fn _splitname(target: &String) -> std::result::Result<(String, String, u64), ()> {
+pub fn _splitname(target: &String) -> result::Result<(String, String), ()> {
     /* the format of a db entry is as follows:
      *    package-version-rel/
      *    package-version-rel/desc (we ignore the filename portion)
@@ -1009,11 +955,8 @@ pub fn _splitname(target: &String) -> std::result::Result<(String, String, u64),
     // 			*name_hash = _hash_sdbm(*name);
     // 		}
     // 	}
-    use std::hash::Hash;
-    let mut hasher = SdbmHasher::default();
-    name.hash(&mut hasher);
-    let name_hash = hasher.finish();
-    return Ok((name, version, name_hash));
+
+    return Ok((name, version));
 }
 
 #[derive(Default)]
@@ -1037,7 +980,7 @@ pub struct SdbmHasher {
     //
     // 	return hash;
     // }
-    hash: std::num::Wrapping<u64>,
+    hash: Wrapping<u64>,
 }
 use std::hash::Hasher;
 impl Hasher for SdbmHasher {
@@ -1046,16 +989,13 @@ impl Hasher for SdbmHasher {
     }
     fn write(&mut self, bytes: &[u8]) {
         for byte in bytes {
-            self.hash = std::num::Wrapping(*byte as u64) + self.hash * std::num::Wrapping(65599);
+            self.hash = Wrapping(*byte as u64) + self.hash * Wrapping(65599);
         }
     }
 }
 
-/** Convert a string to a file offset.
- * This parses bare positive integers only.
- * @param line string to convert
- * @return off_t on success, -1 on error
- */
+/// Convert a string to a file offset.
+/// This parses bare positive integers only.
 pub fn _strtoofft(line: &String) -> i64 {
     /* we are trying to parse bare numbers only, no leading anything */
     if !line.chars().collect::<Vec<char>>()[0].is_numeric() {
@@ -1351,23 +1291,22 @@ pub fn _parsedate(line: &str) -> Time {
 //
 // #define OPEN(fd, path, flags) do { fd = open(path, flags | O_BINARY); } while(fd == -1 && errno == EINTR)
 //
-// /**
-//  * Used as a buffer/state holder for _archive_fgets().
-//  */
-// struct archive_read_buffer {
-// 	char *line;
-// 	char *line_offset;
-// 	size_t line_size;
-// 	size_t max_line_size;
-// 	size_t real_line_size;
-//
-// 	char *block;
-// 	char *block_offset;
-// 	size_t block_size;
-//
-// 	int ret;
-// };
-//
+
+/// Used as a buffer/state holder for _archive_fgets().
+pub struct archive_read_buffer {
+    line: String,
+    line_offset: String,
+    line_size: usize,
+    max_line_size: usize,
+    real_line_size: usize,
+
+    block: String,
+    block_offset: String,
+    block_size: usize,
+
+    ret: i32,
+}
+
 // int _makepath(const char *path);
 // int _makepath_mode(const char *path, mode_t mode);
 // int _copyfile(const char *src, const char *dest);

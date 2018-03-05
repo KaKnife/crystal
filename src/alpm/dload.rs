@@ -10,6 +10,7 @@ use curl::easy::Easy2 as Curl;
 use curl::easy::NetRc;
 use curl::easy::TimeCondition;
 use std::time::UNIX_EPOCH;
+use std::env;
 
 /*
  *  download.c
@@ -146,7 +147,6 @@ fn utimes_long(path: &str, seconds: u64) -> i32 {
 // 	return mask;
 // }
 
-//
 // static void mask_signal(int signum, void (*handler)(int),
 // 		struct sigaction *origaction)
 // {
@@ -159,14 +159,6 @@ fn utimes_long(path: &str, seconds: u64) -> i32 {
 // 	sigaction(signum, NULL, origaction);
 // 	sigaction(signum, &newaction, NULL);
 // }
-
-// static void unmask_signal(int signum, struct sigaction *sa)
-// {
-// 	sigaction(signum, sa, NULL);
-// }
-
-// /* RFC1123 states applications should support this length */
-// #define HOSTNAME_SIZE 256
 
 use curl::easy::{Handler, WriteError};
 
@@ -185,7 +177,7 @@ impl Collector {
 }
 
 impl Handler for Collector {
-    fn write(&mut self, data: &[u8]) -> std::result::Result<usize, WriteError> {
+    fn write(&mut self, data: &[u8]) -> result::Result<usize, WriteError> {
         use std::io::Write;
         Ok(self.localf.write(data).unwrap())
     }
@@ -305,14 +297,12 @@ impl DownloadPayload {
             initial_size: 0,
             max_size: 0,
             // off_t prevprogress;
-            force: false,             //was int
-            allow_resume: false,      //bool?
-            errors_ok: false,         //was int
-            unlink_on_fail: false,    //bool?
-            trust_remote_name: false, //bool?
-            disable_timeout: disable_timeout, // #ifdef HAVE_LIBCURL
-                                      // CURLcode curlerr;       /* last error produced by curl */
-                                      // #endif
+            force: false,
+            allow_resume: false,
+            errors_ok: false,
+            unlink_on_fail: false,
+            trust_remote_name: false,
+            disable_timeout: disable_timeout,
         }
     }
 
@@ -542,7 +532,12 @@ impl DownloadPayload {
                         self.tempfile_name, self.destfile_name, e
                     );
                     ret = -1;
-                    final_file = Path::new(realname).file_name().unwrap().to_str().unwrap_or("").to_string();
+                    final_file = Path::new(realname)
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap_or("")
+                        .to_string();
                 }
             }
         }
@@ -559,7 +554,7 @@ impl DownloadPayload {
         &self,
         curl: &mut Curl<Collector>, /*char *error_buffer*/
     ) -> Result<()> {
-        let useragent = std::env::var("HTTP_USER_AGENT");
+        let useragent = env::var("HTTP_USER_AGENT");
 
         /* the curl_easy handle is initialized with the alpm handle, so we only need
          * to reset the handle's parameters for each time it's used. */
@@ -620,16 +615,13 @@ impl DownloadPayload {
         Ok(())
     }
 
-    // #endif
-    //
-
     /// Download a file given by a URL to a local directory.
     /// Does not overwrite an existing file if the download fails.
     /// @param payload the payload context
     /// * @param localpath the directory to save the file in
     /// * @param final_file the real name of the downloaded file (may be NULL)
     /// * @return 0 on success, -1 on error (pm_errno is set accordingly if errors_ok == 0)
-    pub fn _download(&mut self, localpath: &String) -> Result<(String, String, i32)> {
+    pub fn download(&mut self, localpath: &String) -> Result<(String, String, i32)> {
         // 	Handle *handle = payload->handle;
 
         // if handle.fetchcb == NULL {
@@ -652,7 +644,7 @@ impl DownloadPayload {
         unimplemented!();
     }
 
-    pub fn _dload_payload_reset(&mut self) {
+    pub fn reset(&mut self) {
         self.remote_name = OsString::new();
         self.tempfile_name = String::new();
         self.destfile_name = String::new();

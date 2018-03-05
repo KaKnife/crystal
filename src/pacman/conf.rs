@@ -62,19 +62,6 @@ const OS_ARCH: &str = "x86_64";
 #[cfg(target_arch = "x86")]
 const OS_ARCH: &str = "x86";
 
-#[derive(Default, Debug)]
-pub struct ColStr {
-    pub colon: String,
-    pub title: String,
-    pub repo: String,
-    pub version: String,
-    pub groups: String,
-    pub meta: String,
-    pub warn: String,
-    pub err: String,
-    pub nocolor: String,
-}
-
 #[derive(Default, Debug, Clone)]
 pub struct ConfigRepo {
     name: String,
@@ -87,23 +74,44 @@ pub struct ConfigRepo {
 #[derive(Default, Debug)]
 pub struct Config {
     pub op: Option<Operations>,
+    /* bools */
     pub quiet: bool,
-    pub verbose: usize,
     pub version: bool,
     pub help: bool,
     pub noconfirm: bool,
     pub noprogressbar: bool,
     pub print: bool,
-    pub checkspace: usize,
+    pub disable_dl_timeout: bool,
+    pub isfile: bool,
+    pub list: bool,
+    pub deps: bool,
+    pub explicit: bool,
+    pub owns: bool,
+    pub search: bool,
+    pub changelog: bool,
+    pub q_upgrade: bool,
+    pub noask: bool,
+    pub checkspace: bool,
+
+    pub verbose: usize,
     pub usesyslog: usize,
     pub color: usize,
-    pub disable_dl_timeout: bool,
+    pub info: usize,
+    pub unrequired: usize,
+    pub check: usize,
+    pub locality: usize,
+    pub clean: usize,
+    pub downloadonly: usize,
+    pub sync: usize,
+    pub s_upgrade: usize,
+    pub regex: usize,
+    pub machinereadable: usize,
+    pub group: usize,
+
     pub deltaratio: f64,
+
     pub arch: String,
     pub print_format: String,
-    /* unfortunately, we have to keep track of paths both here and in the library
-     * because they can come from both the command line or config file, and we
-     * need to ensure we get the order of preference right. */
     pub configfile: String,
     pub rootdir: String,
     dbpath: String,
@@ -113,28 +121,6 @@ pub struct Config {
     pub hookdirs: Vec<String>,
     pub cachedirs: Vec<String>,
 
-    pub isfile: bool,
-    pub info: usize,
-    pub list: bool,
-    pub unrequired: usize,
-    pub deps: bool,
-    pub explicit: bool,
-    pub owns: bool,
-    pub search: bool,
-    pub changelog: bool,
-    pub q_upgrade: bool,
-    pub check: usize,
-    pub locality: usize,
-    pub clean: usize,
-    pub downloadonly: usize,
-    pub sync: usize,
-    pub s_upgrade: usize,
-
-    pub regex: usize,
-    pub machinereadable: usize,
-
-    pub group: usize,
-    pub noask: bool,
     pub ask: u64,
     pub flags: alpm::TransactionFlag,
     pub siglevel: SigLevel,
@@ -153,6 +139,9 @@ pub struct Config {
      * downloaded of the total download list */
     pub totaldownload: usize,
     pub cleanmethod: CleanMethod,
+
+    pub xfercommand: String,
+
     pub holdpkg: Vec<String>,
     pub ignorepkg: Vec<String>,
     pub ignoregrp: Vec<String>,
@@ -160,13 +149,9 @@ pub struct Config {
     pub noupgrade: Vec<String>,
     pub noextract: Vec<String>,
     pub overwrite_files: Vec<String>, //Not sure this should be a string
-    pub xfercommand: String,
 
     pub explicit_adds: Vec<Package>,
     pub explicit_removes: Vec<Package>,
-
-    /* Color strings for output */
-    pub colstr: ColStr,
     pub repos: Vec<ConfigRepo>,
 }
 
@@ -205,6 +190,140 @@ fn invalid_opt(used: bool, opt1: &str, opt2: &str) {
     }
 }
 
+///Helper function for download_with_xfercommand()
+fn get_filename(url: &String) -> String {
+    unimplemented!();
+    // 	char *filename = strrchr(url, '/');
+    // 	if(filename != NULL) {
+    // 		filename++;
+    // 	}
+    // 	return filename;
+}
+
+// /** Helper function for download_with_xfercommand() */
+// static char *get_destfile(const char *path, const char *filename)
+// {
+// 	char *destfile;
+// 	/* len = localpath len + filename len + null */
+// 	size_t len = strlen(path) + strlen(filename) + 1;
+// 	destfile = calloc(len, sizeof(char));
+// 	snprintf(destfile, len, "{}{}", path, filename);
+//
+// 	return destfile;
+// }
+
+// /** Helper function for download_with_xfercommand() */
+// static char *get_tempfile(const char *path, const char *filename)
+// {
+// 	char *tempfile;
+// 	/* len = localpath len + filename len + '.part' len + null */
+// 	size_t len = strlen(path) + strlen(filename) + 6;
+// 	tempfile = calloc(len, sizeof(char));
+// 	snprintf(tempfile, len, "{}{}.part", path, filename);
+//
+// 	return tempfile;
+// }
+
+// /** External fetch callback */
+// static int download_with_xfercommand(const char *url, const char *localpath,
+// 		int force)
+// {
+// 	int ret = 0, retval;
+// 	int usepart = 0;
+// 	int cwdfd;
+// 	struct stat st;
+// 	char *parsedcmd, *tempcmd;
+// 	char *destfile, *tempfile, *filename;
+//
+// 	if(!config.xfercommand) {
+// 		return -1;
+// 	}
+//
+// 	filename = get_filename(url);
+// 	if(!filename) {
+// 		return -1;
+// 	}
+// 	destfile = get_destfile(localpath, filename);
+// 	tempfile = get_tempfile(localpath, filename);
+//
+// 	if(force && stat(tempfile, &st) == 0) {
+// 		unlink(tempfile);
+// 	}
+// 	if(force && stat(destfile, &st) == 0) {
+// 		unlink(destfile);
+// 	}
+//
+// 	tempcmd = strdup(config.xfercommand);
+// 	/* replace all occurrences of %o with fn.part */
+// 	if(strstr(tempcmd, "%o")) {
+// 		usepart = 1;
+// 		parsedcmd = strreplace(tempcmd, "%o", tempfile);
+// 		free(tempcmd);
+// 		tempcmd = parsedcmd;
+// 	}
+// 	/* replace all occurrences of %u with the download URL */
+// 	parsedcmd = strreplace(tempcmd, "%u", url);
+// 	free(tempcmd);
+//
+// 	/* save the cwd so we can restore it later */
+// 	do {
+// 		cwdfd = open(".", O_RDONLY);
+// 	} while(cwdfd == -1 && errno == EINTR);
+// 	if(cwdfd < 0) {
+// 		pm_printf(ALPM_LOG_ERROR, _("could not get current working directory\n"));
+// 	}
+//
+// 	/* cwd to the download directory */
+// 	if(chdir(localpath)) {
+// 		pm_printf(ALPM_LOG_WARNING, _("could not chdir to download directory {}\n"), localpath);
+// 		ret = -1;
+// 		goto cleanup;
+// 	}
+// 	/* execute the parsed command via /bin/sh -c */
+// 	debug!( "running command: {}\n", parsedcmd);
+// 	retval = system(parsedcmd);
+//
+// 	if(retval == -1) {
+// 		pm_printf(ALPM_LOG_WARNING, _("running XferCommand: fork failed!\n"));
+// 		ret = -1;
+// 	} else if(retval != 0) {
+// 		/* download failed */
+// 		debug!( "XferCommand command returned non-zero status "
+// 				"code ({})\n", retval);
+// 		ret = -1;
+// 	} else {
+// 		/* download was successful */
+// 		ret = 0;
+// 		if(usepart) {
+// 			if(rename(tempfile, destfile)) {
+// 				pm_printf(ALPM_LOG_ERROR, _("could not rename {} to {} ({})\n"),
+// 						tempfile, destfile, strerror(errno));
+// 				ret = -1;
+// 			}
+// 		}
+// 	}
+//
+// cleanup:
+// 	/* restore the old cwd if we have it */
+// 	if(cwdfd >= 0) {
+// 		if(fchdir(cwdfd) != 0) {
+// 			pm_printf(ALPM_LOG_ERROR, _("could not restore working directory ({})\n"),
+// 					strerror(errno));
+// 		}
+// 		close(cwdfd);
+// 	}
+//
+// 	if(ret == -1) {
+// 		/* hack to let an user the time to cancel a download */
+// 		sleep(2);
+// 	}
+// 	free(destfile);
+// 	free(tempfile);
+// 	free(parsedcmd);
+//
+// 	return ret;
+// }
+
 impl Config {
     pub fn new() -> Config {
         let mut newconfig = Config::default();
@@ -220,16 +339,6 @@ impl Config {
         // 	newconfig.localfileSigLevel = USE_DEFAULT;
         // 	newconfig.remotefileSigLevel = USE_DEFAULT;
         // }
-
-        newconfig.colstr.colon = String::from(":: ");
-        newconfig.colstr.title = String::new();
-        newconfig.colstr.repo = String::new();
-        newconfig.colstr.version = String::new();
-        newconfig.colstr.groups = String::new();
-        newconfig.colstr.meta = String::new();
-        newconfig.colstr.warn = String::new();
-        newconfig.colstr.err = String::new();
-        newconfig.colstr.nocolor = String::new();
 
         return newconfig;
     }
@@ -737,143 +846,7 @@ impl Config {
             invalid_opt(self.downloadonly != 0, "--groups", "--downloadonly");
         }
     }
-}
 
-///Helper function for download_with_xfercommand()
-fn get_filename(url: &String) -> String {
-    unimplemented!();
-    // 	char *filename = strrchr(url, '/');
-    // 	if(filename != NULL) {
-    // 		filename++;
-    // 	}
-    // 	return filename;
-}
-
-// /** Helper function for download_with_xfercommand() */
-// static char *get_destfile(const char *path, const char *filename)
-// {
-// 	char *destfile;
-// 	/* len = localpath len + filename len + null */
-// 	size_t len = strlen(path) + strlen(filename) + 1;
-// 	destfile = calloc(len, sizeof(char));
-// 	snprintf(destfile, len, "{}{}", path, filename);
-//
-// 	return destfile;
-// }
-
-// /** Helper function for download_with_xfercommand() */
-// static char *get_tempfile(const char *path, const char *filename)
-// {
-// 	char *tempfile;
-// 	/* len = localpath len + filename len + '.part' len + null */
-// 	size_t len = strlen(path) + strlen(filename) + 6;
-// 	tempfile = calloc(len, sizeof(char));
-// 	snprintf(tempfile, len, "{}{}.part", path, filename);
-//
-// 	return tempfile;
-// }
-
-// /** External fetch callback */
-// static int download_with_xfercommand(const char *url, const char *localpath,
-// 		int force)
-// {
-// 	int ret = 0, retval;
-// 	int usepart = 0;
-// 	int cwdfd;
-// 	struct stat st;
-// 	char *parsedcmd, *tempcmd;
-// 	char *destfile, *tempfile, *filename;
-//
-// 	if(!config.xfercommand) {
-// 		return -1;
-// 	}
-//
-// 	filename = get_filename(url);
-// 	if(!filename) {
-// 		return -1;
-// 	}
-// 	destfile = get_destfile(localpath, filename);
-// 	tempfile = get_tempfile(localpath, filename);
-//
-// 	if(force && stat(tempfile, &st) == 0) {
-// 		unlink(tempfile);
-// 	}
-// 	if(force && stat(destfile, &st) == 0) {
-// 		unlink(destfile);
-// 	}
-//
-// 	tempcmd = strdup(config.xfercommand);
-// 	/* replace all occurrences of %o with fn.part */
-// 	if(strstr(tempcmd, "%o")) {
-// 		usepart = 1;
-// 		parsedcmd = strreplace(tempcmd, "%o", tempfile);
-// 		free(tempcmd);
-// 		tempcmd = parsedcmd;
-// 	}
-// 	/* replace all occurrences of %u with the download URL */
-// 	parsedcmd = strreplace(tempcmd, "%u", url);
-// 	free(tempcmd);
-//
-// 	/* save the cwd so we can restore it later */
-// 	do {
-// 		cwdfd = open(".", O_RDONLY);
-// 	} while(cwdfd == -1 && errno == EINTR);
-// 	if(cwdfd < 0) {
-// 		pm_printf(ALPM_LOG_ERROR, _("could not get current working directory\n"));
-// 	}
-//
-// 	/* cwd to the download directory */
-// 	if(chdir(localpath)) {
-// 		pm_printf(ALPM_LOG_WARNING, _("could not chdir to download directory {}\n"), localpath);
-// 		ret = -1;
-// 		goto cleanup;
-// 	}
-// 	/* execute the parsed command via /bin/sh -c */
-// 	debug!( "running command: {}\n", parsedcmd);
-// 	retval = system(parsedcmd);
-//
-// 	if(retval == -1) {
-// 		pm_printf(ALPM_LOG_WARNING, _("running XferCommand: fork failed!\n"));
-// 		ret = -1;
-// 	} else if(retval != 0) {
-// 		/* download failed */
-// 		debug!( "XferCommand command returned non-zero status "
-// 				"code ({})\n", retval);
-// 		ret = -1;
-// 	} else {
-// 		/* download was successful */
-// 		ret = 0;
-// 		if(usepart) {
-// 			if(rename(tempfile, destfile)) {
-// 				pm_printf(ALPM_LOG_ERROR, _("could not rename {} to {} ({})\n"),
-// 						tempfile, destfile, strerror(errno));
-// 				ret = -1;
-// 			}
-// 		}
-// 	}
-//
-// cleanup:
-// 	/* restore the old cwd if we have it */
-// 	if(cwdfd >= 0) {
-// 		if(fchdir(cwdfd) != 0) {
-// 			pm_printf(ALPM_LOG_ERROR, _("could not restore working directory ({})\n"),
-// 					strerror(errno));
-// 		}
-// 		close(cwdfd);
-// 	}
-//
-// 	if(ret == -1) {
-// 		/* hack to let an user the time to cancel a download */
-// 		sleep(2);
-// 	}
-// 	free(destfile);
-// 	free(tempfile);
-// 	free(parsedcmd);
-//
-// 	return ret;
-// }
-
-impl Config {
     pub fn config_set_arch(&mut self, arch: &String) {
         if arch == "auto" {
             // struct utsname un;
@@ -1065,7 +1038,7 @@ fn setrepeatingoption(options: &String, option_name: &str, list: &mut Vec<String
     }
 }
 
-fn _parse_options(
+fn parse_options(
     key: &Option<String>,
     value: &Option<String>,
     file: &String,
@@ -1095,13 +1068,8 @@ fn _parse_options(
                 config.totaldownload = 1;
                 debug!("config: totaldownload");
             } else if key == "CheckSpace" {
-                config.checkspace = 1;
+                config.checkspace = true;
             } else if key == "Color" {
-                unimplemented!();
-            // if config.color == PM_COLOR_UNSET {
-            // config.color = isatty(fileno(stdout)) ? PM_COLOR_ON : PM_COLOR_OFF;
-            // enable_colors(config.color);
-            // }
             } else if key == "DisableDownloadTimeout" {
                 config.disable_dl_timeout = true;
             } else {
@@ -1178,7 +1146,6 @@ fn _parse_options(
                 config.xfercommand = value.clone();
                 debug!("config: xfercommand: {}", value);
             } else if key == "CleanMethod" {
-                unimplemented!();
                 let mut methods = Vec::new();
                 setrepeatingoption(value, "CleanMethod", &mut methods);
                 process_cleanmethods(methods, file, linenum, config)?;
@@ -1223,7 +1190,7 @@ fn _parse_options(
     return Ok(());
 }
 
-fn _add_mirror(db: &mut Database, value: &String, arch: &String) -> Result<()> {
+fn add_mirror(db: &mut Database, value: &String, arch: &String) -> Result<()> {
     let dbname = db.get_name().clone();
     /* let's attempt a replacement for the current repo */
     let temp = value.replace("$repo", &dbname);
@@ -1242,15 +1209,12 @@ fn _add_mirror(db: &mut Database, value: &String, arch: &String) -> Result<()> {
         server = temp;
     }
 
-    match db.add_server(&server) {
-        Err(e) => {
-            error!(
-                "could not add server URL to database '{}': {} ({})",
-                dbname, server, e
-            );
-            return Err(e);
-        }
-        Ok(()) => {}
+    if let Err(e) = db.add_server(&server) {
+        error!(
+            "could not add server URL to database '{}': {} ({})",
+            dbname, server, e
+        );
+        return Err(e);
     }
     Ok(())
 }
@@ -1280,15 +1244,12 @@ fn register_repo(
     db.set_usage(usage);
 
     for ref server in servers {
-        match _add_mirror(&mut db, server, arch) {
-            Err(e) => {
-                error!(
-                    "could not add mirror '{}' to database '{}' ({})",
-                    server, name, e
-                );
-                return Err(e);
-            }
-            Ok(_) => {}
+        if let Err(e) = add_mirror(&mut db, server, arch) {
+            error!(
+                "could not add mirror '{}' to database '{}' ({})",
+                server, name, e
+            );
+            return Err(e);
         }
     }
 
@@ -1357,46 +1318,34 @@ pub fn setup_libalpm(config: &Config) -> Result<Handle> {
     if logfile == "" {
         logfile = format!("{}", LOGFILE);
     }
-    match handle.set_logfile(&logfile) {
-        Err(e) => {
-            error!("problem setting logfile '{}' ({})", logfile, e);
-            return Err(e);
-        }
-        _ => {}
-    };
+    if let Err(e) = handle.set_logfile(&logfile) {
+        error!("problem setting logfile '{}' ({})", logfile, e);
+        return Err(e);
+    }
 
     /* Set GnuPG's home directory. This is not relative to rootdir, even if
      * rootdir is defined. Reasoning: gpgdir contains configuration data. */
     if gpgdir == "" {
         gpgdir = format!("{}", GPGDIR);
     }
-    match handle.set_gpgdir(&gpgdir) {
-        Err(e) => {
-            error!("problem setting gpgdir '{}' ({})", gpgdir, e);
-            return Err(e);
-        }
-        _ => {}
+    if let Err(e) = handle.set_gpgdir(&gpgdir) {
+        error!("problem setting gpgdir '{}' ({})", gpgdir, e);
+        return Err(e);
     }
 
     /* Set user hook directory. This is not relative to rootdir, even if
      * rootdir is defined. Reasoning: hookdir contains configuration data. */
     if config.hookdirs.is_empty() {
-        match handle.add_hookdir(&String::from(HOOKDIR)) {
-            Err(e) => {
-                error!("problem adding hookdir '{}' ({})", HOOKDIR, e);
-                return Err(e);
-            }
-            Ok(_) => {}
+        if let Err(e) = handle.add_hookdir(&String::from(HOOKDIR)) {
+            error!("problem adding hookdir '{}' ({})", HOOKDIR, e);
+            return Err(e);
         }
     } else {
         /* add hook directories 1-by-1 to avoid overwriting the system directory */
         for data in &config.hookdirs {
-            match handle.add_hookdir(data) {
-                Err(e) => {
-                    error!("problem adding hookdir '{}' ({})", data, e);
-                    return Err(e);
-                }
-                Ok(_) => {}
+            if let Err(e) = handle.add_hookdir(data) {
+                error!("problem adding hookdir '{}' ({})", data, e);
+                return Err(e);
             }
         }
     }
@@ -1515,7 +1464,7 @@ fn process_usage(
     ret
 }
 
-fn _parse_repo(
+fn parse_repo(
     key: &Option<String>,
     value: &Option<String>,
     file: &String,
@@ -1614,22 +1563,18 @@ fn process_include(
 
             /* Ignore include failures... assume non-critical */
             globret = glob::glob(&value);
-            match globret {
-                Ok(items) => for item in items {
+            if let Ok(items) = globret {
+                for item in items {
                     let item = item.unwrap().into_os_string().into_string()?;
                     debug!(
                         "config file {}, line {}: including {}",
                         file, linenum, &item
                     );
-                    match parse_ini(&item, &_parse_directive, section, config) {
-                        Err(e) => {
-                            section.depth -= 1;
-                            return Err(e);
-                        }
-                        Ok(()) => {}
-                    };
-                },
-                Err(_) => unimplemented!(),
+                    if let Err(e) = parse_ini(&item, &parse_directive, section, config) {
+                        section.depth -= 1;
+                        return Err(e);
+                    }
+                }
             }
         }
     }
@@ -1638,7 +1583,7 @@ fn process_include(
     Ok(())
 }
 
-pub fn _parse_directive(
+pub fn parse_directive(
     file: &String,
     linenum: usize,
     name: &String,
@@ -1647,26 +1592,22 @@ pub fn _parse_directive(
     section: &mut Section,
     config: &mut Config,
 ) -> Result<()> {
-    match (key, value) {
-        (&None, &None) => {
-            match &section.repo {
-                &Some(ref repo) => config.repos.push(repo.clone()),
-                &None => {}
-            }
-
-            section.name = name.clone();
-            debug!("config: new section '{}'", name);
-            if name == "options" {
-                section.repo = None;
-            } else {
-                let mut repo = ConfigRepo::default();
-                repo.name = name.clone();
-                repo.siglevel.use_default = true;
-                section.repo = Some(repo);
-            }
-            return Ok(());
+    if key.is_none() && value.is_none() {
+        if let Some(ref repo) = section.repo {
+            config.repos.push(repo.clone());
         }
-        _ => {}
+
+        section.name = name.clone();
+        debug!("config: new section '{}'", name);
+        if name == "options" {
+            section.repo = None;
+        } else {
+            let mut repo = ConfigRepo::default();
+            repo.name = name.clone();
+            repo.siglevel.use_default = true;
+            section.repo = Some(repo);
+        }
+        return Ok(());
     }
 
     match key {
@@ -1686,9 +1627,9 @@ pub fn _parse_directive(
 
     if section.repo.is_none() {
         /* we are either in options ... */
-        _parse_options(key, value, file, linenum, config)
+        parse_options(key, value, file, linenum, config)
     } else {
-        _parse_repo(key, value, file, linenum, section)
+        parse_repo(key, value, file, linenum, section)
     }
 }
 
@@ -1696,7 +1637,7 @@ pub fn _parse_directive(
 pub fn parseconfig(file: &String, config: &mut Config) -> Result<()> {
     let mut sec = Section::default();
     debug!("config: attempting to read file {}", file);
-    parse_ini(file, &_parse_directive, &mut sec, config)?;
+    parse_ini(file, &parse_directive, &mut sec, config)?;
     debug!("config: finished parsing {}", file);
     Ok(())
 }

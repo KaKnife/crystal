@@ -36,13 +36,12 @@ mod dload;
 mod sync;
 mod be_sync;
 mod signing;
-// mod list;
+
 use self::signing::*;
 use self::util::*;
 use self::dload::*;
 use self::version::*;
 use self::trans::*;
-// use self::handle::*;
 use self::db::*;
 
 pub use self::remove::remove_pkg;
@@ -54,9 +53,14 @@ pub use self::be_sync::db_update;
 pub use self::deps::find_satisfier;
 pub use self::error::Error;
 
+use std::ops::BitOr;
+use std::ops::BitAnd;
+use std::ops::Not;
+use std::result;
+
 const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
 
-pub type Result<T> = std::result::Result<T, self::Error>;
+pub type Result<T> = result::Result<T, self::Error>;
 
 // libarchive
 // #include <archive.h>
@@ -89,18 +93,17 @@ impl From<u8> for PackageReason {
     }
 }
 
-impl Default for PackageFrom {
-    fn default() -> Self {
-        PackageFrom::File
-    }
-}
-
 /// Location a package object was loaded from.
 #[derive(Debug, Clone, Copy)]
 pub enum PackageFrom {
     File = 1,
     LocalDatabase,
     SyncDatabase,
+}
+impl Default for PackageFrom {
+    fn default() -> Self {
+        PackageFrom::File
+    }
 }
 
 /// Method used to validate a package.
@@ -159,8 +162,7 @@ pub struct SigLevel {
 
     pub use_default: bool,
 }
-use std;
-impl std::ops::BitOr for SigLevel {
+impl BitOr for SigLevel {
     type Output = Self;
     fn bitor(self, rhs: Self) -> Self {
         let mut new = SigLevel::default();
@@ -178,7 +180,7 @@ impl std::ops::BitOr for SigLevel {
         new
     }
 }
-impl std::ops::BitAnd for SigLevel {
+impl BitAnd for SigLevel {
     type Output = Self;
     fn bitand(self, rhs: Self) -> Self {
         let mut new = SigLevel::default();
@@ -196,7 +198,7 @@ impl std::ops::BitAnd for SigLevel {
         new
     }
 }
-impl std::ops::Not for SigLevel {
+impl Not for SigLevel {
     type Output = Self;
     fn not(self) -> Self {
         let mut new = SigLevel::default();
@@ -315,7 +317,7 @@ struct Delta {
 pub struct File {
     name: String,
     size: usize,
-    // mode_t mode: Mode
+    // mode mode: Mode
 }
 
 /// Package filelist container
@@ -376,8 +378,8 @@ enum EventType {
     //     ALPM_EVENT_FILECONFLICTS_START,
     //     /// File conflicts were computed for a package.
     //     ALPM_EVENT_FILECONFLICTS_DONE,
-    //     /// Dependencies will be resolved for target package.
-    //     ALPM_EVENT_RESOLVEDEPS_START,
+    /// Dependencies will be resolved for target package.
+    ResolveDepsStart,
     //     /// Dependencies were resolved for target package.
     //     ALPM_EVENT_RESOLVEDEPS_DONE,
     //     /// Inter-conflicts will be checked for target package.
@@ -389,10 +391,10 @@ enum EventType {
     //     /// Processing the package transaction is finished.
     //     ALPM_EVENT_TRANSACTION_DONE,
     //     /// Package will be installed/upgraded/downgraded/re-installed/removed; See
-    //     /// event_package_operation_t for arguments.
+    //     /// event_package_operation for arguments.
     //     ALPM_EVENT_package_OPERATION_START,
     //     /// Package was installed/upgraded/downgraded/re-installed/removed; See
-    //     /// event_package_operation_t for arguments.
+    //     /// event_package_operation for arguments.
     //     ALPM_EVENT_package_OPERATION_DONE,
     //     /// Target package's integrity will be checked.
     //     ALPM_EVENT_INTEGRITY_START,
@@ -411,13 +413,13 @@ enum EventType {
     //     /// Deltas were applied to packages.
     //     ALPM_EVENT_DELTA_PATCHES_DONE,
     //     /// Delta patch will be applied to target package; See
-    //     /// event_delta_patch_t for arguments..
+    //     /// event_delta_patch for arguments..
     //     ALPM_EVENT_DELTA_PATCH_START,
     //     /// Delta patch was applied to target package.
     //     ALPM_EVENT_DELTA_PATCH_DONE,
     //     /// Delta patch failed to apply to target package.
     //     ALPM_EVENT_DELTA_PATCH_FAILED,
-    //     /// Scriptlet has printed information; See event_scriptlet_info_t for
+    //     /// Scriptlet has printed information; See event_scriptlet_info for
     //     /// arguments.
     //     ALPM_EVENT_SCRIPTLET_INFO,
     //     /// Files will be downloaded from a repository.
@@ -426,24 +428,24 @@ enum EventType {
     //     ALPM_EVENT_RETRIEVE_DONE,
     //     /// Not all files were successfully downloaded from a repository.
     //     ALPM_EVENT_RETRIEVE_FAILED,
-    //     /// A file will be downloaded from a repository; See event_pkgdownload_t
+    //     /// A file will be downloaded from a repository; See event_pkgdownload
     //     /// for arguments
     //     ALPM_EVENT_PKGDOWNLOAD_START,
-    //     /// A file was downloaded from a repository; See event_pkgdownload_t
+    //     /// A file was downloaded from a repository; See event_pkgdownload
     //     /// for arguments
     //     ALPM_EVENT_PKGDOWNLOAD_DONE,
     //     /// A file failed to be downloaded from a repository; See
-    //     /// event_pkgdownload_t for arguments
+    //     /// event_pkgdownload for arguments
     //     ALPM_EVENT_PKGDOWNLOAD_FAILED,
     //     /// Disk space usage will be computed for a package.
     //     ALPM_EVENT_DISKSPACE_START,
     //     /// Disk space usage was computed for a package.
     //     ALPM_EVENT_DISKSPACE_DONE,
     //     /// An optdepend for another package is being removed; See
-    //     /// event_optdep_removal_t for arguments.
+    //     /// event_optdep_removal for arguments.
     //     ALPM_EVENT_OPTDEP_REMOVAL,
     //     /// A configured repository database is missing; See
-    //     /// event_database_missing_t for arguments.
+    //     /// event_database_missing for arguments.
     //     ALPM_EVENT_database_MISSING,
     //     /// Checking keys used to create signatures are in keyring.
     //     ALPM_EVENT_KEYRING_START,
@@ -453,9 +455,9 @@ enum EventType {
     //     ALPM_EVENT_KEY_DOWNLOAD_START,
     //     /// Key downloading is finished.
     //     ALPM_EVENT_KEY_DOWNLOAD_DONE,
-    //     /// A .pacnew file was created; See event_pacnew_created_t for arguments.
+    //     /// A .pacnew file was created; See event_pacnew_created for arguments.
     //     ALPM_EVENT_PACNEW_CREATED,
-    //     /// A .pacsave file was created; See event_pacsave_created_t for
+    //     /// A .pacsave file was created; See event_pacsave_created for
     //     /// arguments
     //     ALPM_EVENT_PACSAVE_CREATED,
     //     /// Processing hooks will be started.
@@ -470,7 +472,7 @@ enum EventType {
 
 struct EventAny {
     /// Type of event.
-    event_type: EventType,
+    etype: EventType,
 }
 
 enum PackageOperation {
@@ -506,37 +508,36 @@ struct EventOptdepRemoval<'a> {
     optdep: &'a Dependency,
 }
 
-// typedef struct _event_delta_patch_t {
-// 	/// Type of event.
-// 	event_type_t type;
-// 	/// Delta info
-// 	delta_t *delta;
-// } event_delta_patch_t;
+struct EventDeltaPatch {
+    /// Type of event.
+    etype: EventType, // 	/// Delta info
+                      // 	delta *delta;
+}
 
-// typedef struct _event_scriptlet_info_t {
+// typedef struct Eventscriptlet_info {
 // 	/// Type of event.
-// 	event_type_t type;
+// 	eventype type;
 // 	/// Line of scriptlet output.
 // 	const char *line;
-// } event_scriptlet_info_t;
+// } event_scriptlet_info;
 
-// typedef struct _event_database_missing_t {
+// typedef struct Eventdatabase_missing {
 // 	/// Type of event.
-// 	event_type_t type;
+// 	eventype type;
 // 	/// Name of the database.
 // 	const char *dbname;
-// } event_database_missing_t;
+// } event_database_missing;
 
-// typedef struct _event_pkgdownload_t {
+// typedef struct Eventpkgdownload {
 // 	/// Type of event.
-// 	event_type_t type;
+// 	eventype type;
 // 	/// Name of the file
 // 	const char *file;
-// } event_pkgdownload_t;
+// } event_pkgdownload;
 
-// typedef struct _event_pacnew_created_t {
+// typedef struct Eventpacnew_created {
 // 	/// Type of event.
-// 	event_type_t type;
+// 	eventype type;
 // 	/// Whether the creation was result of a NoUpgrade or not
 // 	int from_noupgrade;
 // 	/// Old package.
@@ -545,59 +546,58 @@ struct EventOptdepRemoval<'a> {
 // 	Package *newpkg;
 // 	/// Filename of the file without the .pacnew suffix
 // 	const char *file;
-// } event_pacnew_created_t;
+// } event_pacnew_created;
 
-// typedef struct _event_pacsave_created_t {
+// typedef struct Eventpacsave_created {
 // 	/// Type of event.
-// 	event_type_t type;
+// 	EventType type;
 // 	/// Old package.
 // 	Package *oldpkg;
 // 	/// Filename of the file without the .pacsave suffix.
 // 	const char *file;
-// } event_pacsave_created_t;
+// } event_pacsave_created;
 
-// typedef struct _event_hook_t {
+// typedef struct Eventhook {
 // 	/// Type of event.
-// 	event_type_t type;
+// 	eventype type;
 // 	/// Type of hooks.
-// 	hook_when_t when;
-// } event_hook_t;
+// 	hook_when when;
+// } event_hook;
 
-// typedef struct _event_hook_run_t {
+// typedef struct Eventhook_run {
 // 	/// Type of event.
-// 	event_type_t type;
+// 	eventype type;
 // 	/// Name of hook
 // 	const char *name;
 // 	/// Description of hook to be outputted
 // 	const char *desc;
 // 	/// position of hook being run
-// 	size_t position;
+// 	size position;
 // 	/// total hooks being run
-// 	size_t total;
-// } event_hook_run_t;
+// 	size total;
+// } event_hook_run;
 
 // /// Events.
 //  * This is an union passed to the callback, that allows the frontend to know
 //  * which type of event was triggered (via type). It is then possible to
 //  * typecast the pointer to the right structure, or use the union field, in order
 //  * to access event-specific data.
-// typedef union _event_t {
-// 	event_type_t type;
-// 	event_any_t any;
-// 	event_package_operation_t package_operation;
-// 	event_optdep_removal_t optdep_removal;
-// 	event_delta_patch_t delta_patch;
-// 	event_scriptlet_info_t scriptlet_info;
-// 	event_database_missing_t database_missing;
-// 	event_pkgdownload_t pkgdownload;
-// 	event_pacnew_created_t pacnew_created;
-// 	event_pacsave_created_t pacsave_created;
-// 	event_hook_t hook;
-// 	event_hook_run_t hook_run;
-// } event_t;
+enum Event {
+    // 	eventype type;
+    any(EventAny), // 	event_package_operation package_operation;
+                   // 	event_optdep_removal optdep_removal;
+                   // 	event_delta_patch delta_patch;
+                   // 	event_scriptlet_info scriptlet_info;
+                   // 	event_database_missing database_missing;
+                   // 	event_pkgdownload pkgdownload;
+                   // 	event_pacnew_created pacnew_created;
+                   // 	event_pacsave_created pacsave_created;
+                   // 	event_hook hook;
+                   // 	event_hook_run hook_run;
+}
 
-// /// Event callback.
-// type CbEvent = fn(&mut Event);
+/// Event callback.
+type CbEvent = Option<fn(&mut Event)>;
 
 /// Type of questions.
 /// Unlike the events or progress enumerations, this enum has bitmask values
@@ -659,37 +659,37 @@ struct QuestionCorrupted {
     /// Filename to remove
     filepath: String,
     // 	/// Error code indicating the reason for package invalidity
-    // 	errno_t reason;
+    // 	errno reason;
 }
 
 struct QuestionRemovePkgs {
 // 	/// Type of question.
-// 	question_type_t type;
+// 	questionype type;
 // 	/// Answer: whether or not to skip packages.
 // 	int skip;
 // 	/// List of Package* with unresolved dependencies.
-// 	list_t *packages;
+// 	list *packages;
 }
 
 struct QuestionSelectProvider {
 // 	/// Type of question.
-// 	question_type_t type;
+// 	questionype type;
 // 	/// Answer: which provider to use (index from providers).
 // 	int use_index;
 // 	/// List of Package* as possible providers.
-// 	list_t *providers;
+// 	list *providers;
 // 	/// What providers provide for.
 // 	Dependency *depend;
 }
 
-// typedef struct _question_import_key_t {
+// typedef struct _question_import_key {
 // 	/// Type of question.
-// 	question_type_t type;
+// 	questionype type;
 // 	/// Answer: whether or not to import key.
 // 	int import;
 // 	/// The key to import.
-// 	pgpkey_t *key;
-// } question_import_key_t;
+// 	pgpkey *key;
+// } question_import_key;
 
 /// Questions.
 /// This is an union passed to the callback, that allows the frontend to know
@@ -697,22 +697,22 @@ struct QuestionSelectProvider {
 /// typecast the pointer to the right structure, or use the union field, in order
 /// to access question-specific data.
 enum Question<'a> {
-    // 	question_type_t type;
+    // 	questionype type;
     Any(QuestionAny),
     InstallIgnorepkg(&'a QuestionInstallIgnorePackage<'a>),
     Replace(&'a QuestionReplace<'a>),
-    // 	question_conflict_t conflict;
-    // 	question_corrupted_t corrupted;
-    // 	question_remove_pkgs_t remove_pkgs;
-    // 	question_select_provider_t select_provider;
-    // 	question_import_key_t import_key;
+    // 	question_conflict conflict;
+    // 	question_corrupted corrupted;
+    // 	question_remove_pkgs remove_pkgs;
+    // 	question_select_provider select_provider;
+    // 	question_import_key import_key;
 }
 
 /// Question callback
 type CbQuestion = Option<fn(&Question)>;
 
 // /// Progress
-// typedef enum _progress_t {
+// typedef enum _progress {
 // 	ALPM_PROGRESS_ADD_START,
 // 	ALPM_PROGRESS_UPGRADE_START,
 // 	ALPM_PROGRESS_DOWNGRADE_START,
@@ -723,10 +723,10 @@ type CbQuestion = Option<fn(&Question)>;
 // 	ALPM_PROGRESS_INTEGRITY_START,
 // 	ALPM_PROGRESS_LOAD_START,
 // 	ALPM_PROGRESS_KEYRING_START
-// } progress_t;
+// } progress;
 
 // /// Progress callback
-// typedef void (*cb_progress) = fn(progress_t, const char *, int, size_t, size_t);
+// typedef void (*cb_progress) = fn(progress, const char *, int, size, size);
 
 //Downloading
 
@@ -736,7 +736,7 @@ type CbQuestion = Option<fn(&Question)>;
 /// total is the total number of bytes to transfer.
 type CbDownload = fn(filename: &String, xfered: usize, total: usize);
 
-// typedef void (*cb_totaldl)(off_t total);
+// typedef void (*cbotaldl)(off total);
 
 /// A callback for downloading files.
 /// url is the URL of the file to be downloaded.
@@ -747,7 +747,6 @@ type CbDownload = fn(filename: &String, xfered: usize, total: usize);
 type CbFetch = Option<fn(url: &String, localpath: &String, force: i32) -> i32>;
 
 // /// Fetch a remote pkg.
-//  * @param handle the context handle
 //  * @param url URL of the package to download
 //  * @return the downloaded filepath on success, NULL on error
 // char *fetch_pkgurl(Handle *handle, const char *url);
@@ -762,7 +761,7 @@ type CbFetch = Option<fn(url: &String, localpath: &String, force: i32) -> i32>;
 // int option_set_fetchcb(Handle *handle, cb_fetch cb);
 
 // /// Sets the callback used to report total download size.
-// int option_set_totaldlcb(Handle *handle, cb_totaldl cb);
+// int option_setotaldlcb(Handle *handle, cbotaldl cb);
 
 // /// Sets the callback used for events.
 // int option_set_eventcb(Handle *handle, cb_event cb);
@@ -801,7 +800,7 @@ type CbFetch = Option<fn(url: &String, localpath: &String, force: i32) -> i32>;
 //  * @param handle the context handle
 //  * @return a reference to an internal list of Database structures
 //
-// list_t *get_syncdbs(Handle *handle);
+// list *get_syncdbs(Handle *handle);
 //
 // /// Register a sync database of packages.
 //  * @param handle the context handle
@@ -850,8 +849,8 @@ type CbFetch = Option<fn(url: &String, localpath: &String, force: i32) -> i32>;
 // /// @name Accessors to the list of servers for a database.
 //  * @{
 //
-// list_t *db_get_servers(const Database *db);
-// int db_set_servers(Database *db, list_t *servers);
+// list *db_get_servers(const Database *db);
+// int db_set_servers(Database *db, list *servers);
 // int db_add_server(Database *db, const char *url);
 // int db_remove_server(Database *db, const char *url);
 // /// @}
@@ -869,27 +868,27 @@ type CbFetch = Option<fn(url: &String, localpath: &String, force: i32) -> i32>;
 //  * @param db pointer to the package database to get the package from
 //  * @return the list of packages on success, NULL on error
 //
-// list_t *db_get_pkgcache(Database *db);
+// list *db_get_pkgcache(Database *db);
 //
 // /// Get a group entry from a package database.
 //  * @param db pointer to the package database to get the group from
 //  * @param name of the group
 //  * @return the groups entry on success, NULL on error
 //
-// group_t *db_get_group(Database *db, const char *name);
+// group *db_get_group(Database *db, const char *name);
 //
 // /// Get the group cache of a package database.
 //  * @param db pointer to the package database to get the group from
 //  * @return the list of groups on success, NULL on error
 //
-// list_t *db_get_groupcache(Database *db);
+// list *db_get_groupcache(Database *db);
 //
 // /// Searches a database with regular expressions.
 //  * @param db pointer to the package database to search in
 //  * @param needles a list of regular expressions to search for
 //  * @return the list of packages matching all regular expressions on success, NULL on error
 //
-// list_t *db_search(Database *db, const list_t *needles);
+// list *db_search(Database *db, const list *needles);
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct DatabaseUsage {
@@ -910,10 +909,6 @@ impl DatabaseUsage {
         self.upgrade = true;
     }
 }
-
-// /// Sets the usage of a database.
-// /// usage is a bitmask of DatabaseUsage values.
-// int db_set_usage(Database *db, int usage);
 
 // /// Gets the usage of a database.
 // /// usage is  pointer to an DatabaseUsage to store db's status
@@ -939,7 +934,7 @@ impl DatabaseUsage {
 //  * @param haystack a list of Package
 //  * @param needle the package name
 //  * @return a pointer to the package if found or NULL
-// Package *pkg_find(list_t *haystack, const char *needle);
+// Package *pkg_find(list *haystack, const char *needle);
 
 // /* Free a package.
 //  * @param pkg package pointer to free
@@ -951,7 +946,7 @@ impl DatabaseUsage {
 //  * list of package names (char*), it should be freed by the caller.
 //  * @param pkg a package
 //  * @return the list of packages requiring pkg
-// list_t *pkg_compute_requiredby(Package *pkg);
+// list *pkg_compute_requiredby(Package *pkg);
 
 // /// Computes the list of packages optionally requiring a given package.
 //  * The return value of this function is a newly allocated
@@ -959,7 +954,7 @@ impl DatabaseUsage {
 //  * @param pkg a package
 //  * @return the list of packages optionally requiring pkg
 //
-// list_t *pkg_compute_optionalfor(Package *pkg);
+// list *pkg_compute_optionalfor(Package *pkg);
 
 // /// Test if a package should be ignored.
 //  * Checks if the package is ignored via IgnorePkg, or if the package is
@@ -987,58 +982,58 @@ impl DatabaseUsage {
 
 // /// Returns the size of the package. This is only available for sync database
 //  * packages and package files, not those loaded from the local database.
-// off_t pkg_get_size(Package *pkg);
+// off pkg_get_size(Package *pkg);
 
 // /// Returns the installed size of the package.
-// off_t pkg_get_isize(Package *pkg);
+// off pkg_get_isize(Package *pkg);
 
 // /// Returns the package installation reason.
 // PackageReason pkg_get_reason(Package *pkg);
 
 // /// Returns the list of package licenses.
-// list_t *pkg_get_licenses(Package *pkg);
+// list *pkg_get_licenses(Package *pkg);
 
 // /// Returns the list of package groups.
-// list_t *pkg_get_groups(Package *pkg);
+// list *pkg_get_groups(Package *pkg);
 
 // /// Returns the list of package dependencies as Dependency.
-// list_t *pkg_get_depends(Package *pkg);
+// list *pkg_get_depends(Package *pkg);
 
 // /// Returns the list of package optional dependencies.
-// list_t *pkg_get_optdepends(Package *pkg);
+// list *pkg_get_optdepends(Package *pkg);
 
 // /// Returns a list of package check dependencies
-// list_t *pkg_get_checkdepends(Package *pkg);
+// list *pkg_get_checkdepends(Package *pkg);
 
 // /// Returns a list of package make dependencies
 //  * @param pkg a pointer to package
 //  * @return a reference to an internal list of Dependency structures.
 //
-// list_t *pkg_get_makedepends(Package *pkg);
+// list *pkg_get_makedepends(Package *pkg);
 //
 // /// Returns the list of packages conflicting with pkg.
 //  * @param pkg a pointer to package
 //  * @return a reference to an internal list of Dependency structures.
 //
-// list_t *pkg_get_conflicts(Package *pkg);
+// list *pkg_get_conflicts(Package *pkg);
 //
 // /// Returns the list of packages provided by pkg.
 //  * @param pkg a pointer to package
 //  * @return a reference to an internal list of Dependency structures.
 //
-// list_t *pkg_get_provides(Package *pkg);
+// list *pkg_get_provides(Package *pkg);
 //
 // /// Returns the list of available deltas for pkg.
 //  * @param pkg a pointer to package
 //  * @return a reference to an internal list of strings.
 //
-// list_t *pkg_get_deltas(Package *pkg);
+// list *pkg_get_deltas(Package *pkg);
 //
 // /// Returns the list of packages to be replaced by pkg.
 //  * @param pkg a pointer to package
 //  * @return a reference to an internal list of Dependency structures.
 //
-// list_t *pkg_get_replaces(Package *pkg);
+// list *pkg_get_replaces(Package *pkg);
 //
 // /// Returns the list of files installed by pkg.
 //  * The filenames are relative to the install root,
@@ -1047,13 +1042,13 @@ impl DatabaseUsage {
 //  * @return a pointer to a filelist object containing a count and an array of
 //  * package file objects
 //
-// filelist_t *pkg_get_files(Package *pkg);
+// filelist *pkg_get_files(Package *pkg);
 //
 // /// Returns the list of files backed up when installing pkg.
 //  * @param pkg a pointer to package
-//  * @return a reference to a list of backup_t objects
+//  * @return a reference to a list of backup objects
 //
-// list_t *pkg_get_backup(Package *pkg);
+// list *pkg_get_backup(Package *pkg);
 //
 // /// Returns the database containing pkg.
 //  * Returns a pointer to the Database structure the package is
@@ -1096,7 +1091,7 @@ impl DatabaseUsage {
 //  * @return the number of characters read, or 0 if there is no more data or an
 //  * error occurred.
 //
-// size_t pkg_changelog_read(void *ptr, size_t size,
+// size pkg_changelog_read(void *ptr, size size,
 // 		const Package *pkg, void *fp);
 //
 // int pkg_changelog_close(const Package *pkg, void *fp);
@@ -1129,9 +1124,9 @@ impl DatabaseUsage {
 //  * @param newpkg the new package to upgrade to
 //  * @return the size of the download
 //
-// off_t pkg_download_size(Package *newpkg);
+// off pkg_download_size(Package *newpkg);
 //
-// list_t *pkg_unused_deltas(Package *pkg);
+// list *pkg_unused_deltas(Package *pkg);
 //
 // /// Set install reason for a package in the local database.
 //  * The provided package object must be from the local database or this method
@@ -1158,37 +1153,37 @@ impl DatabaseUsage {
 //  * @param path the path to search for in the package
 //  * @return a pointer to the matching file or NULL if not found
 //
-// file_t *filelist_contains(filelist_t *filelist, const char *path);
+// file *filelist_contains(filelist *filelist, const char *path);
 //
 // /*
 //  * Signatures
 //
 //
-// int pkg_check_pgp_signature(Package *pkg, siglist_t *siglist);
+// int pkg_check_pgp_signature(Package *pkg, siglist *siglist);
 //
-// int db_check_pgp_signature(Database *db, siglist_t *siglist);
+// int db_check_pgp_signature(Database *db, siglist *siglist);
 //
-// int siglist_cleanup(siglist_t *siglist);
+// int siglist_cleanup(siglist *siglist);
 //
 // int decode_signature(const char *base64_data,
-// 		unsigned char **data, size_t *data_len);
+// 		unsigned char **data, size *data_len);
 //
 // int extract_keyid(Handle *handle, const char *identifier,
-// 		const unsigned char *sig, const size_t len, list_t **keys);
+// 		const unsigned char *sig, const size len, list **keys);
 //
 // /*
 //  * Groups
 //
 //
-// list_t *find_group_pkgs(list_t *dbs, const char *name);
+// list *find_group_pkgs(list *dbs, const char *name);
 //
 // /*
 //  * Sync
 //
 //
-// Package *sync_newversion(Package *pkg, list_t *dbs_sync);
+// Package *sync_newversion(Package *pkg, list *dbs_sync);
 //
-// /// @addtogroup api_trans Transaction Functions
+// /// @addtogroup apirans Transaction Functions
 //  * Functions to manipulate libalpm transactions
 //  * @{
 //
@@ -1243,17 +1238,17 @@ pub struct TransactionFlag {
 //  * @param handle the context handle
 //  * @return a list of Package structures
 //
-// list_t *trans_get_add(Handle *handle);
+// list *trans_get_add(Handle *handle);
 //
 // /// Returns the list of packages removed by the transaction.
 //  * @param handle the context handle
 //  * @return a list of Package structures
 //
-// list_t *trans_get_remove(Handle *handle);
+// list *trans_get_remove(Handle *handle);
 //
 // /// Initialize the transaction.
 //  * @param handle the context handle
-//  * @param flags flags of the transaction (like nodeps, etc; see transflag_t)
+//  * @param flags flags of the transaction (like nodeps, etc; see transflag)
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
 // int trans_init(Handle *handle, int flags);
@@ -1261,10 +1256,10 @@ pub struct TransactionFlag {
 // /// Prepare a transaction.
 //  * @param handle the context handle
 //  * @param data the address of an list where a list
-//  * of depmissing_t objects is dumped (conflicting packages)
+//  * of depmissing objects is dumped (conflicting packages)
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int trans_prepare(Handle *handle, list_t **data);
+// int trans_prepare(Handle *handle, list **data);
 //
 // /// Commit a transaction.
 //  * @param handle the context handle
@@ -1272,7 +1267,7 @@ pub struct TransactionFlag {
 //  * of an error can be dumped (i.e. list of conflicting files)
 //  * @return 0 on success, -1 on error (pm_errno is set accordingly)
 //
-// int trans_commit(Handle *handle, list_t **data);
+// int trans_commit(Handle *handle, list **data);
 //
 // /// Interrupt a transaction.
 //  * @param handle the context handle
@@ -1315,13 +1310,13 @@ pub struct TransactionFlag {
 //  * @{
 //
 //
-// list_t *checkdeps(Handle *handle, list_t *pkglist,
-// 		list_t *remove, list_t *upgrade, int reversedeps);
-// Package *find_satisfier(list_t *pkgs, const char *depstring);
+// list *checkdeps(Handle *handle, list *pkglist,
+// 		list *remove, list *upgrade, int reversedeps);
+// Package *find_satisfier(list *pkgs, const char *depstring);
 // Package *find_dbs_satisfier(Handle *handle,
-// 		list_t *dbs, const char *depstring);
+// 		list *dbs, const char *depstring);
 //
-// list_t *checkconflicts(Handle *handle, list_t *pkglist);
+// list *checkconflicts(Handle *handle, list *pkglist);
 //
 // /// Returns a newly allocated string representing the dependency information.
 //  * @param dep a dependency info structure
@@ -1359,10 +1354,6 @@ pub struct Capabilities {
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-// #ifdef HAVE_LIBCURL
-// #include <curl/curl.h>
-// #endif
 
 /// Release the library.
 /// Disconnects from the database, removes handle and lockfile

@@ -42,9 +42,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// use super::*;
 use super::*;
-use std::fs::File;
+use super::{Dependency, Time};
 use super::deps::dep_vercmp;
+use std::cmp::{Ord, Ordering};
+use std::fs::File;
+use std::str::Lines;
 
 // /** Package operations struct. This struct contains function pointers to
 //  * all methods used to access data in a package to allow for things such
@@ -90,9 +94,33 @@ use super::deps::dep_vercmp;
 //     // int (*force_load) (Package *);
 // }
 
+enum NextLineType {
+    None,
+    Name,
+    Version,
+    Base,
+    Desc,
+    Groups,
+    Url,
+    License,
+    Arch,
+    BuildDate,
+    InstallDate,
+    Packager,
+    Reason,
+    Validation,
+    Size,
+    Replaces,
+    Depends,
+    OptDepends,
+    Confilcts,
+    Provides,
+    Files,
+    Backup,
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct Package {
-    name_hash: u64,
     filename: String,
     base: String,
     name: String,
@@ -140,7 +168,7 @@ pub struct Package {
     scriptlet: i32,
 
     /* Bitfield from dbinfrq_t */
-    infolevel: i32,
+    pub infolevel: i32,
     /* Bitfield from pkgvalidation_t */
     validation: i32,
 }
@@ -335,14 +363,6 @@ impl Package {
         self.name = name.clone();
     }
 
-    pub fn set_name_hash(&mut self, name_hash: u64) {
-        self.name_hash = name_hash;
-    }
-
-    pub fn get_name_hash(&mut self) -> u64 {
-        self.name_hash
-    }
-
     /// Returns the package version as a string.
     /// This includes all available epoch, version, and pkgrel components. Use
     /// pkg_vercmp() to compare version strings if necessary.
@@ -503,16 +523,12 @@ impl Package {
     }
 
     pub fn get_groups(&self) -> Result<&Vec<String>> {
-        match self.origin {
-            PackageFrom::LocalDatabase => {
-                if self.infolevel & INFRQ_DESC == 0 {
-                    Err(Error::PkgNotLoaded)
-                } else {
-                    Ok(&self.groups)
-                }
-            }
-            _ => unimplemented!(),
+        if self.infolevel & INFRQ_DESC == 0 {
+            Err(Error::PkgNotLoaded)
+        } else {
+            Ok(&self.groups)
         }
+
         // 	return pkg->ops->get_groups(pkg);
     }
 
@@ -577,15 +593,10 @@ impl Package {
     }
 
     pub fn get_replaces(&self) -> Result<&Vec<Dependency>> {
-        match self.origin {
-            PackageFrom::LocalDatabase => {
-                if self.infolevel & INFRQ_DESC == 0 {
-                    return Err(Error::PkgNotLoaded);
-                }
-                Ok(&self.replaces)
-            }
-            _ => unimplemented!(),
+        if self.infolevel & INFRQ_DESC == 0 {
+            return Err(Error::PkgNotLoaded);
         }
+        Ok(&self.replaces)
         // return pkg->ops->get_replaces(pkg);
     }
 
@@ -844,7 +855,7 @@ impl Package {
     /// Open a package changelog for reading. Similar to fopen in functionality,
     /// except that the returned 'file stream' is from the database.
     /// * `pkg` the package (from db) to read the changelog
-    fn _cache_changelog_open(&self) -> std::fs::File {
+    fn _cache_changelog_open(&self) -> File {
         unimplemented!();
         //     let db = self.pkg_get_db();
         //     let clfile = db._local_db_pkgpath(self, "changelog");
@@ -1062,32 +1073,208 @@ impl Package {
         unimplemented!();
     }
 
-    pub fn local_db_read(&mut self, db: &Database, inforeq: i32) -> Result<()> {
-        enum NextLineType {
-            None,
-            Name,
-            Version,
-            Base,
-            Desc,
-            Groups,
-            Url,
-            License,
-            Arch,
-            BuildDate,
-            InstallDate,
-            Packager,
-            Reason,
-            Validation,
-            Size,
-            Replaces,
-            Depends,
-            OptDepends,
-            Confilcts,
-            Provides,
-            Files,
-            Backup,
-        }
+    pub fn parse_lines(&mut self, lines: Vec<&str>, dbname: &str) {
+        let mut next_line_type = NextLineType::None;
+        let mut files_count = 0;
+        let mut files_size = 0;
+        let mut len = 0;
+        let mut files = Vec::new();
 
+        for mut line in lines {
+            // if String::from(line).trim().len() == 0 {
+            //     /* length of stripped line was zero */
+            //     continue;
+            // }
+
+            match next_line_type {
+                NextLineType::None => {
+                    if line == "%NAME%" {
+                        next_line_type = NextLineType::Name;
+                    } else if line == "%VERSION%" {
+                        next_line_type = NextLineType::Version;
+                    } else if line == "%BASE%" {
+                        next_line_type = NextLineType::Base;
+                    } else if line == "%DESC%" {
+                        next_line_type = NextLineType::Desc;
+                    } else if line == "%GROUPS%" {
+                        next_line_type = NextLineType::Groups;
+                    } else if line == "%URL%" {
+                        next_line_type = NextLineType::Url;
+                    } else if line == "%LICENSE%" {
+                        next_line_type = NextLineType::License;
+                    } else if line == "%ARCH%" {
+                        next_line_type = NextLineType::Arch;
+                    } else if line == "%BUILDDATE%" {
+                        next_line_type = NextLineType::BuildDate;
+                    } else if line == "%INSTALLDATE%" {
+                        next_line_type = NextLineType::InstallDate;
+                    } else if line == "%PACKAGER%" {
+                        next_line_type = NextLineType::Packager;
+                    } else if line == "%REASON%" {
+                        next_line_type = NextLineType::Reason;
+                    } else if line == "%VALIDATION%" {
+                        next_line_type = NextLineType::Validation;
+                    } else if line == "%SIZE%" {
+                        next_line_type = NextLineType::Size;
+                    } else if line == "%REPLACES%" {
+                        next_line_type = NextLineType::Replaces;
+                    } else if line == "%DEPENDS%" {
+                        next_line_type = NextLineType::Depends;
+                    } else if line == "%OPTDEPENDS%" {
+                        next_line_type = NextLineType::OptDepends;
+                    } else if line == "%CONFLICTS%" {
+                        next_line_type = NextLineType::Confilcts;
+                    } else if line == "%PROVIDES%" {
+                        next_line_type = NextLineType::Provides;
+                    } else if line == "%FILES%" {
+                        next_line_type = NextLineType::Files;
+                    } else if line == "%BACKUP%" {
+                        next_line_type = NextLineType::Backup;
+                    }
+                    continue;
+                }
+                NextLineType::Name => {
+                    if line != self.get_name() {
+                        error!(
+                            "{} database is inconsistent: name mismatch on package {}",
+                            dbname,
+                            self.get_name()
+                        );
+                    }
+                }
+                NextLineType::Version => {
+                    if line != self.get_version() {
+                        error!(
+                            "{} database is inconsistent: version mismatch on package {}",
+                            dbname,
+                            self.get_name()
+                        );
+                    }
+                }
+                NextLineType::Base => {
+                    self.base = String::from(line);
+                }
+                NextLineType::Desc => {
+                    self.set_desc(String::from(line));
+                }
+                NextLineType::Groups => {
+                    if line != "" {
+                        self.groups.push(String::from(line));
+                        continue;
+                    }
+                }
+                NextLineType::Url => {
+                    self.url = String::from(line);
+                }
+                NextLineType::License => {
+                    if line != "" {
+                        self.licenses.push(String::from(line));
+                        continue;
+                    }
+                    next_line_type = NextLineType::None;
+                }
+                NextLineType::Arch => {
+                    self.arch = String::from(line);
+                }
+                NextLineType::BuildDate => {
+                    self.builddate = _parsedate(line);
+                }
+                NextLineType::InstallDate => {
+                    self.installdate = _parsedate(line);
+                }
+                NextLineType::Packager => {
+                    self.packager = String::from(line);
+                }
+                NextLineType::Reason => {
+                    self.reason = PackageReason::from(u8::from_str_radix(line, 10).unwrap());
+                }
+                NextLineType::Validation => {
+                    // unimplemented!();
+                    // // list_t *i, *v = NULL;
+                    // READ_AND_STORE_ALL(v);
+                    // // for(i = v; i; i = list_next(i))
+                    // {
+                    //     if (strcmp(i.data, "none") == 0) {
+                    //         info.validation |= ALPM_PKG_VALIDATION_NONE;
+                    //     } else if (strcmp(i.data, "md5") == 0) {
+                    //         info.validation |= ALPM_PKG_VALIDATION_MD5SUM;
+                    //     } else if (strcmp(i.data, "sha256") == 0) {
+                    //         info.validation |= ALPM_PKG_VALIDATION_SHA256SUM;
+                    //     } else if (strcmp(i.data, "pgp") == 0) {
+                    //         info.validation |= ALPM_PKG_VALIDATION_SIGNATURE;
+                    //     } else {
+                    //         info!(
+                    //             "unknown validation type for package {}: {}",
+                    //             pkg.get_name(), i.data
+                    //         );
+                    //     }
+                    // }
+                    // FREELIST(v);
+                }
+                NextLineType::Size => {
+                    self.isize = _strtoofft(&String::from(line));
+                }
+                NextLineType::Replaces => {
+                    if line != "" {
+                        self.replaces.push(dep_from_string(&String::from(line)));
+                        continue;
+                    };
+                }
+                NextLineType::Depends => {
+                    if line != "" {
+                        self.depends.push(dep_from_string(&String::from(line)));
+                        continue;
+                    };
+                }
+                NextLineType::OptDepends => {
+                    if line != "" {
+                        self.optdepends.push(dep_from_string(&String::from(line)));
+                        continue;
+                    };
+                }
+                NextLineType::Confilcts => {
+                    if line != "" {
+                        self.conflicts.push(dep_from_string(&String::from(line)));
+                        continue;
+                    };
+                }
+                NextLineType::Provides => {
+                    if line != "" {
+                        self.provides.push(dep_from_string(&String::from(line)));
+                        continue;
+                    };
+                }
+                NextLineType::Files => {
+                    if line == "" {
+                        next_line_type = NextLineType::None;
+                        unimplemented!();
+                        // info.files.count = files_count;
+                        // info.files.files = files;
+                        // _filelist_sort(&info.files);
+                        continue;
+                    }
+                    files.push(line);
+                }
+                NextLineType::Backup => {
+                    if line == "" {
+                        next_line_type = NextLineType::None;
+                        continue;
+                    }
+                    unimplemented!();
+                    // let backup: backup_t;
+                    // if (_split_backup(line, &backup)) {
+                    //     info.infolevel |= INFRQ_ERROR;
+                    //     return -1;
+                    // }
+                    // info.backup.push(backup);
+                } // _ => {}
+            }
+
+            next_line_type = NextLineType::None;
+        }
+    }
+
+    pub fn local_db_read(&mut self, db: &Database, inforeq: i32) -> Result<()> {
         /* bitmask logic here:
          * infolevel: 00001111
          * inforeq:   00010100
@@ -1112,8 +1299,14 @@ impl Package {
 
         /* DESC */
         if inforeq & INFRQ_DESC != 0 && (self.infolevel & INFRQ_DESC) == 0 {
-            let path = db.local_db_pkgpath(self, &String::from("desc"))?;
-            let mut fp = match std::fs::File::open(&path) {
+            use std::io::prelude::*;
+            let path;
+            let mut fp;
+            let mut lines: String = String::new();
+            let lines_iter;
+
+            path = db.local_db_pkgpath(self, &String::from("desc"))?;
+            fp = match File::open(&path) {
                 Ok(f) => f,
                 Err(e) => {
                     error!("could not open file {}: {}", path, e);
@@ -1121,188 +1314,17 @@ impl Package {
                     return Err(Error::from(e));
                 }
             };
-            use std::io::prelude::*;
-            let mut lines: String = String::new();
+
             fp.read_to_string(&mut lines)?;
-
-            let lines_iter = lines.lines();
-            let mut next_line_type = NextLineType::None;
-            for mut line in lines_iter {
-                // if String::from(line).trim().len() == 0 {
-                //     /* length of stripped line was zero */
-                //     continue;
-                // }
-
-                match next_line_type {
-                    NextLineType::None => {
-                        if line == "%NAME%" {
-                            next_line_type = NextLineType::Name;
-                        } else if line == "%VERSION%" {
-                            next_line_type = NextLineType::Version;
-                        } else if line == "%BASE%" {
-                            next_line_type = NextLineType::Base;
-                        } else if line == "%DESC%" {
-                            next_line_type = NextLineType::Desc;
-                        } else if line == "%GROUPS%" {
-                            next_line_type = NextLineType::Groups;
-                        } else if line == "%URL%" {
-                            next_line_type = NextLineType::Url;
-                        } else if line == "%LICENSE%" {
-                            next_line_type = NextLineType::License;
-                        } else if line == "%ARCH%" {
-                            next_line_type = NextLineType::Arch;
-                        } else if line == "%BUILDDATE%" {
-                            next_line_type = NextLineType::BuildDate;
-                        } else if line == "%INSTALLDATE%" {
-                            next_line_type = NextLineType::InstallDate;
-                        } else if line == "%PACKAGER%" {
-                            next_line_type = NextLineType::Packager;
-                        } else if line == "%REASON%" {
-                            next_line_type = NextLineType::Reason;
-                        } else if line == "%VALIDATION%" {
-                            next_line_type = NextLineType::Validation;
-                        } else if line == "%SIZE%" {
-                            next_line_type = NextLineType::Size;
-                        } else if line == "%REPLACES%" {
-                            next_line_type = NextLineType::Replaces;
-                        } else if line == "%DEPENDS%" {
-                            next_line_type = NextLineType::Depends;
-                        } else if line == "%OPTDEPENDS%" {
-                            next_line_type = NextLineType::OptDepends;
-                        } else if line == "%CONFLICTS%" {
-                            next_line_type = NextLineType::Confilcts;
-                        } else if line == "%PROVIDES%" {
-                            next_line_type = NextLineType::Provides;
-                        }
-                        continue;
-                    }
-                    NextLineType::Name => {
-                        if line != self.get_name() {
-                            error!(
-                                "{} database is inconsistent: name mismatch on package {}",
-                                db.get_name(),
-                                self.get_name()
-                            );
-                        }
-                    }
-                    NextLineType::Version => {
-                        if line != self.get_version() {
-                            error!(
-                                "{} database is inconsistent: version mismatch on package {}",
-                                db.get_name(),
-                                self.get_name()
-                            );
-                        }
-                    }
-                    NextLineType::Base => {
-                        self.base = String::from(line);
-                    }
-                    NextLineType::Desc => {
-                        self.set_desc(String::from(line));
-                    }
-                    NextLineType::Groups => {
-                        if line != "" {
-                            self.groups.push(String::from(line));
-                            continue;
-                        }
-                    }
-                    NextLineType::Url => {
-                        self.url = String::from(line);
-                    }
-                    NextLineType::License => {
-                        if line != "" {
-                            self.licenses.push(String::from(line));
-                            continue;
-                        }
-                        next_line_type = NextLineType::None;
-                    }
-                    NextLineType::Arch => {
-                        self.arch = String::from(line);
-                    }
-                    NextLineType::BuildDate => {
-                        self.builddate = _parsedate(line);
-                    }
-                    NextLineType::InstallDate => {
-                        self.installdate = _parsedate(line);
-                    }
-                    NextLineType::Packager => {
-                        self.packager = String::from(line);
-                    }
-                    NextLineType::Reason => {
-                        self.reason = PackageReason::from(u8::from_str_radix(line, 10).unwrap());
-                    }
-                    NextLineType::Validation => {
-                        // unimplemented!();
-                        // // list_t *i, *v = NULL;
-                        // READ_AND_STORE_ALL(v);
-                        // // for(i = v; i; i = list_next(i))
-                        // {
-                        //     if (strcmp(i.data, "none") == 0) {
-                        //         info.validation |= ALPM_PKG_VALIDATION_NONE;
-                        //     } else if (strcmp(i.data, "md5") == 0) {
-                        //         info.validation |= ALPM_PKG_VALIDATION_MD5SUM;
-                        //     } else if (strcmp(i.data, "sha256") == 0) {
-                        //         info.validation |= ALPM_PKG_VALIDATION_SHA256SUM;
-                        //     } else if (strcmp(i.data, "pgp") == 0) {
-                        //         info.validation |= ALPM_PKG_VALIDATION_SIGNATURE;
-                        //     } else {
-                        //         info!(
-                        //             "unknown validation type for package {}: {}",
-                        //             pkg.get_name(), i.data
-                        //         );
-                        //     }
-                        // }
-                        // FREELIST(v);
-                    }
-                    NextLineType::Size => {
-                        self.isize = _strtoofft(&String::from(line));
-                    }
-                    NextLineType::Replaces => {
-                        if line != "" {
-                            self.replaces
-                                .push(dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    NextLineType::Depends => {
-                        if line != "" {
-                            self.depends.push(dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    NextLineType::OptDepends => {
-                        if line != "" {
-                            self.optdepends
-                                .push(dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    NextLineType::Confilcts => {
-                        if line != "" {
-                            self.conflicts
-                                .push(dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    NextLineType::Provides => {
-                        if line != "" {
-                            self.provides
-                                .push(dep_from_string(&String::from(line)));
-                            continue;
-                        };
-                    }
-                    _ => {}
-                }
-
-                next_line_type = NextLineType::None;
-            }
+            lines_iter = lines.lines().collect();
+            self.parse_lines(lines_iter, db.get_name());
             self.infolevel |= INFRQ_DESC;
         }
 
         /* FILES */
         if inforeq & INFRQ_FILES != 0 && (self.infolevel & INFRQ_FILES) == 0 {
             let path = db.local_db_pkgpath(self, &String::from("desc"))?;
-            let mut fp = match std::fs::File::open(&path) {
+            let mut fp = match File::open(&path) {
                 Ok(f) => f,
                 Err(e) => {
                     error!("could not open file {}: {}", path, e);
@@ -1314,46 +1336,8 @@ impl Package {
             let mut lines: String = String::new();
             fp.read_to_string(&mut lines)?;
 
-            let lines_iter = lines.lines();
-            let mut next_line_type = NextLineType::None;
-            let mut files_count = 0;
-            let mut files_size = 0;
-            let mut len = 0;
-            let mut files = Vec::new();
-            for mut line in lines_iter {
-                match next_line_type {
-                    NextLineType::Files => {
-                        if line == "" {
-                            next_line_type = NextLineType::None;
-                            unimplemented!();
-                            // info.files.count = files_count;
-                            // info.files.files = files;
-                            // _filelist_sort(&info.files);
-                            continue;
-                        }
-                        files.push(line);
-                    }
-                    NextLineType::Backup => {
-                        if line == "" {
-                            next_line_type = NextLineType::None;
-                            continue;
-                        }
-                        unimplemented!();
-                        // let backup: backup_t;
-                        // if (_split_backup(line, &backup)) {
-                        //     info.infolevel |= INFRQ_ERROR;
-                        //     return -1;
-                        // }
-                        // info.backup.push(backup);
-                    }
-                    _ => {}
-                }
-                if line == "%FILES%" {
-                    next_line_type = NextLineType::Files;
-                } else if line == "%BACKUP%" {
-                    next_line_type = NextLineType::Backup;
-                }
-            }
+            let lines_iter = lines.lines().collect();
+            self.parse_lines(lines_iter, db.get_name());
             self.infolevel |= INFRQ_FILES;
         }
 
@@ -1411,18 +1395,12 @@ impl Package {
         from = self.get_origin();
 
         /* set variables here, do all output below */
-        bdate = match self.get_builddate() {
-            Err(e) => unimplemented!(),
-            Ok(d) => d,
-        };
+        bdate = self.get_builddate()?;
         if bdate != 0 {
             // unimplemented!();
             // bdatestr = time::strftime("%c", localtime(&bdate));
         }
-        idate = match self.get_installdate() {
-            Err(e) => unimplemented!(),
-            Ok(d) => d,
-        };
+        idate = self.get_installdate()?;
         if idate != 0 {
             // unimplemented!();
             // strftime(idatestr, 50, "%c", localtime(&idate));
@@ -1495,10 +1473,10 @@ impl Package {
         size = humanize_size(self.get_size(), '\0', 2, &mut label);
         match from {
             PackageFrom::SyncDatabase => {
-                info!("{} {} {}\n", T_DOWNLOAD_SIZE, size, label);
+                info!("{} {} {}", T_DOWNLOAD_SIZE, size, label);
             }
             PackageFrom::File => {
-                print!("{} {} {}\n", T_COMPRESSED_SIZE, size, label);
+                info!("{} {} {}", T_COMPRESSED_SIZE, size, label);
             }
             _ => {}
         }
@@ -1814,14 +1792,14 @@ impl Package {
     // static list_t *_pkg_get_backup(Package *pkg)     { return pkg->backup; }
 }
 
-impl std::cmp::Ord for Package {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+impl Ord for Package {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.name.cmp(&other.name)
     }
 }
 
 impl PartialOrd for Package {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }

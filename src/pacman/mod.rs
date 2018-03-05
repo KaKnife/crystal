@@ -30,25 +30,23 @@ pub mod query;
 pub mod deptest;
 pub mod package;
 pub mod check;
+pub mod ini;
+pub use self::ini::IniParserFn;
+pub use self::ini::parse_ini;
 use self::package::*;
 use self::deptest::*;
 use self::query::*;
 use self::sync::*;
 use self::upgrade::*;
-// use self::alpm::*;
 use self::remove::*;
 use self::util::*;
 use self::database::*;
 use self::conf::*;
-// use self::Operations::*;
 
 pub use self::conf::Config;
 pub use self::conf::Section;
 
 use super::*;
-use super::common::*;
-// use pacman::conf::PKG_LOCALITY_FOREIGN;
-// use pacman::conf::PKG_LOCALITY_NATIVE;
 
 use std;
 
@@ -327,13 +325,13 @@ pub fn main() {
      */
 
     /* parse the command line */
-    match config.parseargs(argv) {
-        Ok(targets) => pm_targets = targets,
+    pm_targets = match config.parseargs(argv) {
+        Ok(targets) => targets,
         Err(()) => {
             cleanup(1);
             return;
         }
-    }
+    };
 
     /* check if we have sufficient permission for the requested operation */
     if myuid > 0 && config.needs_root() {
@@ -349,7 +347,7 @@ pub fn main() {
         cleanup(1);
     }
 
-    // /* we support reading targets from stdin if a cmdline parameter is '-' */
+    /* we support reading targets from stdin if a cmdline parameter is '-' */
     // if(alpm_list_find_str(pm_targets, "-")) {
     // 	if(!isatty(fileno(stdin))) {
     // 		int target_found = 0;
@@ -496,6 +494,6 @@ pub fn main() {
             ret = 1;
         }
     }
-    //
+
     cleanup(ret);
 }

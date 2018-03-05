@@ -1,4 +1,3 @@
-use super::*;
 /*
  *  sync.c
  *
@@ -21,33 +20,7 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-// #include <sys/types.h> /* off_t */
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <string.h>
-// #include <stdint.h> /* intmax_t */
-// #include <unistd.h>
-// #include <limits.h>
-// /* libalpm */
-// #include "sync.h"
-// #include "list.h"
-// #include "log.h"
-// #include "package.h"
-// #include "db.h"
-// #include "deps.h"
-// #include "conflict.h"
-// #include "trans.h"
-// #include "add.h"
-// #include "util.h"
-// #include "handle.h"
-// #include "alpm.h"
-// #include "dload.h"
-// #include "delta.h"
-// #include "remove.h"
-// #include "diskspace.h"
-// #include "signing.h"
-
+use super::*;
 
 /// Find group members across a list of databases.
 /// If a member exists in several databases, only the first database is used.
@@ -100,15 +73,12 @@ pub fn find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<Package> {
 // 	return strcmp(s, extension) == 0;
 // }
 
-/** Applies delta files to create an upgraded package file.
- *
- * All intermediate files are deleted, leaving only the starting and
- * ending package files.
- *
- * @param handle the context handle
- *
- * @return 0 if all delta files were able to be applied, 1 otherwise.
- */
+/// Applies delta files to create an upgraded package file.
+///
+/// All intermediate files are deleted, leaving only the starting and
+/// ending package files.
+///
+/// returns 0 if all delta files were able to be applied, 1 otherwise.
 fn apply_deltas(handle: &Handle) -> i32 {
     unimplemented!();
     // 	list_t *i;

@@ -20,34 +20,6 @@ use super::alpm::*;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// #include <sys/types.h>
-// #include <sys/ioctl.h>
-// #include <sys/stat.h>
-// #include <time.h>
-//
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <stdarg.h>
-// #include <stdint.h> /* intmax_t */
-// #include <string.h>
-// #include <errno.h>
-// #include <dirent.h>
-// #include <unistd.h>
-// #include <limits.h>
-// #include <wchar.h>
-// #include <wctype.h>
-// #ifdef HAVE_TERMIOS_H
-// #include <termios.h> /* tcflush */
-// #endif
-//
-// #include <alpm.h>
-// #include <alpm_list.h>
-//
-// /* pacman */
-// #include "util.h"
-// #include "conf.h"
-// #include "callback.h"
-//
 // static int cached_columns = -1;
 //
 // struct table_cell_t {
@@ -1605,5 +1577,83 @@ pub fn noyes(format: String, config: &Config) -> bool {
 // 	ret = vfprintf(stream, format, args);
 // 	return ret;
 // }
+
+// /** Parse the basename of a program from a path.
+// * @param path path to parse basename from
+// *
+// * @return everything following the final '/'
+// */
+// const char *mbasename(const char *path)
+// {
+// 	const char *last = strrchr(path, '/');
+// 	if(last) {
+// 		return last + 1;
+// 	}
+// 	return path;
+// }
+
+// /** Parse the dirname of a program from a path.
+// * The path returned should be freed.
+// * @param path path to parse dirname from
+// *
+// * @return everything preceding the final '/'
+// */
+// char *mdirname(const char *path)
+// {
+// 	char *ret, *last;
 //
-// /* vim: set noet: */
+// 	/* null or empty path */
+// 	if(path == NULL || *path == '\0') {
+// 		return strdup(".");
+// 	}
+//
+// 	if((ret = strdup(path)) == NULL) {
+// 		return NULL;
+// 	}
+//
+// 	last = strrchr(ret, '/');
+//
+// 	if(last != NULL) {
+// 		/* we found a '/', so terminate our string */
+// 		if(last == ret) {
+// 			/* return "/" for root */
+// 			last++;
+// 		}
+// 		*last = '\0';
+// 		return ret;
+// 	}
+//
+// 	/* no slash found */
+// 	free(ret);
+// 	return strdup(".");
+// }
+
+// /** lstat wrapper that treats /path/dirsymlink/ the same as /path/dirsymlink.
+//  * Linux lstat follows POSIX semantics and still performs a dereference on
+//  * the first, and for uses of lstat in libalpm this is not what we want.
+//  * @param path path to file to lstat
+//  * @param buf structure to fill with stat information
+//  * @return the return code from lstat
+//  */
+// int llstat(char *path, struct stat *buf)
+// {
+// 	int ret;
+// 	char *c = NULL;
+// 	size_t len = strlen(path);
+//
+// 	while(len > 1 && path[len - 1] == '/') {
+// 		--len;
+// 		c = path + len;
+// 	}
+//
+// 	if(c) {
+// 		*c = '\0';
+// 		ret = lstat(path, buf);
+// 		*c = '/';
+// 	} else {
+// 		ret = lstat(path, buf);
+// 	}
+//
+// 	return ret;
+// }
+//

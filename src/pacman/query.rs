@@ -66,18 +66,14 @@ const LOCAL_PREFIX: &str = "local/";
 
 fn print_query_fileowner(filename: &String, info: &Package, config: &Config) {
     if !config.quiet {
-        let colstr = &config.colstr;
-        print!(
-            "{} is owned by {}{} {}{}{}\n",
+        info!(
+            "{} is owned by {} {}",
             filename,
-            colstr.title,
             info.get_name(),
-            colstr.version,
             info.get_version(),
-            colstr.nocolor
         );
     } else {
-        print!("{}\n", info.get_name());
+        info!("{}\n", info.get_name());
     }
 }
 
@@ -222,14 +218,7 @@ fn query_fileowner(targets: &Vec<String>) -> Result<()> {
 fn query_search(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> Result<()> {
     let tem_handle = &handle.clone();
     let db_local: &mut Database = handle.get_localdb_mut();
-    dump_pkg_search(
-        db_local,
-        targets,
-        0,
-        &config.colstr,
-        tem_handle,
-        config.quiet,
-    )
+    dump_pkg_search(db_local, targets, 0, tem_handle, config.quiet)
 }
 
 fn pkg_get_locality(pkg: &Package, handle: &Handle) -> usize {
@@ -289,15 +278,13 @@ fn display(pkg: &Package, config: &Config, handle: &Handle) -> i32 {
 
     if config.info != 0 {
         if config.isfile {
-            match pkg.dump_full(false, &handle.db_local, &handle.dbs_sync) {
-                Err(e) => error!("Error dumping package {} ({})", pkg.get_name(), e),
-                Ok(_) => {}
-            };
+            if let Err(e) = pkg.dump_full(false, &handle.db_local, &handle.dbs_sync) {
+                error!("Error dumping package {} ({})", pkg.get_name(), e);
+            }
         } else {
-            match pkg.dump_full(config.info > 1, &handle.db_local, &handle.dbs_sync) {
-                Err(e) => error!("Error dumping package {} ({})", pkg.get_name(), e),
-                Ok(_) => {}
-            };;
+            if let Err(e) = pkg.dump_full(config.info > 1, &handle.db_local, &handle.dbs_sync) {
+                error!("Error dumping package {} ({})", pkg.get_name(), e);
+            }
         }
     }
     if config.list {
@@ -313,21 +300,20 @@ fn display(pkg: &Package, config: &Config, handle: &Handle) -> i32 {
     }
     if config.info == 0 && !config.list && !config.changelog && config.check == 0 {
         if !config.quiet {
-            let colstr = &config.colstr;
-            print!("{} {}", pkg.get_name(), pkg.get_version(),);
+            let print = format!("{} {}", pkg.get_name(), pkg.get_version(),);
 
             if config.q_upgrade {
                 let newpkg = pkg.newversion(handle.get_syncdbs()).unwrap();
-                print!(" . {}", newpkg.get_version(),);
+                let print = format!("{} . {}", print, newpkg.get_version(),);
 
                 if handle.pkg_should_ignore(pkg) {
-                    print!(" {}", "[ignored]");
+                    let print = format!("{} {}", print, "[ignored]");
                 }
             }
 
-            print!("\n");
+            info!("{}", print);
         } else {
-            print!("{}\n", pkg.get_name());
+            info!("{}", pkg.get_name());
         }
     }
     return ret;
@@ -347,26 +333,25 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> R
                 if !filter(pkg, config, handle_clone) {
                     continue;
                 }
-                print!("{} {}\n", grp.name, pkg.get_name());
+                info!("{} {}", grp.name, pkg.get_name());
             }
         }
     } else {
         for grpname in targets {
-            match db_local.get_group_mut(grpname) {
-                Ok(grp) => for ref mut data in &mut grp.packages {
+            if let Ok(grp) = db_local.get_group_mut(grpname) {
+                for ref mut data in &mut grp.packages {
                     if !filter(data, config, handle_clone) {
                         continue;
                     }
                     if !config.quiet {
-                        print!("{} {}\n", grpname, data.get_name());
+                        info!("{} {}", grpname, data.get_name());
                     } else {
-                        print!("{}\n", data.get_name());
+                        info!("{}", data.get_name());
                     }
-                },
-                Err(_) => {
-                    error!("group '{}' was not found", grpname);
-                    ret += 1;
                 }
+            } else {
+                error!("group '{}' was not found", grpname);
+                ret += 1;
             }
         }
     }
@@ -383,10 +368,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
     let mut pkg: &Package;
     let mut db_local: &Database;
 
-    {
-        // let handle_clone = &handle.clone();
-        handle.get_localdb_mut().load_pkgcache();
-    }
+    handle.get_localdb_mut().load_pkgcache();
 
     /* First: operations that do not require targets */
 
@@ -457,6 +439,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
             }
         } else {
             pkg = match db_local.get_pkg(&strname) {
+                Ok(pkg) => pkg,
                 Err(_) => {
                     match alpm::find_satisfier(&pkg_cache, &strname) {
                         None => {
@@ -474,7 +457,6 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
                         Some(pkg) => pkg,
                     }
                 }
-                Ok(pkg) => pkg,
             };
         }
 

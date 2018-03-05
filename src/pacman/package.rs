@@ -4,7 +4,6 @@ use super::util::*;
 use super::alpm::Error;
 use super::alpm::Result;
 use super::alpm::Package;
-use super::ColStr;
 // /*
 //  *  package.c
 //  *
@@ -314,7 +313,6 @@ pub fn dump_pkg_search(
     db: &mut alpm::Database,
     targets: &Vec<String>,
     show_status: i32,
-    colstr: &ColStr,
     handle: &alpm::Handle,
     quiet: bool,
 ) -> Result<()> {
@@ -357,14 +355,10 @@ pub fn dump_pkg_search(
         // 			fputs(get_name(pkg), stdout);
         } else {
             print!(
-                "{}{}/{}{} {}{}{}",
-                colstr.repo,
+                "{}/{} {}",
                 db.get_name(),
-                colstr.title,
                 pkg.get_name(),
-                colstr.version,
                 pkg.get_version(),
-                colstr.nocolor
             );
             // grp = pkg.get_groups();
             // if grp.is_some() {

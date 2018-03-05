@@ -106,10 +106,10 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
             payload.force = force;
             payload.unlink_on_fail = true;
 
-            tmp = payload._download(&syncpath)?;
+            tmp = payload.download(&syncpath)?;
             ret = tmp.2;
             final_db_url = tmp.1;
-            payload._dload_payload_reset();
+            payload.reset();
             updated = updated || ret == 0;
 
             if ret != -1 && updated && siglevel.database {
@@ -145,11 +145,11 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
                 /* set hard upper limit of 16KiB */
                 payload.max_size = 16 * 1024;
 
-                let tmp = payload._download(&syncpath)?;
+                let tmp = payload.download(&syncpath)?;
                 sig_ret = tmp.2;
                 /* errors_ok suppresses error messages, but not the return code */
                 sig_ret = if payload.errors_ok { 0 } else { sig_ret };
-                payload._dload_payload_reset();
+                payload.reset();
             }
             if ret != -1 && sig_ret != -1 {
                 debug!("TMP: {}", ret);
@@ -177,8 +177,6 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
         /* pm_errno was set by the download code */
         // _debug!("failed to sync db: {}",
         // 		strerror(handle->pm_errno));
-    } else {
-        // handle.pm_errno = Error::ALPM_ERR_OK;
     }
 
     handle.handle_unlock()?;
@@ -195,61 +193,6 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 // static int sync_db_read(Database *db, struct archive *archive,
 // 		struct archive_entry *entry, pkg_t **likely_pkg);
 
-// static pkg_t *load_pkg_for_entry(Database *db, const char *entryname,
-// 		const char **entry_filename, pkg_t *likely_pkg)
-// {
-// 	char *pkgname = NULL, *pkgver = NULL;
-// 	unsigned long pkgname_hash;
-// 	pkg_t *pkg;
-//
-// 	/* get package and db file names */
-// 	if(entry_filename) {
-// 		char *fname = strrchr(entryname, '/');
-// 		if(fname) {
-// 			*entry_filename = fname + 1;
-// 		} else {
-// 			*entry_filename = NULL;
-// 		}
-// 	}
-// 	if(_splitname(entryname, &pkgname, &pkgver, &pkgname_hash) != 0) {
-// 		_log(db->handle, ALPM_LOG_ERROR,
-// 				_("invalid name for database entry '%s'\n"), entryname);
-// 		return NULL;
-// 	}
-//
-// 	if(likely_pkg && pkgname_hash == likely_pkg->name_hash
-// 			&& strcmp(likely_pkg->name, pkgname) == 0) {
-// 		pkg = likely_pkg;
-// 	} else {
-// 		pkg = _pkghash_find(db->pkgcache, pkgname);
-// 	}
-// 	if(pkg == NULL) {
-// 		pkg = _pkg_new();
-// 		if(pkg == NULL) {
-// 			RET_ERR(db->handle, ALPM_ERR_MEMORY, NULL);
-// 		}
-//
-// 		pkg->name = pkgname;
-// 		pkg->version = pkgver;
-// 		pkg->name_hash = pkgname_hash;
-//
-// 		pkg->origin = ALPM_PKG_FROM_SYNCDB;
-// 		pkg->origin_data.db = db;
-// 		pkg->ops = &default_pkg_ops;
-// 		pkg->ops->get_validation = _sync_get_validation;
-// 		pkg->handle = db->handle;
-//
-// 		/* add to the collection */
-// 		_log(db->handle, ALPM_LOG_FUNCTION, "adding '%s' to package cache for db '%s'\n",
-// 				pkg->name, db->treename);
-// 		db->pkgcache = _pkghash_add(db->pkgcache, pkg);
-// 	} else {
-// 		free(pkgname);
-// 		free(pkgver);
-// 	}
-//
-// 	return pkg;
-// }
 
 // /* This function doesn't work as well as one might think, as size of database
 //  * entries varies considerably. Adding signatures nearly doubles the size of a
@@ -286,88 +229,6 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 // 	}
 //
 // 	return (size_t)((st->st_size / per_package) + 1);
-// }
-
-// static int sync_db_populate(Database *db)
-// {
-// 	const char *dbpath;
-// 	size_t est_count, count;
-// 	int fd;
-// 	int ret = 0;
-// 	int archive_ret;
-// 	struct stat buf;
-// 	struct archive *archive;
-// 	struct archive_entry *entry;
-// 	pkg_t *pkg = NULL;
-//
-// 	if(db->status & DB_STATUS_INVALID) {
-// 		RET_ERR(db->handle, ALPM_ERR_DB_INVALID, -1);
-// 	}
-// 	if(db->status & DB_STATUS_MISSING) {
-// 		RET_ERR(db->handle, ALPM_ERR_DB_NOT_FOUND, -1);
-// 	}
-// 	dbpath = _db_path(db);
-// 	if(!dbpath) {
-// 		/* pm_errno set in _db_path() */
-// 		return -1;
-// 	}
-//
-// 	fd = _open_archive(db->handle, dbpath, &buf,
-// 			&archive, ALPM_ERR_DB_OPEN);
-// 	if(fd < 0) {
-// 		return -1;
-// 	}
-// 	est_count = estimate_package_count(&buf, archive);
-//
-// 	/* currently only .files dbs contain file lists - make flexible when required*/
-// 	if(strcmp(db->handle->dbext, ".files") == 0) {
-// 		/* files databases are about four times larger on average */
-// 		est_count /= 4;
-// 	}
-//
-// 	db->pkgcache = _pkghash_create(est_count);
-// 	if(db->pkgcache == NULL) {
-// 		db->handle->pm_errno = ALPM_ERR_MEMORY;
-// 		ret = -1;
-// 		goto cleanup;
-// 	}
-//
-// 	while((archive_ret = archive_read_next_header(archive, &entry)) == ARCHIVE_OK) {
-// 		mode_t mode = archive_entry_mode(entry);
-// 		if(!S_ISDIR(mode)) {
-// 			/* we have desc, depends or deltas - parse it */
-// 			if(sync_db_read(db, archive, entry, &pkg) != 0) {
-// 				_log(db->handle, ALPM_LOG_ERROR,
-// 						_("could not parse package description file '%s' from db '%s'\n"),
-// 						archive_entry_pathname(entry), db->treename);
-// 				ret = -1;
-// 			}
-// 		}
-// 	}
-// 	if(archive_ret != ARCHIVE_EOF) {
-// 		_log(db->handle, ALPM_LOG_ERROR, _("could not read db '%s' (%s)\n"),
-// 				db->treename, archive_error_string(archive));
-// 		_db_free_pkgcache(db);
-// 		db->handle->pm_errno = ALPM_ERR_LIBARCHIVE;
-// 		ret = -1;
-// 		goto cleanup;
-// 	}
-//
-// 	count = list_count(db->pkgcache->list);
-// 	if(count > 0) {
-// 		db->pkgcache->list = list_msort(db->pkgcache->list,
-// 				count, _pkg_cmp);
-// 	}
-// 	_log(db->handle, ALPM_LOG_DEBUG,
-// 			"added %zu packages to package cache for db '%s'\n",
-// 			count, db->treename);
-//
-// cleanup:
-// 	_archive_read_free(archive);
-// 	if(fd >= 0) {
-// 		close(fd);
-// 	}
-// 	return ret;
 // }
 
 // /* This function validates %FILENAME%. filename must be between 3 and
@@ -422,180 +283,6 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 // 	f = list_add(f, dep_from_string(line)); \
 // } while(1) /* note the while(1) and not (0) */
 
-// static int sync_db_read(Database *db, struct archive *archive,
-// 		struct archive_entry *entry, pkg_t **likely_pkg)
-// {
-// 	const char *entryname, *filename;
-// 	pkg_t *pkg;
-// 	struct archive_read_buffer buf;
-//
-// 	entryname = archive_entry_pathname(entry);
-// 	if(entryname == NULL) {
-// 		_log(db->handle, ALPM_LOG_DEBUG,
-// 				"invalid archive entry provided to _sync_db_read, skipping\n");
-// 		return -1;
-// 	}
-//
-// 	_log(db->handle, ALPM_LOG_FUNCTION, "loading package data from archive entry %s\n",
-// 			entryname);
-//
-// 	memset(&buf, 0, sizeof(buf));
-// 	/* 512K for a line length seems reasonable */
-// 	buf.max_line_size = 512 * 1024;
-//
-// 	pkg = load_pkg_for_entry(db, entryname, &filename, *likely_pkg);
-//
-// 	if(pkg == NULL) {
-// 		_log(db->handle, ALPM_LOG_DEBUG,
-// 				"entry %s could not be loaded into %s sync database",
-// 				entryname, db->treename);
-// 		return -1;
-// 	}
-//
-// 	if(filename == NULL) {
-// 		/* A file exists outside of a subdirectory. This isn't a read error, so return
-// 		 * success and try to continue on. */
-// 		_log(db->handle, ALPM_LOG_WARNING, _("unknown database file: %s\n"),
-// 				filename);
-// 		return 0;
-// 	}
-//
-// 	if(strcmp(filename, "desc") == 0 || strcmp(filename, "depends") == 0
-// 			|| strcmp(filename, "files") == 0
-// 			|| (strcmp(filename, "deltas") == 0 && db->handle->deltaratio > 0.0) ) {
-// 		int ret;
-// 		while((ret = _archive_fgets(archive, &buf)) == ARCHIVE_OK) {
-// 			char *line = buf.line;
-// 			if(_strip_newline(line, buf.real_line_size) == 0) {
-// 				/* length of stripped line was zero */
-// 				continue;
-// 			}
-//
-// 			if(strcmp(line, "%NAME%") == 0) {
-// 				READ_NEXT();
-// 				if(strcmp(line, pkg->name) != 0) {
-// 					_log(db->handle, ALPM_LOG_ERROR, _("%s database is inconsistent: name "
-// 								"mismatch on package %s\n"), db->treename, pkg->name);
-// 				}
-// 			} else if(strcmp(line, "%VERSION%") == 0) {
-// 				READ_NEXT();
-// 				if(strcmp(line, pkg->version) != 0) {
-// 					_log(db->handle, ALPM_LOG_ERROR, _("%s database is inconsistent: version "
-// 								"mismatch on package %s\n"), db->treename, pkg->name);
-// 				}
-// 			} else if(strcmp(line, "%FILENAME%") == 0) {
-// 				READ_AND_STORE(pkg->filename);
-// 				if(_validate_filename(db, pkg->name, pkg->filename) < 0) {
-// 					return -1;
-// 				}
-// 			} else if(strcmp(line, "%BASE%") == 0) {
-// 				READ_AND_STORE(pkg->base);
-// 			} else if(strcmp(line, "%DESC%") == 0) {
-// 				READ_AND_STORE(pkg->desc);
-// 			} else if(strcmp(line, "%GROUPS%") == 0) {
-// 				READ_AND_STORE_ALL(pkg->groups);
-// 			} else if(strcmp(line, "%URL%") == 0) {
-// 				READ_AND_STORE(pkg->url);
-// 			} else if(strcmp(line, "%LICENSE%") == 0) {
-// 				READ_AND_STORE_ALL(pkg->licenses);
-// 			} else if(strcmp(line, "%ARCH%") == 0) {
-// 				READ_AND_STORE(pkg->arch);
-// 			} else if(strcmp(line, "%BUILDDATE%") == 0) {
-// 				READ_NEXT();
-// 				pkg->builddate = _parsedate(line);
-// 			} else if(strcmp(line, "%PACKAGER%") == 0) {
-// 				READ_AND_STORE(pkg->packager);
-// 			} else if(strcmp(line, "%CSIZE%") == 0) {
-// 				READ_NEXT();
-// 				pkg->size = _strtoofft(line);
-// 			} else if(strcmp(line, "%ISIZE%") == 0) {
-// 				READ_NEXT();
-// 				pkg->isize = _strtoofft(line);
-// 			} else if(strcmp(line, "%MD5SUM%") == 0) {
-// 				READ_AND_STORE(pkg->md5sum);
-// 			} else if(strcmp(line, "%SHA256SUM%") == 0) {
-// 				READ_AND_STORE(pkg->sha256sum);
-// 			} else if(strcmp(line, "%PGPSIG%") == 0) {
-// 				READ_AND_STORE(pkg->base64_sig);
-// 			} else if(strcmp(line, "%REPLACES%") == 0) {
-// 				READ_AND_SPLITDEP(pkg->replaces);
-// 			} else if(strcmp(line, "%DEPENDS%") == 0) {
-// 				READ_AND_SPLITDEP(pkg->depends);
-// 			} else if(strcmp(line, "%OPTDEPENDS%") == 0) {
-// 				READ_AND_SPLITDEP(pkg->optdepends);
-// 			} else if(strcmp(line, "%MAKEDEPENDS%") == 0) {
-// 				/* currently unused */
-// 				while(1) {
-// 					READ_NEXT();
-// 					if(strlen(line) == 0) break;
-// 				}
-// 			} else if(strcmp(line, "%CHECKDEPENDS%") == 0) {
-// 				/* currently unused */
-// 				while(1) {
-// 					READ_NEXT();
-// 					if(strlen(line) == 0) break;
-// 				}
-// 			} else if(strcmp(line, "%CONFLICTS%") == 0) {
-// 				READ_AND_SPLITDEP(pkg->conflicts);
-// 			} else if(strcmp(line, "%PROVIDES%") == 0) {
-// 				READ_AND_SPLITDEP(pkg->provides);
-// 			} else if(strcmp(line, "%DELTAS%") == 0) {
-// 				/* Different than the rest because of the _delta_parse call. */
-// 				while(1) {
-// 					READ_NEXT();
-// 					if(strlen(line) == 0) break;
-// 					pkg->deltas = list_add(pkg->deltas,
-// 							_delta_parse(db->handle, line));
-// 				}
-// 			} else if(strcmp(line, "%FILES%") == 0) {
-// 				/* TODO: this could lazy load if there is future demand */
-// 				size_t files_count = 0, files_size = 0;
-// 				file_t *files = NULL;
-//
-// 				while(1) {
-// 					if(_archive_fgets(archive, &buf) != ARCHIVE_OK) {
-// 						goto error;
-// 					}
-// 					line = buf.line;
-// 					if(_strip_newline(line, buf.real_line_size) == 0) {
-// 						break;
-// 					}
-//
-// 					if(!_greedy_grow((void **)&files, &files_size,
-// 								(files_count ? (files_count + 1) * sizeof(file_t) : 8 * sizeof(file_t)))) {
-// 						goto error;
-// 					}
-// 					STRDUP(files[files_count].name, line, goto error);
-// 					files_count++;
-// 				}
-// 				/* attempt to hand back any memory we don't need */
-// 				if(files_count > 0) {
-// 					files = realloc(files, sizeof(file_t) * files_count);
-// 				} else {
-// 					FREE(files);
-// 				}
-// 				pkg->files.count = files_count;
-// 				pkg->files.files = files;
-// 				_filelist_sort(&pkg->files);
-// 			}
-// 		}
-// 		if(ret != ARCHIVE_EOF) {
-// 			goto error;
-// 		}
-// 		*likely_pkg = pkg;
-// 	} else if(strcmp(filename, "deltas") == 0) {
-// 		/* skip reading delta files if UseDelta is unset */
-// 	} else {
-// 		/* unknown database file */
-// 		_log(db->handle, ALPM_LOG_DEBUG, "unknown database file: %s\n", filename);
-// 	}
-//
-// 	return 0;
-//
-// error:
-// 	_log(db->handle, ALPM_LOG_DEBUG, "error parsing database file: %s\n", filename);
-// 	return -1;
-// }
 
 // struct db_operations sync_db_ops = {
 // 	.validate         = sync_db_validate,

@@ -26,53 +26,39 @@ fn fnmatch_cmp(pattern: &String, string: &String) -> std::cmp::Ordering {
 }
 
 fn remove_target(target: String, config: &mut Config, handle: &mut Handle) -> i32 {
-    match handle.db_local.get_pkg(&target) {
-        Ok(pkg) => {
-            match remove_pkg(&mut handle.trans, &pkg) {
-                Err(err) => {
-                    match err {
-                        Error::TransactionDupTarget => {
-                            /* just skip duplicate targets */
-                            print!("skipping target: {}\n", target);
-                            return 0;
-                        }
-                        _ => {
-                            error!("'{}': {}\n", target, err);
-                            return -1;
-                        }
-                    }
+    if let Ok(pkg) = handle.db_local.get_pkg(&target) {
+        if let Err(err) = remove_pkg(&mut handle.trans, &pkg) {
+            match err {
+                Error::TransactionDupTarget => {
+                    /* just skip duplicate targets */
+                    print!("skipping target: {}\n", target);
+                    return 0;
                 }
-                Ok(_) => {}
+                _ => {
+                    error!("'{}': {}\n", target, err);
+                    return -1;
+                }
             }
-            config.explicit_removes.push(pkg.clone());
-            return 0;
         }
-        _ => {}
+        config.explicit_removes.push(pkg.clone());
+        return 0;
     }
 
     /* fallback to group */
     let grp = handle.db_local.get_group(&target);
 
-    match grp {
-        Ok(grp) => {
-            for pkg in &grp.packages {
-                match remove_pkg(&mut handle.trans, &pkg) {
-                    Err(e) => {
-                        error!("'{}': {}", target, e);
-                        return -1;
-                    }
-                    Ok(_) => {}
-                }
-                let newpkg = pkg.clone();
-
-                config.explicit_removes.push(newpkg);
+    if let Ok(grp) = grp {
+        for pkg in &grp.packages {
+            if let Err(e) = remove_pkg(&mut handle.trans, &pkg) {
+                error!("'{}': {}", target, e);
+                return -1;
             }
-            return 0;
+            config.explicit_removes.push(pkg.clone());
         }
-        Err(_) => {
-            error!("target not found: {}", target);
-            return -1;
-        }
+        0
+    } else {
+        error!("target not found: {}", target);
+        -1
     }
 }
 

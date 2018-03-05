@@ -40,6 +40,14 @@ macro_rules! QUESTION {
     }
 }
 
+macro_rules! EVENT {
+    ($h:expr, $e:expr) => {
+        if let Some(f) = $h.eventcb {
+            f($e);
+        }
+    }
+}
+
 // /// Returns the callback used for logging.
 // alpm_cb_log SYMEXPORT alpm_get_logcb(Handle *handle)
 // {
@@ -115,7 +123,6 @@ impl Handle {
     }
 
     /// Execute a command with arguments in a chroot.
-    /// * @param handle the context handle
     /// * @param cmd command to execute
     /// * @param argv arguments to pass to cmd
     /// * @param stdin_cb callback to provide input to the chroot on stdin
@@ -356,11 +363,7 @@ impl Handle {
         }
 
         // 	alpm_list_t *invalid = check_arch(handle, trans->add);
-        *data = match self.check_arch(&mut trans.add) {
-            Ok(ref data) if !data.is_empty() => data.clone(),
-            _ => return Err(Error::PkgInvalidArch),
-        };
-
+        *data = self.check_arch(&mut trans.add)?;
         if trans.add.is_empty() {
             self.remove_prepare(data)?;
         } else {
@@ -387,7 +390,7 @@ impl Handle {
             }
         }
 
-        trans.state = AlpmTransState::PREPARED;
+        trans.state = AlpmTransState::Prepared;
 
         self.trans = trans;
 
@@ -583,39 +586,27 @@ impl Handle {
             Some(r) => r,
             None => Vec::new(),
         };
-        match pkglist {
-            Some(pkglist) => {
-                for pkg in pkglist {
-                    // Package *pkg = i->data;
-                    if upgrade.contains(&&pkg) || rem.contains(&&pkg) {
-                        modified.push(pkg);
-                    } else {
-                        dblist.push(pkg);
-                    }
+        if let Some(pkglist) = pkglist {
+            for pkg in pkglist {
+                if upgrade.contains(&&pkg) || rem.contains(&&pkg) {
+                    modified.push(pkg);
+                } else {
+                    dblist.push(pkg);
                 }
             }
-            None => {}
         }
 
         nodepversion = self.no_dep_version();
 
         /* look for unsatisfied dependencies of the upgrade list */
         for ref mut tp in &*upgrade {
-            // Package *tp = i->data;
-            // _alpm_log(
-            //     handle,
-            //     ALPM_LOG_DEBUG,
-            //     "checkdeps: package %s-%s\n",
-            //     tp.name,
-            //     tp.version,
-            // );
+            debug!("checkdeps: package {}-{}", tp.get_name(), tp.get_version());
 
             for mut depend in tp.get_depends()? {
-                // Dependency *depend = j->data;
                 let orig_mod = depend.depmod.clone();
-                // if (nodepversion) {
-                //     depend.depmod = alpm_depmod_t::ALPM_DEP_MOD_ANY;
-                // }
+                if nodepversion {
+                    // depend.depmod = Depmod:Any;
+                }
                 /* 1. we check the upgrade list */
                 /* 2. we check database for untouched satisfying packages */
                 /* 3. we check the dependency ignore list */
@@ -1000,23 +991,21 @@ impl Handle {
     ///Checks if the package is ignored via IgnorePkg, or if the package is
     ///in a group ignored via IgnoreGroup.
     pub fn pkg_should_ignore(&self, pkg: &Package) -> bool {
-        unimplemented!();
-        // 	alpm_list_t *groups = NULL;
-        //
-        // 	/* first see if the package is ignored */
-        // if alpm_list_find(self.ignorepkg, pkg.name, _alpm_fnmatch) {
-        //     return true;
-        // }
-        //
-        // /* next see if the package is in a group that is ignored */
-        // for grp in pkg.alpm_pkg_get_groups() {
-        //     // char *grp = groups->data;
-        //     if alpm_list_find(self.ignoregroup, grp, _alpm_fnmatch) {
-        //         return true;
-        //     }
-        // }
-        //
-        // return false;
+        for ipkg in &self.ignorepkg {
+            if ipkg == pkg.get_name() {
+                return true;
+            }
+        }
+
+        /* next see if the package is in a group that is ignored */
+        for grp in pkg.get_groups() {
+            for ipkg in grp {
+                if ipkg == pkg.get_name() {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /// Unregister all package databases.
@@ -2371,7 +2360,9 @@ impl Handle {
         let mut from_sync = false;
         let ret = 0;
         let trans = &self.trans;
-        // 	alpm_event_t event;
+        let mut event = EventAny {
+            etype: EventType::ResolveDepsStart,
+        };
 
         // 	if(data) {
         // 		*data = NULL;
@@ -2401,15 +2392,14 @@ impl Handle {
         }
 
         if !trans.flags.no_deps {
-            unimplemented!();
             // 		alpm_list_t *resolved = NULL;
             // 		alpm_list_t *remove = alpm_list_copy(trans.remove);
             // 		alpm_list_t *localpkgs;
 
             /* Build up list by repeatedly resolving each transaction package */
             /* Resolve targets dependencies */
-            // 		event.type = ALPM_EVENT_RESOLVEDEPS_START;
-            // 		EVENT(handle, &event);
+            event.etype = EventType::ResolveDepsStart;
+            EVENT!(self, &mut Event::any(event));
             debug!("resolving target's dependencies");
 
             /* build remove list for resolvedeps */
@@ -2419,6 +2409,7 @@ impl Handle {
                 //     remove.push(pkg);
                 // }
             }
+            unimplemented!();
 
             /* Compute the fake local database for resolvedeps (partial fix for the
              * phonon/qt issue) */
@@ -2740,52 +2731,77 @@ impl Handle {
                 }
             }
         }
+
         return Ok(replacers);
     }
 
-    fn check_literal(&self, lpkg: &Package, spkg: &Package, enable_downgrade: bool) -> i32 {
-        // 	/* 1. literal was found in sdb */
-        // 	int cmp = _alpm_pkg_compare_versions(spkg, lpkg);
-        // 	if(cmp > 0) {
-        // 		debug!("new version of '{}' found ({} => {})\n",
-        // 				lpkg->name, lpkg->version, spkg->version);
-        // 		/* check IgnorePkg/IgnoreGroup */
-        // 		if(alpm_pkg_should_ignore(handle, spkg)
-        // 				|| alpm_pkg_should_ignore(handle, lpkg)) {
-        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package upgrade ({} => {})\n"),
-        // 					lpkg->name, lpkg->version, spkg->version);
-        // 		} else {
-        // 			debug!("adding package {}-{} to the transaction targets\n",
-        // 					spkg->name, spkg->version);
-        // 			return 1;
-        // 		}
-        // 	} else if(cmp < 0) {
-        // 		if(enable_downgrade) {
-        // 			/* check IgnorePkg/IgnoreGroup */
-        // 			if(alpm_pkg_should_ignore(handle, spkg)
-        // 					|| alpm_pkg_should_ignore(handle, lpkg)) {
-        // 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: ignoring package downgrade ({} => {})\n"),
-        // 						lpkg->name, lpkg->version, spkg->version);
-        // 			} else {
-        // 				_alpm_log(handle, ALPM_LOG_WARNING, _("{}: downgrading from version {} to version {}\n"),
-        // 						lpkg->name, lpkg->version, spkg->version);
-        // 				return 1;
-        // 			}
-        // 		} else {
-        // 			Database *sdb = alpm_pkg_get_db(spkg);
-        // 			_alpm_log(handle, ALPM_LOG_WARNING, _("{}: local ({}) is newer than {} ({})\n"),
-        // 					lpkg->name, lpkg->version, sdb->treename, spkg->version);
-        // 		}
-        // 	}
-        // 	return 0;
-        unimplemented!();
+    fn check_literal(&self, lpkg: &Package, spkg: &Package, enable_downgrade: bool) -> bool {
+        /* 1. literal was found in sdb */
+        let cmp = spkg.compare_versions(lpkg);
+        if cmp > 0 {
+            debug!(
+                "new version of '{}' found ({} => {})",
+                lpkg.get_name(),
+                lpkg.get_version(),
+                spkg.get_version()
+            );
+            /* check IgnorePkg/IgnoreGroup */
+            if self.pkg_should_ignore(spkg) || self.pkg_should_ignore(lpkg) {
+                warn!(
+                    "{}: ignoring package upgrade ({} => {})",
+                    lpkg.get_name(),
+                    lpkg.get_version(),
+                    spkg.get_version()
+                );
+            } else {
+                debug!(
+                    "adding package {}-{} to the transaction targets",
+                    spkg.get_name(),
+                    spkg.get_version()
+                );
+                return true;
+            }
+        } else if cmp < 0 {
+            if enable_downgrade {
+                /* check IgnorePkg/IgnoreGroup */
+                if self.pkg_should_ignore(spkg) || self.pkg_should_ignore(lpkg) {
+                    warn!(
+                        "{}: ignoring package downgrade ({} => {})",
+                        lpkg.get_name(),
+                        lpkg.get_version(),
+                        spkg.get_version()
+                    );
+                } else {
+                    warn!(
+                        "{}: downgrading from version {} to version {}",
+                        lpkg.get_name(),
+                        lpkg.get_version(),
+                        spkg.get_version()
+                    );
+                    return true;
+                }
+            } else {
+                warn!(
+                    "{}: local ({}) is newer than remote ({})",
+                    lpkg.get_name(),
+                    lpkg.get_version(),
+                    spkg.get_version()
+                );
+            }
+        }
+        false
     }
 
     /// Search for packages to upgrade and add them to the transaction.
     pub fn sync_sysupgrade(&mut self, enable_downgrade: bool) -> Result<i32> {
         self.get_localdb_mut().load_pkgcache();
-        // let trans = &mut self.trans;
-
+        for sdb in &mut self.dbs_sync {
+            if !sdb.get_usage().upgrade {
+                continue;
+            }
+            sdb.load_pkgcache();
+        }
+        self.ignorepkg.sort();
         debug!("checking for package upgrades");
         for lpkg in self.db_local.get_pkgcache()? {
             if self.trans.remove.contains(&&lpkg) {
@@ -2802,27 +2818,26 @@ impl Handle {
             }
             /* Search for replacers then literal (if no replacer) in each sync database. */
             for sdb in &self.dbs_sync {
-                // Database *sdb = j.data;
-                // alpm_list_t *replacers;
-
-                debug!("TEPM: {}", sdb.get_usage().upgrade);
                 if !sdb.get_usage().upgrade {
                     continue;
                 }
                 /* Check sdb */
-                if let Ok(replacers) = self.check_replacers(lpkg, sdb) {
-                    self.trans
-                        .add
-                        .append(&mut replacers.iter().map(|p| p.clone().clone()).collect());
-                    /* jump to next local package */
-                    break;
-                } else {
-                    if let Ok(spkg) = sdb.get_pkgfromcache(lpkg.get_name()) {
-                        if self.check_literal(lpkg, spkg, enable_downgrade) != 0 {
-                            self.trans.add.push(spkg.clone());
-                        }
+                match self.check_replacers(lpkg, sdb) {
+                    Ok(ref replacers) if !replacers.is_empty() => {
+                        self.trans
+                            .add
+                            .append(&mut replacers.iter().map(|p| p.clone().clone()).collect());
                         /* jump to next local package */
                         break;
+                    }
+                    _ => {
+                        if let Ok(spkg) = sdb.get_pkgfromcache(lpkg.get_name()) {
+                            if self.check_literal(lpkg, spkg, enable_downgrade) {
+                                self.trans.add.push(spkg.clone());
+                            }
+                            /* jump to next local package */
+                            break;
+                        }
                     }
                 }
             }
@@ -2831,15 +2846,6 @@ impl Handle {
         Ok(0)
     }
 }
-
-// pub fn canonicalize_path(path: &String) -> String {
-//     let mut new_path = path.clone();
-//     /* verify path ends in a '/' */
-//     if !path.ends_with('/') {
-//         new_path.push('/');
-//     }
-//     return new_path;
-// }
 
 pub fn set_directory_option(value: &String, must_exist: bool) -> Result<String> {
     if must_exist {
@@ -2897,7 +2903,7 @@ pub struct Handle {
     // 	alpm_cb_totaldl totaldlcb;  /* Total download callback function */
     /// Download file callback function
     fetchcb: CbFetch,
-    // 	alpm_cb_event eventcb;
+    eventcb: CbEvent,
     questioncb: CbQuestion,
     // 	alpm_cb_progress progresscb;
     /// Root path, default '/'
@@ -2962,11 +2968,11 @@ impl Clone for Handle {
             // #endif
 
             // 	/* callback functions */
-            // 	alpm_cb_log logcb;          /* Log callback function */
-            // 	alpm_cb_download dlcb;      /* Download callback function */
-            // 	alpm_cb_totaldl totaldlcb;  /* Total download callback function */
+            // 	alpm_cb_log logcb;
+            // 	alpm_cb_download dlcb;
+            // 	alpm_cb_totaldl totaldlcb;
             fetchcb: self.fetchcb,
-            // 	alpm_cb_event eventcb;
+            eventcb: self.eventcb,
             questioncb: self.questioncb,
             // 	alpm_cb_progress progresscb;
             root: self.root.clone(),
@@ -2990,7 +2996,6 @@ impl Clone for Handle {
             siglevel: self.siglevel,
             localfilesiglevel: self.localfilesiglevel,
             remotefilesiglevel: self.remotefilesiglevel,
-            // pub pm_errno: Error,
             lockfd: None,
             // 	int delta_regex_compiled;
             // 	regex_t delta_regex;

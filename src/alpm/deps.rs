@@ -61,10 +61,7 @@ use super::*;
 // }
 
 pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &Dependency) -> Option<&'a Package> {
-    // list_t *i;
-
     for pkg in pkgs {
-        // Package *pkg = i->data;
         if pkg.depcmp(dep) {
             return Some(pkg);
         }
@@ -76,10 +73,7 @@ pub fn find_dep_satisfier_ref<'a>(
     pkgs: &'a Vec<&Package>,
     dep: &Dependency,
 ) -> Option<&'a Package> {
-    // list_t *i;
-
     for pkg in pkgs {
-        // Package *pkg = i->data;
         if pkg.depcmp(dep) {
             return Some(pkg);
         }
@@ -201,12 +195,7 @@ pub fn find_dep_satisfier_ref<'a>(
  * This function returns the new list_t* target list.
  *
  */
-fn sortbydeps<T>(
-    handle: Handle,
-    targets: &mut Vec<T>,
-    ignore: &Vec<T>,
-    reverse: i32,
-) -> Vec<T> {
+fn sortbydeps<T>(handle: Handle, targets: &mut Vec<T>, ignore: &Vec<T>, reverse: i32) -> Vec<T> {
     let newtargs: Vec<T>;
     let vertices: Vec<T>;
     let i: Vec<T>;
@@ -278,10 +267,8 @@ pub fn find_satisfier<'a>(pkgs: &'a Vec<&Package>, depstring: &String) -> Option
 }
 
 /// Compare two version strings and determine which one is 'newer'.
-pub fn dep_vercmp(version1: &String, depmod: &Depmod, version2: &String) -> bool {
-    // int equal = 0;
+pub fn dep_vercmp(version1: &str, depmod: &Depmod, version2: &str) -> bool {
     let cmp = pkg_vercmp(version1, version2);
-    // use pkgfrom_t::*;
     match depmod {
         &Depmod::Any => true,
         &Depmod::EQ => cmp == 0,
@@ -289,13 +276,12 @@ pub fn dep_vercmp(version1: &String, depmod: &Depmod, version2: &String) -> bool
         &Depmod::LE => cmp <= 0,
         &Depmod::LT => cmp < 0,
         &Depmod::GT => cmp > 0,
-        // _ => true,
     }
 }
 
 /// Return a newly allocated dependency information parsed from a string.
 /// Format: "glibc=2.12"
-pub fn dep_from_string(depstring: &String) -> Dependency {
+pub fn dep_from_string(depstring: &str) -> Dependency {
     let mut depend: Dependency = Dependency::default();
     let tmp: String;
     let mut desc: Vec<&str>;
@@ -345,19 +331,9 @@ pub fn dep_from_string(depstring: &String) -> Dependency {
 }
 
 impl Dependency {
-    /**
-     * @param dep dependency to check against the provision list
-     * @param provisions provision list
-     * @return 1 if provider is found, 0 otherwise
-     */
     pub fn provides(&self, provisions: &Vec<Dependency>) -> bool {
-        let satisfy = false;
-        // list_t * i;
-
         /* check provisions, name and version if available */
         for provision in provisions {
-            // Dependency *provision = i->data;
-
             match self.depmod {
                 Depmod::Any => {
                     /* any version will satisfy the requirement */
@@ -375,7 +351,7 @@ impl Dependency {
             }
         }
 
-        return satisfy;
+        false
     }
 
     // Dependency *_dep_dup(const Dependency *dep)
@@ -708,29 +684,19 @@ impl Dependency {
     /// Reverse of splitdep; make a dep string from a Dependency struct.
     /// returns a string-formatted dependency with operator if necessary
     pub fn dep_compute_string(&self) -> String {
-        let name: &str;
-        let opr: &str;
-        let ver: &str;
-        let desc: &str;
-        let desc_delim: &str;
+        let opr = match self.depmod {
+            Depmod::Any => "",
+            Depmod::GE => ">=",
+            Depmod::LE => "<=",
+            Depmod::EQ => "=",
+            Depmod::LT => "<",
+            Depmod::GT => ">",
+        };
+        let desc_delim = if self.desc != "" { ": " } else { "" };
 
-        name = &self.name;
-        match self.depmod {
-            Depmod::Any => opr = "",
-            Depmod::GE => opr = ">=",
-            Depmod::LE => opr = "<=",
-            Depmod::EQ => opr = "=",
-            Depmod::LT => opr = "<",
-            Depmod::GT => opr = ">",
-        }
-        ver = &self.version;
-        desc = &self.desc;
-        if self.desc != "" {
-            desc_delim = ": ";
-        } else {
-            desc_delim = "";
-        }
-
-        format!("{}{}{}{}{}", name, opr, ver, desc_delim, desc)
+        format!(
+            "{}{}{}{}{}",
+            self.name, opr, self.version, desc_delim, self.desc
+        )
     }
 }

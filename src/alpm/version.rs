@@ -15,14 +15,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * Some functions in this file have been adopted from the rpm source, notably
- * 'rpmvercmp' located at lib/rpmvercmp.c and 'parseEVR' located at
- * lib/rpmds.c. It was most recently updated against rpm version 4.8.1. Small
- * modifications have been made to make it more consistent with the libalpm
- * coding style.
- */
-
 /// Split EVR into epoch, version, and release components.
 /// * `evr` - [epoch:]version[-release] string
 ///
@@ -30,22 +22,25 @@
 /// * ep - reference to epoch
 /// * vp - reference to version
 /// * rp - reference to release
-fn parse_evr(evr: String) -> (String, String, Option<String>) {
+fn parse_evr(evr: &str) -> (String, String, String) {
     let mut tmp: Vec<&str>;
-    let mut epoch = String::from("0");
-    let version;
-    let mut release = None;
+    let epoch: String;
+    let version: String;
+    let release: String;
     tmp = evr.split(':').collect();
     if tmp.len() > 1 {
         epoch = String::from(tmp[0]);
         tmp = tmp[1].split('-').collect();
     } else {
+        epoch = String::from("0");
         tmp = tmp[0].split('-').collect();
     }
     version = String::from(tmp[0]);
-    if tmp.len() > 1 {
-        release = Some(String::from(tmp[1]));
-    }
+    release = if tmp.len() > 1 {
+        String::from(tmp[1])
+    } else {
+        String::new()
+    };
     (epoch, version, release)
 }
 
@@ -62,8 +57,8 @@ pub fn rpmvercmp(a: &String, b: &String) -> i8 {
         return 0;
     }
 
-    str1 = a.split(char::is_alphanumeric).collect();
-    str2 = b.split(char::is_alphanumeric).collect();
+    str1 = a.split(|c:char| !c.is_alphanumeric()).collect();
+    str2 = b.split(|c:char| !c.is_alphanumeric()).collect();
 
     if str1.len() > str2.len() {
         return 1;
@@ -94,9 +89,8 @@ pub fn rpmvercmp(a: &String, b: &String) -> i8 {
 /// 1.5-1 and 1.5 will yield 0; comparing 1.5-1 and 1.5-2 will yield
 /// -1 as expected. This is mainly for supporting versioned dependencies
 /// that do not include the pkgrel.
-pub fn pkg_vercmp(a: &String, b: &String) -> i8 {
+pub fn pkg_vercmp(a: &str, b: &str) -> i8 {
     let mut ret;
-
     /* another quick shortcut- if full version specs are equal */
     if a == b {
         return 0;
@@ -105,19 +99,13 @@ pub fn pkg_vercmp(a: &String, b: &String) -> i8 {
     /* Parse both versions into [epoch:]version[-release] triplets. We probably
      * don't need epoch and release to support all the same magic, but it is
      * easier to just run it all through the same code. */
-    let full1 = a.clone();
-    let full2 = b.clone();
-
-    /* parseEVR modifies passed in version, so have to dupe it first */
-    let (epoch1, ver1, rel1) = parse_evr(full1);
-    let (epoch2, ver2, rel2) = parse_evr(full2);
-
+    let (epoch1, ver1, rel1) = parse_evr(a);
+    let (epoch2, ver2, rel2) = parse_evr(b);
     ret = rpmvercmp(&epoch1, &epoch2);
     if ret == 0 {
         ret = rpmvercmp(&ver1, &ver2);
-        match (ret, rel1, rel2) {
-            (0, Some(r1), Some(r2)) => ret = rpmvercmp(&r1, &r2),
-            _ => {}
+        if ret == 0 {
+            ret = rpmvercmp(&rel1, &rel2);
         }
     }
 

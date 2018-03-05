@@ -66,7 +66,7 @@ pub fn pacman_upgrade(
 
     print!("loading packages...\n");
     /* add targets to the created transaction */
-    for (n, targ) in targets.clone().iter().enumerate() {
+    for (n, targ) in targets.iter().enumerate() {
         let mut pkg;
         let siglevel;
 
@@ -83,13 +83,10 @@ pub fn pacman_upgrade(
             }
             Ok(p) => p.clone(),
         };
-        match handle.add_pkg(&mut pkg) {
-            Err(e) => {
-                error!("'{}': {}", targ, e);
-                retval = Err(e);
-                continue;
-            }
-            Ok(_) => {}
+        if let Err(e) = handle.add_pkg(&mut pkg) {
+            error!("'{}': {}", targ, e);
+            retval = Err(e);
+            continue;
         }
         config.explicit_adds.push(pkg.clone());
     }

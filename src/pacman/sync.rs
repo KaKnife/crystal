@@ -295,7 +295,7 @@ fn sync_search(
 
     for db in syncs {
         found == found
-            || dump_pkg_search(db, targets, 1, &config.colstr, handle, config.quiet).is_err();
+            || dump_pkg_search(db, targets, 1, handle, config.quiet).is_err();
     }
 
     return found == 0;
@@ -662,7 +662,6 @@ fn sync_trans(targets: &Vec<String>, config: &mut Config, handle: &mut Handle) -
             return Err(e);
         }
     }
-
     sync_prepare_execute(config, handle)
 }
 
@@ -825,7 +824,6 @@ pub fn sync_prepare_execute(config: &Config, handle: &mut Handle) -> Result<()> 
 }
 
 pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handle) -> Result<()> {
-    // 	alpm_list_t *sync_dbs = NULL;
     let mut sync_dbs: Vec<Database>;
 
     /* clean the cache */

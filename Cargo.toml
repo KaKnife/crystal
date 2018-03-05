@@ -5,11 +5,12 @@ authors = ["Jacob Humphrey <jacob.ryan.humphrey@gmail.com>"]
 publish = false
 
 [dependencies]
-getopts = "0"
-libc = "0"
-glob = "0"
-env_logger = "0"
-log = "0"
+getopts = "*"
+libc = "*"
+glob = "*"
+env_logger = "*"
+log = "*"
+libarchive = "*"
 # time = "0.1"
 curl = { git = "https://github.com/alexcrichton/curl-rust.git" }
 
