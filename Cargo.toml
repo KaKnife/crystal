@@ -11,6 +11,7 @@ glob = "*"
 env_logger = "*"
 log = "*"
 libarchive = "*"
+humantime = "*"
 # time = "0.1"
 curl = { git = "https://github.com/alexcrichton/curl-rust.git" }
 

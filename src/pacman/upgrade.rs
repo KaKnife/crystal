@@ -98,5 +98,3 @@ pub fn pacman_upgrade(
     /* now that targets are resolved, we can hand it all off to the sync code */
     sync_prepare_execute(config, handle)
 }
-
-/* vim: set noet: */

@@ -1371,20 +1371,15 @@ pub struct archive_read_buffer {
 // }
 
 pub fn string_display(title: &str, string: &String) {
-    if title != "" {
-        print!("{}", title);
-        for _ in 0..15 - title.len() {
-            print!(" ")
-        }
-        print!(": ")
-    }
+    let mut output = String::new();
+    output += &format!("{:<15}: ", title);
     if string == "" {
-        print!("None");
+        output += "None";
     } else {
         /* compute the length of title + a space */
-        indentprint(string, title.len() + 1);
+        output += string;
     }
-    print!("\n");
+    info!("{}", output);
 }
 
 /// output a string, but wrap words properly with a specified indentation
@@ -1449,26 +1444,26 @@ fn indentprint(sstr: &String, indent: usize) {
 }
 
 pub fn list_display(title: &str, list: &Vec<String>) {
+    let mut output = String::new();
     if title != "" {
-        print!("{}", title);
-        for _ in 0..15 - title.len() {
-            print!(" ")
-        }
-        print!(": ")
+        output += &format!("{:15}:", title);
     }
     let mut len = 17;
     if list.is_empty() {
-        print!("None\n");
+        output += "None";
     } else {
         for (i, item) in list.iter().enumerate() {
-            len += item.len();
+            len += item.len() + 1;
             if len > 80 {
-                print!("\n                 ");
+                info!("{}", output);
+                output = format!("{:17}", "");
                 len = 17;
+            } else {
+                output += " ";
             }
-            print!("{} ", item);
+            output += item;
         }
-        print!("\n");
+        info!("{}", output);
     }
 }
 
@@ -1493,29 +1488,18 @@ pub fn deplist_display(title: &str, deps: &Vec<Dependency>) {
  *
  * @return the size in the appropriate unit
  */
-pub fn humanize_size(bytes: i64, target_unit: char, precision: i8, label: &mut String) -> f64 {
+pub fn humanize_size(bytes: i64, label: &mut String) -> f64 {
     let labels = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"];
     let unitcount = labels.len();
 
     let mut val = bytes as f64;
     let mut index = 0;
 
-    while index < unitcount - 1 {
-        if target_unit != '\0' && labels[index].chars().collect::<Vec<char>>()[0] == target_unit {
-            break;
-        } else if target_unit == '\0' && val <= 2048.0 && val >= -2048.0 {
-            break;
-        }
+    while index < unitcount - 1 && (val >= 2048.0 || val <= -2048.0) {
         val /= 1024.0;
         index += 1;
     }
 
     *label = String::from(labels[index]);
-
-    /* do not display negative zeroes */
-    if precision >= 0 && val < 0.0 && val > (-0.5 / 10f64.powf(precision as f64)) {
-        val = 0.0;
-    }
-
     val
 }

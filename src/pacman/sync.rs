@@ -294,8 +294,7 @@ fn sync_search(
     let mut found = 0;
 
     for db in syncs {
-        found == found
-            || dump_pkg_search(db, targets, 1, handle, config.quiet).is_err();
+        found == found || dump_pkg_search(db, targets, 1, handle, config.quiet).is_err();
     }
 
     return found == 0;
@@ -377,7 +376,7 @@ fn sync_info(mut syncs: Vec<Database>, targets: &Vec<String>) -> Result<()> {
                 for pkg in db.get_pkgcache()? {
                     if pkg.get_name() == pkgstr {
                         unimplemented!();
-                        // dump_pkg_full(pkg, config.op_s_info > 1);
+                        // pkg.dump_full(config.op_s_info > 1);
                         foundpkg = true;
                         break;
                     }
@@ -670,20 +669,23 @@ fn print_broken_dep(miss: &DepMissing) {
     // 	char *depstring = alpm_dep_compute_string(miss->depend);
     // 	alpm_list_t *trans_add = alpm_trans_get_add(config->handle);
     // 	Package *pkg;
-    // 	if(miss->causingpkg == NULL) {
-    // 		/* package being installed/upgraded has unresolved dependency */
-    // 		colon_printf(_("unable to satisfy dependency '%s' required by %s\n"),
-    // 				depstring, miss->target);
-    // 	} else if((pkg = alpm_pkg_find(trans_add, miss->causingpkg))) {
-    // 		/* upgrading a package breaks a local dependency */
-    // 		colon_printf(_("installing %s (%s) breaks dependency '%s' required by %s\n"),
-    // 				miss->causingpkg, alpm_pkg_get_version(pkg), depstring, miss->target);
-    // 	} else {
-    // 		/* removing a package breaks a local dependency */
-    // 		colon_printf(_("removing %s breaks dependency '%s' required by %s\n"),
-    // 				miss->causingpkg, depstring, miss->target);
-    // 	}
-    // 	free(depstring);
+    // if (miss.causingpkg == NULL) {
+    //     /* package being installed/upgraded has unresolved dependency */
+    //     info!(
+    //         "unable to satisfy dependency '{}' required by {}",
+    //         depstring, miss.target,
+    //     );
+    // } else if ((pkg = alpm_pkg_find(trans_add, miss.causingpkg))) {
+    //     /* upgrading a package breaks a local dependency */
+    //     // 		colon_printf(_("installing %s (%s) breaks dependency '%s' required by %s\n"),
+    //     // 				miss->causingpkg, alpm_pkg_get_version(pkg), depstring, miss->target);
+    // } else {
+    //     /* removing a package breaks a local dependency */
+    //     info!(
+    //         "removing {} breaks dependency '{}' required by {}",
+    //         miss.causingpkg, depstring, miss.target
+    //     );
+    // }
 }
 
 pub fn sync_prepare_execute(config: &Config, handle: &mut Handle) -> Result<()> {

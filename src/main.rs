@@ -16,6 +16,7 @@ extern crate getopts;
 extern crate glob;
 extern crate libc;
 extern crate libarchive;
+extern crate humantime;
 // extern crate time;
 #[macro_use]
 extern crate log;

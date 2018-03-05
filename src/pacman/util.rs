@@ -395,20 +395,21 @@ fn add_transaction_sizes_row<T>(rows: Vec<T>, label: String, size: i64) {
 }
 
 pub fn string_display(title: &str, string: &String, cols: usize) {
+    let mut output = String::new();
     if title != "" {
-        print!("{}", title);
+        output += title;
         for _ in 0..15 - title.len() {
-            print!(" ")
+            output += " ";
         }
-        print!(": ")
+        output += ": ";
     }
     if string == "" {
-        print!("None");
+        output += "None";
     } else {
         /* compute the length of title + a space */
         indentprint(string, title.len() + 1, cols);
     }
-    print!("\n");
+    info!("{}", output);
 }
 
 fn table_print_line<T>(

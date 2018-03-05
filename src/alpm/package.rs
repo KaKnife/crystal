@@ -49,6 +49,8 @@ use super::deps::dep_vercmp;
 use std::cmp::{Ord, Ordering};
 use std::fs::File;
 use std::str::Lines;
+use humantime::{Duration, format_rfc3339};
+use std::time::{Duration as StdDuration, UNIX_EPOCH};
 
 // /** Package operations struct. This struct contains function pointers to
 //  * all methods used to access data in a package to allow for things such
@@ -173,7 +175,6 @@ pub struct Package {
     validation: i32,
 }
 
-const T_ARCHITECTURE: &str = "Architecture";
 const T_BACKUP_FILES: &str = "Backup Files";
 const T_BUILD_DATE: &str = "Build Date";
 const T_COMPRESSED_SIZE: &str = "Compressed Size";
@@ -186,17 +187,12 @@ const T_INSTALL_DATE: &str = "Install Date";
 const T_INSTALL_REASON: &str = "Install Reason";
 const T_INSTALL_SCRIPT: &str = "Install Script";
 const T_INSTALLED_SIZE: &str = "Installed Size";
-const T_LICENSES: &str = "Licenses";
-const T_MD5_SUM: &str = "MD5 Sum";
-const T_NAME: &str = "Name";
 const T_OPTIONAL_DEPS: &str = "Optional Deps";
 const T_OPTIONAL_FOR: &str = "Optional For";
 const T_PACKAGER: &str = "Packager";
 const T_PROVIDES: &str = "Provides";
 const T_REPLACES: &str = "Replaces";
 const T_REPOSITORY: &str = "Repository";
-const T_REQUIRED_BY: &str = "Required By";
-const T_SHA_256_SUM: &str = "SHA-256 Sum";
 const T_SIGNATURES: &str = "Signatures";
 const T_URL: &str = "URL";
 const T_VALIDATED_BY: &str = "Validated By";
@@ -1374,8 +1370,8 @@ impl Package {
     ) -> Result<()> {
         // unimplemented!();
         // unsigned short cols;
-        let bdate: i64;
-        let idate: i64;
+        let bdate;
+        let idate;
         let from: PackageFrom;
         let mut size: f64;
         let mut label: String = String::from("\0");
@@ -1395,16 +1391,10 @@ impl Package {
         from = self.get_origin();
 
         /* set variables here, do all output below */
-        bdate = self.get_builddate()?;
-        if bdate != 0 {
-            // unimplemented!();
-            // bdatestr = time::strftime("%c", localtime(&bdate));
-        }
-        idate = self.get_installdate()?;
-        if idate != 0 {
-            // unimplemented!();
-            // strftime(idatestr, 50, "%c", localtime(&idate));
-        }
+        bdate = UNIX_EPOCH + StdDuration::from_secs(self.get_builddate()? as u64);
+        let bdatestr = format!("{}", format_rfc3339(bdate));
+        idate = UNIX_EPOCH + StdDuration::from_secs(self.get_installdate()? as u64);
+        let idatestr = format!("{}", format_rfc3339(idate));
 
         reason = match self.get_reason() {
             Ok(&PackageReason::Explicit) => "Explicitly installed".to_owned(),
@@ -1441,20 +1431,19 @@ impl Package {
             _ => {}
         }
 
-        // let cols = getcols();
         /* actual output */
-        match from {
-            PackageFrom::SyncDatabase => {
-                // string_display(T_REPOSITORY, pkg.db_get_name(get_db(pkg)), config)
-            }
-            _ => {}
-        }
-        string_display(T_NAME, self.get_name());
-        string_display(T_VERSION, self.get_version());
-        string_display(T_DESCRIPTION, self.get_desc()?);
-        string_display(T_ARCHITECTURE, self.get_arch()?);
-        string_display(T_URL, self.get_url()?);
-        list_display(T_LICENSES, self.get_licenses()?);
+        // match from {
+        //     PackageFrom::SyncDatabase => {
+        //         string_display(T_REPOSITORY, pkg.db_get_name(get_db(pkg)), config)
+        //     }
+        //     _ => {}
+        // }
+        string_display("Name", self.get_name());
+        string_display("Version", self.get_version());
+        string_display("Description", self.get_desc()?);
+        string_display("Architecture", self.get_arch()?);
+        string_display("URL", self.get_url()?);
+        list_display("Licenses", self.get_licenses()?);
         list_display(T_GROUPS, self.get_groups()?);
         deplist_display(T_PROVIDES, self.get_provides()?);
         deplist_display(T_DEPENDS_ON, self.get_depends()?);
@@ -1462,37 +1451,32 @@ impl Package {
 
         match from {
             PackageFrom::LocalDatabase if extra => {
-                // list_display(T_REQUIRED_BY, requiredby);
-                // list_display(T_OPTIONAL_FOR, optionalfor);
+                // list_display("Required By", requiredby);
+                // list_display("Optional For", optionalfor);
             }
             _ => {}
         }
         deplist_display(T_CONFLICTS_WITH, self.get_conflicts()?);
         deplist_display(T_REPLACES, self.get_replaces()?);
 
-        size = humanize_size(self.get_size(), '\0', 2, &mut label);
+        size = humanize_size(self.get_size(), &mut label);
         match from {
             PackageFrom::SyncDatabase => {
-                info!("{} {} {}", T_DOWNLOAD_SIZE, size, label);
+                info!("{:15}: {:2} {}", "Download Size", size, label);
             }
             PackageFrom::File => {
-                info!("{} {} {}", T_COMPRESSED_SIZE, size, label);
+                info!("{:15}: {:2} {}", T_COMPRESSED_SIZE, size, label);
             }
             _ => {}
         }
-        size = humanize_size(
-            self.get_isize()?,
-            label.chars().collect::<Vec<char>>()[0],
-            2,
-            &mut label,
-        );
-        string_display(T_INSTALLED_SIZE, &format!("{} {}", size, label));
+        size = humanize_size(self.get_isize()?, &mut label);
+        string_display(T_INSTALLED_SIZE, &format!("{:.2} {}", size, label));
 
         string_display(T_PACKAGER, self.packager()?);
-        // string_display(T_BUILD_DATE, bdatestr);
+        string_display("Build Date", &bdatestr);
         match from {
             PackageFrom::LocalDatabase => {
-                // string_display(T_INSTALL_DATE, idatestr);
+                string_display(T_INSTALL_DATE, &idatestr);
                 string_display(T_INSTALL_REASON, &reason);
             }
             _ => {}
@@ -1525,8 +1509,8 @@ impl Package {
                     keys.push(String::from("None"));
                 }
 
-                string_display(T_MD5_SUM, &self.md5sum());
-                string_display(T_SHA_256_SUM, &self.sha256sum());
+                string_display("MD5 Sum", &self.md5sum());
+                string_display("SHA-256 Sum", &self.sha256sum());
                 list_display(T_SIGNATURES, &keys);
             }
             _ => {
