@@ -955,34 +955,36 @@ fn simple_pow(base: i32, exp: i32) -> f64 {
 
 // pub fn print_packages(packages: &Vec<Package>, config: &Config)
 pub fn print_packages(
-    packages: &mut Vec<Package>,
+    packages: &mut Vec<alpm::DepPkg>,
     print_format: &String,
     config: &Config,
     handle: &mut Handle,
 ) {
     for pkg in packages {
-        if print_format == "" {
-            print!("{}\n", pkg_get_location(&pkg, handle));
-            continue;
+        if let &mut DepPkg::Pkg(ref mut pkg) = pkg {
+            if print_format == "" {
+                print!("{}\n", pkg_get_location(&pkg, handle));
+                continue;
+            }
+            let string = &print_format;
+            /* %n : pkgname */
+            string.replace("%n", &pkg.get_name());
+            /* %v : pkgver */
+            string.replace("%v", &pkg.get_version());
+            /* %l : location */
+            string.replace("%l", &pkg_get_location(&pkg, handle));
+            /* %r : repo */
+            // string.replace("%r", &pkg.db.treename);
+            /* %s : size */
+            if string.contains("%s") {
+                // 	char *size;
+                let size = format!("{}", pkg_get_size(pkg, config).unwrap());
+                string.replace("%s", &size);
+                // 	free(size);
+                // 	free(temp);
+            }
+            print!("{}\n", string);
         }
-        let string = &print_format;
-        /* %n : pkgname */
-        string.replace("%n", &pkg.get_name());
-        /* %v : pkgver */
-        string.replace("%v", &pkg.get_version());
-        /* %l : location */
-        string.replace("%l", &pkg_get_location(&pkg, handle));
-        /* %r : repo */
-        // string.replace("%r", &pkg.db.treename);
-        /* %s : size */
-        if string.contains("%s") {
-            // 	char *size;
-            let size = format!("{}", pkg_get_size(pkg, config).unwrap());
-            string.replace("%s", &size);
-            // 	free(size);
-            // 	free(temp);
-        }
-        print!("{}\n", string);
     }
 }
 

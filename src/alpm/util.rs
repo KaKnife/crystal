@@ -791,8 +791,6 @@ fn compute_sha256sum(filename: &str) -> String {
 // 	return ret;
 // }
 
-use libarchive::reader::FileReader;
-
 // /* Note: does NOT handle sparse files on purpose for speed. */
 // /** TODO.
 //  * Does not handle sparse files on purpose for speed.
@@ -800,102 +798,102 @@ use libarchive::reader::FileReader;
 //  * @param b
 //  * @return
 //  */
-pub fn _archive_fgets(a: &mut FileReader, b: &archive_read_buffer) -> i32 {
-    // 	/* ensure we start populating our line buffer at the beginning */
-    // 	b->line_offset = b->line;
-    //
-    loop {
-        // 		size_t block_remaining;
-        // 		char *eol;
-        //
-        // 		/* have we processed this entire block? */
-        // 		if(b.block + b.block_size == b.block_offset) {
-        // 			int64_t offset;
-        // 			if(b->ret == ARCHIVE_EOF) {
-        // 				/* reached end of archive on the last read, now we are out of data */
-        // 				goto cleanup;
-        // 			}
-        //
-        // 			/* zero-copy - this is the entire next block of data. */
-        // 			b->ret = archive_read_data_block(a, (void *)&b->block,
-        // 					&b->block_size, &offset);
-        // 			b->block_offset = b->block;
-        // 			block_remaining = b->block_size;
-        //
-        // 			/* error, cleanup */
-        // 			if(b->ret < ARCHIVE_OK) {
-        // 				goto cleanup;
-        // 			}
-        // 		} else {
-        // 			block_remaining = b->block + b->block_size - b->block_offset;
-        // 		}
-        //
-        // 		/* look through the block looking for EOL characters */
-        // 		eol = memchr(b->block_offset, '\n', block_remaining);
-        // 		if(!eol) {
-        // 			eol = memchr(b->block_offset, '\0', block_remaining);
-        // 		}
-        //
-        // 		/* allocate our buffer, or ensure our existing one is big enough */
-        // 		if(!b->line) {
-        // 			/* set the initial buffer to the read block_size */
-        // 			CALLOC(b->line, b->block_size + 1, sizeof(char), b->ret = -ENOMEM; goto cleanup);
-        // 			b->line_size = b->block_size + 1;
-        // 			b->line_offset = b->line;
-        // 		} else {
-        // 			/* note: we know eol > b->block_offset and b->line_offset > b->line,
-        // 			 * so we know the result is unsigned and can fit in size_t */
-        // 			size_t new = eol ? (size_t)(eol - b->block_offset) : block_remaining;
-        // 			size_t needed = (size_t)((b->line_offset - b->line) + new + 1);
-        // 			if(needed > b->max_line_size) {
-        // 				b->ret = -ERANGE;
-        // 				goto cleanup;
-        // 			}
-        // 			if(needed > b->line_size) {
-        // 				/* need to realloc + copy data to fit total length */
-        // 				char *new_line;
-        // 				CALLOC(new_line, needed, sizeof(char), b->ret = -ENOMEM; goto cleanup);
-        // 				memcpy(new_line, b->line, b->line_size);
-        // 				b->line_size = needed;
-        // 				b->line_offset = new_line + (b->line_offset - b->line);
-        // 				free(b->line);
-        // 				b->line = new_line;
-        // 			}
-        // 		}
-        //
-        // 		if(eol) {
-        // 			size_t len = (size_t)(eol - b->block_offset);
-        // 			memcpy(b->line_offset, b->block_offset, len);
-        // 			b->line_offset[len] = '\0';
-        // 			b->block_offset = eol + 1;
-        // 			b->real_line_size = b->line_offset + len - b->line;
-        // 			/* this is the main return point; from here you can read b->line */
-        // 			return ARCHIVE_OK;
-        // 		} else {
-        // 			/* we've looked through the whole block but no newline, copy it */
-        // 			size_t len = (size_t)(b->block + b->block_size - b->block_offset);
-        // 			memcpy(b->line_offset, b->block_offset, len);
-        // 			b->line_offset += len;
-        // 			b->block_offset = b->block + b->block_size;
-        // 			/* there was no new data, return what is left; saved ARCHIVE_EOF will be
-        // 			 * returned on next call */
-        // 			if(len == 0) {
-        // 				b->line_offset[0] = '\0';
-        // 				b->real_line_size = b->line_offset - b->line;
-        // 				return ARCHIVE_OK;
-        // 			}
-        // 		}
-    }
-    //
-    // cleanup:
-    // 	{
-    // 		int ret = b->ret;
-    // 		FREE(b->line);
-    // 		memset(b, 0, sizeof(struct archive_read_buffer));
-    // 		return ret;
-    // 	}
-    unimplemented!();
-}
+// pub fn _archive_fgets(a: &mut FileReader, b: &archive_read_buffer) -> i32 {
+//     // 	/* ensure we start populating our line buffer at the beginning */
+//     // 	b->line_offset = b->line;
+//     //
+//     loop {
+//         // 		size_t block_remaining;
+//         // 		char *eol;
+//         //
+//         // 		/* have we processed this entire block? */
+//         // 		if(b.block + b.block_size == b.block_offset) {
+//         // 			int64_t offset;
+//         // 			if(b->ret == ARCHIVE_EOF) {
+//         // 				/* reached end of archive on the last read, now we are out of data */
+//         // 				goto cleanup;
+//         // 			}
+//         //
+//         // 			/* zero-copy - this is the entire next block of data. */
+//         // 			b->ret = archive_read_data_block(a, (void *)&b->block,
+//         // 					&b->block_size, &offset);
+//         // 			b->block_offset = b->block;
+//         // 			block_remaining = b->block_size;
+//         //
+//         // 			/* error, cleanup */
+//         // 			if(b->ret < ARCHIVE_OK) {
+//         // 				goto cleanup;
+//         // 			}
+//         // 		} else {
+//         // 			block_remaining = b->block + b->block_size - b->block_offset;
+//         // 		}
+//         //
+//         // 		/* look through the block looking for EOL characters */
+//         // 		eol = memchr(b->block_offset, '\n', block_remaining);
+//         // 		if(!eol) {
+//         // 			eol = memchr(b->block_offset, '\0', block_remaining);
+//         // 		}
+//         //
+//         // 		/* allocate our buffer, or ensure our existing one is big enough */
+//         // 		if(!b->line) {
+//         // 			/* set the initial buffer to the read block_size */
+//         // 			CALLOC(b->line, b->block_size + 1, sizeof(char), b->ret = -ENOMEM; goto cleanup);
+//         // 			b->line_size = b->block_size + 1;
+//         // 			b->line_offset = b->line;
+//         // 		} else {
+//         // 			/* note: we know eol > b->block_offset and b->line_offset > b->line,
+//         // 			 * so we know the result is unsigned and can fit in size_t */
+//         // 			size_t new = eol ? (size_t)(eol - b->block_offset) : block_remaining;
+//         // 			size_t needed = (size_t)((b->line_offset - b->line) + new + 1);
+//         // 			if(needed > b->max_line_size) {
+//         // 				b->ret = -ERANGE;
+//         // 				goto cleanup;
+//         // 			}
+//         // 			if(needed > b->line_size) {
+//         // 				/* need to realloc + copy data to fit total length */
+//         // 				char *new_line;
+//         // 				CALLOC(new_line, needed, sizeof(char), b->ret = -ENOMEM; goto cleanup);
+//         // 				memcpy(new_line, b->line, b->line_size);
+//         // 				b->line_size = needed;
+//         // 				b->line_offset = new_line + (b->line_offset - b->line);
+//         // 				free(b->line);
+//         // 				b->line = new_line;
+//         // 			}
+//         // 		}
+//         //
+//         // 		if(eol) {
+//         // 			size_t len = (size_t)(eol - b->block_offset);
+//         // 			memcpy(b->line_offset, b->block_offset, len);
+//         // 			b->line_offset[len] = '\0';
+//         // 			b->block_offset = eol + 1;
+//         // 			b->real_line_size = b->line_offset + len - b->line;
+//         // 			/* this is the main return point; from here you can read b->line */
+//         // 			return ARCHIVE_OK;
+//         // 		} else {
+//         // 			/* we've looked through the whole block but no newline, copy it */
+//         // 			size_t len = (size_t)(b->block + b->block_size - b->block_offset);
+//         // 			memcpy(b->line_offset, b->block_offset, len);
+//         // 			b->line_offset += len;
+//         // 			b->block_offset = b->block + b->block_size;
+//         // 			/* there was no new data, return what is left; saved ARCHIVE_EOF will be
+//         // 			 * returned on next call */
+//         // 			if(len == 0) {
+//         // 				b->line_offset[0] = '\0';
+//         // 				b->real_line_size = b->line_offset - b->line;
+//         // 				return ARCHIVE_OK;
+//         // 			}
+//         // 		}
+//     }
+//     //
+//     // cleanup:
+//     // 	{
+//     // 		int ret = b->ret;
+//     // 		FREE(b->line);
+//     // 		memset(b, 0, sizeof(struct archive_read_buffer));
+//     // 		return ret;
+//     // 	}
+//     unimplemented!();
+// }
 
 /** Parse a full package specifier.
  * @param target package specifier to parse, such as: "pacman-4.0.1-2",
@@ -1293,19 +1291,19 @@ pub fn _parsedate(line: &str) -> Time {
 //
 
 /// Used as a buffer/state holder for _archive_fgets().
-pub struct archive_read_buffer {
-    line: String,
-    line_offset: String,
-    line_size: usize,
-    max_line_size: usize,
-    real_line_size: usize,
-
-    block: String,
-    block_offset: String,
-    block_size: usize,
-
-    ret: i32,
-}
+// pub struct archive_read_buffer {
+//     line: String,
+//     line_offset: String,
+//     line_size: usize,
+//     max_line_size: usize,
+//     real_line_size: usize,
+//
+//     block: String,
+//     block_offset: String,
+//     block_size: usize,
+//
+//     ret: i32,
+// }
 
 // int _makepath(const char *path);
 // int _makepath_mode(const char *path, mode_t mode);

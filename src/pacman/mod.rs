@@ -31,6 +31,8 @@ pub mod deptest;
 pub mod package;
 pub mod check;
 pub mod ini;
+pub mod callback;
+
 pub use self::ini::IniParserFn;
 pub use self::ini::parse_ini;
 use self::package::*;

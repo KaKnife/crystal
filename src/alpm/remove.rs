@@ -26,15 +26,15 @@ use super::*;
 
 /// Add a package removal action to the transaction.
 pub fn remove_pkg(trans: &mut Transaction, pkg: &Package) -> Result<()> {
-    if trans.remove.contains(&pkg) {
-        return Err(Error::TransactionDupTarget);
-    }
+    // if trans.remove.contains(alpm::DepPkg:Pkg(&pkg)) {
+    //     return Err(Error::TransactionDupTarget);
+    // }
     debug!(
         "adding package {} to the transaction remove list",
         pkg.get_name()
     );
     let copy = pkg.dup()?;
-    trans.remove.push(copy);
+    trans.remove.push(DepPkg::Pkg(copy));
     return Ok(());
 }
 

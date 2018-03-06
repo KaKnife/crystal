@@ -17,6 +17,9 @@
 //  *  You should have received a copy of the GNU General Public License
 //  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //  */
+
+// use super::*;
+
 //
 // #include <stdio.h>
 // #include <stdlib.h>
@@ -169,335 +172,340 @@
 //
 // 	return digits;
 // }
-//
-// /* callback to handle messages/notifications from libalpm transactions */
-// void cb_event(alpm_event_t *event)
-// {
-// 	if(config->print) {
-// 		return;
-// 	}
-// 	switch(event->type) {
-// 		case ALPM_EVENT_HOOK_START:
-// 			if(event->hook.when == ALPM_HOOK_PRE_TRANSACTION) {
-// 				colon_printf(_("Running pre-transaction hooks...\n"));
-// 			} else {
-// 				colon_printf(_("Running post-transaction hooks...\n"));
-// 			}
-// 			break;
-// 		case ALPM_EVENT_HOOK_RUN_START:
-// 			{
-// 				alpm_event_hook_run_t *e = &event->hook_run;
-// 				int digits = number_length(e->total);
-// 				printf("(%*zu/%*zu) %s\n", digits, e->position,
-// 						digits, e->total,
-// 						e->desc ? e->desc : e->name);
-// 			}
-// 			break;
-// 		case ALPM_EVENT_CHECKDEPS_START:
-// 			printf(_("checking dependencies...\n"));
-// 			break;
-// 		case ALPM_EVENT_FILECONFLICTS_START:
-// 			if(config->noprogressbar) {
-// 				printf(_("checking for file conflicts...\n"));
-// 			}
-// 			break;
-// 		case ALPM_EVENT_RESOLVEDEPS_START:
-// 			printf(_("resolving dependencies...\n"));
-// 			break;
-// 		case ALPM_EVENT_INTERCONFLICTS_START:
-// 			printf(_("looking for conflicting packages...\n"));
-// 			break;
-// 		case ALPM_EVENT_TRANSACTION_START:
-// 			colon_printf(_("Processing package changes...\n"));
-// 			break;
-// 		case ALPM_EVENT_PACKAGE_OPERATION_START:
-// 			if(config->noprogressbar) {
-// 				alpm_event_package_operation_t *e = &event->package_operation;
-// 				switch(e->operation) {
-// 					case ALPM_PACKAGE_INSTALL:
-// 						printf(_("installing %s...\n"), alpm_pkg_get_name(e->newpkg));
-// 						break;
-// 					case ALPM_PACKAGE_UPGRADE:
-// 						printf(_("upgrading %s...\n"), alpm_pkg_get_name(e->newpkg));
-// 						break;
-// 					case ALPM_PACKAGE_REINSTALL:
-// 						printf(_("reinstalling %s...\n"), alpm_pkg_get_name(e->newpkg));
-// 						break;
-// 					case ALPM_PACKAGE_DOWNGRADE:
-// 						printf(_("downgrading %s...\n"), alpm_pkg_get_name(e->newpkg));
-// 						break;
-// 					case ALPM_PACKAGE_REMOVE:
-// 						printf(_("removing %s...\n"), alpm_pkg_get_name(e->oldpkg));
-// 						break;
-// 				}
-// 			}
-// 			break;
-// 		case ALPM_EVENT_PACKAGE_OPERATION_DONE:
-// 			{
-// 				alpm_event_package_operation_t *e = &event->package_operation;
-// 				switch(e->operation) {
-// 					case ALPM_PACKAGE_INSTALL:
-// 						display_optdepends(e->newpkg);
-// 						break;
-// 					case ALPM_PACKAGE_UPGRADE:
-// 					case ALPM_PACKAGE_DOWNGRADE:
-// 						display_new_optdepends(e->oldpkg, e->newpkg);
-// 						break;
-// 					case ALPM_PACKAGE_REINSTALL:
-// 					case ALPM_PACKAGE_REMOVE:
-// 						break;
-// 				}
-// 			}
-// 			break;
-// 		case ALPM_EVENT_INTEGRITY_START:
-// 			if(config->noprogressbar) {
-// 				printf(_("checking package integrity...\n"));
-// 			}
-// 			break;
-// 		case ALPM_EVENT_KEYRING_START:
-// 			if(config->noprogressbar) {
-// 				printf(_("checking keyring...\n"));
-// 			}
-// 			break;
-// 		case ALPM_EVENT_KEY_DOWNLOAD_START:
-// 			printf(_("downloading required keys...\n"));
-// 			break;
-// 		case ALPM_EVENT_LOAD_START:
-// 			if(config->noprogressbar) {
-// 				printf(_("loading package files...\n"));
-// 			}
-// 			break;
-// 		case ALPM_EVENT_DELTA_INTEGRITY_START:
-// 			printf(_("checking delta integrity...\n"));
-// 			break;
-// 		case ALPM_EVENT_DELTA_PATCHES_START:
-// 			printf(_("applying deltas...\n"));
-// 			break;
-// 		case ALPM_EVENT_DELTA_PATCH_START:
-// 			printf(_("generating %s with %s... "),
-// 					event->delta_patch.delta->to,
-// 					event->delta_patch.delta->delta);
-// 			break;
-// 		case ALPM_EVENT_DELTA_PATCH_DONE:
-// 			printf(_("success!\n"));
-// 			break;
-// 		case ALPM_EVENT_DELTA_PATCH_FAILED:
-// 			printf(_("failed.\n"));
-// 			break;
-// 		case ALPM_EVENT_SCRIPTLET_INFO:
-// 			fputs(event->scriptlet_info.line, stdout);
-// 			break;
-// 		case ALPM_EVENT_RETRIEVE_START:
-// 			colon_printf(_("Retrieving packages...\n"));
-// 			break;
-// 		case ALPM_EVENT_DISKSPACE_START:
-// 			if(config->noprogressbar) {
-// 				printf(_("checking available disk space...\n"));
-// 			}
-// 			break;
-// 		case ALPM_EVENT_OPTDEP_REMOVAL:
-// 			{
-// 				alpm_event_optdep_removal_t *e = &event->optdep_removal;
-// 				char *dep_string = alpm_dep_compute_string(e->optdep);
-// 				colon_printf(_("%s optionally requires %s\n"),
-// 						alpm_pkg_get_name(e->pkg),
-// 						dep_string);
-// 				free(dep_string);
-// 			}
-// 			break;
-// 		case ALPM_EVENT_DATABASE_MISSING:
-// 			if(!config->op_s_sync) {
-// 				pm_printf(ALPM_LOG_WARNING,
-// 						"database file for '%s' does not exist (use '%s' to download)\n",
-// 						event->database_missing.dbname,
-// 						config->op == PM_OP_FILES ? "-Fy": "-Sy");
-// 			}
-// 			break;
-// 		case ALPM_EVENT_PACNEW_CREATED:
-// 			{
-// 				alpm_event_pacnew_created_t *e = &event->pacnew_created;
-// 				if(on_progress) {
-// 					char *string = NULL;
-// 					pm_sprintf(&string, ALPM_LOG_WARNING, _("%s installed as %s.pacnew\n"),
-// 							e->file, e->file);
-// 					if(string != NULL) {
-// 						output = alpm_list_add(output, string);
-// 					}
-// 				} else {
-// 					pm_printf(ALPM_LOG_WARNING, _("%s installed as %s.pacnew\n"),
-// 							e->file, e->file);
-// 				}
-// 			}
-// 			break;
-// 		case ALPM_EVENT_PACSAVE_CREATED:
-// 			{
-// 				alpm_event_pacsave_created_t *e = &event->pacsave_created;
-// 				if(on_progress) {
-// 					char *string = NULL;
-// 					pm_sprintf(&string, ALPM_LOG_WARNING, _("%s saved as %s.pacsave\n"),
-// 							e->file, e->file);
-// 					if(string != NULL) {
-// 						output = alpm_list_add(output, string);
-// 					}
-// 				} else {
-// 					pm_printf(ALPM_LOG_WARNING, _("%s saved as %s.pacsave\n"),
-// 							e->file, e->file);
-// 				}
-// 			}
-// 			break;
-// 		/* all the simple done events, with fallthrough for each */
-// 		case ALPM_EVENT_FILECONFLICTS_DONE:
-// 		case ALPM_EVENT_CHECKDEPS_DONE:
-// 		case ALPM_EVENT_RESOLVEDEPS_DONE:
-// 		case ALPM_EVENT_INTERCONFLICTS_DONE:
-// 		case ALPM_EVENT_TRANSACTION_DONE:
-// 		case ALPM_EVENT_INTEGRITY_DONE:
-// 		case ALPM_EVENT_KEYRING_DONE:
-// 		case ALPM_EVENT_KEY_DOWNLOAD_DONE:
-// 		case ALPM_EVENT_LOAD_DONE:
-// 		case ALPM_EVENT_DELTA_INTEGRITY_DONE:
-// 		case ALPM_EVENT_DELTA_PATCHES_DONE:
-// 		case ALPM_EVENT_DISKSPACE_DONE:
-// 		case ALPM_EVENT_RETRIEVE_DONE:
-// 		case ALPM_EVENT_RETRIEVE_FAILED:
-// 		case ALPM_EVENT_HOOK_DONE:
-// 		case ALPM_EVENT_HOOK_RUN_DONE:
-// 		/* we can safely ignore those as well */
-// 		case ALPM_EVENT_PKGDOWNLOAD_START:
-// 		case ALPM_EVENT_PKGDOWNLOAD_DONE:
-// 		case ALPM_EVENT_PKGDOWNLOAD_FAILED:
-// 			/* nothing */
-// 			break;
-// 	}
-// 	fflush(stdout);
-// }
-//
-// /* callback to handle questions from libalpm transactions (yes/no) */
-// void cb_question(alpm_question_t *question)
-// {
-// 	if(config->print) {
-// 		switch(question->type) {
-// 			case ALPM_QUESTION_INSTALL_IGNOREPKG:
-// 			case ALPM_QUESTION_REPLACE_PKG:
-// 				question->any.answer = 1;
-// 				break;
-// 			default:
-// 				question->any.answer = 0;
-// 				break;
-// 		}
-// 		return;
-// 	}
-// 	switch(question->type) {
-// 		case ALPM_QUESTION_INSTALL_IGNOREPKG:
-// 			{
-// 				alpm_question_install_ignorepkg_t *q = &question->install_ignorepkg;
-// 				if(!config->op_s_downloadonly) {
-// 					q->install = yesno(_("%s is in IgnorePkg/IgnoreGroup. Install anyway?"),
-// 							alpm_pkg_get_name(q->pkg));
-// 				} else {
-// 					q->install = 1;
-// 				}
-// 			}
-// 			break;
-// 		case ALPM_QUESTION_REPLACE_PKG:
-// 			{
-// 				alpm_question_replace_t *q = &question->replace;
-// 				q->replace = yesno(_("Replace %s with %s/%s?"),
-// 						alpm_pkg_get_name(q->oldpkg),
-// 						alpm_db_get_name(q->newdb),
-// 						alpm_pkg_get_name(q->newpkg));
-// 			}
-// 			break;
-// 		case ALPM_QUESTION_CONFLICT_PKG:
-// 			{
-// 				alpm_question_conflict_t *q = &question->conflict;
-// 				/* print conflict only if it contains new information */
-// 				if(strcmp(q->conflict->package1, q->conflict->reason->name) == 0
-// 						|| strcmp(q->conflict->package2, q->conflict->reason->name) == 0) {
-// 					q->remove = noyes(_("%s and %s are in conflict. Remove %s?"),
-// 							q->conflict->package1,
-// 							q->conflict->package2,
-// 							q->conflict->package2);
-// 				} else {
-// 					q->remove = noyes(_("%s and %s are in conflict (%s). Remove %s?"),
-// 							q->conflict->package1,
-// 							q->conflict->package2,
-// 							q->conflict->reason->name,
-// 							q->conflict->package2);
-// 				}
-// 			}
-// 			break;
-// 		case ALPM_QUESTION_REMOVE_PKGS:
-// 			{
-// 				alpm_question_remove_pkgs_t *q = &question->remove_pkgs;
-// 				alpm_list_t *namelist = NULL, *i;
-// 				size_t count = 0;
-// 				for(i = q->packages; i; i = i->next) {
-// 					namelist = alpm_list_add(namelist,
-// 							(char *)alpm_pkg_get_name(i->data));
-// 					count++;
-// 				}
-// 				colon_printf(_n(
-// 							"The following package cannot be upgraded due to unresolvable dependencies:\n",
-// 							"The following packages cannot be upgraded due to unresolvable dependencies:\n",
-// 							count));
-// 				list_display("     ", namelist, getcols());
-// 				printf("\n");
-// 				q->skip = noyes(_n(
-// 							"Do you want to skip the above package for this upgrade?",
-// 							"Do you want to skip the above packages for this upgrade?",
-// 							count));
-// 				alpm_list_free(namelist);
-// 			}
-// 			break;
-// 		case ALPM_QUESTION_SELECT_PROVIDER:
-// 			{
-// 				alpm_question_select_provider_t *q = &question->select_provider;
-// 				size_t count = alpm_list_count(q->providers);
-// 				char *depstring = alpm_dep_compute_string(q->depend);
-// 				colon_printf(_n("There is %zu provider available for %s\n",
-// 						"There are %zu providers available for %s:\n", count),
-// 						count, depstring);
-// 				free(depstring);
-// 				select_display(q->providers);
-// 				q->use_index = select_question(count);
-// 			}
-// 			break;
-// 		case ALPM_QUESTION_CORRUPTED_PKG:
-// 			{
-// 				alpm_question_corrupted_t *q = &question->corrupted;
-// 				q->remove = yesno(_("File %s is corrupted (%s).\n"
-// 							"Do you want to delete it?"),
-// 						q->filepath,
-// 						alpm_strerror(q->reason));
-// 			}
-// 			break;
-// 		case ALPM_QUESTION_IMPORT_KEY:
-// 			{
-// 				alpm_question_import_key_t *q = &question->import_key;
-// 				char created[12];
-// 				time_t time = (time_t)q->key->created;
-// 				strftime(created, 12, "%Y-%m-%d", localtime(&time));
-//
-// 				if(q->key->revoked) {
-// 					q->import = yesno(_("Import PGP key %u%c/%s, \"%s\", created: %s (revoked)?"),
-// 							q->key->length, q->key->pubkey_algo, q->key->fingerprint, q->key->uid, created);
-// 				} else {
-// 					q->import = yesno(_("Import PGP key %u%c/%s, \"%s\", created: %s?"),
-// 							q->key->length, q->key->pubkey_algo, q->key->fingerprint, q->key->uid, created);
-// 				}
-// 			}
-// 			break;
-// 	}
-// 	if(config->noask) {
-// 		if(config->ask & question->type) {
-// 			/* inverse the default answer */
-// 			question->any.answer = !question->any.answer;
-// 		}
-// 	}
-// }
-//
-// /* callback to handle display of transaction progress */
+use alpm::Event;
+/* callback to handle messages/notifications from libalpm transactions */
+fn cb_event(event: Event) {
+    match event {
+        Event::ResolveDepsStart => info!("resolving dependencies..."),
+        Event::DatabaseMissing(e) => warn!("database file for '{}' does not exist", e.dbname),
+        _ => {}
+    }
+    // 	switch(event->type) {
+
+    // 		case ALPM_EVENT_HOOK_START:
+    // 			if(event->hook.when == ALPM_HOOK_PRE_TRANSACTION) {
+    // 				colon_printf(_("Running pre-transaction hooks...\n"));
+    // 			} else {
+    // 				colon_printf(_("Running post-transaction hooks...\n"));
+    // 			}
+    // 			break;
+
+    // 		case ALPM_EVENT_HOOK_RUN_START:
+    // 			{
+    // 				alpm_event_hook_run_t *e = &event->hook_run;
+    // 				int digits = number_length(e->total);
+    // 				printf("(%*zu/%*zu) %s\n", digits, e->position,
+    // 						digits, e->total,
+    // 						e->desc ? e->desc : e->name);
+    // 			}
+    // 			break;
+
+    // 		case ALPM_EVENT_CHECKDEPS_START:
+    // 			info!("checking dependencies...");
+
+    // 		case ALPM_EVENT_FILECONFLICTS_START:
+    // 			if(config->noprogressbar) {
+    // 				printf(_("checking for file conflicts...\n"));
+    // 			}
+    // 			break;
+
+    // 		case ALPM_EVENT_INTERCONFLICTS_START:
+    // 			printf(_("looking for conflicting packages...\n"));
+
+    // 		case ALPM_EVENT_TRANSACTION_START:
+    // 			colon_printf(_("Processing package changes...\n"));
+
+    // 		case ALPM_EVENT_PACKAGE_OPERATION_START:
+    // 			if(config->noprogressbar) {
+    // 				alpm_event_package_operation_t *e = &event->package_operation;
+    // 				switch(e->operation) {
+    // 					case ALPM_PACKAGE_INSTALL:
+    // 						printf(_("installing %s...\n"), alpm_pkg_get_name(e->newpkg));
+    // 						break;
+    // 					case ALPM_PACKAGE_UPGRADE:
+    // 						printf(_("upgrading %s...\n"), alpm_pkg_get_name(e->newpkg));
+    // 						break;
+    // 					case ALPM_PACKAGE_REINSTALL:
+    // 						printf(_("reinstalling %s...\n"), alpm_pkg_get_name(e->newpkg));
+    // 						break;
+    // 					case ALPM_PACKAGE_DOWNGRADE:
+    // 						printf(_("downgrading %s...\n"), alpm_pkg_get_name(e->newpkg));
+    // 						break;
+    // 					case ALPM_PACKAGE_REMOVE:
+    // 						printf(_("removing %s...\n"), alpm_pkg_get_name(e->oldpkg));
+    // 						break;
+    // 				}
+    // 			}
+    // 			break;
+
+    // 		case ALPM_EVENT_PACKAGE_OPERATION_DONE:
+    // 			{
+    // 				alpm_event_package_operation_t *e = &event->package_operation;
+    // 				switch(e->operation) {
+    // 					case ALPM_PACKAGE_INSTALL:
+    // 						display_optdepends(e->newpkg);
+    // 						break;
+    // 					case ALPM_PACKAGE_UPGRADE:
+    // 					case ALPM_PACKAGE_DOWNGRADE:
+    // 						display_new_optdepends(e->oldpkg, e->newpkg);
+    // 						break;
+    // 					case ALPM_PACKAGE_REINSTALL:
+    // 					case ALPM_PACKAGE_REMOVE:
+    // 						break;
+    // 				}
+    // 			}
+    // 			break;
+
+    // 		case ALPM_EVENT_INTEGRITY_START:
+    // 			if(config->noprogressbar) {
+    // 				printf(_("checking package integrity...\n"));
+    // 			}
+    // 			break;
+
+    // 		case ALPM_EVENT_KEYRING_START:
+    // 			if(config->noprogressbar) {
+    // 				printf(_("checking keyring...\n"));
+    // 			}
+    // 			break;
+
+    // 		 ALPM_EVENT_KEY_DOWNLOAD_START:
+    // 			printf(_("downloading required keys...\n"));
+    // 			break;
+
+    // 		 ALPM_EVENT_LOAD_START:
+    // 			if(config->noprogressbar) {
+    // 				printf(_("loading package files...\n"));
+    // 			}
+    // 			break;
+
+    // ALPM_EVENT_DELTA_INTEGRITY_START: info!("checking delta integrity...");
+
+    // ALPM_EVENT_DELTA_PATCHES_START: info!("applying deltas...");
+
+    // 		 ALPM_EVENT_DELTA_PATCH_START:
+    // 			printf(_("generating %s with %s... "),
+    // 					event->delta_patch.delta->to,
+    // 					event->delta_patch.delta->delta);
+    // 			break;
+
+    // 		 ALPM_EVENT_DELTA_PATCH_DONE:
+    // 			printf(_("success!\n"));
+    // 			break;
+
+    // ALPM_EVENT_DELTA_PATCH_FAILED: info!("failed.");
+
+    // 		 ALPM_EVENT_SCRIPTLET_INFO:
+    // 			fputs(event->scriptlet_info.line, stdout);
+    // 			break;
+
+    // ALPM_EVENT_RETRIEVE_START: info!("Retrieving packages...");
+
+    // 		 ALPM_EVENT_DISKSPACE_START:
+    // 			if(config->noprogressbar) {
+    // 				printf(_("checking available disk space...\n"));
+    // 			}
+    // 			break;
+
+    // 		 ALPM_EVENT_OPTDEP_REMOVAL:
+    // 			{
+    // 				alpm_event_optdep_removal_t *e = &event->optdep_removal;
+    // 				char *dep_string = alpm_dep_compute_string(e->optdep);
+    // 				colon_printf(_("%s optionally requires %s\n"),
+    // 						alpm_pkg_get_name(e->pkg),
+    // 						dep_string);
+    // 				free(dep_string);
+    // 			}
+    // 			break;
+
+    // 		 ALPM_EVENT_PACNEW_CREATED:
+    // 			{
+    // 				alpm_event_pacnew_created_t *e = &event->pacnew_created;
+    // 				if(on_progress) {
+    // 					char *string = NULL;
+    // 					pm_sprintf(&string, ALPM_LOG_WARNING, _("%s installed as %s.pacnew\n"),
+    // 							e->file, e->file);
+    // 					if(string != NULL) {
+    // 						output = alpm_list_add(output, string);
+    // 					}
+    // 				} else {
+    // 					pm_printf(ALPM_LOG_WARNING, _("%s installed as %s.pacnew\n"),
+    // 							e->file, e->file);
+    // 				}
+    // 			}
+    // 			break;
+
+    // 		 ALPM_EVENT_PACSAVE_CREATED:
+    // 			{
+    // 				alpm_event_pacsave_created_t *e = &event->pacsave_created;
+    // 				if(on_progress) {
+    // 					char *string = NULL;
+    // 					pm_sprintf(&string, ALPM_LOG_WARNING, _("%s saved as %s.pacsave\n"),
+    // 							e->file, e->file);
+    // 					if(string != NULL) {
+    // 						output = alpm_list_add(output, string);
+    // 					}
+    // 				} else {
+    // 					pm_printf(ALPM_LOG_WARNING, _("%s saved as %s.pacsave\n"),
+    // 							e->file, e->file);
+    // 				}
+    // 			}
+    // 			break;
+
+    /* all the simple done events, with fallthrough for each */
+    // ALPM_EVENT_FILECONFLICTS_DONE:
+    // ALPM_EVENT_CHECKDEPS_DONE:
+    // ALPM_EVENT_RESOLVEDEPS_DONE:
+    // ALPM_EVENT_INTERCONFLICTS_DONE:
+    // ALPM_EVENT_TRANSACTION_DONE:
+    // ALPM_EVENT_INTEGRITY_DONE:
+    // ALPM_EVENT_KEYRING_DONE:
+    // ALPM_EVENT_KEY_DOWNLOAD_DONE:
+    // ALPM_EVENT_LOAD_DONE:
+    // ALPM_EVENT_DELTA_INTEGRITY_DONE:
+    // ALPM_EVENT_DELTA_PATCHES_DONE:
+    // ALPM_EVENT_DISKSPACE_DONE:
+    // ALPM_EVENT_RETRIEVE_DONE:
+    // ALPM_EVENT_RETRIEVE_FAILED:
+    // ALPM_EVENT_HOOK_DONE:
+    // ALPM_EVENT_HOOK_RUN_DONE:
+    /* we can safely ignore those as well */
+    // ALPM_EVENT_PKGDOWNLOAD_START:
+    // ALPM_EVENT_PKGDOWNLOAD_DONE:
+    // ALPM_EVENT_PKGDOWNLOAD_FAILED:
+    /* nothing */
+    // 			break;
+
+    // 	}
+    // 	fflush(stdout);
+    // }
+    //
+    // /* callback to handle questions from libalpm transactions (yes/no) */
+    // void cb_question(alpm_question_t *question)
+    // {
+    // 	if(config->print) {
+    // 		switch(question->type) {
+    // 			case ALPM_QUESTION_INSTALL_IGNOREPKG:
+    // 			case ALPM_QUESTION_REPLACE_PKG:
+    // 				question->any.answer = 1;
+    // 				break;
+    // 			default:
+    // 				question->any.answer = 0;
+    // 				break;
+    // 		}
+    // 		return;
+    // 	}
+    // 	switch(question->type) {
+    // 		case ALPM_QUESTION_INSTALL_IGNOREPKG:
+    // 			{
+    // 				alpm_question_install_ignorepkg_t *q = &question->install_ignorepkg;
+    // 				if(!config->op_s_downloadonly) {
+    // 					q->install = yesno(_("%s is in IgnorePkg/IgnoreGroup. Install anyway?"),
+    // 							alpm_pkg_get_name(q->pkg));
+    // 				} else {
+    // 					q->install = 1;
+    // 				}
+    // 			}
+    // 			break;
+    // 		case ALPM_QUESTION_REPLACE_PKG:
+    // 			{
+    // 				alpm_question_replace_t *q = &question->replace;
+    // 				q->replace = yesno(_("Replace %s with %s/%s?"),
+    // 						alpm_pkg_get_name(q->oldpkg),
+    // 						alpm_db_get_name(q->newdb),
+    // 						alpm_pkg_get_name(q->newpkg));
+    // 			}
+    // 			break;
+    // 		case ALPM_QUESTION_CONFLICT_PKG:
+    // 			{
+    // 				alpm_question_conflict_t *q = &question->conflict;
+    // 				/* print conflict only if it contains new information */
+    // 				if(strcmp(q->conflict->package1, q->conflict->reason->name) == 0
+    // 						|| strcmp(q->conflict->package2, q->conflict->reason->name) == 0) {
+    // 					q->remove = noyes(_("%s and %s are in conflict. Remove %s?"),
+    // 							q->conflict->package1,
+    // 							q->conflict->package2,
+    // 							q->conflict->package2);
+    // 				} else {
+    // 					q->remove = noyes(_("%s and %s are in conflict (%s). Remove %s?"),
+    // 							q->conflict->package1,
+    // 							q->conflict->package2,
+    // 							q->conflict->reason->name,
+    // 							q->conflict->package2);
+    // 				}
+    // 			}
+    // 			break;
+    // 		case ALPM_QUESTION_REMOVE_PKGS:
+    // 			{
+    // 				alpm_question_remove_pkgs_t *q = &question->remove_pkgs;
+    // 				alpm_list_t *namelist = NULL, *i;
+    // 				size_t count = 0;
+    // 				for(i = q->packages; i; i = i->next) {
+    // 					namelist = alpm_list_add(namelist,
+    // 							(char *)alpm_pkg_get_name(i->data));
+    // 					count++;
+    // 				}
+    // 				colon_printf(_n(
+    // 							"The following package cannot be upgraded due to unresolvable dependencies:\n",
+    // 							"The following packages cannot be upgraded due to unresolvable dependencies:\n",
+    // 							count));
+    // 				list_display("     ", namelist, getcols());
+    // 				printf("\n");
+    // 				q->skip = noyes(_n(
+    // 							"Do you want to skip the above package for this upgrade?",
+    // 							"Do you want to skip the above packages for this upgrade?",
+    // 							count));
+    // 				alpm_list_free(namelist);
+    // 			}
+    // 			break;
+    // 		case ALPM_QUESTION_SELECT_PROVIDER:
+    // 			{
+    // 				alpm_question_select_provider_t *q = &question->select_provider;
+    // 				size_t count = alpm_list_count(q->providers);
+    // 				char *depstring = alpm_dep_compute_string(q->depend);
+    // 				colon_printf(_n("There is %zu provider available for %s\n",
+    // 						"There are %zu providers available for %s:\n", count),
+    // 						count, depstring);
+    // 				free(depstring);
+    // 				select_display(q->providers);
+    // 				q->use_index = select_question(count);
+    // 			}
+    // 			break;
+    // 		case ALPM_QUESTION_CORRUPTED_PKG:
+    // 			{
+    // 				alpm_question_corrupted_t *q = &question->corrupted;
+    // 				q->remove = yesno(_("File %s is corrupted (%s).\n"
+    // 							"Do you want to delete it?"),
+    // 						q->filepath,
+    // 						alpm_strerror(q->reason));
+    // 			}
+    // 			break;
+    // 		case ALPM_QUESTION_IMPORT_KEY:
+    // 			{
+    // 				alpm_question_import_key_t *q = &question->import_key;
+    // 				char created[12];
+    // 				time_t time = (time_t)q->key->created;
+    // 				strftime(created, 12, "%Y-%m-%d", localtime(&time));
+    //
+    // 				if(q->key->revoked) {
+    // 					q->import = yesno(_("Import PGP key %u%c/%s, \"%s\", created: %s (revoked)?"),
+    // 							q->key->length, q->key->pubkey_algo, q->key->fingerprint, q->key->uid, created);
+    // 				} else {
+    // 					q->import = yesno(_("Import PGP key %u%c/%s, \"%s\", created: %s?"),
+    // 							q->key->length, q->key->pubkey_algo, q->key->fingerprint, q->key->uid, created);
+    // 				}
+    // 			}
+    // 			break;
+    // 	}
+    // 	if(config->noask) {
+    // 		if(config->ask & question->type) {
+    // 			/* inverse the default answer */
+    // 			question->any.answer = !question->any.answer;
+    // 		}
+    // 	}
+    unimplemented!();
+}
+
+/* callback to handle display of transaction progress */
 // void cb_progress(alpm_progress_t event, const char *pkgname, int percent,
 //                        size_t howmany, size_t current)
 // {

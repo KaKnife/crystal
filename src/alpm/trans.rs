@@ -38,6 +38,20 @@ impl Default for AlpmTransState {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum DepPkg {
+    Pkg(Package),
+    Dep(Dependency),
+}
+impl DepPkg {
+    pub fn get_name(&self) -> &String {
+        match self {
+            &DepPkg::Pkg(ref p) => p.get_name(),
+            &DepPkg::Dep(ref d) => &d.name,
+        }
+    }
+}
+
 #[derive(Default, Debug, Clone)]
 /* Transaction */
 pub struct Transaction {
@@ -46,7 +60,7 @@ pub struct Transaction {
     pub state: AlpmTransState,
     pub unresolvable: Vec<Package>,
     pub add: Vec<Package>,
-    pub remove: Vec<Package>,
+    pub remove: Vec<DepPkg>,
     pub skip_remove: Vec<String>,
 }
 

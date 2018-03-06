@@ -40,13 +40,13 @@ macro_rules! QUESTION {
     }
 }
 
-macro_rules! EVENT {
-    ($h:expr, $e:expr) => {
-        if let Some(f) = $h.eventcb {
-            f($e);
-        }
-    }
-}
+// macro_rules! EVENT {
+//     ($h:expr, $e:expr) => {
+//         if let Some(f) = $h.eventcb {
+//             f($e);
+//         }
+//     }
+// }
 
 // /// Returns the callback used for logging.
 // alpm_cb_log SYMEXPORT alpm_get_logcb(Handle *handle)
@@ -435,8 +435,7 @@ impl Handle {
         // 	trans->state = STATE_COMMITING;
         //
         // 	alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction started\n");
-        // 	event.type = ALPM_EVENT_TRANSACTION_START;
-        // 	EVENT(handle, (void *)&event);
+        // 	info!("Processing package changes...");
         //
         // 	if(trans->add == NULL) {
         // 		if(_alpm_remove_packages(handle, 1) == -1) {
@@ -459,8 +458,6 @@ impl Handle {
         // 	if(trans->state == STATE_INTERRUPTED) {
         // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction interrupted\n");
         // 	} else {
-        // 		event.type = ALPM_EVENT_TRANSACTION_DONE;
-        // 		EVENT(handle, (void *)&event);
         // 		alpm_logaction(handle, ALPM_CALLER_PREFIX, "transaction completed\n");
         // 		_alpm_hook_run(handle, ALPM_HOOK_POST_TRANSACTION);
         // 	}
@@ -1705,9 +1702,6 @@ impl Handle {
         // 		free(scriptlet);
         // 	}
         //
-        // 	event.type = ALPM_EVENT_PACKAGE_OPERATION_DONE;
-        // 	EVENT(handle, &event);
-        //
         // cleanup:
         // 	return ret;
     }
@@ -2302,8 +2296,7 @@ impl Handle {
         // 	}
         //
         // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
-        // 		event.type = ALPM_EVENT_CHECKDEPS_START;
-        // 		EVENT(handle, &event);
+        // 		info!("checking dependencies...");
         //
         // 		_alpm_log(handle, ALPM_LOG_DEBUG, "looking for unsatisfied dependencies\n");
         // 		lp = alpm_checkdeps(handle, _get_pkgcache(db), trans->remove, NULL, 1);
@@ -2345,11 +2338,6 @@ impl Handle {
         // 		remove_notify_needed_optdepends(handle, trans->remove);
         // 	}
         //
-        // 	if(!(trans->flags & ALPM_TRANS_FLAG_NODEPS)) {
-        // 		event.type = ALPM_EVENT_CHECKDEPS_DONE;
-        // 		EVENT(handle, &event);
-        // 	}
-        //
         // 	return 0;
     }
 
@@ -2360,9 +2348,7 @@ impl Handle {
         let mut from_sync = false;
         let ret = 0;
         let trans = &self.trans;
-        let mut event = EventAny {
-            etype: EventType::ResolveDepsStart,
-        };
+        // let mut event;
 
         // 	if(data) {
         // 		*data = NULL;
@@ -2393,21 +2379,19 @@ impl Handle {
 
         if !trans.flags.no_deps {
             // 		alpm_list_t *resolved = NULL;
-            // 		alpm_list_t *remove = alpm_list_copy(trans.remove);
+            let mut remove = trans.remove.clone();
             // 		alpm_list_t *localpkgs;
 
             /* Build up list by repeatedly resolving each transaction package */
             /* Resolve targets dependencies */
-            event.etype = EventType::ResolveDepsStart;
-            EVENT!(self, &mut Event::any(event));
+            info!("resolving dependencies...");
             debug!("resolving target's dependencies");
 
             /* build remove list for resolvedeps */
             for spkg in &trans.add {
-                unimplemented!();
-                // for pkg in spkg.removes {
-                //     remove.push(pkg);
-                // }
+                for pkg in &spkg.removes {
+                    remove.push(DepPkg::Dep(pkg.clone()));
+                }
             }
             unimplemented!();
 
@@ -2418,15 +2402,14 @@ impl Handle {
 
             /* Resolve packages in the transaction one at a time, in addition
              * building up a list of packages which could not be resolved. */
-            // 		for(i = trans->add; i; i = i->next) {
-            // 			Package *pkg = i->data;
-            // 			if(_alpm_resolvedeps(handle, localpkgs, pkg, trans->add,
-            // 						&resolved, remove, data) == -1) {
-            // 				unresolvable = alpm_list_add(unresolvable, pkg);
-            // 			}
-            // 			/* Else, [resolved] now additionally contains [pkg] and all of its
-            // 			   dependencies not already on the list */
-            // 		}
+            for pkg in &self.trans.add {
+                // if(_alpm_resolvedeps(handle, localpkgs, pkg, trans->add,
+                			// 			&resolved, remove, data) == -1) {
+                			// 	unresolvable = alpm_list_add(unresolvable, pkg);
+                			// }
+                			/* Else, [resolved] now additionally contains [pkg] and all of its
+                			   dependencies not already on the list */
+            }
 
             /* If there were unresolvable top-level packages, prompt the user to
              * see if they'd like to ignore them rather than failing the sync */
@@ -2471,19 +2454,15 @@ impl Handle {
              * aside in the transaction as a list we won't operate on. If we free them
              * before the end of the transaction, we may kill pointers the frontend
              * holds to package objects. */
-            // 		trans->unresolvable = unresolvable;
+            // 		trans.unresolvable = unresolvable;
 
-            // 		trans->add = resolved;
-
-            // 		event.type = ALPM_EVENT_RESOLVEDEPS_DONE;
-            // 		EVENT(handle, &event);
+            // 		trans.add = resolved;
         }
 
         if !trans.flags.no_conflicts {
             unimplemented!();
             // 		/* check for inter-conflicts and whatnot */
-            // 		event.type = ALPM_EVENT_INTERCONFLICTS_START;
-            // 		EVENT(handle, &event);
+            // 		info!("looking for conflicting packages...");
             //
             // 		debug!("looking for conflicts\n");
             //
@@ -2599,10 +2578,6 @@ impl Handle {
             // 				goto cleanup;
             // 			}
             // 		}
-            // 		event.type = ALPM_EVENT_INTERCONFLICTS_DONE;
-            // 		EVENT(handle, &event);
-            // 		alpm_list_free_inner(deps, (alpm_list_fn_free)alpm_conflict_free);
-            // 		alpm_list_free(deps);
         }
 
         /* Build trans->remove list */
@@ -2804,10 +2779,10 @@ impl Handle {
         self.ignorepkg.sort();
         debug!("checking for package upgrades");
         for lpkg in self.db_local.get_pkgcache()? {
-            if self.trans.remove.contains(&&lpkg) {
-                debug!("{} is marked for removal -- skipping", lpkg.get_name());
-                continue;
-            }
+            // if self.trans.remove.contains(&&lpkg) {
+            //     debug!("{} is marked for removal -- skipping", lpkg.get_name());
+            //     continue;
+            // }
 
             if self.trans.add.contains(&&lpkg) {
                 debug!(
@@ -2862,13 +2837,6 @@ pub fn set_directory_option(value: &String, must_exist: bool) -> Result<String> 
             .into_string()?)
     }
 }
-
-// #define EVENT(h, e) \
-// do { \
-// 	if((h)->eventcb) { \
-// 		(h)->eventcb((alpm_event_t *) (e)); \
-// 	} \
-// } while(0)
 
 // #define QUESTION(h, q) \
 // do { \

@@ -52,6 +52,7 @@ pub use self::deps::dep_from_string;
 pub use self::be_sync::db_update;
 pub use self::deps::find_satisfier;
 pub use self::error::Error;
+pub use self::trans::DepPkg;
 
 use std::ops::BitOr;
 use std::ops::BitAnd;
@@ -369,113 +370,15 @@ enum HookWhen {
 }
 
 /// Type of events.
-enum EventType {
-    //     /// Dependencies will be computed for a package.
-    //     ALPM_EVENT_CHECKDEPS_START = 1,
-    //     /// Dependencies were computed for a package.
-    //     ALPM_EVENT_CHECKDEPS_DONE,
-    //     /// File conflicts will be computed for a package.
-    //     ALPM_EVENT_FILECONFLICTS_START,
-    //     /// File conflicts were computed for a package.
-    //     ALPM_EVENT_FILECONFLICTS_DONE,
-    /// Dependencies will be resolved for target package.
-    ResolveDepsStart,
-    //     /// Dependencies were resolved for target package.
-    //     ALPM_EVENT_RESOLVEDEPS_DONE,
-    //     /// Inter-conflicts will be checked for target package.
-    //     ALPM_EVENT_INTERCONFLICTS_START,
-    //     /// Inter-conflicts were checked for target package.
-    //     ALPM_EVENT_INTERCONFLICTS_DONE,
-    //     /// Processing the package transaction is starting.
-    //     ALPM_EVENT_TRANSACTION_START,
-    //     /// Processing the package transaction is finished.
-    //     ALPM_EVENT_TRANSACTION_DONE,
-    //     /// Package will be installed/upgraded/downgraded/re-installed/removed; See
-    //     /// event_package_operation for arguments.
-    //     ALPM_EVENT_package_OPERATION_START,
-    //     /// Package was installed/upgraded/downgraded/re-installed/removed; See
-    //     /// event_package_operation for arguments.
-    //     ALPM_EVENT_package_OPERATION_DONE,
-    //     /// Target package's integrity will be checked.
-    //     ALPM_EVENT_INTEGRITY_START,
-    //     /// Target package's integrity was checked.
-    //     ALPM_EVENT_INTEGRITY_DONE,
-    //     /// Target package will be loaded.
-    //     ALPM_EVENT_LOAD_START,
-    //     /// Target package is finished loading.
-    //     ALPM_EVENT_LOAD_DONE,
-    //     /// Target delta's integrity will be checked.
-    //     ALPM_EVENT_DELTA_INTEGRITY_START,
-    //     /// Target delta's integrity was checked.
-    //     ALPM_EVENT_DELTA_INTEGRITY_DONE,
-    //     /// Deltas will be applied to packages.
-    //     ALPM_EVENT_DELTA_PATCHES_START,
-    //     /// Deltas were applied to packages.
-    //     ALPM_EVENT_DELTA_PATCHES_DONE,
-    //     /// Delta patch will be applied to target package; See
-    //     /// event_delta_patch for arguments..
-    //     ALPM_EVENT_DELTA_PATCH_START,
-    //     /// Delta patch was applied to target package.
-    //     ALPM_EVENT_DELTA_PATCH_DONE,
-    //     /// Delta patch failed to apply to target package.
-    //     ALPM_EVENT_DELTA_PATCH_FAILED,
-    //     /// Scriptlet has printed information; See event_scriptlet_info for
-    //     /// arguments.
-    //     ALPM_EVENT_SCRIPTLET_INFO,
-    //     /// Files will be downloaded from a repository.
-    //     ALPM_EVENT_RETRIEVE_START,
-    //     /// Files were downloaded from a repository.
-    //     ALPM_EVENT_RETRIEVE_DONE,
-    //     /// Not all files were successfully downloaded from a repository.
-    //     ALPM_EVENT_RETRIEVE_FAILED,
-    //     /// A file will be downloaded from a repository; See event_pkgdownload
-    //     /// for arguments
-    //     ALPM_EVENT_PKGDOWNLOAD_START,
-    //     /// A file was downloaded from a repository; See event_pkgdownload
-    //     /// for arguments
-    //     ALPM_EVENT_PKGDOWNLOAD_DONE,
-    //     /// A file failed to be downloaded from a repository; See
-    //     /// event_pkgdownload for arguments
-    //     ALPM_EVENT_PKGDOWNLOAD_FAILED,
-    //     /// Disk space usage will be computed for a package.
-    //     ALPM_EVENT_DISKSPACE_START,
-    //     /// Disk space usage was computed for a package.
-    //     ALPM_EVENT_DISKSPACE_DONE,
-    //     /// An optdepend for another package is being removed; See
-    //     /// event_optdep_removal for arguments.
-    //     ALPM_EVENT_OPTDEP_REMOVAL,
-    //     /// A configured repository database is missing; See
-    //     /// event_database_missing for arguments.
-    //     ALPM_EVENT_database_MISSING,
-    //     /// Checking keys used to create signatures are in keyring.
-    //     ALPM_EVENT_KEYRING_START,
-    //     /// Keyring checking is finished.
-    //     ALPM_EVENT_KEYRING_DONE,
-    //     /// Downloading missing keys into keyring.
-    //     ALPM_EVENT_KEY_DOWNLOAD_START,
-    //     /// Key downloading is finished.
-    //     ALPM_EVENT_KEY_DOWNLOAD_DONE,
-    //     /// A .pacnew file was created; See event_pacnew_created for arguments.
-    //     ALPM_EVENT_PACNEW_CREATED,
-    //     /// A .pacsave file was created; See event_pacsave_created for
-    //     /// arguments
-    //     ALPM_EVENT_PACSAVE_CREATED,
-    //     /// Processing hooks will be started.
-    //     ALPM_EVENT_HOOK_START,
-    //     /// Processing hooks is finished.
-    //     ALPM_EVENT_HOOK_DONE,
-    //     /// A hook is starting
-    //     ALPM_EVENT_HOOK_RUN_START,
-    //     /// A hook has finished running
-    //     ALPM_EVENT_HOOK_RUN_DONE,
+pub enum EventType {
 }
 
-struct EventAny {
+pub struct EventAny {
     /// Type of event.
     etype: EventType,
 }
 
-enum PackageOperation {
+pub enum PackageOperation {
     /// Package (to be) installed. (No oldpkg)
     Install = 1,
     /// Package (to be) upgraded
@@ -488,7 +391,7 @@ enum PackageOperation {
     Remove,
 }
 
-struct EventPackageOperation<'a> {
+pub struct EventPackageOperation<'a> {
     /// Type of event.
     etype: EventType,
     /// Type of operation.
@@ -499,7 +402,7 @@ struct EventPackageOperation<'a> {
     newpkg: &'a Package,
 }
 
-struct EventOptdepRemoval<'a> {
+pub struct EventOptdepRemoval<'a> {
     /// Type of event.
     etype: EventType,
     /// Package with the optdep.
@@ -508,34 +411,34 @@ struct EventOptdepRemoval<'a> {
     optdep: &'a Dependency,
 }
 
-struct EventDeltaPatch {
+pub struct EventDeltaPatch {
     /// Type of event.
     etype: EventType, // 	/// Delta info
                       // 	delta *delta;
 }
 
-// typedef struct Eventscriptlet_info {
-// 	/// Type of event.
-// 	eventype type;
-// 	/// Line of scriptlet output.
-// 	const char *line;
-// } event_scriptlet_info;
+pub struct EventScriptletInfo {
+    /// Type of event.
+    eventype: EventType,
+    /// Line of scriptlet output.
+    line: String,
+}
 
-// typedef struct Eventdatabase_missing {
-// 	/// Type of event.
-// 	eventype type;
-// 	/// Name of the database.
-// 	const char *dbname;
-// } event_database_missing;
+/// A configured repository database is missing; See
+/// event_database_missing for arguments.
+pub struct EventDatabaseMissing {
+    /// Name of the database.
+    pub dbname: String,
+}
 
-// typedef struct Eventpkgdownload {
+//  struct Eventpkgdownload {
 // 	/// Type of event.
 // 	eventype type;
 // 	/// Name of the file
 // 	const char *file;
-// } event_pkgdownload;
+// }
 
-// typedef struct Eventpacnew_created {
+//  struct Eventpacnew_created {
 // 	/// Type of event.
 // 	eventype type;
 // 	/// Whether the creation was result of a NoUpgrade or not
@@ -546,25 +449,25 @@ struct EventDeltaPatch {
 // 	Package *newpkg;
 // 	/// Filename of the file without the .pacnew suffix
 // 	const char *file;
-// } event_pacnew_created;
+// }
 
-// typedef struct Eventpacsave_created {
+//  struct Eventpacsave_created {
 // 	/// Type of event.
 // 	EventType type;
 // 	/// Old package.
 // 	Package *oldpkg;
 // 	/// Filename of the file without the .pacsave suffix.
 // 	const char *file;
-// } event_pacsave_created;
+// }
 
-// typedef struct Eventhook {
+//  struct Eventhook {
 // 	/// Type of event.
 // 	eventype type;
 // 	/// Type of hooks.
 // 	hook_when when;
-// } event_hook;
+// }
 
-// typedef struct Eventhook_run {
+pub struct EventHookRun {
 // 	/// Type of event.
 // 	eventype type;
 // 	/// Name of hook
@@ -575,25 +478,121 @@ struct EventDeltaPatch {
 // 	size position;
 // 	/// total hooks being run
 // 	size total;
-// } event_hook_run;
+}
 
-// /// Events.
-//  * This is an union passed to the callback, that allows the frontend to know
-//  * which type of event was triggered (via type). It is then possible to
-//  * typecast the pointer to the right structure, or use the union field, in order
-//  * to access event-specific data.
-enum Event {
+/// Events.
+/// This is an union passed to the callback, that allows the frontend to know
+/// which type of event was triggered (via type). It is then possible to
+/// typecast the pointer to the right structure, or use the union field, in order
+/// to access event-specific data.
+pub enum Event<'a> {
     // 	eventype type;
-    any(EventAny), // 	event_package_operation package_operation;
-                   // 	event_optdep_removal optdep_removal;
-                   // 	event_delta_patch delta_patch;
-                   // 	event_scriptlet_info scriptlet_info;
-                   // 	event_database_missing database_missing;
-                   // 	event_pkgdownload pkgdownload;
-                   // 	event_pacnew_created pacnew_created;
-                   // 	event_pacsave_created pacsave_created;
-                   // 	event_hook hook;
-                   // 	event_hook_run hook_run;
+    Any(EventAny),
+    /// Dependencies will be resolved for target package.
+    ResolveDepsStart,
+    PackageOperation(EventPackageOperation<'a>),
+    OptdepRemoval(EventOptdepRemoval<'a>),
+    DeltaPatch(EventDeltaPatch),
+    ScriptletInfo(EventScriptletInfo),
+    DatabaseMissing(EventDatabaseMissing),
+    // 	event_pkgdownload pkgdownload;
+    // 	event_pacnew_created pacnew_created;
+    // 	event_pacsave_created pacsave_created;
+    // 	event_hook hook;
+    // 	event_hook_run hook_run;
+    /// Dependencies will be computed for a package.
+    CheckdepsStart,
+    /// Dependencies were computed for a package.
+    CheckdepsDone,
+    /// File conflicts will be computed for a package.
+    FileConflictsStart,
+    /// File conflicts were computed for a package.
+    FileConflictsDone,
+    /// Dependencies were resolved for target package.
+    ResolveDepsDone,
+    /// Inter-conflicts will be checked for target package.
+    InterConflictsStart,
+    /// Inter-conflicts were checked for target package.
+    InterConflictsDone,
+    /// Processing the package transaction is starting.
+    TransactionStart,
+    /// Processing the package transaction is finished.
+    TransactionDone,
+    /// Package will be installed/upgraded/downgraded/re-installed/removed; See
+    /// event_package_operation for arguments.
+    PackageOperationStart,
+    /// Package was installed/upgraded/downgraded/re-installed/removed; See
+    /// event_package_operation for arguments.
+    PackageOperationDone,
+    // /// Target package's integrity will be checked.
+    // IntegrityStart,
+    // /// Target package's integrity was checked.
+    // INTEGRITY_Done,
+    // /// Target package will be loaded.
+    // LoadStart,
+    // /// Target package is finished loading.
+    // LoadDone,
+    // /// Target delta's integrity will be checked.
+    // DELTA_INTEGRITY_Start,
+    // /// Target delta's integrity was checked.
+    // DELTA_INTEGRITY_Done,
+    // /// Deltas will be applied to packages.
+    // DELTA_PATCHES_Start,
+    // /// Deltas were applied to packages.
+    // DELTA_PATCHES_Done,
+    // /// Delta patch will be applied to target package; See
+    // /// event_delta_patch for arguments..
+    // DELTA_PATCH_Start,
+    // /// Delta patch was applied to target package.
+    // DELTA_PATCH_Done,
+    // /// Delta patch failed to apply to target package.
+    // DELTA_PATCH_FAILED,
+    // /// Scriptlet has printed information; See event_scriptlet_info for
+    // /// arguments.
+    // SCRIPTLET_INFO,
+    // /// Files will be downloaded from a repository.
+    // RETRIEVE_Start,
+    // /// Files were downloaded from a repository.
+    // RETRIEVE_Done,
+    // /// Not all files were successfully downloaded from a repository.
+    // RETRIEVE_FAILED,
+    // /// A file will be downloaded from a repository; See event_pkgdownload
+    // /// for arguments
+    // PKGDOWNLOAD_Start,
+    // /// A file was downloaded from a repository; See event_pkgdownload
+    // /// for arguments
+    // PKGDOWNLOAD_Done,
+    // /// A file failed to be downloaded from a repository; See
+    // /// event_pkgdownload for arguments
+    // PKGDOWNLOAD_FAILED,
+    // /// Disk space usage will be computed for a package.
+    // DISKSPACE_Start,
+    // /// Disk space usage was computed for a package.
+    // DISKSPACE_Done,
+    // /// An optdepend for another package is being removed; See
+    // /// event_optdep_removal for arguments.
+    // OPTDEP_REMOVAL,
+    // /// Checking keys used to create signatures are in keyring.
+    // KEYRING_Start,
+    // /// Keyring checking is finished.
+    // KEYRING_Done,
+    // /// Downloading missing keys into keyring.
+    // KEY_DOWNLOAD_Start,
+    // /// Key downloading is finished.
+    // KEY_DOWNLOAD_Done,
+    // /// A .pacnew file was created; See event_pacnew_created for arguments.
+    // PACNEW_CREATED,
+    // /// A .pacsave file was created; See event_pacsave_created for
+    // /// arguments
+    // PACSAVE_CREATED,
+    // /// Processing hooks will be started.
+    // HOOK_Start,
+    // /// Processing hooks is finished.
+    // HOOK_Done,
+    // /// A hook is starting
+    // HOOK_RUN_Start,
+    // /// A hook has finished running
+    // HOOK_RUN_Done,
 }
 
 /// Event callback.

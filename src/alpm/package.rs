@@ -48,8 +48,7 @@ use super::{Dependency, Time};
 use super::deps::dep_vercmp;
 use std::cmp::{Ord, Ordering};
 use std::fs::File;
-use std::str::Lines;
-use humantime::{Duration, format_rfc3339};
+use humantime::format_rfc3339;
 use std::time::{Duration as StdDuration, UNIX_EPOCH};
 
 // /** Package operations struct. This struct contains function pointers to
@@ -155,7 +154,7 @@ pub struct Package {
     provides: Vec<Dependency>,
     deltas: Vec<Dependency>,
     delta_path: Vec<Dependency>,
-    removes: Vec<Dependency>,
+    pub removes: Vec<Dependency>,
     /* in transaction targets only */
     // pub oldpkg: Option<Package>, /* in transaction targets only */
 

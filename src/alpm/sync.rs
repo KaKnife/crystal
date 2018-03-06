@@ -100,8 +100,7 @@ fn apply_deltas(handle: &Handle) -> i32 {
     // 		if(!deltas_found) {
     // 			/* only show this if we actually have deltas to apply, and it is before
     // 			 * the very first one */
-    // 			event.type = ALPM_EVENT_DELTA_PATCHES_START;
-    // 			EVENT(handle, &event);
+    // 			info!("applying deltas...");
     // 			deltas_found = 1;
     // 		}
     //
@@ -141,8 +140,6 @@ fn apply_deltas(handle: &Handle) -> i32 {
     //
     // 			int retval = system(command);
     // 			if(retval == 0) {
-    // 				event.type = ALPM_EVENT_DELTA_PATCH_DONE;
-    // 				EVENT(handle, &event);
     //
     // 				/* delete the delta file */
     // 				unlink(delta);
@@ -154,23 +151,15 @@ fn apply_deltas(handle: &Handle) -> i32 {
     // 					unlink(from);
     // 				}
     // 			}
-    // 			FREE(from);
-    // 			FREE(to);
-    // 			FREE(delta);
     //
     // 			if(retval != 0) {
     // 				/* one delta failed for this package, cancel the remaining ones */
-    // 				event.type = ALPM_EVENT_DELTA_PATCH_FAILED;
-    // 				EVENT(handle, &event);
+    // 				info!("failed.");
     // 				handle->pm_errno = ALPM_ERR_DLT_PATCHFAILED;
     // 				ret = 1;
     // 				break;
     // 			}
     // 		}
-    // 	}
-    // 	if(deltas_found) {
-    // 		event.type = ALPM_EVENT_DELTA_PATCHES_DONE;
-    // 		EVENT(handle, &event);
     // 	}
     //
     // 	return ret;
@@ -209,8 +198,7 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 	}
 //
 // 	/* Check integrity of deltas */
-// 	event.type = ALPM_EVENT_DELTA_INTEGRITY_START;
-// 	EVENT(handle, &event);
+// 	info!("checking delta integrity...");
 // 	for(i = deltas; i; i = i->next) {
 // 		delta_t *d = i->data;
 // 		char *filepath = _filecache_find(handle, d->delta);
@@ -221,8 +209,6 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 			FREE(filepath);
 // 		}
 // 	}
-// 	event.type = ALPM_EVENT_DELTA_INTEGRITY_DONE;
-// 	EVENT(handle, &event);
 //
 // 	if(errors) {
 // 		for(i = errors; i; i = i->next) {
@@ -318,15 +304,11 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 		snprintf(payload->fileurl, len, "{}/{}", server_url, payload->remote_name);
 //
 // 		if(_download(payload, cachedir, NULL, NULL) != -1) {
-// 			event.type = ALPM_EVENT_PKGDOWNLOAD_DONE;
-// 			EVENT(handle, &event);
 // 			return 0;
 // 		}
 // 		_dload_payload_reset_for_retry(payload);
 // 	}
 //
-// 	event.type = ALPM_EVENT_PKGDOWNLOAD_FAILED;
-// 	EVENT(handle, &event);
 // 	return -1;
 // }
 
@@ -383,17 +365,13 @@ fn prompt_to_delete(handle: &Handle, filepath: &String, reason: Error) -> i32 {
 // 			}
 // 		}
 //
-// 		event.type = ALPM_EVENT_RETRIEVE_START;
-// 		EVENT(handle, &event);
-// 		event.type = ALPM_EVENT_RETRIEVE_DONE;
+//      info!("Retrieving packages...");
 // 		for(i = files; i; i = i->next) {
 // 			if(download_single_file(handle, i->data, cachedir) == -1) {
 // 				errors++;
-// 				event.type = ALPM_EVENT_RETRIEVE_FAILED;
 // 				_log(handle, ALPM_LOG_WARNING, _("failed to retrieve some files\n"));
 // 			}
 // 		}
-// 		EVENT(handle, &event);
 // 	}
 //
 // finish:
