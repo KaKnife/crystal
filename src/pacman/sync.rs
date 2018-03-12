@@ -1,15 +1,3 @@
-use super::*;
-use super::alpm;
-use super::package::*;
-use super::util::check_syncdbs;
-use super::conf::Config;
-use alpm::Package;
-use alpm::DepMissing;
-use alpm::Result;
-use alpm::DatabaseUsage;
-use alpm::Database;
-use alpm::Handle;
-use alpm::Error;
 /*
  *  sync.c
  *
@@ -30,6 +18,11 @@ use alpm::Error;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+use super::{check_syncdbs, dump_pkg_search, sync_syncdbs, trans_init, trans_release, yesno, Config};
+use alpm::{DatabaseUsage, DepMissing, TransactionFlag};
+use std::fs::{read_dir, remove_dir_all};
+use {Database, Error, Handle, Package, Result};
+
 fn unlink_verbose(pathname: &String, ignore_missing: bool) -> i32 {
     unimplemented!();
     // 	int ret = unlink(pathname);
@@ -48,7 +41,7 @@ fn sync_cleandb(dbpath: String, handle: &mut Handle) -> i32 {
     let syncdbs;
     let mut ret = 0;
 
-    let dir = match std::fs::read_dir(&dbpath) {
+    let dir = match read_dir(&dbpath) {
         Ok(d) => d,
         Err(_) => {
             error!("could not access database directory");
@@ -75,7 +68,7 @@ fn sync_cleandb(dbpath: String, handle: &mut Handle) -> i32 {
         path = format!("{}{}", &dbpath, dname);
 
         /* remove all non-skipped directories and non-database files */
-        match std::fs::remove_dir_all(&path) {
+        match remove_dir_all(&path) {
             Ok(_) => {}
             Err(e) => {
                 error!("could not remove {}: {}", path, e);
@@ -349,7 +342,7 @@ fn sync_group(level: i32, syncs: &Vec<Database>, targets: Vec<String>, quiet: bo
     return ret;
 }
 
-fn sync_info(mut syncs: Vec<Database>, targets: &Vec<String>) -> Result<()> {
+fn sync_info(mut syncs: &Vec<Database>, targets: &Vec<String>) -> Result<()> {
     let mut ret = Ok(());
     if !targets.is_empty() {
         for target in targets {
@@ -367,7 +360,7 @@ fn sync_info(mut syncs: Vec<Database>, targets: &Vec<String>) -> Result<()> {
                 pkgstr = tmp[0];
             }
 
-            for db in &mut syncs {
+            for db in syncs {
                 if repo != "" && repo != db.get_name() {
                     continue;
                 }
@@ -393,7 +386,7 @@ fn sync_info(mut syncs: Vec<Database>, targets: &Vec<String>) -> Result<()> {
             }
         }
     } else {
-        for db in &mut syncs {
+        for db in syncs.iter() {
             for pkg in db.get_pkgcache() {
                 unimplemented!();
                 // dump_pkg_full(pkg, config.op_s_info > 1);
@@ -825,40 +818,44 @@ pub fn sync_prepare_execute(config: &Config, handle: &mut Handle) -> Result<()> 
     return retval;
 }
 
-pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handle) -> Result<()> {
+pub fn pacman_sync(
+    targets: Vec<String>,
+    mut config: Config,
+    mut handle: Handle,
+) -> Result<()> {
     let mut sync_dbs: Vec<Database>;
 
     /* clean the cache */
     if config.clean != 0 {
         let mut ret = 0;
 
-        trans_init(&alpm::TransactionFlag::default(), false, handle)?;
+        trans_init(&TransactionFlag::default(), false, &mut handle)?;
 
         ret += sync_cleancache(config.clean as i32);
-        ret += sync_cleandb_all(config, handle);
+        ret += sync_cleandb_all(&config, &mut handle);
 
-        if !trans_release(handle) {
+        if !trans_release(&mut handle) {
             return Err(Error::Other);
         }
 
         return Ok(());
     }
 
-    check_syncdbs(1, true, handle)?;
+    check_syncdbs(1, true, &mut handle)?;
 
     sync_dbs = handle.get_syncdbs().clone();
 
     if config.sync != 0 {
         /* grab a fresh package list */
         info!("Synchronizing package databases...");
-        sync_syncdbs(config.sync as i32, &mut sync_dbs, handle)?;
+        sync_syncdbs(config.sync as i32, &mut sync_dbs, &mut handle)?;
     }
 
-    check_syncdbs(1, true, handle)?;
+    check_syncdbs(1, true, &mut handle)?;
 
     /* search for a package */
     if config.search {
-        return if sync_search(&mut sync_dbs, &targets, config, handle) {
+        return if sync_search(&mut sync_dbs, &targets, &config, &mut handle) {
             Err(Error::Other)
         } else {
             Ok(())
@@ -876,7 +873,7 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handl
 
     /* get package info */
     if config.info != 0 {
-        return sync_info(sync_dbs, &targets);
+        return sync_info(&mut sync_dbs, &targets);
     }
 
     /* get a listing of files in sync DBs */
@@ -897,5 +894,5 @@ pub fn pacman_sync(targets: Vec<String>, config: &mut Config, handle: &mut Handl
         }
     }
 
-    sync_trans(&targets, config, handle)
+    sync_trans(&targets, &mut config, &mut handle)
 }

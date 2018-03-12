@@ -42,27 +42,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::*;
+use alpm::{_check_pgp_helper, _process_siglist, DatabaseUsage, Group, SigLevel,
+           SignatureList};
 use std::collections::HashMap;
 use std::fs::{create_dir, metadata, read_dir, remove_dir_all, File};
 use std::io::{ErrorKind, Write};
-use libarchive::reader::{Builder, FileReader, Reader};
-use libarchive::archive::{Entry, FileType, ReadCompression, ReadFormat};
+use libarchive::{archive::{Entry, FileType, ReadCompression, ReadFormat},
+                 reader::{Builder, FileReader, Reader}};
+use Result;
+use Error;
+use util::splitname;
+use Package;
+use ALPM_LOCAL_DB_VERSION;
+use INFRQ_ALL;
+use Handle;
+use package::PackageFrom;
 
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>
-
-pub const ALPM_LOCAL_DB_VERSION: usize = 9;
-/// Database entries
-pub const INFRQ_BASE: i32 = (1 << 0);
-pub const INFRQ_DESC: i32 = (1 << 1);
-pub const INFRQ_FILES: i32 = (1 << 2);
-pub const INFRQ_SCRIPTLET: i32 = (1 << 3);
-pub const INFRQ_DSIZE: i32 = (1 << 4);
-/// ALL should be info stored in the package or database
-pub const INFRQ_ALL: i32 = INFRQ_BASE | INFRQ_DESC | INFRQ_FILES | INFRQ_SCRIPTLET | INFRQ_DSIZE;
-pub const INFRQ_ERROR: i32 = (1 << 30);
 
 /// Database status. Bitflags. */
 #[derive(Debug, Clone, Default)]
@@ -432,7 +430,7 @@ impl Database {
     ) -> Option<&mut Package> {
         /* get package and db file names */
         *entry_filename = entryname.split('/').last().unwrap_or(entryname).to_string();
-        let (pkgname, pkgver) = if let Ok(d) = _splitname(entryname) {
+        let (pkgname, pkgver) = if let Ok(d) = splitname(entryname) {
             d
         } else {
             error!("invalid name for database entry '{}'", entryname);
@@ -612,7 +610,7 @@ impl Database {
 
                 pkg = Package::default();
                 /* split the db entry name */
-                let (name, version) = if let Ok(d) = _splitname(&name) {
+                let (name, version) = if let Ok(d) = splitname(&name) {
                     d
                 } else {
                     error!("invalid name for database entry '{}'", name);

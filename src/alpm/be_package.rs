@@ -1,4 +1,3 @@
-use super::Package;
 /*
  *  be_package.c : backend for packages
  *
@@ -19,6 +18,8 @@ use super::Package;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+use super::Package;
+
 // /* libarchive */
 // #include <archive.h>
 // #include <archive_entry.h>
@@ -32,7 +33,7 @@ use super::Package;
 /// except that the returned 'file stream' is from an archive.
 /// @param pkg the package (file) to read the changelog
 /// @return a 'file stream' to the package changelog
-fn _package_changelog_open(pkg: &Package) {
+fn package_changelog_open(pkg: &Package) {
     unimplemented!();
     // 	ASSERT(pkg != NULL, return NULL);
     //

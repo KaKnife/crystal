@@ -44,12 +44,27 @@
 
 // use super::*;
 use super::*;
-use super::{Dependency, Time};
-use super::deps::dep_vercmp;
+use alpm::{*, Dependency};
 use std::cmp::{Ord, Ordering};
 use std::fs::File;
 use humantime::format_rfc3339;
 use std::time::{Duration as StdDuration, UNIX_EPOCH};
+use Result;
+use util::*;
+use PackageReason;
+
+/// Location a package object was loaded from.
+#[derive(Debug, Clone, Copy)]
+pub enum PackageFrom {
+    File = 1,
+    LocalDatabase,
+    SyncDatabase,
+}
+impl Default for PackageFrom {
+    fn default() -> Self {
+        PackageFrom::File
+    }
+}
 
 // /** Package operations struct. This struct contains function pointers to
 //  * all methods used to access data in a package to allow for things such
@@ -154,7 +169,7 @@ pub struct Package {
     provides: Vec<Dependency>,
     deltas: Vec<Dependency>,
     delta_path: Vec<Dependency>,
-    pub removes: Vec<Dependency>,
+    pub removes: Vec<Package>,
     /* in transaction targets only */
     // pub oldpkg: Option<Package>, /* in transaction targets only */
 
@@ -196,6 +211,63 @@ const T_SIGNATURES: &str = "Signatures";
 const T_URL: &str = "URL";
 const T_VALIDATED_BY: &str = "Validated By";
 const T_VERSION: &str = "Version";
+
+// impl<'a> Clone for Package<'a> {
+//     fn clone(&self) -> Self {
+//         Package {
+//             filename: self.filename.clone(),
+//             base: self.base.clone(),
+//             name: self.name.clone(),
+//             version: self.version.clone(),
+//             desc: self.desc.clone(),
+//             url: self.url.clone(),
+//             packager: self.packager.clone(),
+//             md5sum: self.md5sum.clone(),
+//             sha256sum: self.sha256sum.clone(),
+//             base64_sig: self.base64_sig.clone(),
+//             arch: self.arch.clone(),
+//
+//             builddate: self.Time,
+//             installdate: self.Time,
+//
+//             size: self.i64,
+//             isize: self.i64,
+//             download_size: self.i64,
+//
+//             // pub handle: handle_t,
+//             licenses: self.Vec<String>,
+//             replaces: self.Vec<Dependency>,
+//             groups: self.Vec<String>,
+//             backup: self.Vec<String>,
+//             depends: self.Vec<Dependency>,
+//             optdepends: self.Vec<Dependency>,
+//             checkdepends: self.Vec<Dependency>,
+//             makedepends: self.Vec<Dependency>,
+//             conflicts: self.Vec<Dependency>,
+//             provides: self.Vec<Dependency>,
+//             deltas: self.Vec<Dependency>,
+//             delta_path: self.Vec<Dependency>,
+//             pub removes: self.Vec<&'a Package<'a>>,
+//             /* in transaction targets only */
+//             // pub oldpkg: Option<Package>, /* in transaction targets only */
+//
+//             // filelist_t files;
+//
+//             /* origin == PKG_FROM_FILE, use pkg->origin_data.file
+//              * origin == PKG_FROM_*DB, use pkg->origin_data.db */
+//             // pub db: Database,
+//             file: String,
+//             origin: PackageFrom,
+//             reason: PackageReason,
+//             scriptlet: i32,
+//
+//             /* Bitfield from dbinfrq_t */
+//             pub infolevel: i32,
+//             /* Bitfield from pkgvalidation_t */
+//             validation: i32,
+//         }
+//     }
+// }
 
 // static void *_pkg_changelog_open(Package UNUSED *pkg)
 // {
@@ -1172,10 +1244,10 @@ impl Package {
                     self.arch = String::from(line);
                 }
                 NextLineType::BuildDate => {
-                    self.builddate = _parsedate(line);
+                    self.builddate = parsedate(line);
                 }
                 NextLineType::InstallDate => {
-                    self.installdate = _parsedate(line);
+                    self.installdate = parsedate(line);
                 }
                 NextLineType::Packager => {
                     self.packager = String::from(line);
@@ -1207,7 +1279,7 @@ impl Package {
                     // FREELIST(v);
                 }
                 NextLineType::Size => {
-                    self.isize = _strtoofft(&String::from(line));
+                    self.isize = strtoofft(&String::from(line));
                 }
                 NextLineType::Replaces => {
                     if line != "" {
@@ -1775,22 +1847,22 @@ impl Package {
     // static list_t *_pkg_get_backup(Package *pkg)     { return pkg->backup; }
 }
 
-impl Ord for Package {
+impl<'a> Ord for Package {
     fn cmp(&self, other: &Self) -> Ordering {
         self.name.cmp(&other.name)
     }
 }
 
-impl PartialOrd for Package {
+impl<'a> PartialOrd for Package {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for Package {
+impl<'a> PartialEq for Package {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
 
-impl Eq for Package {}
+impl<'a> Eq for Package {}

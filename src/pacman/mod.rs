@@ -33,24 +33,24 @@ pub mod check;
 pub mod ini;
 pub mod callback;
 
-pub use self::ini::IniParserFn;
-pub use self::ini::parse_ini;
-use self::package::*;
-use self::deptest::*;
-use self::query::*;
-use self::sync::*;
-use self::upgrade::*;
+pub use self::ini::{parse_ini, IniParserFn};
+use self::package::{dump_pkg_changelog, dump_pkg_files, dump_pkg_search};
+use self::database::pacman_database;
+use self::conf::{parseconfig, setup_libalpm, Config, Operations, Section, PKG_LOCALITY_FOREIGN,
+                 PKG_LOCALITY_NATIVE};
+use self::deptest::pacman_deptest;
+use self::query::pacman_query;
+use self::sync::{pacman_sync, sync_prepare_execute};
+use self::upgrade::pacman_upgrade;
 use self::remove::*;
-use self::util::*;
-use self::database::*;
-use self::conf::*;
+use self::util::{check_syncdbs, print_packages, sync_syncdbs, trans_init, trans_release, yesno};
+use std::{path::Path, process::exit};
+use PACKAGE_VERSION;
+use Handle;
 
-pub use self::conf::Config;
-pub use self::conf::Section;
+// use super::*;
 
-use super::*;
-
-use std;
+// use std;
 
 /* special handling of package version for GIT */
 // #if defined(GIT_VERSION)
@@ -288,7 +288,7 @@ pub fn cleanup(ret: i32) {
     // 	}
     //
     // /* free memory */
-    std::process::exit(ret);
+    exit(ret);
 }
 
 /// Main function.
@@ -296,7 +296,7 @@ pub fn main() {
     let argv: Vec<String> = env::args().collect();
     let mut ret: i32 = 0;
     let mut config: Config;
-    let mut handle: alpm::Handle;
+    let mut handle: Handle;
     let myuid: u32 = unsafe { libc::getuid() };
     let pm_targets: Vec<String>;
 
@@ -343,7 +343,7 @@ pub fn main() {
 
     if config.sysroot != "" && (unsafe {
         libc::chroot(&config.sysroot.as_bytes()[0] as *const u8 as *const i8) != 0
-    } || !env::set_current_dir(&std::path::Path::new("/")).is_ok())
+    } || !env::set_current_dir(&Path::new("/")).is_ok())
     {
         error!("chroot to {} failed: ()\n", config.sysroot); //, libc::strerror(errno));
         cleanup(1);
@@ -461,29 +461,27 @@ pub fn main() {
     /* start the requested operation */
     // unimplemented!("Done with parsing");
     match &config.op {
-        &Some(Operations::Database) => {
-            match pacman_database(pm_targets, &mut config, &mut handle) {
-                Err(e) => (ret = e),
-                _ => {}
-            }
-        }
-        &Some(Operations::REMOVE) => match pacman_remove(pm_targets, &mut config, &mut handle) {
+        &Some(Operations::Database) => match pacman_database(pm_targets, config, handle) {
             Err(e) => (ret = e),
             _ => {}
         },
-        &Some(Operations::UPGRADE) => match pacman_upgrade(pm_targets, &mut config, &mut handle) {
+        &Some(Operations::REMOVE) => match pacman_remove(pm_targets, config, handle) {
+            Err(e) => (ret = e),
+            _ => {}
+        },
+        &Some(Operations::UPGRADE) => match pacman_upgrade(pm_targets, config, handle) {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(Operations::QUERY) => match pacman_query(pm_targets, &mut config, &mut handle) {
+        &Some(Operations::QUERY) => match pacman_query(pm_targets, config, handle) {
             Err(e) => (ret = 1),
             _ => {}
         },
-        &Some(Operations::SYNC) => match pacman_sync(pm_targets, &mut config, &mut handle) {
+        &Some(Operations::SYNC) => match pacman_sync(pm_targets, config, handle) {
             Err(_) => (ret = 1),
             _ => {}
         },
-        &Some(Operations::DEPTEST) => match pacman_deptest(pm_targets, &mut config, &mut handle) {
+        &Some(Operations::DEPTEST) => match pacman_deptest(pm_targets, config, handle) {
             Err(e) => (ret = 1),
             _ => {}
         },

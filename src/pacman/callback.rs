@@ -200,8 +200,7 @@ fn cb_event(event: Event) {
     // 			}
     // 			break;
 
-    // 		case ALPM_EVENT_CHECKDEPS_START:
-    // 			info!("checking dependencies...");
+    // 		case ALPM_EVENT_CHECKDEPS_START: info!("checking dependencies...");
 
     // 		case ALPM_EVENT_FILECONFLICTS_START:
     // 			if(config->noprogressbar) {
@@ -209,11 +208,8 @@ fn cb_event(event: Event) {
     // 			}
     // 			break;
 
-    // 		case ALPM_EVENT_INTERCONFLICTS_START:
-    // 			printf(_("looking for conflicting packages...\n"));
-
-    // 		case ALPM_EVENT_TRANSACTION_START:
-    // 			colon_printf(_("Processing package changes...\n"));
+    // 		case ALPM_EVENT_INTERCONFLICTS_START: info!("looking for conflicting packages...");
+    // 		case ALPM_EVENT_TRANSACTION_START: info!("Processing package changes...");
 
     // 		case ALPM_EVENT_PACKAGE_OPERATION_START:
     // 			if(config->noprogressbar) {
@@ -266,11 +262,9 @@ fn cb_event(event: Event) {
     // 			if(config->noprogressbar) {
     // 				printf(_("checking keyring...\n"));
     // 			}
-    // 			break;
 
     // 		 ALPM_EVENT_KEY_DOWNLOAD_START:
     // 			printf(_("downloading required keys...\n"));
-    // 			break;
 
     // 		 ALPM_EVENT_LOAD_START:
     // 			if(config->noprogressbar) {

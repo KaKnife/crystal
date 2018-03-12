@@ -17,8 +17,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-use super::*;
-use super::alpm::*;
+use super::{check_syncdbs, dump_pkg_changelog, dump_pkg_files, dump_pkg_search, Config,
+            PKG_LOCALITY_FOREIGN, PKG_LOCALITY_NATIVE};
+use alpm::{find_satisfier, SigLevel};
+use {Database, Error, Handle, Package, PackageReason, Result};
 
 const LOCAL_PREFIX: &str = "local/";
 
@@ -358,7 +360,7 @@ fn query_group(targets: &Vec<String>, config: &Config, handle: &mut Handle) -> R
     return Err(Error::Other);
 }
 
-pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Handle) -> Result<()> {
+pub fn pacman_query(targets: Vec<String>, config: Config, mut handle: Handle) -> Result<()> {
     // let handle_clone: &Handle = &handle.clone();
     let op_q_explicit = config.explicit;
     let op_q_deps = config.deps;
@@ -374,16 +376,16 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
 
     /* search for a package */
     if config.search {
-        return query_search(&targets, config, handle);
+        return query_search(&targets, &config, &mut handle);
     }
 
     /* looking for groups */
     if config.group != 0 {
-        return query_group(&targets, config, handle);
+        return query_group(&targets, &config, &mut handle);
     }
 
     if config.locality != 0 || config.q_upgrade {
-        check_syncdbs(1, true, handle)?;
+        check_syncdbs(1, true, &mut handle)?;
     }
 
     db_local = handle.get_localdb();
@@ -399,8 +401,8 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
 
         match db_local.get_pkgcache() {
             Ok(d) => for mut pkg in d {
-                if filter(pkg, config, handle) {
-                    let value = display(&mut pkg, config, handle);
+                if filter(pkg, &config, &handle) {
+                    let value = display(&mut pkg, &config, &handle);
                     if value != 0 {
                         ret = Err(Error::Other);
                     }
@@ -441,7 +443,7 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
             pkg = match db_local.get_pkg(&strname) {
                 Ok(pkg) => pkg,
                 Err(_) => {
-                    match alpm::find_satisfier(&pkg_cache, &strname) {
+                    match find_satisfier(&pkg_cache, &strname) {
                         None => {
                             error!("package '{}' was not found", strname);
                             unimplemented!();
@@ -460,8 +462,8 @@ pub fn pacman_query(targets: Vec<String>, config: &mut Config, handle: &mut Hand
             };
         }
 
-        if filter(pkg, config, handle) {
-            if display(pkg, config, handle) != 0 {
+        if filter(pkg, &config, &handle) {
+            if display(pkg, &config, &handle) != 0 {
                 ret = Err(Error::Other);
             }
             is_match = true;

@@ -1,5 +1,4 @@
-/*
- *  deptest.c
+/*  deptest.c
  *
  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
@@ -17,14 +16,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-use super::*;
-use super::alpm::*;
 
-pub fn pacman_deptest(
-    targets: Vec<String>,
-    config: &mut Config,
-    handle: &mut Handle,
-) -> Result<()> {
+use super::Config;
+use alpm::find_satisfier;
+use {Error, Result};
+use Handle;
+
+pub fn pacman_deptest(targets: Vec<String>, config: Config, mut handle: Handle) -> Result<()> {
     let mut deps: Vec<String> = Vec::new();
     let handle_clone = &handle.clone();
     let localdb = handle.get_localdb_mut();

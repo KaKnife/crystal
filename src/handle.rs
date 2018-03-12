@@ -19,26 +19,24 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-// #[macro_use]
-// mod util;
-use super::*;
 use std;
-// use std::error::Error;
 use std::fs::File;
-// use std::io::Result;
-// use std::ffi::OsString;
 use std::fs;
-use super::deps::find_dep_satisfier;
-use super::deps::find_dep_satisfier_ref;
+use alpm::{find_dep_satisfier, find_dep_satisfier_ref, AlpmTransState, CbEvent, CbFetch,
+           CbQuestion, Conflict, DepMissing, Dependency, QuestionReplace, QuestionType, SigLevel,
+           Transaction, TransactionFlag};
+use {Database, DbOpsType, Error, Package, PackageReason, Result, SYSHOOKDIR};
+use package::PackageFrom;
+
 const LDCONFIG: &str = "/sbin/ldconfig";
 
-macro_rules! QUESTION {
-    ($h:expr, $q:expr) => {
-        if let Some(f) = $h.questioncb {
-            f($q);
-        }
-    }
-}
+// macro_rules! QUESTION {
+//     ($h:expr, $q:expr) => {
+//         if let Some(f) = $h.questioncb {
+//             f($q);
+//         }
+//     }
+// }
 
 // macro_rules! EVENT {
 //     ($h:expr, $e:expr) => {
@@ -566,7 +564,7 @@ impl Handle {
     pub fn checkdeps(
         &self,
         pkglist: Option<Vec<Package>>,
-        remw: Option<Vec<&Package>>,
+        rem: Vec<&Package>,
         upgrade: &Vec<&Package>,
         reversedeps: i32,
     ) -> Result<Vec<DepMissing>> {
@@ -577,12 +575,11 @@ impl Handle {
         let mut modified = Vec::new();
         let mut baddeps = Vec::new(); // 	alpm_list_t *baddeps = NULL;
         let nodepversion; // 	int nodepversion;
-        let mut rem; //
 
-        rem = match remw {
-            Some(r) => r,
-            None => Vec::new(),
-        };
+        // rem = match remw {
+        //     Some(r) => r,
+        //     None => Vec::new(),
+        // };
         if let Some(pkglist) = pkglist {
             for pkg in pkglist {
                 if upgrade.contains(&&pkg) || rem.contains(&&pkg) {
@@ -922,7 +919,7 @@ impl Handle {
         full: i32,
         level: &SigLevel,
         // pkg: &Package,
-    ) -> Result<&Package> {
+    ) -> Result<&mut Package> {
         unimplemented!();
         // 	int validation = 0;
         // 	char *sigpath;
@@ -1063,7 +1060,7 @@ impl Handle {
 
         debug!("adding package '{}'", pkgname);
 
-        if trans.add.contains(&pkg) {
+        if trans.add.contains(&&pkg.clone()) {
             return Err(Error::TransactionDupTarget);
         }
 
@@ -2390,7 +2387,7 @@ impl Handle {
             /* build remove list for resolvedeps */
             for spkg in &trans.add {
                 for pkg in &spkg.removes {
-                    remove.push(DepPkg::Dep(pkg.clone()));
+                    remove.push(pkg.clone().clone());
                 }
             }
             unimplemented!();
@@ -2460,14 +2457,13 @@ impl Handle {
         }
 
         if !trans.flags.no_conflicts {
-            unimplemented!();
-            // 		/* check for inter-conflicts and whatnot */
-            // 		info!("looking for conflicting packages...");
-            //
-            // 		debug!("looking for conflicts\n");
-            //
-            // 		/* 1. check for conflicts in the target list */
-            // 		debug!("check targets vs targets\n");
+            /* check for inter-conflicts and whatnot */
+            info!("looking for conflicting packages...");
+
+            debug!("looking for conflicts\n");
+
+            /* 1. check for conflicts in the target list */
+            debug!("check targets vs targets");
             // 		deps = _alpm_innerconflicts(handle, trans->add);
             //
             // 		for(i = deps; i; i = i->next) {
@@ -2578,6 +2574,7 @@ impl Handle {
             // 				goto cleanup;
             // 			}
             // 		}
+            unimplemented!();
         }
 
         /* Build trans->remove list */
@@ -2672,8 +2669,8 @@ impl Handle {
                     );
                     continue;
                 }
-
-                QUESTION!(self, &Question::Replace(&question));
+                unimplemented!();
+                // QUESTION!(self, &Question::Replace(&question));
                 if !question.replace {
                     continue;
                 }
@@ -2706,7 +2703,6 @@ impl Handle {
                 }
             }
         }
-
         return Ok(replacers);
     }
 
@@ -2779,10 +2775,10 @@ impl Handle {
         self.ignorepkg.sort();
         debug!("checking for package upgrades");
         for lpkg in self.db_local.get_pkgcache()? {
-            // if self.trans.remove.contains(&&lpkg) {
-            //     debug!("{} is marked for removal -- skipping", lpkg.get_name());
-            //     continue;
-            // }
+            if self.trans.remove.contains(&&lpkg) {
+                debug!("{} is marked for removal -- skipping", lpkg.get_name());
+                continue;
+            }
 
             if self.trans.add.contains(&&lpkg) {
                 debug!(
@@ -2792,6 +2788,7 @@ impl Handle {
                 continue;
             }
             /* Search for replacers then literal (if no replacer) in each sync database. */
+            let mut trans = self.trans.clone();
             for sdb in &self.dbs_sync {
                 if !sdb.get_usage().upgrade {
                     continue;
@@ -2799,7 +2796,7 @@ impl Handle {
                 /* Check sdb */
                 match self.check_replacers(lpkg, sdb) {
                     Ok(ref replacers) if !replacers.is_empty() => {
-                        self.trans
+                        trans
                             .add
                             .append(&mut replacers.iter().map(|p| p.clone().clone()).collect());
                         /* jump to next local package */
@@ -2808,7 +2805,7 @@ impl Handle {
                     _ => {
                         if let Ok(spkg) = sdb.get_pkgfromcache(lpkg.get_name()) {
                             if self.check_literal(lpkg, spkg, enable_downgrade) {
-                                self.trans.add.push(spkg.clone());
+                                trans.add.push(spkg.clone());
                             }
                             /* jump to next local package */
                             break;
@@ -2816,6 +2813,7 @@ impl Handle {
                     }
                 }
             }
+            self.trans = trans;
         }
 
         Ok(0)
@@ -2976,7 +2974,7 @@ impl Clone for Handle {
 fn alpm_pkg_find<'a>(haystack: &'a Vec<Package>, needle: &str) -> Option<&'a Package> {
     for info in haystack {
         if info.get_name() == needle {
-            return Some(&info);
+            return Some(info);
         }
     }
     return None;

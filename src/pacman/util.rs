@@ -1,5 +1,3 @@
-use super::*;
-use super::alpm::*;
 /*
  *  util.c
  *
@@ -20,6 +18,11 @@ use super::alpm::*;
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+use super::{Config, Operations};
+use alpm::{db_update, TransactionFlag};
+use {Database, Error, Handle, Package, Result};
+use package::PackageFrom;
+
 // static int cached_columns = -1;
 //
 // struct table_cell_t {
@@ -35,11 +38,7 @@ use super::alpm::*;
 // 	CELL_FREE = (1 << 3)
 // };
 
-pub fn trans_init(
-    flags: &alpm::TransactionFlag,
-    check_valid: bool,
-    handle: &mut Handle,
-) -> Result<()> {
+pub fn trans_init(flags: &TransactionFlag, check_valid: bool, handle: &mut Handle) -> Result<()> {
     check_syncdbs(0, check_valid, handle)?;
 
     if let Err(e) = handle.trans_init(flags) {
@@ -94,7 +93,7 @@ pub fn check_syncdbs(need_repos: usize, check_valid: bool, handle: &mut Handle) 
 
 pub fn sync_syncdbs(level: i32, syncs: &mut Vec<Database>, handle: &mut Handle) -> Result<()> {
     let mut ret = Ok(());
-    for mut db in syncs {
+    for mut db in handle.get_syncdbs().clone() {
         match db_update(level >= 2, &mut db, handle) {
             Err(e) => {
                 error!("failed to update {} ({})", db.get_name(), e);
@@ -895,7 +894,7 @@ fn table_print_line<T>(
 // 	FREELIST(targets);
 // }
 
-fn pkg_get_size(pkg: &mut Package, config: &Config) -> Result<i64> {
+fn pkg_get_size(pkg: &Package, config: &Config) -> Result<i64> {
     match config.op {
         Some(Operations::SYNC) => Ok(pkg.download_size()),
         Some(Operations::UPGRADE) => Ok(pkg.get_size()),
@@ -903,7 +902,7 @@ fn pkg_get_size(pkg: &mut Package, config: &Config) -> Result<i64> {
     }
 }
 
-fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
+fn pkg_get_location(pkg: &Package, sync_dbs: &Vec<String>) -> String {
     // alpm_list_t *servers;
     // char *string = NULL;
     // use PackageFrom::*;
@@ -912,8 +911,7 @@ fn pkg_get_location(pkg: &Package, handle: &Handle) -> String {
             if pkg.download_size() == 0 {
                 /* file is already in the package cache */
                 let pkgfile = pkg.get_filename();
-                // struct stat buf;
-                for item in handle.get_cachedirs() {
+                for item in sync_dbs {
                     let _path = format!("{}{}", item, pkgfile);
                     unimplemented!();
                     // if(stat(path, &buf) == 0 && S_ISREG(buf.st_mode)) {
@@ -954,37 +952,35 @@ fn simple_pow(base: i32, exp: i32) -> f64 {
 }
 
 // pub fn print_packages(packages: &Vec<Package>, config: &Config)
-pub fn print_packages(
-    packages: &mut Vec<alpm::DepPkg>,
+pub fn print_packages<'a>(
+    packages: &mut Vec<Package>,
     print_format: &String,
     config: &Config,
-    handle: &mut Handle,
+    sync_dbs: &Vec<String>,
 ) {
     for pkg in packages {
-        if let &mut DepPkg::Pkg(ref mut pkg) = pkg {
-            if print_format == "" {
-                print!("{}\n", pkg_get_location(&pkg, handle));
-                continue;
-            }
-            let string = &print_format;
-            /* %n : pkgname */
-            string.replace("%n", &pkg.get_name());
-            /* %v : pkgver */
-            string.replace("%v", &pkg.get_version());
-            /* %l : location */
-            string.replace("%l", &pkg_get_location(&pkg, handle));
-            /* %r : repo */
-            // string.replace("%r", &pkg.db.treename);
-            /* %s : size */
-            if string.contains("%s") {
-                // 	char *size;
-                let size = format!("{}", pkg_get_size(pkg, config).unwrap());
-                string.replace("%s", &size);
-                // 	free(size);
-                // 	free(temp);
-            }
-            print!("{}\n", string);
+        if print_format == "" {
+            print!("{}\n", pkg_get_location(&pkg, sync_dbs));
+            continue;
         }
+        let string = &print_format;
+        /* %n : pkgname */
+        string.replace("%n", &pkg.get_name());
+        /* %v : pkgver */
+        string.replace("%v", &pkg.get_version());
+        /* %l : location */
+        string.replace("%l", &pkg_get_location(&pkg, sync_dbs));
+        /* %r : repo */
+        // string.replace("%r", &pkg.db.treename);
+        /* %s : size */
+        if string.contains("%s") {
+            // 	char *size;
+            let size = format!("{}", pkg_get_size(pkg, config).unwrap());
+            string.replace("%s", &size);
+            // 	free(size);
+            // 	free(temp);
+        }
+        print!("{}\n", string);
     }
 }
 

@@ -22,12 +22,10 @@
 // #include <archive.h>
 // #include <archive_entry.h>
 
-use super::Handle;
-use super::Database;
-use super::DownloadPayload;
-use super::Result;
-use super::Error;
+use super::{Database, DownloadPayload, Error, Handle};
 use std::fs;
+use Result;
+
 /** Update a package database
  *
  * An update of the package database \a db will be attempted. Unless
@@ -63,7 +61,7 @@ use std::fs;
  * @return 0 on success, -1 on error (pm_errno is set accordingly), 1 if up to
  * to date
  */
-pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Result<i8> {
+pub fn db_update<'a>(mut force: bool, db: &mut Database, handle: &'a mut Handle) -> Result<i8> {
     let syncpath;
     let mut updated = false;
     let mut ret = -1;
@@ -193,7 +191,6 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 // static int sync_db_read(Database *db, struct archive *archive,
 // 		struct archive_entry *entry, pkg_t **likely_pkg);
 
-
 // /* This function doesn't work as well as one might think, as size of database
 //  * entries varies considerably. Adding signatures nearly doubles the size of a
 //  * single entry; deltas also can make for large variations in size. These
@@ -282,7 +279,6 @@ pub fn db_update(mut force: bool, db: &mut Database, handle: &mut Handle) -> Res
 // 	if(_strip_newline(buf.line, buf.real_line_size) == 0) break; \
 // 	f = list_add(f, dep_from_string(line)); \
 // } while(1) /* note the while(1) and not (0) */
-
 
 // struct db_operations sync_db_ops = {
 // 	.validate         = sync_db_validate,

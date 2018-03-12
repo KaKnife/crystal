@@ -1,48 +1,27 @@
-use super::alpm;
-use super::util::*;
-// use super::alpm::*;
-use super::alpm::Error;
-use super::alpm::Result;
-use super::alpm::Package;
-// /*
-//  *  package.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
-//
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <string.h>
-// #include <unistd.h>
-// #include <limits.h>
-// #include <errno.h>
-// #include <time.h>
-// #include <wchar.h>
-//
-// #include <alpm.h>
-// #include <alpm_list.h>
-//
-// /* pacman */
-// #include "package.h"
-// #include "util.h"
-// #include "conf.h"
-//
+/*
+ *  package.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+use {Database, Error, Handle, Package, Result};
+
 // #define CLBUF_SIZE 4096
-//
+
 // /* The term "title" refers to the first field of each line in the package
 //  * information displayed by pacman. Titles are stored in the `titles` array and
 //  * referenced by the following indices.
@@ -310,10 +289,10 @@ pub fn dump_pkg_changelog(pkg: &Package) {
 
 /// Display the details of a search.
 pub fn dump_pkg_search(
-    db: &mut alpm::Database,
+    db: &mut Database,
     targets: &Vec<String>,
     show_status: i32,
-    handle: &alpm::Handle,
+    handle: &Handle,
     quiet: bool,
 ) -> Result<()> {
     unimplemented!();
@@ -324,7 +303,6 @@ pub fn dump_pkg_search(
     let searchlist;
     let mut freelist = 0;
     // 	unsigned short cols;
-    let cols;
     // 	const colstr_t *colstr = &config->colstr;
     // let colstr = &config.colstr;
     //
@@ -344,7 +322,6 @@ pub fn dump_pkg_search(
         return Err(Error::Other);
     }
 
-    cols = getcols();
     for pkg in searchlist {
         // let grp;
         // 		alpm_list_t *grp;
@@ -354,12 +331,7 @@ pub fn dump_pkg_search(
             print!("{}", pkg.get_name())
         // 			fputs(get_name(pkg), stdout);
         } else {
-            print!(
-                "{}/{} {}",
-                db.get_name(),
-                pkg.get_name(),
-                pkg.get_version(),
-            );
+            print!("{}/{} {}", db.get_name(), pkg.get_name(), pkg.get_version(),);
             // grp = pkg.get_groups();
             // if grp.is_some() {
             // 	// 				alpm_list_t *k;

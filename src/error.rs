@@ -23,10 +23,11 @@ use std::io;
 use std::ffi;
 use curl::Error as CurlError;
 use std::time::SystemTimeError;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 
-use std::fmt;
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         write!(f, "{}", self.description())
     }
 }

@@ -20,7 +20,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-use super::*;
+use {Database, Error, Handle, Package};
 
 /// Find group members across a list of databases.
 /// If a member exists in several databases, only the first database is used.
@@ -28,7 +28,7 @@ use super::*;
 /// @param dbs the list of Database
 /// @param name the name of the group
 /// @return the list of Package * (caller is responsible for list_free)
-pub fn find_group_pkgs(dbs: Vec<Database>, name: &String) -> Vec<Package> {
+pub fn find_group_pkgs<'a>(dbs: Vec<Database>, name: &String) -> Vec<Package> {
     unimplemented!();
     // 	list_t *i, *j, *pkgs = NULL, *ignorelist = NULL;
     //

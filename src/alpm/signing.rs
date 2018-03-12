@@ -17,7 +17,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- use super::*;
+use super::SignatureList;
+use Handle;
 
 // #ifdef HAVE_LIBGPGME
 // #include <locale.h> /* setlocale() */

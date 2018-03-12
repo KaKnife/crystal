@@ -20,7 +20,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-use super::*;
+
+use alpm::TransactionFlag;
+use {Package, Result};
 
 #[derive(Debug, Clone)]
 pub enum AlpmTransState {
@@ -38,20 +40,6 @@ impl Default for AlpmTransState {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum DepPkg {
-    Pkg(Package),
-    Dep(Dependency),
-}
-impl DepPkg {
-    pub fn get_name(&self) -> &String {
-        match self {
-            &DepPkg::Pkg(ref p) => p.get_name(),
-            &DepPkg::Dep(ref d) => &d.name,
-        }
-    }
-}
-
 #[derive(Default, Debug, Clone)]
 /* Transaction */
 pub struct Transaction {
@@ -60,8 +48,23 @@ pub struct Transaction {
     pub state: AlpmTransState,
     pub unresolvable: Vec<Package>,
     pub add: Vec<Package>,
-    pub remove: Vec<DepPkg>,
+    pub remove: Vec<Package>,
     pub skip_remove: Vec<String>,
+}
+
+impl Transaction {
+    /// Add a package removal action to the transaction.
+    pub fn remove_pkg(&mut self, pkg: &Package) -> Result<()> {
+        // if trans.remove.contains(alpm::DepPkg:Pkg(&pkg)) {
+        //     return Err(Error::TransactionDupTarget);
+        // }
+        debug!(
+            "adding package {} to the transaction remove list",
+            pkg.get_name()
+        );
+        self.remove.push(pkg.clone());
+        return Ok(());
+    }
 }
 
 // /* A cheap grep for text files, returns 1 if a substring

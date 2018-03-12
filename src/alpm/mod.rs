@@ -20,16 +20,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-#[macro_use]
-mod util;
-mod handle;
 mod deps;
-mod db;
-mod package;
 mod trans;
 mod version;
 mod conflict;
-mod error;
 mod remove;
 mod be_package;
 mod dload;
@@ -37,31 +31,18 @@ mod sync;
 mod be_sync;
 mod signing;
 
-use self::signing::*;
-use self::util::*;
-use self::dload::*;
-use self::version::*;
-use self::trans::*;
-use self::db::*;
+pub use self::signing::*;
+pub use self::dload::*;
+pub use self::version::*;
+pub use self::trans::*;
 
-pub use self::remove::remove_pkg;
-pub use self::package::Package;
-pub use self::handle::Handle;
-pub use self::db::Database;
-pub use self::deps::dep_from_string;
 pub use self::be_sync::db_update;
-pub use self::deps::find_satisfier;
-pub use self::error::Error;
-pub use self::trans::DepPkg;
+pub use self::deps::{dep_from_string, dep_vercmp, find_dep_satisfier, find_dep_satisfier_ref,
+                     find_satisfier};
 
-use std::ops::BitOr;
-use std::ops::BitAnd;
-use std::ops::Not;
-use std::result;
-
-const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
-
-pub type Result<T> = result::Result<T, self::Error>;
+use {Database, Error, Handle, Package};
+use std::ops::{BitAnd, BitOr, Not};
+use std::result::Result as StdResult;
 
 // libarchive
 // #include <archive.h>
@@ -69,43 +50,7 @@ pub type Result<T> = result::Result<T, self::Error>;
 
 /* Arch Linux Package Management library */
 
-type Time = i64;
-
-/// Package install reasons.
-#[derive(Debug, Clone, Copy)]
-pub enum PackageReason {
-    /// Explicitly requested by the user.
-    Explicit = 0,
-    /// Installed as a dependency for another package.
-    Dependency = 1,
-}
-impl Default for PackageReason {
-    fn default() -> Self {
-        PackageReason::Explicit
-    }
-}
-impl From<u8> for PackageReason {
-    fn from(n: u8) -> PackageReason {
-        match n {
-            0 => PackageReason::Explicit,
-            1 => PackageReason::Dependency,
-            _ => unimplemented!(),
-        }
-    }
-}
-
-/// Location a package object was loaded from.
-#[derive(Debug, Clone, Copy)]
-pub enum PackageFrom {
-    File = 1,
-    LocalDatabase,
-    SyncDatabase,
-}
-impl Default for PackageFrom {
-    fn default() -> Self {
-        PackageFrom::File
-    }
-}
+pub type Time = i64;
 
 /// Method used to validate a package.
 pub enum PackageValidation {
@@ -261,7 +206,7 @@ pub struct Dependency {
     pub name: String,
     pub version: String,
     desc: String,
-    depmod: Depmod,
+    pub depmod: Depmod,
 }
 
 /// Missing dependency
@@ -596,13 +541,13 @@ pub enum Event<'a> {
 }
 
 /// Event callback.
-type CbEvent = Option<fn(&mut Event)>;
+pub type CbEvent = Option<fn(&mut Event)>;
 
 /// Type of questions.
 /// Unlike the events or progress enumerations, this enum has bitmask values
 /// so a frontend can use a bitmask map to supply preselected answers to the
 /// different types of questions.
-enum QuestionType {
+pub enum QuestionType {
     InstallIgnorepkg = (1 << 0),
     ReplacePkg = (1 << 1),
     ConflictPkg = (1 << 2),
@@ -612,14 +557,14 @@ enum QuestionType {
     ImportKey = (1 << 6),
 }
 
-struct QuestionAny {
+pub struct QuestionAny {
     /// Type of question.
     qtype: QuestionType,
     /// Answer.
     answer: bool,
 }
 
-struct QuestionInstallIgnorePackage<'a> {
+pub struct QuestionInstallIgnorePackage<'a> {
     /// Type of question.
     qtype: QuestionType,
     /// Answer: whether or not to install pkg anyway.
@@ -628,20 +573,20 @@ struct QuestionInstallIgnorePackage<'a> {
     pkg: &'a Package,
 }
 
-struct QuestionReplace<'a> {
+pub struct QuestionReplace<'a> {
     /// Type of question.
-    qtype: QuestionType,
+    pub qtype: QuestionType,
     /// Answer: whether or not to replace oldpkg with newpkg.
-    replace: bool,
+    pub replace: bool,
     /// Package to be replaced.
-    oldpkg: &'a Package,
+    pub oldpkg: &'a Package,
     /// Package to replace with.
-    newpkg: &'a Package,
+    pub newpkg: &'a Package,
     /// DB of newpkg
-    newdb: &'a Database,
+    pub newdb: &'a Database,
 }
 
-struct QuestionConflict<'a> {
+pub struct QuestionConflict<'a> {
     /// Type of question.
     qtype: QuestionType,
     /// Answer: whether or not to remove conflict->package2.
@@ -650,7 +595,7 @@ struct QuestionConflict<'a> {
     conflict: &'a Conflict<'a>,
 }
 
-struct QuestionCorrupted {
+pub struct QuestionCorrupted {
     /// Type of question.
     qtype: QuestionType,
     /// Answer: whether or not to remove filepath.
@@ -661,7 +606,7 @@ struct QuestionCorrupted {
     // 	errno reason;
 }
 
-struct QuestionRemovePkgs {
+pub struct QuestionRemovePkgs {
 // 	/// Type of question.
 // 	questionype type;
 // 	/// Answer: whether or not to skip packages.
@@ -695,7 +640,7 @@ struct QuestionSelectProvider {
 /// which type of question was triggered (via type). It is then possible to
 /// typecast the pointer to the right structure, or use the union field, in order
 /// to access question-specific data.
-enum Question<'a> {
+pub enum Question<'a> {
     // 	questionype type;
     Any(QuestionAny),
     InstallIgnorepkg(&'a QuestionInstallIgnorePackage<'a>),
@@ -708,7 +653,7 @@ enum Question<'a> {
 }
 
 /// Question callback
-type CbQuestion = Option<fn(&Question)>;
+pub type CbQuestion = Option<fn(&Question)>;
 
 // /// Progress
 // typedef enum _progress {
@@ -733,7 +678,7 @@ type CbQuestion = Option<fn(&Question)>;
 /// filename is the name of the file being downloaded.
 /// xfered is the number of transferred bytes.
 /// total is the total number of bytes to transfer.
-type CbDownload = fn(filename: &String, xfered: usize, total: usize);
+pub type CbDownload = fn(filename: &String, xfered: usize, total: usize);
 
 // typedef void (*cbotaldl)(off total);
 
@@ -743,7 +688,7 @@ type CbDownload = fn(filename: &String, xfered: usize, total: usize);
 /// force is whether to force an update, even if the file is the same.
 /// returns 0 on success, 1 if the file exists and is identical, -1 on error.
 // type cb_fetch = fn(&String, &String, i32) -> i32;
-type CbFetch = Option<fn(url: &String, localpath: &String, force: i32) -> i32>;
+pub type CbFetch = Option<fn(url: &String, localpath: &String, force: i32) -> i32>;
 
 // /// Fetch a remote pkg.
 //  * @param url URL of the package to download

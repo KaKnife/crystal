@@ -1,4 +1,3 @@
-use super::*;
 /*
  *  deps.c
  *
@@ -20,6 +19,8 @@ use super::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+ use super::{pkg_vercmp, Dependency, Depmod, Handle, Package};
 
 // static depmissing_t *depmiss_new(const char *target, Dependency *dep,
 // 		const char *causingpkg)
@@ -60,7 +61,10 @@ use super::*;
 // 	return 0;
 // }
 
-pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &Dependency) -> Option<&'a Package> {
+pub fn find_dep_satisfier<'a>(
+    pkgs: &'a Vec<Package>,
+    dep: &Dependency,
+) -> Option<&'a Package> {
     for pkg in pkgs {
         if pkg.depcmp(dep) {
             return Some(pkg);
@@ -261,7 +265,10 @@ fn sortbydeps<T>(handle: Handle, targets: &mut Vec<T>, ignore: &Vec<T>, reverse:
 
 /// Find a package satisfying a specified dependency.
 /// The dependency can include versions with depmod operators.
-pub fn find_satisfier<'a>(pkgs: &'a Vec<&Package>, depstring: &String) -> Option<&'a Package> {
+pub fn find_satisfier<'a>(
+    pkgs: &'a Vec<&Package>,
+    depstring: &String,
+) -> Option<&'a Package> {
     let dep = &dep_from_string(depstring);
     find_dep_satisfier_ref(pkgs, dep)
 }

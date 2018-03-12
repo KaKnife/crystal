@@ -1,5 +1,3 @@
-use super::*;
-use super::alpm::*;
 /*
  *  database.c
  *
@@ -19,6 +17,14 @@ use super::alpm::*;
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+use super::{trans_init, trans_release, Config};
+use alpm::{File, TransactionFlag};
+use std::result::Result as StdResult;
+use Package;
+use Database;
+use PackageReason;
+use Handle;
 
 /// Modify the 'local' package database.
 ///
@@ -97,7 +103,7 @@ fn change_install_reason(targets: Vec<String>, config: &mut Config, handle: &mut
 fn check_db_missing_deps(pkglist: &Vec<&Package>, handle: &Handle) -> i32 {
     let mut ret: i32 = 0;
     /* check dependencies */
-    let deps = match handle.checkdeps(None, None, pkglist, 0) {
+    let deps = match handle.checkdeps(None, Vec::new(), pkglist, 0) {
         Err(_) => return -1,
         Ok(deps) => deps,
     };
@@ -109,7 +115,7 @@ fn check_db_missing_deps(pkglist: &Vec<&Package>, handle: &Handle) -> i32 {
     return ret;
 }
 
-fn check_db_local_files(config: &conf::Config, handle: &mut Handle) -> i32 {
+fn check_db_local_files<'a>(config: &Config, handle: &mut Handle) -> i32 {
     use std::fs;
     let dbpath: &String;
     let mut ret: i32 = 0;
@@ -148,7 +154,7 @@ fn check_db_local_files(config: &conf::Config, handle: &mut Handle) -> i32 {
     return ret;
 }
 
-fn check_db_local_package_conflicts(pkglist: &Vec<&Package>, handle: &Handle) -> i32 {
+fn check_db_local_package_conflicts<'a>(pkglist: &Vec<&Package>, handle: &'a Handle) -> i32 {
     let mut ret: i32 = 0;
     /* check conflicts */
     let data = handle.checkconflicts(&pkglist);
@@ -222,9 +228,8 @@ fn check_db_local_filelist_conflicts(pkglist: &Vec<&Package>) -> i32 {
     return ret;
 }
 
-/// Check 'local' package database for consistency
-///
-/// * return - 0 on success, >=1 on failure
+/// Check 'local' package database for consistency.
+/// Returns 0 on success, >=1 on failure
 fn check_db_local(config: &mut Config, handle: &mut Handle) -> i32 {
     let mut ret: i32 = 0;
     let mut pkglist: Vec<&Package>;
@@ -276,16 +281,16 @@ fn check_db_sync(config: &mut Config, handle: &mut Handle) -> i32 {
 
 pub fn pacman_database(
     targets: Vec<String>,
-    config: &mut Config,
-    handle: &mut Handle,
-) -> std::result::Result<(), i32> {
+    mut config: Config,
+    mut handle: Handle,
+) -> StdResult<(), i32> {
     let mut ret: i32 = 0;
 
     if config.check != 0 {
         if config.check == 1 {
-            ret = check_db_local(config, handle);
+            ret = check_db_local(&mut config, &mut handle);
         } else {
-            ret = check_db_sync(config, handle);
+            ret = check_db_sync(&mut config, &mut handle);
         }
 
         if ret == 0 && !config.quiet {
@@ -294,7 +299,7 @@ pub fn pacman_database(
     }
 
     if config.flags.all_deps && config.flags.all_explicit {
-        ret = change_install_reason(targets, config, handle);
+        ret = change_install_reason(targets, &mut config, &mut handle);
     }
 
     if ret != 0 {

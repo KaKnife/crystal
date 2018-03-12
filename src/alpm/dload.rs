@@ -1,16 +1,11 @@
-use super::*;
 use std::path::Path;
-use std::ffi::OsString;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs;
-use std::fs::metadata;
-use std::fs::remove_file;
-use std::time::Duration;
-use curl::easy::Easy2 as Curl;
-use curl::easy::NetRc;
-use curl::easy::TimeCondition;
-use std::time::UNIX_EPOCH;
+use std::fs::{metadata, remove_file};
+use std::time::{Duration, UNIX_EPOCH};
+use curl::easy::{Easy2 as Curl, NetRc, TimeCondition};
 use std::env;
+use {Error, Handle, Result, StdResult};
 
 /*
  *  download.c
@@ -177,7 +172,7 @@ impl Collector {
 }
 
 impl Handler for Collector {
-    fn write(&mut self, data: &[u8]) -> result::Result<usize, WriteError> {
+    fn write(&mut self, data: &[u8]) -> StdResult<usize, WriteError> {
         use std::io::Write;
         Ok(self.localf.write(data).unwrap())
     }

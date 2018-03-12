@@ -22,8 +22,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use super::*;
+use alpm::{Dependency, Time};
 use std::num::Wrapping;
+use std::result::Result as StdResult;
 
 // /* libarchive */
 // #include <archive.h>
@@ -903,7 +904,7 @@ fn compute_sha256sum(filename: &str) -> String {
  * @param name_hash to hold package name hash
  * @return 0 on success, -1 on error
  */
-pub fn _splitname(target: &String) -> result::Result<(String, String), ()> {
+pub fn splitname(target: &String) -> StdResult<(String, String), ()> {
     /* the format of a db entry is as follows:
      *    package-version-rel/
      *    package-version-rel/desc (we ignore the filename portion)
@@ -994,7 +995,7 @@ impl Hasher for SdbmHasher {
 
 /// Convert a string to a file offset.
 /// This parses bare positive integers only.
-pub fn _strtoofft(line: &String) -> i64 {
+pub fn strtoofft(line: &String) -> i64 {
     /* we are trying to parse bare numbers only, no leading anything */
     if !line.chars().collect::<Vec<char>>()[0].is_numeric() {
         return -1;
@@ -1008,7 +1009,7 @@ pub fn _strtoofft(line: &String) -> i64 {
 /// Parses a date into an time_t struct.
 /// @param line date to parse
 /// @return time struct on success, 0 on error
-pub fn _parsedate(line: &str) -> Time {
+pub fn parsedate(line: &str) -> Time {
     match i64::from_str_radix(line, 10) {
         Ok(r) => r,
         Err(_) => 0,

@@ -18,9 +18,8 @@
  */
 use std::fs::File;
 use std::io::Read;
-use super::alpm::Result;
-use super::Config;
-use super::Section;
+use super::{Config, Section};
+use Result;
 
 pub type IniParserFn =
     Fn(&String, usize, &String, &Option<String>, &Option<String>, &mut Section, &mut Config)

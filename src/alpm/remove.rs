@@ -22,21 +22,9 @@
 *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use super::*;
+// use super::*;
 
-/// Add a package removal action to the transaction.
-pub fn remove_pkg(trans: &mut Transaction, pkg: &Package) -> Result<()> {
-    // if trans.remove.contains(alpm::DepPkg:Pkg(&pkg)) {
-    //     return Err(Error::TransactionDupTarget);
-    // }
-    debug!(
-        "adding package {} to the transaction remove list",
-        pkg.get_name()
-    );
-    let copy = pkg.dup()?;
-    trans.remove.push(DepPkg::Pkg(copy));
-    return Ok(());
-}
+
 
 // /**
 //  * @brief Add dependencies to the removal transaction for cascading.

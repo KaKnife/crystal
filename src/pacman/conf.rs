@@ -35,32 +35,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-use super::parse_ini;
-use super::alpm::Result;
-use super::alpm::Handle;
-use super::alpm::Error;
-use super::alpm::DatabaseUsage;
-use super::alpm::*;
-use super::alpm;
-use super::getopts;
-use super::glob;
-use super::cleanup;
-use std;
-
-#[cfg(target_os = "linux")]
-const CONFFILE: &str = "/etc/pacman.conf";
-const ROOTDIR: &str = "/";
-const DBPATH: &str = "/var/lib/pacman/";
-const LOGFILE: &str = "/var/log/crystal.log";
-const CACHEDIR: &str = "/var/cache/pacman/pkg/";
-const GPGDIR: &str = "/etc/pacman.d/gnupg/";
-const HOOKDIR: &str = "/etc/pacman.d/hooks/";
-
-#[cfg(target_arch = "x86_64")]
-const OS_ARCH: &str = "x86_64";
-
-#[cfg(target_arch = "x86")]
-const OS_ARCH: &str = "x86";
+use alpm::{capabilities, dep_from_string, DatabaseUsage,  SigLevel, TransactionFlag};
+use super::{cleanup, parse_ini};
+use {getopts, glob, Error, Result, CACHEDIR, CONFFILE, DBPATH, GPGDIR, HOOKDIR, LOGFILE, OS_ARCH,
+     ROOTDIR};
+use std::result::Result as StdResult;
+use Database;
+use Handle;
 
 #[derive(Default, Debug, Clone)]
 pub struct ConfigRepo {
@@ -122,7 +103,7 @@ pub struct Config {
     pub cachedirs: Vec<String>,
 
     pub ask: u64,
-    pub flags: alpm::TransactionFlag,
+    pub flags: TransactionFlag,
     pub siglevel: SigLevel,
     pub localfilesiglevel: SigLevel,
     pub remotefilesiglevel: SigLevel,
@@ -150,8 +131,8 @@ pub struct Config {
     pub noextract: Vec<String>,
     pub overwrite_files: Vec<String>, //Not sure this should be a string
 
-    pub explicit_adds: Vec<Package>,
-    pub explicit_removes: Vec<Package>,
+    // pub explicit_adds: Vec<Package<'a>>,
+    // pub explicit_removes: Vec<Package<'a>>,
     pub repos: Vec<ConfigRepo>,
 }
 
@@ -325,7 +306,7 @@ fn get_filename(url: &String) -> String {
 // }
 
 impl Config {
-    pub fn new() -> Config {
+    pub fn new() -> Self {
         let mut newconfig = Config::default();
 
         /* defaults which may get overridden later */
@@ -364,7 +345,7 @@ impl Config {
     }
 
     /// Parse command-line arguments for each operation.
-    pub fn parseargs(&mut self, argv: Vec<String>) -> std::result::Result<Vec<String>, ()> {
+    pub fn parseargs(&mut self, argv: Vec<String>) -> StdResult<Vec<String>, ()> {
         let mut opts = getopts::Options::new();
         {
             opts.optflag("D", "--database", "");
@@ -981,7 +962,7 @@ fn process_siglevel(
     }
 
     /* ensure we have sig checking ability and are actually turning it on */
-    if !(alpm::capabilities().signatures && level.package || level.database) {
+    if !(capabilities().signatures && level.package || level.database) {
         error!(
             "config file {}, line {}: '{}' option invalid, no signature support",
             file, linenum, "SigLevel"
@@ -1221,7 +1202,7 @@ fn add_mirror(db: &mut Database, value: &String, arch: &String) -> Result<()> {
 
 fn register_repo(
     repo: &ConfigRepo,
-    config_handle: &mut Handle,
+    handle: &mut Handle,
     config_siglevel: SigLevel,
     arch: &String,
 ) -> Result<()> {
@@ -1229,7 +1210,7 @@ fn register_repo(
     let name = &repo.name;
     let servers = &repo.servers;
     let mut usage = repo.usage;
-    let mut db = match config_handle.register_syncdb(name, siglevel) {
+    let mut db = match handle.register_syncdb(name, siglevel) {
         Err(e) => {
             error!("could not register '{}' database ({})", name, e);
             return Err(e);
@@ -1253,7 +1234,7 @@ fn register_repo(
         }
     }
 
-    config_handle.dbs_sync.push(db);
+    handle.dbs_sync.push(db);
     return Ok(());
 }
 
@@ -1262,7 +1243,7 @@ fn register_repo(
 /// paths were defined. If a rootdir was defined and nothing else, we want all
 /// of our paths to live under the rootdir that was specified. Safe to call
 /// multiple times (will only do anything the first time).
-pub fn setup_libalpm(config: &Config) -> Result<Handle> {
+pub fn setup_libalpm<'a>(config: &Config) -> Result<Handle> {
     let mut handle;
     let mut rootdir = config.rootdir.clone();
     let mut dbpath = config.dbpath.clone();

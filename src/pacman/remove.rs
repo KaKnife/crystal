@@ -1,33 +1,36 @@
-use super::*;
-use super::alpm::*;
-// /*
-//  *  remove.c
-//  *
-//  *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
-//  *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
-//  *
-//  *  This program is free software; you can redistribute it and/or modify
-//  *  it under the terms of the GNU General Public License as published by
-//  *  the Free Software Foundation; either version 2 of the License, or
-//  *  (at your option) any later version.
-//  *
-//  *  This program is distributed in the hope that it will be useful,
-//  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//  *  GNU General Public License for more details.
-//  *
-//  *  You should have received a copy of the GNU General Public License
-//  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//  */
+/*
+ *  remove.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-fn fnmatch_cmp(pattern: &String, string: &String) -> std::cmp::Ordering {
+use super::{print_packages, trans_init, trans_release, Config};
+use {Error, Handle};
+
+use std::{cmp::Ordering, result::Result as StdResult};
+
+fn fnmatch_cmp(pattern: &String, string: &String) -> Ordering {
     unimplemented!();
     // return fnmatch(pattern, string, 0);
 }
 
-fn remove_target(target: String, config: &mut Config, handle: &mut Handle) -> i32 {
+fn remove_target<'a>(target: String, config: &mut Config, handle: &'a mut Handle) -> i32 {
     if let Ok(pkg) = handle.db_local.get_pkg(&target) {
-        if let Err(err) = remove_pkg(&mut handle.trans, &pkg) {
+        if let Err(err) = handle.trans.remove_pkg(&pkg.clone()) {
             match err {
                 Error::TransactionDupTarget => {
                     /* just skip duplicate targets */
@@ -40,7 +43,8 @@ fn remove_target(target: String, config: &mut Config, handle: &mut Handle) -> i3
                 }
             }
         }
-        config.explicit_removes.push(pkg.clone());
+        unimplemented!();
+        // config.explicit_removes.push(pkg.clone());
         return 0;
     }
 
@@ -49,11 +53,12 @@ fn remove_target(target: String, config: &mut Config, handle: &mut Handle) -> i3
 
     if let Ok(grp) = grp {
         for pkg in &grp.packages {
-            if let Err(e) = remove_pkg(&mut handle.trans, &pkg) {
+            if let Err(e) = handle.trans.remove_pkg(pkg) {
                 error!("'{}': {}", target, e);
                 return -1;
             }
-            config.explicit_removes.push(pkg.clone());
+            unimplemented!();
+            // config.explicit_removes.push(pkg.clone());
         }
         0
     } else {
@@ -68,9 +73,9 @@ fn remove_target(target: String, config: &mut Config, handle: &mut Handle) -> i3
 /// * `targets` - a Vec of packages (as strings) to remove from the system
 pub fn pacman_remove(
     targets: Vec<String>,
-    config: &mut Config,
-    handle: &mut Handle,
-) -> std::result::Result<(), i32> {
+    mut config: Config,
+    mut handle: Handle,
+) -> StdResult<(), i32> {
     unimplemented!();
     let mut retval = 0;
     // let data;
@@ -82,7 +87,7 @@ pub fn pacman_remove(
     }
 
     /* Step 0: create a new transaction */
-    if trans_init(&config.flags.clone(), false, handle).is_err() {
+    if trans_init(&config.flags.clone(), false, &mut handle).is_err() {
         return Err(1);
     }
 
@@ -91,13 +96,13 @@ pub fn pacman_remove(
         if target.starts_with("local/") {
             target = String::from(target.split_at(6).1);
         }
-        if remove_target(target, config, handle) == -1 {
+        if remove_target(target, &mut config, &mut handle) == -1 {
             retval = 1;
         }
     }
 
     if retval == 1 {
-        if !trans_release(handle) {
+        if !trans_release(&mut handle) {
             retval = 1;
         }
         return Err(retval);
@@ -141,25 +146,30 @@ pub fn pacman_remove(
     // && (noyes("HoldPkg was found in target list. Do you want to continue?") == 0)
     {
         retval = 1;
-        if !trans_release(handle) {
+        if !trans_release(&mut handle) {
             retval = 1;
         }
         return Err(retval);
     }
 
     /* Step 3: actually perform the removal */
-    let mut pkglist = handle.trans.remove.clone();
-    if pkglist.is_empty() {
+    // let mut pkglist = handle.trans.remove.clone();
+    if handle.trans.remove.is_empty() {
         print!(" there is nothing to do\n");
-        if !trans_release(handle) {
+        if !trans_release(&mut handle) {
             retval = 1;
         }
         return Err(retval);
     }
-
+    let cachedirs = handle.get_cachedirs();
     if config.print {
-        print_packages(&mut pkglist, &config.print_format, config, handle);
-        if !trans_release(handle) {
+        print_packages(
+            &mut handle.trans.remove,
+            &config.print_format,
+            &config,
+            &cachedirs,
+        );
+        if !trans_release(&mut handle) {
             retval = 1;
         }
         return Err(retval);
