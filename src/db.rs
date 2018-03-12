@@ -1,62 +1,20 @@
-/*
- *  db.h
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
- *  Copyright (c) 2006 by Miklos Vajna <vmiklos@frugalware.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  db.c
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
- *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
- *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
- *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-use alpm::{_check_pgp_helper, _process_siglist, DatabaseUsage, Group, SigLevel,
-           SignatureList};
+//std
 use std::collections::HashMap;
 use std::fs::{create_dir, metadata, read_dir, remove_dir_all, File};
-use std::io::{ErrorKind, Write};
-use libarchive::{archive::{Entry, FileType, ReadCompression, ReadFormat},
-                 reader::{Builder, FileReader, Reader}};
-use Result;
-use Error;
+use std::io::ErrorKind;
+use std::io::Write;
+//crate
+use libarchive::archive::{Entry, FileType, ReadCompression, ReadFormat};
+use libarchive::reader::{Builder, FileReader, Reader};
+//local
+use alpm::DatabaseUsage;
+use alpm::Group;
+use signature::check_pgp_helper;
+use signature::process_siglist;
 use util::splitname;
-use Package;
-use ALPM_LOCAL_DB_VERSION;
-use INFRQ_ALL;
-use Handle;
-use package::PackageFrom;
+use consts::ALPM_LOCAL_DB_VERSION;
+use consts::INFRQ_ALL;
+use {Error, Handle, Package, PackageFrom, Result, SigLevel, SignatureList};
 
 // /* libarchive */
 // #include <archive.h>
@@ -160,7 +118,7 @@ impl Database {
             while retry != 0 {
                 retry = 0;
                 let siglist = SignatureList::default();
-                ret = _check_pgp_helper(
+                ret = check_pgp_helper(
                     handle,
                     &dbpath,
                     None,
@@ -170,7 +128,7 @@ impl Database {
                     &siglist,
                 );
                 if ret != 0 {
-                    retry = _process_siglist(
+                    retry = process_siglist(
                         &handle,
                         &self.treename,
                         &siglist,

@@ -19,12 +19,12 @@
  */
 
 use super::{trans_init, trans_release, Config};
-use alpm::{File, TransactionFlag};
+use alpm::File;
 use std::result::Result as StdResult;
 use Package;
 use Database;
 use PackageReason;
-use Handle;
+use {Handle, TransactionFlag};
 
 /// Modify the 'local' package database.
 ///

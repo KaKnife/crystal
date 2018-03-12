@@ -1,340 +1,45 @@
-/*
- *  deps.c
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
- *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+use alpm::pkg_vercmp;
+use Handle;
+use Package;
 
- use super::{pkg_vercmp, Dependency, Depmod, Handle, Package};
-
-// static depmissing_t *depmiss_new(const char *target, Dependency *dep,
-// 		const char *causingpkg)
-// {
-// 	depmissing_t *miss;
-//
-// 	CALLOC(miss, 1, sizeof(depmissing_t), return NULL);
-//
-// 	STRDUP(miss->target, target, goto error);
-// 	miss->depend = _dep_dup(dep);
-// 	STRDUP(miss->causingpkg, causingpkg, goto error);
-//
-// 	return miss;
-//
-// error:
-// 	depmissing_free(miss);
-// 	return NULL;
-// }
-
-// void SYMEXPORT depmissing_free(depmissing_t *miss)
-// {
-// 	ASSERT(miss != NULL, return);
-// 	dep_free(miss->depend);
-// 	FREE(miss->target);
-// 	FREE(miss->causingpkg);
-// 	FREE(miss);
-// }
-
-// /** Check if pkg2 satisfies a dependency of pkg1 */
-// static int _pkg_depends_on(Package *pkg1, Package *pkg2)
-// {
-// 	list_t *i;
-// 	for(i = pkg_get_depends(pkg1); i; i = i->next) {
-// 		if(_depcmp(pkg2, i->data)) {
-// 			return 1;
-// 		}
-// 	}
-// 	return 0;
-// }
-
-pub fn find_dep_satisfier<'a>(
-    pkgs: &'a Vec<Package>,
-    dep: &Dependency,
-) -> Option<&'a Package> {
-    for pkg in pkgs {
-        if pkg.depcmp(dep) {
-            return Some(pkg);
-        }
-    }
-    return None;
+/// Types of version constraints in dependency specs.
+#[derive(Debug, Clone, Copy)]
+pub enum Depmod {
+    /// No version constraint
+    Any,
+    /// Test version equality (package=x.y.z)
+    EQ,
+    /// Test for at least a version (package>=x.y.z)
+    GE,
+    /// Test for at most a version (package<=x.y.z)
+    LE,
+    /// Test for greater than some version (package>x.y.z)
+    GT,
+    /// Test for less than some version (package<x.y.z)
+    LT,
 }
 
-pub fn find_dep_satisfier_ref<'a>(
-    pkgs: &'a Vec<&Package>,
-    dep: &Dependency,
-) -> Option<&'a Package> {
-    for pkg in pkgs {
-        if pkg.depcmp(dep) {
-            return Some(pkg);
-        }
-    }
-    return None;
-}
-
-// /* Convert a list of Package * to a graph structure,
-//  * with a edge for each dependency.
-//  * Returns a list of vertices (one vertex = one package)
-//  * (used by sortbydeps)
-//  */
-// static list_t *dep_graph_init(Handle *handle,
-// 		list_t *targets, list_t *ignore)
-// {
-// 	list_t *i, *j;
-// 	list_t *vertices = NULL;
-// 	list_t *localpkgs = list_diff(
-// 			db_get_pkgcache(handle->db_local), targets, _pkg_cmp);
-//
-// 	if(ignore) {
-// 		list_t *oldlocal = localpkgs;
-// 		localpkgs = list_diff(oldlocal, ignore, _pkg_cmp);
-// 		list_free(oldlocal);
-// 	}
-//
-// 	/* We create the vertices */
-// 	for(i = targets; i; i = i->next) {
-// 		graph_t *vertex = _graph_new();
-// 		vertex->data = (void *)i->data;
-// 		vertices = list_add(vertices, vertex);
-// 	}
-//
-// 	/* We compute the edges */
-// 	for(i = vertices; i; i = i->next) {
-// 		graph_t *vertex_i = i->data;
-// 		Package *p_i = vertex_i->data;
-// 		/* TODO this should be somehow combined with checkdeps */
-// 		for(j = vertices; j; j = j->next) {
-// 			graph_t *vertex_j = j->data;
-// 			Package *p_j = vertex_j->data;
-// 			if(_pkg_depends_on(p_i, p_j)) {
-// 				vertex_i->children =
-// 					list_add(vertex_i->children, vertex_j);
-// 			}
-// 		}
-//
-// 		/* lazily add local packages to the dep graph so they don't
-// 		 * get resolved unnecessarily */
-// 		j = localpkgs;
-// 		while(j) {
-// 			list_t *next = j->next;
-// 			if(_pkg_depends_on(p_i, j->data)) {
-// 				graph_t *vertex_j = _graph_new();
-// 				vertex_j->data = (void *)j->data;
-// 				vertices = list_add(vertices, vertex_j);
-// 				vertex_i->children = list_add(vertex_i->children, vertex_j);
-// 				localpkgs = list_remove_item(localpkgs, j);
-// 				free(j);
-// 			}
-// 			j = next;
-// 		}
-//
-// 		vertex_i->iterator = vertex_i->children;
-// 	}
-// 	list_free(localpkgs);
-// 	return vertices;
-// }
-
-// static void _warn_dep_cycle(Handle *handle, list_t *targets,
-// 		graph_t *ancestor, graph_t *vertex, int reverse)
-// {
-// 	/* vertex depends on and is required by ancestor */
-// 	if(!list_find_ptr(targets, vertex->data)) {
-// 		/* child is not part of the transaction, not a problem */
-// 		return;
-// 	}
-//
-// 	/* find the nearest ancestor that's part of the transaction */
-// 	while(ancestor) {
-// 		if(list_find_ptr(targets, ancestor->data)) {
-// 			break;
-// 		}
-// 		ancestor = ancestor->parent;
-// 	}
-//
-// 	if(!ancestor || ancestor == vertex) {
-// 		/* no transaction package in our ancestry or the package has
-// 		 * a circular dependency with itself, not a problem */
-// 	} else {
-// 		Package *ancestorpkg = ancestor->data;
-// 		Package *childpkg = vertex->data;
-// 		_log(handle, ALPM_LOG_WARNING, _("dependency cycle detected:\n"));
-// 		if(reverse) {
-// 			_log(handle, ALPM_LOG_WARNING,
-// 					_("{} will be removed after its {} dependency\n"),
-// 					ancestorpkg->name, childpkg->name);
-// 		} else {
-// 			_log(handle, ALPM_LOG_WARNING,
-// 					_("{} will be installed before its {} dependency\n"),
-// 					ancestorpkg->name, childpkg->name);
-// 		}
-// 	}
-// }
-
-/* Re-order a list of target packages with respect to their dependencies.
- *
- * Example (reverse == 0):
- *   A depends on C
- *   B depends on A
- *   Target order is A,B,C,D
- *
- *   Should be re-ordered to C,A,B,D
- *
- * packages listed in ignore will not be used to detect indirect dependencies
- *
- * if reverse is > 0, the dependency order will be reversed.
- *
- * This function returns the new list_t* target list.
- *
- */
-fn sortbydeps<T>(handle: Handle, targets: &mut Vec<T>, ignore: &Vec<T>, reverse: i32) -> Vec<T> {
-    let newtargs: Vec<T>;
-    let vertices: Vec<T>;
-    let i: Vec<T>;
-    // 	graph_t *vertex;
-
-    if targets.is_empty() {
-        return Vec::new();
-    }
-
-    debug!("started sorting dependencies");
-
-    // 	vertices = dep_graph_init(handle, targets, ignore);
-
-    // 	i = vertices;
-    // 	vertex = vertices->data;
-    // 	while(i) {
-    // 		/* mark that we touched the vertex */
-    // 		vertex->state = ALPM_GRAPH_STATE_PROCESSING;
-    // 		int switched_to_child = 0;
-    // 		while(vertex->iterator && !switched_to_child) {
-    // 			graph_t *nextchild = vertex->iterator->data;
-    // 			vertex->iterator = vertex->iterator->next;
-    // 			if(nextchild->state == ALPM_GRAPH_STATE_UNPROCESSED) {
-    // 				switched_to_child = 1;
-    // 				nextchild->parent = vertex;
-    // 				vertex = nextchild;
-    // 			} else if(nextchild->state == ALPM_GRAPH_STATE_PROCESSING) {
-    // 				_warn_dep_cycle(handle, targets, vertex, nextchild, reverse);
-    // 			}
-    // 		}
-    // 		if(!switched_to_child) {
-    // 			if(list_find_ptr(targets, vertex->data)) {
-    // 				newtargs = list_add(newtargs, vertex->data);
-    // 			}
-    // 			/* mark that we've left this vertex */
-    // 			vertex->state = ALPM_GRAPH_STATE_PROCESSED;
-    // 			vertex = vertex->parent;
-    // 			if(!vertex) {
-    // 				/* top level vertex reached, move to the next unprocessed vertex */
-    // 				for(i = i->next; i; i = i->next) {
-    // 					vertex = i->data;
-    // 					if(vertex->state == ALPM_GRAPH_STATE_UNPROCESSED) {
-    // 						break;
-    // 					}
-    // 				}
-    // 			}
-    // 		}
-    // 	}
-
-    unimplemented!();
-    debug!("sorting dependencies finished");
-
-    // 	if(reverse) {
-    // 		/* reverse the order */
-    // 		list_t *tmptargs = list_reverse(newtargs);
-    // 		/* free the old one */
-    // 		list_free(newtargs);
-    // 		newtargs = tmptargs;
-    // 	}
-
-    // 	return newtargs;
-}
-
-/// Find a package satisfying a specified dependency.
-/// The dependency can include versions with depmod operators.
-pub fn find_satisfier<'a>(
-    pkgs: &'a Vec<&Package>,
-    depstring: &String,
-) -> Option<&'a Package> {
-    let dep = &dep_from_string(depstring);
-    find_dep_satisfier_ref(pkgs, dep)
-}
-
-/// Compare two version strings and determine which one is 'newer'.
-pub fn dep_vercmp(version1: &str, depmod: &Depmod, version2: &str) -> bool {
-    let cmp = pkg_vercmp(version1, version2);
-    match depmod {
-        &Depmod::Any => true,
-        &Depmod::EQ => cmp == 0,
-        &Depmod::GE => cmp >= 0,
-        &Depmod::LE => cmp <= 0,
-        &Depmod::LT => cmp < 0,
-        &Depmod::GT => cmp > 0,
+impl Default for Depmod {
+    fn default() -> Self {
+        Depmod::Any
     }
 }
 
-/// Return a newly allocated dependency information parsed from a string.
-/// Format: "glibc=2.12"
-pub fn dep_from_string(depstring: &str) -> Dependency {
-    let mut depend: Dependency = Dependency::default();
-    let tmp: String;
-    let mut desc: Vec<&str>;
+/// Dependency
+#[derive(Debug, Clone, Default)]
+pub struct Dependency {
+    pub name: String,
+    pub version: String,
+    desc: String,
+    pub depmod: Depmod,
+}
 
-    /* Note the extra space in ": " to avoid matching the epoch */
-    desc = depstring.splitn(2, ": ").collect();
-    if desc.len() == 2 {
-        depend.desc = desc[1].to_string();
-    }
-
-    /* Find a version comparator if one exists. If it does, set the type and
-     * increment the ptr accordingly so we can copy the right strings. */
-    tmp = desc[0].to_string();
-    depend.name = desc[0].to_string();
-    desc = tmp.splitn(2, "=").collect();
-    if desc.len() == 2 {
-        depend.depmod = Depmod::EQ;
-        depend.name = desc[0].to_string();
-        depend.version = desc[1].to_string();
-    }
-    desc = tmp.splitn(2, "<=").collect();
-    if desc.len() == 2 {
-        depend.depmod = Depmod::LE;
-        depend.name = desc[0].to_string();
-        depend.version = desc[1].to_string();
-    }
-    desc = tmp.splitn(2, "<").collect();
-    if desc.len() == 2 {
-        depend.depmod = Depmod::LT;
-        depend.name = desc[0].to_string();
-        depend.version = desc[1].to_string();
-    }
-    desc = tmp.splitn(2, ">=").collect();
-    if desc.len() == 2 {
-        depend.depmod = Depmod::GE;
-        depend.name = desc[0].to_string();
-        depend.version = desc[1].to_string();
-    }
-    desc = tmp.splitn(2, ">").collect();
-    if desc.len() == 2 {
-        depend.depmod = Depmod::GT;
-        depend.name = desc[0].to_string();
-        depend.version = desc[1].to_string();
-    }
-
-    depend
+/// Missing dependency
+pub struct DepMissing {
+    pub target: String,
+    pub depend: Dependency,
+    /// this is used only in the case of a remove dependency error
+    pub causingpkg: String,
 }
 
 impl Dependency {
@@ -706,4 +411,334 @@ impl Dependency {
             self.name, opr, self.version, desc_delim, self.desc
         )
     }
+}
+/*
+ *  deps.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
+ *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+// static depmissing_t *depmiss_new(const char *target, Dependency *dep,
+// 		const char *causingpkg)
+// {
+// 	depmissing_t *miss;
+//
+// 	CALLOC(miss, 1, sizeof(depmissing_t), return NULL);
+//
+// 	STRDUP(miss->target, target, goto error);
+// 	miss->depend = _dep_dup(dep);
+// 	STRDUP(miss->causingpkg, causingpkg, goto error);
+//
+// 	return miss;
+//
+// error:
+// 	depmissing_free(miss);
+// 	return NULL;
+// }
+
+// void SYMEXPORT depmissing_free(depmissing_t *miss)
+// {
+// 	ASSERT(miss != NULL, return);
+// 	dep_free(miss->depend);
+// 	FREE(miss->target);
+// 	FREE(miss->causingpkg);
+// 	FREE(miss);
+// }
+
+// /** Check if pkg2 satisfies a dependency of pkg1 */
+// static int _pkg_depends_on(Package *pkg1, Package *pkg2)
+// {
+// 	list_t *i;
+// 	for(i = pkg_get_depends(pkg1); i; i = i->next) {
+// 		if(_depcmp(pkg2, i->data)) {
+// 			return 1;
+// 		}
+// 	}
+// 	return 0;
+// }
+
+pub fn find_dep_satisfier<'a>(pkgs: &'a Vec<Package>, dep: &Dependency) -> Option<&'a Package> {
+    for pkg in pkgs {
+        if pkg.depcmp(dep) {
+            return Some(pkg);
+        }
+    }
+    return None;
+}
+
+pub fn find_dep_satisfier_ref<'a>(
+    pkgs: &'a Vec<&Package>,
+    dep: &Dependency,
+) -> Option<&'a Package> {
+    for pkg in pkgs {
+        if pkg.depcmp(dep) {
+            return Some(pkg);
+        }
+    }
+    return None;
+}
+
+// /* Convert a list of Package * to a graph structure,
+//  * with a edge for each dependency.
+//  * Returns a list of vertices (one vertex = one package)
+//  * (used by sortbydeps)
+//  */
+// static list_t *dep_graph_init(Handle *handle,
+// 		list_t *targets, list_t *ignore)
+// {
+// 	list_t *i, *j;
+// 	list_t *vertices = NULL;
+// 	list_t *localpkgs = list_diff(
+// 			db_get_pkgcache(handle->db_local), targets, _pkg_cmp);
+//
+// 	if(ignore) {
+// 		list_t *oldlocal = localpkgs;
+// 		localpkgs = list_diff(oldlocal, ignore, _pkg_cmp);
+// 		list_free(oldlocal);
+// 	}
+//
+// 	/* We create the vertices */
+// 	for(i = targets; i; i = i->next) {
+// 		graph_t *vertex = _graph_new();
+// 		vertex->data = (void *)i->data;
+// 		vertices = list_add(vertices, vertex);
+// 	}
+//
+// 	/* We compute the edges */
+// 	for(i = vertices; i; i = i->next) {
+// 		graph_t *vertex_i = i->data;
+// 		Package *p_i = vertex_i->data;
+// 		/* TODO this should be somehow combined with checkdeps */
+// 		for(j = vertices; j; j = j->next) {
+// 			graph_t *vertex_j = j->data;
+// 			Package *p_j = vertex_j->data;
+// 			if(_pkg_depends_on(p_i, p_j)) {
+// 				vertex_i->children =
+// 					list_add(vertex_i->children, vertex_j);
+// 			}
+// 		}
+//
+// 		/* lazily add local packages to the dep graph so they don't
+// 		 * get resolved unnecessarily */
+// 		j = localpkgs;
+// 		while(j) {
+// 			list_t *next = j->next;
+// 			if(_pkg_depends_on(p_i, j->data)) {
+// 				graph_t *vertex_j = _graph_new();
+// 				vertex_j->data = (void *)j->data;
+// 				vertices = list_add(vertices, vertex_j);
+// 				vertex_i->children = list_add(vertex_i->children, vertex_j);
+// 				localpkgs = list_remove_item(localpkgs, j);
+// 				free(j);
+// 			}
+// 			j = next;
+// 		}
+//
+// 		vertex_i->iterator = vertex_i->children;
+// 	}
+// 	list_free(localpkgs);
+// 	return vertices;
+// }
+
+// static void _warn_dep_cycle(Handle *handle, list_t *targets,
+// 		graph_t *ancestor, graph_t *vertex, int reverse)
+// {
+// 	/* vertex depends on and is required by ancestor */
+// 	if(!list_find_ptr(targets, vertex->data)) {
+// 		/* child is not part of the transaction, not a problem */
+// 		return;
+// 	}
+//
+// 	/* find the nearest ancestor that's part of the transaction */
+// 	while(ancestor) {
+// 		if(list_find_ptr(targets, ancestor->data)) {
+// 			break;
+// 		}
+// 		ancestor = ancestor->parent;
+// 	}
+//
+// 	if(!ancestor || ancestor == vertex) {
+// 		/* no transaction package in our ancestry or the package has
+// 		 * a circular dependency with itself, not a problem */
+// 	} else {
+// 		Package *ancestorpkg = ancestor->data;
+// 		Package *childpkg = vertex->data;
+// 		_log(handle, ALPM_LOG_WARNING, _("dependency cycle detected:\n"));
+// 		if(reverse) {
+// 			_log(handle, ALPM_LOG_WARNING,
+// 					_("{} will be removed after its {} dependency\n"),
+// 					ancestorpkg->name, childpkg->name);
+// 		} else {
+// 			_log(handle, ALPM_LOG_WARNING,
+// 					_("{} will be installed before its {} dependency\n"),
+// 					ancestorpkg->name, childpkg->name);
+// 		}
+// 	}
+// }
+
+/* Re-order a list of target packages with respect to their dependencies.
+ *
+ * Example (reverse == 0):
+ *   A depends on C
+ *   B depends on A
+ *   Target order is A,B,C,D
+ *
+ *   Should be re-ordered to C,A,B,D
+ *
+ * packages listed in ignore will not be used to detect indirect dependencies
+ *
+ * if reverse is > 0, the dependency order will be reversed.
+ *
+ * This function returns the new list_t* target list.
+ *
+ */
+fn sortbydeps<T>(handle: Handle, targets: &mut Vec<T>, ignore: &Vec<T>, reverse: i32) -> Vec<T> {
+    let newtargs: Vec<T>;
+    let vertices: Vec<T>;
+    let i: Vec<T>;
+    // 	graph_t *vertex;
+
+    if targets.is_empty() {
+        return Vec::new();
+    }
+
+    debug!("started sorting dependencies");
+
+    // 	vertices = dep_graph_init(handle, targets, ignore);
+
+    // 	i = vertices;
+    // 	vertex = vertices->data;
+    // 	while(i) {
+    // 		/* mark that we touched the vertex */
+    // 		vertex->state = ALPM_GRAPH_STATE_PROCESSING;
+    // 		int switched_to_child = 0;
+    // 		while(vertex->iterator && !switched_to_child) {
+    // 			graph_t *nextchild = vertex->iterator->data;
+    // 			vertex->iterator = vertex->iterator->next;
+    // 			if(nextchild->state == ALPM_GRAPH_STATE_UNPROCESSED) {
+    // 				switched_to_child = 1;
+    // 				nextchild->parent = vertex;
+    // 				vertex = nextchild;
+    // 			} else if(nextchild->state == ALPM_GRAPH_STATE_PROCESSING) {
+    // 				_warn_dep_cycle(handle, targets, vertex, nextchild, reverse);
+    // 			}
+    // 		}
+    // 		if(!switched_to_child) {
+    // 			if(list_find_ptr(targets, vertex->data)) {
+    // 				newtargs = list_add(newtargs, vertex->data);
+    // 			}
+    // 			/* mark that we've left this vertex */
+    // 			vertex->state = ALPM_GRAPH_STATE_PROCESSED;
+    // 			vertex = vertex->parent;
+    // 			if(!vertex) {
+    // 				/* top level vertex reached, move to the next unprocessed vertex */
+    // 				for(i = i->next; i; i = i->next) {
+    // 					vertex = i->data;
+    // 					if(vertex->state == ALPM_GRAPH_STATE_UNPROCESSED) {
+    // 						break;
+    // 					}
+    // 				}
+    // 			}
+    // 		}
+    // 	}
+
+    unimplemented!();
+    debug!("sorting dependencies finished");
+
+    // 	if(reverse) {
+    // 		/* reverse the order */
+    // 		list_t *tmptargs = list_reverse(newtargs);
+    // 		/* free the old one */
+    // 		list_free(newtargs);
+    // 		newtargs = tmptargs;
+    // 	}
+
+    // 	return newtargs;
+}
+
+/// Find a package satisfying a specified dependency.
+/// The dependency can include versions with depmod operators.
+pub fn find_satisfier<'a>(pkgs: &'a Vec<&Package>, depstring: &String) -> Option<&'a Package> {
+    let dep = &dep_from_string(depstring);
+    find_dep_satisfier_ref(pkgs, dep)
+}
+
+/// Compare two version strings and determine which one is 'newer'.
+pub fn dep_vercmp(version1: &str, depmod: &Depmod, version2: &str) -> bool {
+    let cmp = pkg_vercmp(version1, version2);
+    match depmod {
+        &Depmod::Any => true,
+        &Depmod::EQ => cmp == 0,
+        &Depmod::GE => cmp >= 0,
+        &Depmod::LE => cmp <= 0,
+        &Depmod::LT => cmp < 0,
+        &Depmod::GT => cmp > 0,
+    }
+}
+
+/// Return a newly allocated dependency information parsed from a string.
+/// Format: "glibc=2.12"
+pub fn dep_from_string(depstring: &str) -> Dependency {
+    let mut depend: Dependency = Dependency::default();
+    let tmp: String;
+    let mut desc: Vec<&str>;
+
+    /* Note the extra space in ": " to avoid matching the epoch */
+    desc = depstring.splitn(2, ": ").collect();
+    if desc.len() == 2 {
+        depend.desc = desc[1].to_string();
+    }
+
+    /* Find a version comparator if one exists. If it does, set the type and
+     * increment the ptr accordingly so we can copy the right strings. */
+    tmp = desc[0].to_string();
+    depend.name = desc[0].to_string();
+    desc = tmp.splitn(2, "=").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::EQ;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+    desc = tmp.splitn(2, "<=").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::LE;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+    desc = tmp.splitn(2, "<").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::LT;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+    desc = tmp.splitn(2, ">=").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::GE;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+    desc = tmp.splitn(2, ">").collect();
+    if desc.len() == 2 {
+        depend.depmod = Depmod::GT;
+        depend.name = desc[0].to_string();
+        depend.version = desc[1].to_string();
+    }
+
+    depend
 }

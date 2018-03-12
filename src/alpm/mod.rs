@@ -1,27 +1,3 @@
-/*
- * alpm.h
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
- *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
- *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-mod deps;
-mod trans;
 mod version;
 mod conflict;
 mod remove;
@@ -29,20 +5,13 @@ mod be_package;
 mod dload;
 mod sync;
 mod be_sync;
-mod signing;
 
-pub use self::signing::*;
-pub use self::dload::*;
-pub use self::version::*;
-pub use self::trans::*;
-
+use self::dload::DownloadPayload;
+pub use self::version::pkg_vercmp;
 pub use self::be_sync::db_update;
-pub use self::deps::{dep_from_string, dep_vercmp, find_dep_satisfier, find_dep_satisfier_ref,
-                     find_satisfier};
 
-use {Database, Error, Handle, Package};
-use std::ops::{BitAnd, BitOr, Not};
-use std::result::Result as StdResult;
+use {Database, Dependency, Error, Handle, Package};
+// use std::result::Result as StdResult;
 
 // libarchive
 // #include <archive.h>
@@ -52,38 +21,6 @@ use std::result::Result as StdResult;
 
 pub type Time = i64;
 
-/// Method used to validate a package.
-pub enum PackageValidation {
-    Unkown = 0,
-    None = (1 << 0),
-    MD5Sum = (1 << 1),
-    SHA256Sum = (1 << 2),
-    Signature = (1 << 3),
-}
-
-/// Types of version constraints in dependency specs.
-#[derive(Debug, Clone)]
-pub enum Depmod {
-    /// No version constraint
-    Any,
-    /// Test version equality (package=x.y.z)
-    EQ,
-    /// Test for at least a version (package>=x.y.z)
-    GE,
-    /// Test for at most a version (package<=x.y.z)
-    LE,
-    /// Test for greater than some version (package>x.y.z)
-    GT,
-    /// Test for less than some version (package<x.y.z)
-    LT,
-}
-
-impl Default for Depmod {
-    fn default() -> Self {
-        Depmod::Any
-    }
-}
-
 /// File conflict type.
 /// Whether the conflict results from a file existing on the filesystem, or with
 /// another target in the transaction.
@@ -91,130 +28,6 @@ impl Default for Depmod {
 enum FileConflictType {
     Target = 1,
     Filesystem,
-}
-
-/// PGP signature verification options
-#[derive(Default, Clone, Debug, Copy)]
-pub struct SigLevel {
-    pub package: bool,
-    pub package_optional: bool,
-    pub package_marginal_ok: bool,
-    pub package_unknown_ok: bool,
-
-    pub database: bool,
-    pub database_optional: bool,
-    pub database_marginal_ok: bool,
-    pub database_unknown_ok: bool,
-
-    pub use_default: bool,
-}
-impl BitOr for SigLevel {
-    type Output = Self;
-    fn bitor(self, rhs: Self) -> Self {
-        let mut new = SigLevel::default();
-        new.package = self.package | rhs.package;
-        new.package_optional = self.package_optional | rhs.package_optional;
-        new.package_marginal_ok = self.package_marginal_ok | rhs.package_marginal_ok;
-        new.package_unknown_ok = self.package_unknown_ok | rhs.package_unknown_ok;
-
-        new.database = self.database | rhs.database;
-        new.database_optional = self.database_optional | rhs.database_optional;
-        new.database_marginal_ok = self.database_marginal_ok | rhs.database_marginal_ok;
-        new.database_unknown_ok = self.database_unknown_ok | rhs.database_unknown_ok;
-
-        new.use_default = self.use_default | rhs.use_default;
-        new
-    }
-}
-impl BitAnd for SigLevel {
-    type Output = Self;
-    fn bitand(self, rhs: Self) -> Self {
-        let mut new = SigLevel::default();
-        new.package = self.package & rhs.package;
-        new.package_optional = self.package_optional & rhs.package_optional;
-        new.package_marginal_ok = self.package_marginal_ok & rhs.package_marginal_ok;
-        new.package_unknown_ok = self.package_unknown_ok & rhs.package_unknown_ok;
-
-        new.database = self.database & rhs.database;
-        new.database_optional = self.database_optional & rhs.database_optional;
-        new.database_marginal_ok = self.database_marginal_ok & rhs.database_marginal_ok;
-        new.database_unknown_ok = self.database_unknown_ok & rhs.database_unknown_ok;
-
-        new.use_default = self.use_default & rhs.use_default;
-        new
-    }
-}
-impl Not for SigLevel {
-    type Output = Self;
-    fn not(self) -> Self {
-        let mut new = SigLevel::default();
-        new.package = self.package;
-        new.package_optional = self.package_optional;
-        new.package_marginal_ok = self.package_marginal_ok;
-        new.package_unknown_ok = self.package_unknown_ok;
-
-        new.database = self.database;
-        new.database_optional = self.database_optional;
-        new.database_marginal_ok = self.database_marginal_ok;
-        new.database_unknown_ok = self.database_unknown_ok;
-
-        new.use_default = self.use_default;
-        new
-    }
-}
-impl SigLevel {
-    pub fn not_zero(&self) -> bool {
-        !(self.package || self.package_optional || self.package_marginal_ok
-            || self.package_unknown_ok || self.database || self.database_optional
-            || self.database_marginal_ok || self.database_unknown_ok || self.use_default)
-    }
-}
-
-/// PGP signature verification status return codes
-#[derive(Debug, Clone)]
-enum SignatureStatus {
-    Valid,
-    KeyExpired,
-    SigExpired,
-    Unknown,
-    KeyDisabled,
-    Invalid,
-}
-impl Default for SignatureStatus {
-    fn default() -> Self {
-        SignatureStatus::Valid
-    }
-}
-
-/// PGP signature verification status return codes
-#[derive(Debug, Clone)]
-enum SigValidity {
-    Full,
-    Marginal,
-    Never,
-    Unknown,
-}
-impl Default for SigValidity {
-    fn default() -> Self {
-        SigValidity::Unknown
-    }
-}
-
-/// Dependency
-#[derive(Debug, Clone, Default)]
-pub struct Dependency {
-    pub name: String,
-    pub version: String,
-    desc: String,
-    pub depmod: Depmod,
-}
-
-/// Missing dependency
-pub struct DepMissing {
-    pub target: String,
-    pub depend: Dependency,
-    /// this is used only in the case of a remove dependency error
-    pub causingpkg: String,
 }
 
 /// Conflict
@@ -279,7 +92,7 @@ struct Backup {
 }
 
 #[derive(Debug, Clone, Default)]
-struct PgpKey {
+pub struct PgpKey {
     // void *data;
     fingerprint: String,
     uid: String,
@@ -290,23 +103,6 @@ struct PgpKey {
     length: u32,
     revoked: u32,
     pubkey_algo: char,
-}
-
-/// Signature result. Contains the key, status, and validity of a given
-/// signature.
-#[derive(Debug, Clone, Default)]
-struct SignatureResult {
-    key: PgpKey,
-    status: SignatureStatus,
-    validity: SigValidity,
-}
-
-/// Signature list. Contains the number of signatures found and a pointer to an
-/// array of results. The array is of size count.
-#[derive(Debug, Clone, Default)]
-pub struct SignatureList {
-    count: usize,
-    results: SignatureResult,
 }
 
 enum HookWhen {
@@ -542,118 +338,6 @@ pub enum Event<'a> {
 
 /// Event callback.
 pub type CbEvent = Option<fn(&mut Event)>;
-
-/// Type of questions.
-/// Unlike the events or progress enumerations, this enum has bitmask values
-/// so a frontend can use a bitmask map to supply preselected answers to the
-/// different types of questions.
-pub enum QuestionType {
-    InstallIgnorepkg = (1 << 0),
-    ReplacePkg = (1 << 1),
-    ConflictPkg = (1 << 2),
-    CorruptedPkg = (1 << 3),
-    RemovePkgs = (1 << 4),
-    SelectProvider = (1 << 5),
-    ImportKey = (1 << 6),
-}
-
-pub struct QuestionAny {
-    /// Type of question.
-    qtype: QuestionType,
-    /// Answer.
-    answer: bool,
-}
-
-pub struct QuestionInstallIgnorePackage<'a> {
-    /// Type of question.
-    qtype: QuestionType,
-    /// Answer: whether or not to install pkg anyway.
-    install: bool,
-    /// Package in IgnorePkg/IgnoreGroup.
-    pkg: &'a Package,
-}
-
-pub struct QuestionReplace<'a> {
-    /// Type of question.
-    pub qtype: QuestionType,
-    /// Answer: whether or not to replace oldpkg with newpkg.
-    pub replace: bool,
-    /// Package to be replaced.
-    pub oldpkg: &'a Package,
-    /// Package to replace with.
-    pub newpkg: &'a Package,
-    /// DB of newpkg
-    pub newdb: &'a Database,
-}
-
-pub struct QuestionConflict<'a> {
-    /// Type of question.
-    qtype: QuestionType,
-    /// Answer: whether or not to remove conflict->package2.
-    remove: bool,
-    /// Conflict info.
-    conflict: &'a Conflict<'a>,
-}
-
-pub struct QuestionCorrupted {
-    /// Type of question.
-    qtype: QuestionType,
-    /// Answer: whether or not to remove filepath.
-    remove: bool,
-    /// Filename to remove
-    filepath: String,
-    // 	/// Error code indicating the reason for package invalidity
-    // 	errno reason;
-}
-
-pub struct QuestionRemovePkgs {
-// 	/// Type of question.
-// 	questionype type;
-// 	/// Answer: whether or not to skip packages.
-// 	int skip;
-// 	/// List of Package* with unresolved dependencies.
-// 	list *packages;
-}
-
-struct QuestionSelectProvider {
-// 	/// Type of question.
-// 	questionype type;
-// 	/// Answer: which provider to use (index from providers).
-// 	int use_index;
-// 	/// List of Package* as possible providers.
-// 	list *providers;
-// 	/// What providers provide for.
-// 	Dependency *depend;
-}
-
-// typedef struct _question_import_key {
-// 	/// Type of question.
-// 	questionype type;
-// 	/// Answer: whether or not to import key.
-// 	int import;
-// 	/// The key to import.
-// 	pgpkey *key;
-// } question_import_key;
-
-/// Questions.
-/// This is an union passed to the callback, that allows the frontend to know
-/// which type of question was triggered (via type). It is then possible to
-/// typecast the pointer to the right structure, or use the union field, in order
-/// to access question-specific data.
-pub enum Question<'a> {
-    // 	questionype type;
-    Any(QuestionAny),
-    InstallIgnorepkg(&'a QuestionInstallIgnorePackage<'a>),
-    Replace(&'a QuestionReplace<'a>),
-    // 	question_conflict conflict;
-    // 	question_corrupted corrupted;
-    // 	question_remove_pkgs remove_pkgs;
-    // 	question_select_provider select_provider;
-    // 	question_import_key import_key;
-}
-
-/// Question callback
-pub type CbQuestion = Option<fn(&Question)>;
 
 // /// Progress
 // typedef enum _progress {
@@ -1133,49 +817,9 @@ impl DatabaseUsage {
 //
 //
 
-/// Transaction flags
-#[derive(Default, Debug, Clone)]
-pub struct TransactionFlag {
-    /// Ignore dependency checks.
-    pub no_deps: bool,
-    /// Ignore file conflicts and overwrite files.
-    pub force: bool,
-    /// Delete files even if they are tagged as backup.
-    pub no_save: bool,
-    /// Ignore version numbers when checking dependencies.
-    pub no_depversion: bool,
-    /// Remove also any packages depending on a package being removed.
-    pub cascade: bool,
-    /// Remove packages and their unneeded deps (not explicitly installed).
-    pub recurse: bool,
-    /// Modify database but do not commit changes to the filesystem.
-    pub db_only: bool,
-    /* (1 << 7) flag can go here */
-    /// Use Depend when installing packages.
-    pub all_deps: bool,
-    /// Only download packages and do not actually install.
-    pub download_only: bool,
-    /// Do not execute install scriptlets after installing.
-    pub no_scriptlet: bool,
-    /// Ignore dependency conflicts.
-    pub no_conflicts: bool,
-    /* (1 << 12) flag can go here */
-    /// Do not install a package if it is already installed and up to date.
-    pub needed: bool,
-    /// Use Explicit when installing packages.
-    pub all_explicit: bool,
-    /// Do not remove a package if it is needed by another one.
-    pub unneeded: bool,
-    /// Remove also explicitly installed unneeded deps (use with pub RECURSE).
-    pub recurse_all: bool,
-    /// Do not lock the database during the operation.
-    pub no_lock: bool,
-}
-//
 // /// Returns the bitfield of flags for the current transaction.
 //  * @param handle the context handle
 //  * @return the bitfield of transaction flags
-//
 // int trans_get_flags(Handle *handle);
 //
 // /// Returns a list of packages added by the transaction.

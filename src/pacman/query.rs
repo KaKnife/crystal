@@ -1,28 +1,19 @@
-/*
- *  query.c
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-use super::{check_syncdbs, dump_pkg_changelog, dump_pkg_files, dump_pkg_search, Config,
-            PKG_LOCALITY_FOREIGN, PKG_LOCALITY_NATIVE};
-use alpm::{find_satisfier, SigLevel};
-use {Database, Error, Handle, Package, PackageReason, Result};
-
-const LOCAL_PREFIX: &str = "local/";
+use pacman::check_syncdbs;
+use Config;
+use package::dump_pkg_changelog;
+use package::dump_pkg_files;
+use package::dump_pkg_search;
+use find_satisfier;
+use Database;
+use Error;
+use Handle;
+use Package;
+use PackageReason;
+use Result;
+use SigLevel;
+use consts::LOCAL_PREFIX;
+use consts::PKG_LOCALITY_FOREIGN;
+use consts::PKG_LOCALITY_NATIVE;
 
 // /* check if filename exists in PATH */
 // fn search_path(filename: &mut String, struct stat *bufptr) -> i32

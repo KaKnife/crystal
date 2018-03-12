@@ -1,24 +1,134 @@
-/*
- *  signing.c
- *
- *  Copyright (c) 2008-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-use super::SignatureList;
+use std::ops::{BitAnd, BitOr, Not};
+use alpm::PgpKey;
 use Handle;
+
+/// PGP signature verification options
+#[derive(Default, Clone, Debug, Copy)]
+pub struct SigLevel {
+    pub package: bool,
+    pub package_optional: bool,
+    pub package_marginal_ok: bool,
+    pub package_unknown_ok: bool,
+
+    pub database: bool,
+    pub database_optional: bool,
+    pub database_marginal_ok: bool,
+    pub database_unknown_ok: bool,
+
+    pub use_default: bool,
+}
+
+impl BitOr for SigLevel {
+    type Output = Self;
+    fn bitor(self, rhs: Self) -> Self {
+        let mut new = SigLevel::default();
+        new.package = self.package | rhs.package;
+        new.package_optional = self.package_optional | rhs.package_optional;
+        new.package_marginal_ok = self.package_marginal_ok | rhs.package_marginal_ok;
+        new.package_unknown_ok = self.package_unknown_ok | rhs.package_unknown_ok;
+
+        new.database = self.database | rhs.database;
+        new.database_optional = self.database_optional | rhs.database_optional;
+        new.database_marginal_ok = self.database_marginal_ok | rhs.database_marginal_ok;
+        new.database_unknown_ok = self.database_unknown_ok | rhs.database_unknown_ok;
+
+        new.use_default = self.use_default | rhs.use_default;
+        new
+    }
+}
+
+impl BitAnd for SigLevel {
+    type Output = Self;
+    fn bitand(self, rhs: Self) -> Self {
+        let mut new = SigLevel::default();
+        new.package = self.package & rhs.package;
+        new.package_optional = self.package_optional & rhs.package_optional;
+        new.package_marginal_ok = self.package_marginal_ok & rhs.package_marginal_ok;
+        new.package_unknown_ok = self.package_unknown_ok & rhs.package_unknown_ok;
+
+        new.database = self.database & rhs.database;
+        new.database_optional = self.database_optional & rhs.database_optional;
+        new.database_marginal_ok = self.database_marginal_ok & rhs.database_marginal_ok;
+        new.database_unknown_ok = self.database_unknown_ok & rhs.database_unknown_ok;
+
+        new.use_default = self.use_default & rhs.use_default;
+        new
+    }
+}
+
+impl Not for SigLevel {
+    type Output = Self;
+    fn not(self) -> Self {
+        let mut new = SigLevel::default();
+        new.package = self.package;
+        new.package_optional = self.package_optional;
+        new.package_marginal_ok = self.package_marginal_ok;
+        new.package_unknown_ok = self.package_unknown_ok;
+
+        new.database = self.database;
+        new.database_optional = self.database_optional;
+        new.database_marginal_ok = self.database_marginal_ok;
+        new.database_unknown_ok = self.database_unknown_ok;
+
+        new.use_default = self.use_default;
+        new
+    }
+}
+
+impl SigLevel {
+    pub fn not_zero(&self) -> bool {
+        !(self.package || self.package_optional || self.package_marginal_ok
+            || self.package_unknown_ok || self.database || self.database_optional
+            || self.database_marginal_ok || self.database_unknown_ok || self.use_default)
+    }
+}
+
+/// PGP signature verification status return codes
+#[derive(Debug, Clone)]
+pub enum SignatureStatus {
+    Valid,
+    KeyExpired,
+    SigExpired,
+    Unknown,
+    KeyDisabled,
+    Invalid,
+}
+impl Default for SignatureStatus {
+    fn default() -> Self {
+        SignatureStatus::Valid
+    }
+}
+
+/// PGP signature verification status return codes
+#[derive(Debug, Clone)]
+pub enum SigValidity {
+    Full,
+    Marginal,
+    Never,
+    Unknown,
+}
+impl Default for SigValidity {
+    fn default() -> Self {
+        SigValidity::Unknown
+    }
+}
+
+/// Signature result. Contains the key, status, and validity of a given
+/// signature.
+#[derive(Debug, Clone, Default)]
+struct SignatureResult {
+    key: PgpKey,
+    status: SignatureStatus,
+    validity: SigValidity,
+}
+
+/// Signature list. Contains the number of signatures found and a pointer to an
+/// array of results. The array is of size count.
+#[derive(Debug, Clone, Default)]
+pub struct SignatureList {
+    count: usize,
+    results: SignatureResult,
+}
 
 // #ifdef HAVE_LIBGPGME
 // #include <locale.h> /* setlocale() */
@@ -730,7 +840,7 @@ use Handle;
 //  * @param sigdata a pointer to storage for signature results
 //  * @return 0 on success, -1 on error (consult pm_errno or sigdata)
 //  */
-pub fn _check_pgp_helper(
+pub fn check_pgp_helper(
     handle: &Handle,
     path: &String,
     base64_sig: Option<&String>,
@@ -823,7 +933,7 @@ pub fn _check_pgp_helper(
 //  * @return 0 if all signatures are OK, -1 on errors, 1 if we should retry the
 //  * validation process
 //  */
-pub fn _process_siglist(
+pub fn process_siglist(
     handle: &Handle,
     identifier: &String,
     siglist: &SignatureList,

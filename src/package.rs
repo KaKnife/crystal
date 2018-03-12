@@ -1,57 +1,28 @@
-/*
- *  package.h
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
- *  Copyright (c) 2006 by David Kimpe <dnaku@frugalware.org>
- *  Copyright (c) 2005, 2006 by Christian Hamar <krics@linuxforum.hu>
- *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *  package.c
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
- *  Copyright (c) 2005, 2006 by Christian Hamar <krics@linuxforum.hu>
- *  Copyright (c) 2005, 2006 by Miklos Vajna <vmiklos@frugalware.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-// use super::*;
-use super::*;
-use alpm::{*, Dependency};
-use std::cmp::{Ord, Ordering};
-use std::fs::File;
-use humantime::format_rfc3339;
-use std::time::{Duration as StdDuration, UNIX_EPOCH};
-use Result;
-use util::*;
+// local
+use alpm::pkg_vercmp;
+use alpm::Time;
+use dep_vercmp;
 use PackageReason;
+use Dependency;
+use Database;
+use dep_from_string;
+use util::{deplist_display, humanize_size, list_display, parsedate, string_display, strtoofft};
+use consts::INFRQ_DESC;
+use consts::INFRQ_SCRIPTLET;
+use consts::INFRQ_FILES;
+use consts::INFRQ_ERROR;
+use consts::INFRQ_ALL;
+use Handle;
+use Result;
+use Error;
+// std
+use std::cmp::Ordering;
+use std::cmp::Ord;
+use std::fs::File;
+use std::time::Duration;
+use std::time::UNIX_EPOCH;
+// crates
+use humantime::format_rfc3339;
 
 /// Location a package object was loaded from.
 #[derive(Debug, Clone, Copy)]
@@ -66,49 +37,14 @@ impl Default for PackageFrom {
     }
 }
 
-// /** Package operations struct. This struct contains function pointers to
-//  * all methods used to access data in a package to allow for things such
-//  * as lazy package initialization (such as used by the file backend). Each
-//  * backend is free to define a stuct containing pointers to a specific
-//  * implementation of these methods. Some backends may find using the
-//  * defined default_pkg_ops struct to work just fine for their needs.
-//  */
-// #[derive(Clone)]
-// struct pkg_operations {
-//     get_base: fn(&Package) -> String,
-//     get_desc: fn(&Package) -> String,
-//     get_url: fn(&Package) -> String,
-//     get_builddate: fn(&Package) -> time_t,
-//     get_installdate: fn(&Package) -> time_t,
-//     // const char *(*get_packager) (Package *);
-//     // const char *(*get_arch) (Package *);
-//     // off_t (*get_isize) (Package *);
-//     // PackageReason (*get_reason) (Package *);
-//     // int (*get_validation) (Package *);
-//     // int (*has_scriptlet) (Package *);
-//
-//     // list_t *(*get_licenses) (Package *);
-//     // list_t *(*get_groups) (Package *);
-//     // list_t *(*get_depends) (Package *);
-//     // list_t *(*get_optdepends) (Package *);
-//     // list_t *(*get_checkdepends) (Package *);
-//     // list_t *(*get_makedepends) (Package *);
-//     // list_t *(*get_conflicts) (Package *);
-//     // list_t *(*get_provides) (Package *);
-//     // list_t *(*get_replaces) (Package *);
-//     // filelist_t *(*get_files) (Package *);
-//     // list_t *(*get_backup) (Package *);
-//
-//     // void *(*changelog_open) (Package *);
-//     // size_t (*changelog_read) (void *, size_t, const Package *, void *);
-//     // int (*changelog_close) (const Package *, void *);
-//
-//     // struct archive *(*mtree_open) (Package *);
-//     // int (*mtree_next) (const Package *, struct archive *, struct archive_entry **);
-//     // int (*mtree_close) (const Package *, struct archive *);
-//
-//     // int (*force_load) (Package *);
-// }
+/// Method used to validate a package.
+pub enum PackageValidation {
+    Unkown = 0,
+    None = (1 << 0),
+    MD5Sum = (1 << 1),
+    SHA256Sum = (1 << 2),
+    Signature = (1 << 3),
+}
 
 enum NextLineType {
     None,
@@ -176,7 +112,7 @@ pub struct Package {
     // filelist_t files;
 
     /* origin == PKG_FROM_FILE, use pkg->origin_data.file
-     * origin == PKG_FROM_*DB, use pkg->origin_data.db */
+    * origin == PKG_FROM_*DB, use pkg->origin_data.db */
     // pub db: Database,
     file: String,
     origin: PackageFrom,
@@ -188,6 +124,50 @@ pub struct Package {
     /* Bitfield from pkgvalidation_t */
     validation: i32,
 }
+
+// /** Package operations struct. This struct contains function pointers to
+//  * all methods used to access data in a package to allow for things such
+//  * as lazy package initialization (such as used by the file backend). Each
+//  * backend is free to define a stuct containing pointers to a specific
+//  * implementation of these methods. Some backends may find using the
+//  * defined default_pkg_ops struct to work just fine for their needs.
+//  */
+// #[derive(Clone)]
+// struct pkg_operations {
+//     get_base: fn(&Package) -> String,
+//     get_desc: fn(&Package) -> String,
+//     get_url: fn(&Package) -> String,
+//     get_builddate: fn(&Package) -> time_t,
+//     get_installdate: fn(&Package) -> time_t,
+//     // const char *(*get_packager) (Package *);
+//     // const char *(*get_arch) (Package *);
+//     // off_t (*get_isize) (Package *);
+//     // PackageReason (*get_reason) (Package *);
+//     // int (*get_validation) (Package *);
+//     // int (*has_scriptlet) (Package *);
+//
+//     // list_t *(*get_licenses) (Package *);
+//     // list_t *(*get_groups) (Package *);
+//     // list_t *(*get_depends) (Package *);
+//     // list_t *(*get_optdepends) (Package *);
+//     // list_t *(*get_checkdepends) (Package *);
+//     // list_t *(*get_makedepends) (Package *);
+//     // list_t *(*get_conflicts) (Package *);
+//     // list_t *(*get_provides) (Package *);
+//     // list_t *(*get_replaces) (Package *);
+//     // filelist_t *(*get_files) (Package *);
+//     // list_t *(*get_backup) (Package *);
+//
+//     // void *(*changelog_open) (Package *);
+//     // size_t (*changelog_read) (void *, size_t, const Package *, void *);
+//     // int (*changelog_close) (const Package *, void *);
+//
+//     // struct archive *(*mtree_open) (Package *);
+//     // int (*mtree_next) (const Package *, struct archive *, struct archive_entry **);
+//     // int (*mtree_close) (const Package *, struct archive *);
+//
+//     // int (*force_load) (Package *);
+// }
 
 const T_BACKUP_FILES: &str = "Backup Files";
 const T_BUILD_DATE: &str = "Build Date";
@@ -1462,9 +1442,9 @@ impl Package {
         from = self.get_origin();
 
         /* set variables here, do all output below */
-        bdate = UNIX_EPOCH + StdDuration::from_secs(self.get_builddate()? as u64);
+        bdate = UNIX_EPOCH + Duration::from_secs(self.get_builddate()? as u64);
         let bdatestr = format!("{}", format_rfc3339(bdate));
-        idate = UNIX_EPOCH + StdDuration::from_secs(self.get_installdate()? as u64);
+        idate = UNIX_EPOCH + Duration::from_secs(self.get_installdate()? as u64);
         let idatestr = format!("{}", format_rfc3339(idate));
 
         reason = match self.get_reason() {
@@ -1866,3 +1846,369 @@ impl<'a> PartialEq for Package {
 }
 
 impl<'a> Eq for Package {}
+
+/*
+ *  package.c
+ *
+ *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
+ *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+// #define CLBUF_SIZE 4096
+
+// /* The term "title" refers to the first field of each line in the package
+//  * information displayed by pacman. Titles are stored in the `titles` array and
+//  * referenced by the following indices.
+//  */
+// enum title_enum {
+// 	T_ARCHITECTURE = 0,
+// 	T_BACKUP_FILES,
+// 	T_BUILD_DATE,
+// 	T_COMPRESSED_SIZE,
+// 	T_CONFLICTS_WITH,
+// 	T_DEPENDS_ON,
+// 	T_DESCRIPTION,
+// 	T_DOWNLOAD_SIZE,
+// 	T_GROUPS,
+// 	T_INSTALL_DATE,
+// 	T_INSTALL_REASON,
+// 	T_INSTALL_SCRIPT,
+// 	T_INSTALLED_SIZE,
+// 	T_LICENSES,
+// 	T_MD5_SUM,
+// 	T_NAME,
+// 	T_OPTIONAL_DEPS,
+// 	T_OPTIONAL_FOR,
+// 	T_PACKAGER,
+// 	T_PROVIDES,
+// 	T_REPLACES,
+// 	T_REPOSITORY,
+// 	T_REQUIRED_BY,
+// 	T_SHA_256_SUM,
+// 	T_SIGNATURES,
+// 	T_URL,
+// 	T_VALIDATED_BY,
+// 	T_VERSION,
+// 	/* the following is a sentinel and should remain in last position */
+// 	_T_MAX,
+// }
+//
+// /* As of 2015/10/20, the longest title (all locales considered) was less than 30
+//  * characters long. We set the title maximum length to 50 to allow for some
+//  * potential growth.
+//  */
+// #define TITLE_MAXLEN 50
+//
+// static char titles[_T_MAX][TITLE_MAXLEN * sizeof(wchar_t)];
+//
+// /** Build the `titles` array of localized titles and pad them with spaces so
+//  * that they align with the longest title. Storage for strings is stack
+//  * allocated and naively truncated to TITLE_MAXLEN characters.
+//  */
+
+pub fn make_aligned_titles() {
+    unimplemented!();
+    // 	unsigned int i;
+    // 	size_t maxlen = 0;
+    // 	int maxcol = 0;
+    // 	static const wchar_t title_suffix[] = L" :";
+    // 	wchar_t wbuf[ARRAYSIZE(titles)][TITLE_MAXLEN + ARRAYSIZE(title_suffix)];
+    // 	size_t wlen[ARRAYSIZE(wbuf)];
+    // 	int wcol[ARRAYSIZE(wbuf)];
+    // 	char *buf[ARRAYSIZE(wbuf)];
+    // let buf: [&str; _T_MAX as i32]
+    // 	buf[T_ARCHITECTURE] = _("Architecture");
+    // 	buf[T_BACKUP_FILES] = _("Backup Files");
+    // 	buf[T_BUILD_DATE] = _("Build Date");
+    // 	buf[T_COMPRESSED_SIZE] = _("Compressed Size");
+    // 	buf[T_CONFLICTS_WITH] = _("Conflicts With");
+    // 	buf[T_DEPENDS_ON] = _("Depends On");
+    // 	buf[T_DESCRIPTION] = _("Description");
+    // 	buf[T_DOWNLOAD_SIZE] = _("Download Size");
+    // 	buf[T_GROUPS] = _("Groups");
+    // 	buf[T_INSTALL_DATE] = _("Install Date");
+    // 	buf[T_INSTALL_REASON] = _("Install Reason");
+    // 	buf[T_INSTALL_SCRIPT] = _("Install Script");
+    // 	buf[T_INSTALLED_SIZE] = _("Installed Size");
+    // 	buf[T_LICENSES] = _("Licenses");
+    // 	buf[T_MD5_SUM] = _("MD5 Sum");
+    // 	buf[T_NAME] = _("Name");
+    // 	buf[T_OPTIONAL_DEPS] = _("Optional Deps");
+    // 	buf[T_OPTIONAL_FOR] = _("Optional For");
+    // 	buf[T_PACKAGER] = _("Packager");
+    // 	buf[T_PROVIDES] = _("Provides");
+    // 	buf[T_REPLACES] = _("Replaces");
+    // 	buf[T_REPOSITORY] = _("Repository");
+    // 	buf[T_REQUIRED_BY] = _("Required By");
+    // 	buf[T_SHA_256_SUM] = _("SHA-256 Sum");
+    // 	buf[T_SIGNATURES] = _("Signatures");
+    // 	buf[T_URL] = _("URL");
+    // 	buf[T_VALIDATED_BY] = _("Validated By");
+    // 	buf[T_VERSION] = _("Version");
+    //
+    // 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
+    // 		wlen[i] = mbstowcs(wbuf[i], buf[i], strlen(buf[i]) + 1);
+    // 		wcol[i] = wcswidth(wbuf[i], wlen[i]);
+    // 		if(wcol[i] > maxcol) {
+    // 			maxcol = wcol[i];
+    // 		}
+    // 		if(wlen[i] > maxlen) {
+    // 			maxlen = wlen[i];
+    // 		}
+    // 	}
+    //
+    // 	for(i = 0; i < ARRAYSIZE(wbuf); i++) {
+    // 		size_t padlen = maxcol - wcol[i];
+    // 		wmemset(wbuf[i] + wlen[i], L' ', padlen);
+    // 		wmemcpy(wbuf[i] + wlen[i] + padlen, title_suffix, ARRAYSIZE(title_suffix));
+    // 		wcstombs(titles[i], wbuf[i], sizeof(wbuf[i]));
+    // 	}
+}
+
+// /** Turn a optdepends list into a text list.
+//  * @param optdeps a list with items of type depend_t
+//  */
+// static void optdeplist_display(Package *pkg, unsigned short cols)
+// {
+// 	alpm_list_t *i, *text = NULL;
+// 	Database *localdb = alpm_get_localdb(config->handle);
+// 	for(i = get_optdepends(pkg); i; i = alpm_list_next(i)) {
+// 		depend_t *optdep = i->data;
+// 		char *depstring = alpm_dep_compute_string(optdep);
+// 		if(get_origin(pkg) == LocalDatabase) {
+// 			if(alpm_find_satisfier(get_pkgcache(localdb), optdep->name)) {
+// 				const char *installed = _(" [installed]");
+// 				depstring = realloc(depstring, strlen(depstring) + strlen(installed) + 1);
+// 				strcpy(depstring + strlen(depstring), installed);
+// 			}
+// 		}
+// 		text = alpm_list_add(text, depstring);
+// 	}
+// 	list_display_linebreak(titles[T_OPTIONAL_DEPS], text, cols);
+// 	FREELIST(text);
+// }
+
+// static const char *get_backup_file_status(const char *root,
+// 		const alpm_backup_t *backup)
+// {
+// 	char path[PATH_MAX];
+// 	const char *ret;
+//
+// 	snprintf(path, PATH_MAX, "{}{}", root, backup->name);
+//
+// 	/* if we find the file, calculate checksums, otherwise it is missing */
+// 	if(access(path, R_OK) == 0) {
+// 		char *md5sum = alpm_compute_md5sum(path);
+//
+// 		if(md5sum == NULL) {
+// 			pm_printf(ALPM_LOG_ERROR,
+// 					_("could not calculate checksums for {}\n"), path);
+// 			return NULL;
+// 		}
+//
+// 		/* if checksums don't match, file has been modified */
+// 		if(strcmp(md5sum, backup->hash) != 0) {
+// 			ret = "MODIFIED";
+// 		} else {
+// 			ret = "UNMODIFIED";
+// 		}
+// 		free(md5sum);
+// 	} else {
+// 		switch(errno) {
+// 			case EACCES:
+// 				ret = "UNREADABLE";
+// 				break;
+// 			case ENOENT:
+// 				ret = "MISSING";
+// 				break;
+// 			default:
+// 				ret = "UNKNOWN";
+// 		}
+// 	}
+// 	return ret;
+// }
+//
+// /* Display list of backup files and their modification states
+//  */
+// void dump_pkg_backups(Package *pkg)
+// {
+// 	alpm_list_t *i;
+// 	const char *root = alpm_option_get_root(config->handle);
+// 	printf("{}{}\n{}", config->colstr.title, titles[T_BACKUP_FILES],
+// 				 config->colstr.nocolor);
+// 	if(get_backup(pkg)) {
+// 		/* package has backup files, so print them */
+// 		for(i = get_backup(pkg); i; i = alpm_list_next(i)) {
+// 			const alpm_backup_t *backup = i->data;
+// 			const char *value;
+// 			if(!backup->hash) {
+// 				continue;
+// 			}
+// 			value = get_backup_file_status(root, backup);
+// 			printf("{}\t{}{}\n", value, root, backup->name);
+// 		}
+// 	} else {
+// 		/* package had no backup files */
+// 		printf(_("(none)\n"));
+// 	}
+// }
+
+/// List all files contained in a package
+pub fn dump_pkg_files(pkg: &Package, quiet: bool) {
+    unimplemented!();
+    // 	const char *pkgname, *root;
+    // 	alpm_filelist_t *pkgfiles;
+    // 	size_t i;
+    //
+    // 	pkgname = get_name(pkg);
+    // 	pkgfiles = get_files(pkg);
+    // 	root = alpm_option_get_root(config->handle);
+    //
+    // 	for(i = 0; i < pkgfiles->count; i++) {
+    // 		const alpm_file_t *file = pkgfiles->files + i;
+    // 		/* Regular: '<pkgname> <root><filepath>\n'
+    // 		 * Quiet  : '<root><filepath>\n'
+    // 		 */
+    // 		if(!quiet) {
+    // 			printf("{}{}{} ", config->colstr.title, pkgname, config->colstr.nocolor);
+    // 		}
+    // 		printf("{}{}\n", root, file->name);
+    // 	}
+    //
+    // 	fflush(stdout);
+}
+
+/// Display the changelog of a package
+pub fn dump_pkg_changelog(pkg: &Package) {
+    unimplemented!();
+    // 	void *fp = NULL;
+    //
+    // 	if((fp = changelog_open(pkg)) == NULL) {
+    // 		pm_printf(ALPM_LOG_ERROR, _("no changelog available for '{}'.\n"),
+    // 				get_name(pkg));
+    // 		return;
+    // 	} else {
+    // 		fprintf(stdout, _("Changelog for {}:\n"), get_name(pkg));
+    // 		/* allocate a buffer to get the changelog back in chunks */
+    // 		char buf[CLBUF_SIZE];
+    // 		size_t ret = 0;
+    // 		while((ret = changelog_read(buf, CLBUF_SIZE, pkg, fp))) {
+    // 			if(ret < CLBUF_SIZE) {
+    // 				/* if we hit the end of the file, we need to add a null terminator */
+    // 				*(buf + ret) = '\0';
+    // 			}
+    // 			fputs(buf, stdout);
+    // 		}
+    // 		changelog_close(pkg, fp);
+    // 		putchar('\n');
+    // 	}
+}
+
+// void print_installed(Database *db_local, Package *pkg)
+// {
+// 	const char *pkgname = get_name(pkg);
+// 	const char *pkgver = get_version(pkg);
+// 	Package *lpkg = get_pkg(db_local, pkgname);
+// 	if(lpkg) {
+// 		const char *lpkgver = get_version(lpkg);
+// 		const colstr_t *colstr = &config->colstr;
+// 		if(strcmp(lpkgver, pkgver) == 0) {
+// 			printf(" {}[{}]{}", colstr->meta, _("installed"), colstr->nocolor);
+// 		} else {
+// 			printf(" {}[{}: {}]{}", colstr->meta, _("installed"),
+// 					lpkgver, colstr->nocolor);
+// 		}
+// 	}
+// }
+
+/// Display the details of a search.
+pub fn dump_pkg_search(
+    db: &mut Database,
+    targets: &Vec<String>,
+    show_status: i32,
+    handle: &Handle,
+    quiet: bool,
+) -> Result<()> {
+    unimplemented!();
+    // 	int freelist = 0;
+    // 	Database *db_local;
+    let db_local;
+    // 	alpm_list_t *i, *searchlist;
+    let searchlist;
+    let mut freelist = 0;
+    // 	unsigned short cols;
+    // 	const colstr_t *colstr = &config->colstr;
+    // let colstr = &config.colstr;
+    //
+    if show_status != 0 {
+        db_local = handle.get_localdb();
+    }
+
+    /* if we have a targets list, search for packages matching it */
+    if !targets.is_empty() {
+        searchlist = db.search(targets).clone();
+        freelist = 1;
+    } else {
+        searchlist = db.get_pkgcache()?;
+        freelist = 0;
+    }
+    if searchlist.is_empty() {
+        return Err(Error::Other);
+    }
+
+    for pkg in searchlist {
+        // let grp;
+        // 		alpm_list_t *grp;
+        // 		Package *pkg = i->data;
+        //
+        if quiet {
+            print!("{}", pkg.get_name())
+        // 			fputs(get_name(pkg), stdout);
+        } else {
+            print!("{}/{} {}", db.get_name(), pkg.get_name(), pkg.get_version(),);
+            // grp = pkg.get_groups();
+            // if grp.is_some() {
+            // 	// 				alpm_list_t *k;
+            // 	// 				printf(" {}(", colstr->groups);
+            // 	for group in grp {
+            // 		// 					const char *group = k->data;
+            // 		// 					fputs(group, stdout);
+            // 		// 					if(alpm_list_next(k)) {
+            // 		// 						/* only print a spacer if there are more groups */
+            // 		// 						putchar(' ');
+            // 		// 					}
+            // 	}
+            // 	// print!("){}", colstr->nocolor);
+            // }
+            //
+            // 			if(show_status) {
+            // 				print_installed(db_local, pkg);
+            // 			}
+            //
+            // 			/* we need a newline and initial indent first */
+            // 			fputs("\n    ", stdout);
+            // 			indentprint(get_desc(pkg), 4, cols);
+        }
+        // print!("\n");
+    }
+
+    // /* we only want to free if the list was a search list */
+    // if (freelist != 0) {
+    // 	alpm_list_free(searchlist);
+    // }
+
+    return Ok(());
+}

@@ -10,12 +10,19 @@
 // #![allow(unused_must_use)]
 pub mod pacman;
 pub mod alpm;
+pub mod consts;
 mod package;
 mod error;
 mod util;
 mod db;
 mod package_reason;
 mod handle;
+mod question;
+mod trans;
+mod signature;
+mod dependency;
+mod parse;
+mod config;
 
 extern crate curl;
 extern crate env_logger;
@@ -32,43 +39,28 @@ use env_logger::{Builder, Color};
 use log::{Level, LevelFilter};
 use std::io::Write;
 use std::result::Result as StdResult;
+use consts::DEBUG;
+use dependency::{dep_from_string, dep_vercmp, find_dep_satisfier, find_dep_satisfier_ref,
+                 find_satisfier};
 
+pub use config::ConfigRepo;
+pub use config::Operations;
+pub use config::Config;
+pub use parse::IniParserFn;
+pub type Result<T> = StdResult<T, Error>;
 pub use handle::Handle;
-pub use package_reason::PackageReason;
 pub use db::Database;
 pub use db::DbOpsType;
+pub use dependency::DepMissing;
+pub use dependency::Depmod;
+pub use dependency::Dependency;
+pub use signature::{SigLevel, SigValidity, SignatureList, SignatureStatus};
+pub use trans::{TransState, Transaction, TransactionFlag};
+pub use package_reason::PackageReason;
 pub use error::Error;
-pub use package::Package;
-pub type Result<T> = StdResult<T, Error>;
+pub use package::{Package, PackageFrom, PackageValidation};
 
-const PACKAGE_VERSION: &str = "0.0.1";
-const DEBUG: bool = true;
-const CONFFILE: &str = "/etc/pacman.conf";
-const ROOTDIR: &str = "/";
-const DBPATH: &str = "/var/lib/pacman/";
-const LOGFILE: &str = "/var/log/crystal.log";
-const CACHEDIR: &str = "/var/cache/pacman/pkg/";
-const GPGDIR: &str = "/etc/pacman.d/gnupg/";
-const HOOKDIR: &str = "/etc/pacman.d/hooks/";
-const SYSHOOKDIR: &str = "/usr/local/share/libalpm/hooks/";
-const ALPM_LOCAL_DB_VERSION: usize = 9;
-/// Database entries
-const INFRQ_BASE: i32 = (1 << 0);
-const INFRQ_DESC: i32 = (1 << 1);
-const INFRQ_FILES: i32 = (1 << 2);
-const INFRQ_SCRIPTLET: i32 = (1 << 3);
-const INFRQ_DSIZE: i32 = (1 << 4);
-/// ALL should be info stored in the package or database
-const INFRQ_ALL: i32 = INFRQ_BASE | INFRQ_DESC | INFRQ_FILES | INFRQ_SCRIPTLET | INFRQ_DSIZE;
-const INFRQ_ERROR: i32 = (1 << 30);
-
-#[cfg(target_arch = "x86_64")]
-const OS_ARCH: &str = "x86_64";
-
-#[cfg(target_arch = "x86")]
-const OS_ARCH: &str = "x86";
-
-pub fn main() {
+fn main() {
     let mut builder = Builder::new();
     builder.format(|buf, record| {
         let ts = buf.timestamp();

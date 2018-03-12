@@ -1,27 +1,11 @@
-/*
- *  sync.c
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-use super::{check_syncdbs, dump_pkg_search, sync_syncdbs, trans_init, trans_release, yesno, Config};
-use alpm::{DatabaseUsage, DepMissing, TransactionFlag};
+use pacman::{check_syncdbs, sync_syncdbs, trans_init, trans_release, yesno, Config};
+use package::dump_pkg_search;
+use alpm::DatabaseUsage;
 use std::fs::{read_dir, remove_dir_all};
-use {Database, Error, Handle, Package, Result};
+use {Error, Handle, Package, TransactionFlag};
+use Result;
+use Database;
+use DepMissing;
 
 fn unlink_verbose(pathname: &String, ignore_missing: bool) -> i32 {
     unimplemented!();
@@ -818,11 +802,7 @@ pub fn sync_prepare_execute(config: &Config, handle: &mut Handle) -> Result<()> 
     return retval;
 }
 
-pub fn pacman_sync(
-    targets: Vec<String>,
-    mut config: Config,
-    mut handle: Handle,
-) -> Result<()> {
+pub fn pacman_sync(targets: Vec<String>, mut config: Config, mut handle: Handle) -> Result<()> {
     let mut sync_dbs: Vec<Database>;
 
     /* clean the cache */

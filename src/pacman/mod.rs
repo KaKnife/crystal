@@ -1,56 +1,39 @@
-/*
- *  pacman.c
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNUu8 General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+mod database;
+mod remove;
+mod upgrade;
+mod sync;
+mod query;
+mod deptest;
+mod check;
+mod callback;
+
+// use parse_ini;
+// use self::package::{dump_pkg_changelog, dump_pkg_files, dump_pkg_search};
 use libc;
 use std::env;
-pub mod conf;
-pub use super::alpm;
-pub mod database;
-pub mod util;
-pub mod remove;
-pub mod upgrade;
-pub mod sync;
-pub mod query;
-pub mod deptest;
-pub mod package;
-pub mod check;
-pub mod ini;
-pub mod callback;
-
-pub use self::ini::{parse_ini, IniParserFn};
-use self::package::{dump_pkg_changelog, dump_pkg_files, dump_pkg_search};
 use self::database::pacman_database;
-use self::conf::{parseconfig, setup_libalpm, Config, Operations, Section, PKG_LOCALITY_FOREIGN,
-                 PKG_LOCALITY_NATIVE};
+use parse::parseconfig;
 use self::deptest::pacman_deptest;
 use self::query::pacman_query;
 use self::sync::{pacman_sync, sync_prepare_execute};
 use self::upgrade::pacman_upgrade;
-use self::remove::*;
-use self::util::{check_syncdbs, print_packages, sync_syncdbs, trans_init, trans_release, yesno};
-use std::{path::Path, process::exit};
-use PACKAGE_VERSION;
+use self::remove::pacman_remove;
+use util::{check_syncdbs, print_packages, sync_syncdbs, trans_init, trans_release, yesno};
+use std::path::Path;
+use std::process::exit;
+use consts::PACKAGE_VERSION;
 use Handle;
-
-// use super::*;
-
-// use std;
+use dep_from_string;
+use Result;
+use Error;
+use parse::merge_siglevel;
+use consts::CACHEDIR;
+use consts::DBPATH;
+use consts::GPGDIR;
+use consts::{HOOKDIR, LOGFILE, ROOTDIR};
+use parse::register_repo;
+use Config;
+use Operations;
 
 /* special handling of package version for GIT */
 // #if defined(GIT_VERSION)
@@ -274,7 +257,7 @@ use Handle;
 // #endif
 
 /// Set user agent environment variable.
-pub fn setuseragent() {
+fn setuseragent() {
     let agent: String = format!("crystal/{} ({} {})", PACKAGE_VERSION, "linux", "x86_64");
     env::set_var("HTTP_USER_AGENT", agent);
 }
@@ -496,4 +479,168 @@ pub fn main() {
     }
 
     cleanup(ret);
+}
+
+/// Sets up libalpm global stuff in one go. Called after the command line
+/// and initial config file parsing. Once this is complete, we can see if any
+/// paths were defined. If a rootdir was defined and nothing else, we want all
+/// of our paths to live under the rootdir that was specified. Safe to call
+/// multiple times (will only do anything the first time).
+pub fn setup_libalpm<'a>(config: &Config) -> Result<Handle> {
+    let mut handle;
+    let mut rootdir = config.rootdir.clone();
+    let mut dbpath = config.dbpath.clone();
+    let mut logfile = config.logfile.clone();
+    let mut gpgdir = config.gpgdir.clone();
+
+    debug!("setup_libalpm called");
+
+    /* Configure root path first. If it is set and dbpath/logfile were not
+     * set, then set those as well to reside under the root. */
+    if rootdir != "" {
+        if dbpath == "" {
+            dbpath = format!("{}{}", rootdir, DBPATH);
+        }
+        if logfile == "" {
+            logfile = format!("{}{}", rootdir, LOGFILE);
+        }
+    } else {
+        rootdir = format!("{}", ROOTDIR);
+        if dbpath == "" {
+            dbpath = format!("{}", DBPATH);
+        }
+    }
+
+    /* initialize library */
+    handle = match Handle::new(&rootdir, &dbpath) {
+        Ok(h) => h,
+        Err(e) => {
+            error!("failed to initialize alpm library({}: {})", e, dbpath);
+            match e {
+                Error::DatabaseVersion => error!("try running pacman-db-upgrade"),
+                _ => {}
+            }
+            return Err(e);
+        }
+    };
+
+    // config.handle = handle;
+
+    // alpm_option_set_logcb(handle, cb_log);
+    // alpm_option_set_dlcb(handle, cb_dl_progress);
+    // alpm_option_set_eventcb(handle, cb_event);
+    // alpm_option_set_questioncb(handle, cb_question);
+    // alpm_option_set_progresscb(handle, cb_progress);
+
+    match config.op {
+        Some(Operations::FILES) => {
+            handle.set_dbext(&String::from(".files"));
+        }
+        _ => {}
+    }
+
+    if logfile == "" {
+        logfile = format!("{}", LOGFILE);
+    }
+    if let Err(e) = handle.set_logfile(&logfile) {
+        error!("problem setting logfile '{}' ({})", logfile, e);
+        return Err(e);
+    }
+
+    /* Set GnuPG's home directory. This is not relative to rootdir, even if
+     * rootdir is defined. Reasoning: gpgdir contains configuration data. */
+    if gpgdir == "" {
+        gpgdir = format!("{}", GPGDIR);
+    }
+    if let Err(e) = handle.set_gpgdir(&gpgdir) {
+        error!("problem setting gpgdir '{}' ({})", gpgdir, e);
+        return Err(e);
+    }
+
+    /* Set user hook directory. This is not relative to rootdir, even if
+     * rootdir is defined. Reasoning: hookdir contains configuration data. */
+    if config.hookdirs.is_empty() {
+        if let Err(e) = handle.add_hookdir(&String::from(HOOKDIR)) {
+            error!("problem adding hookdir '{}' ({})", HOOKDIR, e);
+            return Err(e);
+        }
+    } else {
+        /* add hook directories 1-by-1 to avoid overwriting the system directory */
+        for data in &config.hookdirs {
+            if let Err(e) = handle.add_hookdir(data) {
+                error!("problem adding hookdir '{}' ({})", data, e);
+                return Err(e);
+            }
+        }
+    }
+
+    /* add a default cachedir if one wasn't specified */
+    if config.cachedirs.is_empty() {
+        handle.add_cachedir(&String::from(CACHEDIR))?;
+    } else {
+        handle.set_cachedirs(&config.cachedirs)?;
+    }
+
+    handle.set_overwrite_files(&config.overwrite_files);
+
+    handle.set_default_siglevel(&config.siglevel);
+
+    // config.localfilesiglevel = merge_siglevel(
+    //     config.siglevel,
+    //     config.localfilesiglevel,
+    //     config.localfilesiglevel_mask,
+    // );
+    // config.remotefilesiglevel = merge_siglevel(
+    //     config.siglevel,
+    //     config.remotefilesiglevel,
+    //     config.remotefilesiglevel_mask,
+    // );
+
+    handle.set_local_file_siglevel(merge_siglevel(
+        config.siglevel,
+        config.localfilesiglevel,
+        config.localfilesiglevel_mask,
+    ));
+
+    handle.set_remote_file_siglevel(merge_siglevel(
+        config.siglevel,
+        config.remotefilesiglevel,
+        config.remotefilesiglevel_mask,
+    ));
+
+    for mut repo in &config.repos {
+        register_repo(&repo, &mut handle, config.siglevel, &config.arch)?;
+    }
+
+    // if config.xfercommand!="" {
+    //     alpm_option_set_fetchcb(handle, download_with_xfercommand);
+    // } else if !(alpm_capabilities().ALPM_CAPABILITY_DOWNLOADER) {
+    //     // pm_printf(ALPM_LOG_WARNING, _("no '{}' configured\n"), "XferCommand");
+    // }
+
+    // if config.totaldownload {
+    //     alpm_option_set_totaldlcb(handle, cb_dl_total);
+    // }
+
+    handle.set_arch(&config.arch);
+
+    handle.set_checkspace(config.checkspace as i32);
+
+    handle.set_usesyslog(config.usesyslog as i32);
+    handle.set_deltaratio(config.deltaratio)?;
+    handle.set_ignorepkgs(&config.ignorepkg);
+
+    handle.set_ignoregroups(&config.ignoregrp);
+    handle.set_noupgrades(&config.noupgrade);
+    handle.set_noextracts(&config.noextract);
+
+    handle.set_disable_dl_timeout(config.disable_dl_timeout);
+
+    for entry in &config.assumeinstalled {
+        let dep = dep_from_string(&entry);
+        debug!("parsed assume installed: {} {}", dep.name, dep.version,);
+        handle.add_assumeinstalled(dep);
+    }
+
+    Ok(handle)
 }

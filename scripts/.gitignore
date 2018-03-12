@@ -1,9 +1,0 @@
-makepkg
-makepkg-template
-pacman-db-upgrade
-pacman-key
-pkgdelta
-repo-add
-repo-elephant
-repo-remove
-*-wrapper

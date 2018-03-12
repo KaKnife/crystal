@@ -1,31 +1,8 @@
-/*
- *  trans.h
- *
- *  Copyright (c) 2006-2017 Pacman Development Team <pacman-dev@archlinux.org>
- *  Copyright (c) 2002-2006 by Judd Vinet <jvinet@zeroflux.org>
- *  Copyright (c) 2005 by Aurelien Foret <orelien@chez.com>
- *  Copyright (c) 2005 by Christian Hamar <krics@linuxforum.hu>
- *  Copyright (c) 2006 by Miklos Vajna <vmiklos@frugalware.org>
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-use alpm::TransactionFlag;
-use {Package, Result};
+use Package;
+use Result;
 
 #[derive(Debug, Clone)]
-pub enum AlpmTransState {
+pub enum TransState {
     Idle = 0,
     Initialized,
     Prepared,
@@ -34,9 +11,9 @@ pub enum AlpmTransState {
     Commited,
     Interrupted,
 }
-impl Default for AlpmTransState {
+impl Default for TransState {
     fn default() -> Self {
-        AlpmTransState::Idle
+        TransState::Idle
     }
 }
 
@@ -45,7 +22,7 @@ impl Default for AlpmTransState {
 pub struct Transaction {
     /* bitfield of TransactionFlag flags */
     pub flags: TransactionFlag,
-    pub state: AlpmTransState,
+    pub state: TransState,
     pub unresolvable: Vec<Package>,
     pub add: Vec<Package>,
     pub remove: Vec<Package>,
@@ -188,21 +165,41 @@ impl Transaction {
 // 	return retval;
 // }
 
-// int SYMEXPORT trans_get_flags(handle_t *handle)
-// {
-// 	/* Sanity checks */
-// 	CHECK_HANDLE(handle, return -1);
-// 	ASSERT(handle->trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, -1));
-//
-// 	return handle->trans->flags;
-// }
-
-// list_t SYMEXPORT *trans_get_add(handle_t *handle)
-// {
-// 	/* Sanity checks */
-// 	CHECK_HANDLE(handle, return NULL);
-// 	ASSERT(handle->trans != NULL, RET_ERR(handle, ALPM_ERR_TRANS_NULL, NULL));
-//
-// 	return handle->trans->add;
-// }
-//
+/// Transaction flags
+#[derive(Default, Debug, Clone)]
+pub struct TransactionFlag {
+    /// Ignore dependency checks.
+    pub no_deps: bool,
+    /// Ignore file conflicts and overwrite files.
+    pub force: bool,
+    /// Delete files even if they are tagged as backup.
+    pub no_save: bool,
+    /// Ignore version numbers when checking dependencies.
+    pub no_depversion: bool,
+    /// Remove also any packages depending on a package being removed.
+    pub cascade: bool,
+    /// Remove packages and their unneeded deps (not explicitly installed).
+    pub recurse: bool,
+    /// Modify database but do not commit changes to the filesystem.
+    pub db_only: bool,
+    /* (1 << 7) flag can go here */
+    /// Use Depend when installing packages.
+    pub all_deps: bool,
+    /// Only download packages and do not actually install.
+    pub download_only: bool,
+    /// Do not execute install scriptlets after installing.
+    pub no_scriptlet: bool,
+    /// Ignore dependency conflicts.
+    pub no_conflicts: bool,
+    /* (1 << 12) flag can go here */
+    /// Do not install a package if it is already installed and up to date.
+    pub needed: bool,
+    /// Use Explicit when installing packages.
+    pub all_explicit: bool,
+    /// Do not remove a package if it is needed by another one.
+    pub unneeded: bool,
+    /// Remove also explicitly installed unneeded deps (use with pub RECURSE).
+    pub recurse_all: bool,
+    /// Do not lock the database during the operation.
+    pub no_lock: bool,
+}
