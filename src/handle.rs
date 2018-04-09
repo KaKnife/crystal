@@ -1,9 +1,10 @@
 use std;
 use std::fs::File;
 use std::fs;
-use alpm::{CbEvent, CbFetch, Conflict};
-use {find_dep_satisfier, find_dep_satisfier_ref, Database, DbOpsType, DepMissing, Dependency,
-     Error, Package, PackageReason, Result, SigLevel, TransState, Transaction, TransactionFlag};
+use alpm::{CbEvent, CbFetch};
+use {find_dep_satisfier, find_dep_satisfier_ref, Conflict, Database, DbOpsType, DepMissing,
+     Dependency, Error, Package, PackageReason, Result, SigLevel, TransState, Transaction,
+     TransactionFlag};
 use package::PackageFrom;
 use question::{CbQuestion, QuestionReplace, QuestionType};
 use consts::SYSHOOKDIR;
@@ -81,6 +82,110 @@ pub struct Archive {}
 pub struct ArchiveEntry {}
 
 impl Handle {
+    /**
+     * Computes resolvable dependencies for a given package and adds that package
+     * and those resolvable dependencies to a list.
+     *
+     * @param handle the context handle
+     * @param localpkgs is the list of local packages
+     * @param pkg is the package to resolve
+     * @param preferred packages to prefer when resolving
+     * @param packages is a pointer to a list of packages which will be
+     *        searched first for any dependency packages needed to complete the
+     *        resolve, and to which will be added any [pkg] and all of its
+     *        dependencies not already on the list
+     * @param remove is the set of packages which will be removed in this
+     *        transaction
+     * @param data returns the dependency which could not be satisfied in the
+     *        event of an error
+     * @return 0 on success, with [pkg] and all of its dependencies not already on
+     *         the [*packages] list added to that list, or -1 on failure due to an
+     *         unresolvable dependency, in which case the [*packages] list will be
+     *         unmodified by this function
+     */
+    pub fn resolvedeps(
+        &self,
+        localpkgs: &Vec<Package>,
+        pkg: &Package,
+        preferred: &Vec<Package>,
+        packages: &mut Vec<Package>,
+        remove: &Vec<Package>,
+        data: &Vec<Package>,
+    ) -> i32 {
+        unimplemented!();
+        // 	int ret = 0;
+        // 	list_t *j;
+        // 	list_t *targ;
+        // 	list_t *deps = NULL;
+        // 	list_t *packages_copy;
+        //
+        // 	if(pkg_find(*packages, pkg->name) != NULL) {
+        // 		return 0;
+        // 	}
+        //
+        // 	/* Create a copy of the packages list, so that it can be restored
+        // 	   on error */
+        // 	packages_copy = list_copy(*packages);
+        // 	/* [pkg] has not already been resolved into the packages list, so put it
+        // 	   on that list */
+        // 	*packages = list_add(*packages, pkg);
+        //
+        // 	_log(handle, ALPM_LOG_DEBUG, "started resolving dependencies\n");
+        // 	targ = list_add(NULL, pkg);
+        // 	deps = checkdeps(handle, localpkgs, rem, targ, 0);
+        // 	list_free(targ);
+        // 	targ = NULL;
+        //
+        // 	for(j = deps; j; j = j->next) {
+        // 		depmissing_t *miss = j->data;
+        // 		Dependency *missdep = miss->depend;
+        // 		/* check if one of the packages in the [*packages] list already satisfies
+        // 		 * this dependency */
+        // 		if(find_dep_satisfier(*packages, missdep)) {
+        // 			depmissing_free(miss);
+        // 			continue;
+        // 		}
+        // 		/* check if one of the packages in the [preferred] list already satisfies
+        // 		 * this dependency */
+        // 		Package *spkg = find_dep_satisfier(preferred, missdep);
+        // 		if(!spkg) {
+        // 			/* find a satisfier package in the given repositories */
+        // 			spkg = resolvedep(handle, missdep, handle->dbs_sync, *packages, 0);
+        // 		}
+        // 		if(spkg && _resolvedeps(handle, localpkgs, spkg, preferred, packages, rem, data) == 0) {
+        // 			_log(handle, ALPM_LOG_DEBUG,
+        // 					"pulling dependency {} (needed by {})\n",
+        // 					spkg->name, pkg->name);
+        // 			depmissing_free(miss);
+        // } else if(resolvedep(handle, missdep, (targ = list_add(NULL, handle->db_local)), rem, 0)) {
+        // 			depmissing_free(miss);
+        // 		} else {
+        // 			handle->pm_errno = ALPM_ERR_UNSATISFIED_DEPS;
+        // 			char *missdepstring = dep_compute_string(missdep);
+        // 			_log(handle, ALPM_LOG_WARNING,
+        // 					_("cannot resolve \"{}\", a dependency of \"{}\"\n"),
+        // 					missdepstring, pkg->name);
+        // 			free(missdepstring);
+        // 			if(data) {
+        // 				*data = list_add(*data, miss);
+        // 			}
+        // 			ret = -1;
+        // 		}
+        // 		list_free(targ);
+        // 		targ = NULL;
+        // 	}
+        // 	list_free(deps);
+        //
+        // 	if(ret != 0) {
+        // 		list_free(*packages);
+        // 		*packages = packages_copy;
+        // 	} else {
+        // 		list_free(packages_copy);
+        // 	}
+        // 	_log(handle, ALPM_LOG_DEBUG, "finished resolving dependencies\n");
+        // 	return ret;
+    }
+
     /// Run ldconfig in a chroot. Returns 0 on success, 1 on error
     fn ldconfig(&self) -> i32 {
         use std::fs::metadata;
@@ -2369,7 +2474,6 @@ impl Handle {
                     remove.push(pkg.clone().clone());
                 }
             }
-            unimplemented!();
 
             /* Compute the fake local database for resolvedeps (partial fix for the
              * phonon/qt issue) */
@@ -2379,13 +2483,14 @@ impl Handle {
             /* Resolve packages in the transaction one at a time, in addition
              * building up a list of packages which could not be resolved. */
             for pkg in &self.trans.add {
-                // if(_alpm_resolvedeps(handle, localpkgs, pkg, trans->add,
-                			// 			&resolved, remove, data) == -1) {
-                			// 	unresolvable = alpm_list_add(unresolvable, pkg);
-                			// }
-                			/* Else, [resolved] now additionally contains [pkg] and all of its
-                			   dependencies not already on the list */
-            }
+                unimplemented!();
+                // if self.resolvedeps(&localpkgs, pkg, trans.add, &resolved, &remove, data) == -1 {
+                //     // unresolvable = alpm_list_add(unresolvable, pkg);
+                // }
+                /* Else, [resolved] now additionally contains [pkg] and all of its
+                			   dependencies not already on the list */            }
+
+            unimplemented!();
 
             /* If there were unresolvable top-level packages, prompt the user to
              * see if they'd like to ignore them rather than failing the sync */

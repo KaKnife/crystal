@@ -23,6 +23,7 @@ mod signature;
 mod dependency;
 mod parse;
 mod config;
+mod conflict;
 
 extern crate curl;
 extern crate env_logger;
@@ -59,6 +60,7 @@ pub use trans::{TransState, Transaction, TransactionFlag};
 pub use package_reason::PackageReason;
 pub use error::Error;
 pub use package::{Package, PackageFrom, PackageValidation};
+pub use conflict::Conflict;
 
 fn main() {
     let mut builder = Builder::new();

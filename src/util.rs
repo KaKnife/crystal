@@ -1619,11 +1619,6 @@ pub fn sync_syncdbs(level: i32, syncs: &mut Vec<Database>, handle: &mut Handle) 
 // 	return width;
 // }
 
-pub fn getcols() -> usize {
-    /*assume everything is at least 80 cols wide*/
-    80
-}
-
 /* does the same thing as 'rm -rf' */
 fn rmrf(path: String) -> i32 {
     unimplemented!();

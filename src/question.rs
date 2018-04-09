@@ -1,5 +1,6 @@
-use alpm::Conflict;
-use {Database, Package};
+use Conflict;
+use Database;
+use Package;
 
 /// Type of questions.
 /// Unlike the events or progress enumerations, this enum has bitmask values
